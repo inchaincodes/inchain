@@ -1,0 +1,1 @@
+运行install.bat命令，打包core为jar，并安装到maven资源库里

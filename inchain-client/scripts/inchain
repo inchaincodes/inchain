@@ -1,0 +1,56 @@
+#!/bin/sh
+PRG="$0"
+
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '.*/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+
+# Get standard environment variables
+JAVA_OPTS="-server -Xms512m -Xmx1024m"
+
+PRGDIR=`dirname "$PRG"`
+SERVER_HOME=`cd "$PRGDIR/.." ; pwd`
+
+# Get standard Java environment variables
+if [ -r "$SERVER_HOME"/bin/setclasspath.sh ]; then
+  BASEDIR="$SERVER_HOME"
+  . "$SERVER_HOME"/bin/setclasspath.sh
+else
+  echo "Cannot find $SERVER_HOME/bin/setclasspath.sh"
+  echo "This file is needed to run this program"
+  exit 1
+fi
+
+# add conf to classpath
+if [ -d "$SERVER_HOME/conf" ]; then
+  CLASSPATH=${CLASSPATH}:$SERVER_HOME/conf
+fi
+
+# add jar to CLASSPATH
+for f in $SERVER_HOME/*.jar; do
+  CLASSPATH=${CLASSPATH}:$f;
+done
+
+
+# add libs to CLASSPATH
+for f in $SERVER_HOME/lib/*.jar; do
+  CLASSPATH=${CLASSPATH}:$f;
+done
+
+# ----- Execute The Requested Command -----------------------------------------
+echo "Using SERVER_HOME:   $SERVER_HOME"
+echo "Using JAVA_HOME:       $JAVA_HOME"
+
+if [ "$1" = "" ] ; then
+exec "Usage:  inchain ( commands ... )"
+fi
+
+if [ "$1" != "" ] ; then
+exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" org.inchain.kit.AppKitDemo "$@" &
+fi

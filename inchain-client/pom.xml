@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.inchain</groupId>
+        <artifactId>inchain</artifactId>
+        <version>0.1</version>
+    </parent>
+    
+	<artifactId>inchain-client</artifactId>
+	<version>0.1</version>
+
+    <name>inchain-client</name>
+    <description>A Java Inchain Client</description>
+
+    <packaging>jar</packaging>
+
+    <url>https://www.inchain.org</url>
+
+    <developers>
+        <developer>
+            <name>The Inchain Team</name>
+            <email>dev@inchain.org</email>
+        </developer>
+    </developers>
+
+    <build>
+        <plugins>
+            <!-- mvn dependency:copy-dependencies 命令 把依赖的所有jar包复制到lib目录下 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.10</version>
+				<configuration>
+					<outputDirectory>${basedir}/lib</outputDirectory>
+					<excludeTransitive>false</excludeTransitive>
+					<stripVersion>true</stripVersion>
+                	<overWrite>true</overWrite>
+				</configuration>
+			</plugin>
+			
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.6</version>
+                <executions>
+                    <execution>
+                        <id>make-assembly-tar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+		                <configuration>
+		                    <appendAssemblyId>true</appendAssemblyId>
+		                    <finalName>${project.name}</finalName>
+		                    <descriptors>
+		                        <descriptor>assembly.xml</descriptor>
+		                    </descriptors>
+		                </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+        </plugins>
+        
+    </build>
+    
+    <dependencies>
+	    <!-- inchain 核心-->
+		<dependency>
+			<groupId>org.inchain</groupId>
+			<artifactId>inchain-core</artifactId>
+			<version>0.1</version>
+		</dependency>
+    </dependencies>
+</project>
