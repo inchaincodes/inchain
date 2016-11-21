@@ -53,6 +53,22 @@ public class AccountKit {
 	//节点管理器
 	private PeerKit peerKit;
 	
+	private static AccountKit INSTACE;
+	//单例
+	public static AccountKit getInstace( NetworkParameters network,  PeerKit peerKit) {
+		if(INSTACE == null) {
+			synchronized (locker) {
+				if(INSTACE == null)
+					try {
+						INSTACE = new AccountKit(network,peerKit);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			}
+		}
+		return INSTACE;
+	}	
 	public AccountKit(NetworkParameters network, PeerKit peerKit) throws IOException {
 		
 		this.network = Utils.checkNotNull(network);
