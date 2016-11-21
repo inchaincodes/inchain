@@ -1,5 +1,8 @@
 package org.inchain.rpc;
 
+import java.net.ServerSocket;
+import java.net.Socket;
+
 /**
  * 
  * 核心客户端RPC服务，RPC服务随核心启动，端口配置参考 {@link org.inchain.Configure.RPC_SERVER_PORT }
@@ -37,7 +40,27 @@ public class RPCServer {
 	 * RPC服务启动方法，启动之后监听本地端口 {@link org.inchain.Configure.RPC_SERVER_PORT}提供服务
 	 * 
 	 */
+    public static final int PORT = org.inchain.Configure.RPC_SERVER_PORT;//监听的端口号     
+
 	public void start() {
+		  System.out.println("服务器启动...\n");    
+		  RPCServer server = new RPCServer();    
+	        server.init();  
 		
 	}
+     public void init() {    
+	        try {    
+	            ServerSocket serverSocket = new ServerSocket(PORT);    
+	            while (true) {    
+	                // 一旦有堵塞, 则表示服务器与客户端获得了连接    
+	                Socket client = serverSocket.accept();    
+	                // 处理这次连接    
+	                new RPCHanlder(client);    
+	            }    
+	       } catch (Exception e) {    
+	            System.out.println("服务器异常: " + e.getMessage());    
+	       }    
+	  }    
+	
+	
 }
