@@ -8,7 +8,7 @@ public class RpcClientTest {
 	public static void main(String [] ar){
 	    System.out.println("单元测试开始。");
 	    RPCClient rpcClient = new RPCClient() ;
-	    rpcClient.RPCClient(IP_ADDR, PORT);
+//	    rpcClient.RPCClient("", "");
 	}
 
 }
