@@ -3,12 +3,16 @@ package org.inchain.rpc;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
 import java.net.Socket;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * RPC命令分发处理
@@ -43,55 +47,60 @@ import java.util.Map;
  * @author ln
  *
  */
-public class RPCHanlder implements Runnable {    
-    private Socket socket;    
+public class RPCHanlder implements Runnable {
+	private final static Logger log = LoggerFactory.getLogger(RPCHanlder.class);
 
-    public RPCHanlder(Socket client) {    
-        socket = client;    
-        new Thread(this).start();    
-    }    
+	Socket clent = null;
 
-    public void run() {    
-        try {    
-        	RPCService service = new RPCServiceImpl();  
-            // 读取客户端数据    
-            ObjectInputStream input = new ObjectInputStream(socket.getInputStream());  
-            String clientInputStr = input.readUTF();//这里要注意和客户端输出流的写方法对应,否则会抛 EOFException  
-            // 处理客户端数据    
-            System.out.println("客户端发过来的内容:" + clientInputStr);    
-            try {  
-                String methodName = input.readUTF();  
-                Class<?>[] parameterTypes = (Class<?>[])input.readObject();  
-                Object[] arguments = (Object[])input.readObject();  
-                ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream());  
-                try {  
-                    Method method = service.getClass().getMethod(methodName, parameterTypes);  
-                    Object result = method.invoke(service, arguments);  
-                    // 向客户端回复信息    
-                    output.writeObject(result); 
-                    System.out.print("请输入:\t"); 
-                } catch (Throwable t) {  
-                    output.writeObject(t);  
-                } finally {  
-                    output.close();  
-                }  
-            } finally {  
-                input.close();  
-            }  
-        } catch (Exception e) {    
-            System.out.println("服务器 run 异常: " + e.getMessage());    
-        } finally {    
-            if (socket != null) {    
-                try {    
-                    socket.close();    
-                } catch (Exception e) {    
-                    socket = null;    
-                    System.out.println("服务端 finally 异常:" + e.getMessage());    
-                }    
-            }    
-        }   
-    }    
+	public RPCHanlder(Socket client) {
+		this.clent = client;
+	}
 
+	public void run() {
+		ObjectInputStream input = null;
+		ObjectOutputStream output = null;
+		try {
+			// 2.将客户端发送的码流反序列化成对象，反射调用服务实现者，获取执行结果
+			input = new ObjectInputStream(clent.getInputStream());
+			String serviceName = input.readUTF();
+			String methodName = input.readUTF();
+			Class<?>[] parameterTypes = (Class<?>[]) input.readObject();
+			Object[] arguments = (Object[]) input.readObject();
+			Class serviceClass = RPCService.class;
+			if (serviceClass == null) {
+				throw new ClassNotFoundException(serviceName + " not found");
+			}
+			Method method = serviceClass.getMethod(methodName, parameterTypes);
+			Object result = method.invoke(serviceClass.newInstance(), arguments);
 
+			// 3.将执行结果反序列化，通过socket发送给客户端
+			output = new ObjectOutputStream(clent.getOutputStream());
+			output.writeObject(result);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (output != null) {
+				try {
+					output.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (input != null) {
+				try {
+					input.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (clent != null) {
+				try {
+					clent.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 }    
    

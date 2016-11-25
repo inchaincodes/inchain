@@ -39,7 +39,7 @@ public interface RPCService {
 	String   getnewestblockheight();  		//获取最新区块的高度 
 	String   getnewestblockhash(); 			//获取最新区块的hash
 	String   getblockheader  (String  height);	//通过区块的hash或者高度获取区块的头信息
-	String   getblock	(String  height);	//通过区块的hash或者高度获取区块的完整信息
+	String   getblock	(String  hash);	//通过区块的hash或者高度获取区块的完整信息
 	// --- 内存池
 	String   getmempoolinfo (String count);		//获取内存里的count条交易
 	 // --- 帐户

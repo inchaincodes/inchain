@@ -5,7 +5,17 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+
+import org.inchain.kits.AccountKit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * rpc客户端，通过命令调用远程客户端功能
@@ -26,52 +36,36 @@ import java.net.Socket;
  * @author ln
  *
  */
-public class RPCClient {
-
-    public static final String IP_ADDR = "localhost";//服务器地址   
-    public static final int PORT = org.inchain.Configure.RPC_SERVER_PORT;//服务器端口号    
-      
-    public static void main(String[] args) {    
-        System.out.println("客户端启动...");    
-        System.out.println("当接收到服务器端字符为 \"OK\" 的时候, 客户端将终止\n");   
-        while (true) {    
-            Socket socket = null;  
-            try {  
-                //创建一个流套接字并将其连接到指定主机上的指定端口号  
-                socket = new Socket(IP_ADDR, PORT);    
-                    
-                //读取服务器端数据    
-                DataInputStream input = new DataInputStream(socket.getInputStream());    
-                //向服务器端发送数据    
-                DataOutputStream out = new DataOutputStream(socket.getOutputStream());    
-                System.out.print("请输入: \t");    
-                String str = new BufferedReader(new InputStreamReader(System.in)).readLine();    
-                out.writeUTF(str);    
-                    
-                String ret = input.readUTF();     
-                System.out.println("服务器端返回过来的是: " + ret);    
-                // 如接收到 "OK" 则断开连接    
-                if ("OK".equals(ret)) {    
-                    System.out.println("客户端将关闭连接");    
-                    Thread.sleep(500);    
-                    break;    
-                }    
-                  
-                out.close();  
-                input.close();  
-            } catch (Exception e) {  
-                System.out.println("客户端异常:" + e.getMessage());   
-            } finally {  
-                if (socket != null) {  
-                    try {  
-                        socket.close();  
-                    } catch (IOException e) {  
-                        socket = null;   
-                        System.out.println("客户端 finally 异常:" + e.getMessage());   
-                    }  
-                }  
-            }  
-        }    
-    }    
-	
+public class RPCClient<T> {
+    public static <T> T getRemoteProxyObj(final Class<?> serviceInterface, final InetSocketAddress addr) {
+        // 1.将本地的接口调用转换成JDK的动态代理，在动态代理中实现接口的远程调用
+        return (T) Proxy.newProxyInstance(serviceInterface.getClassLoader(), new Class<?>[]{serviceInterface},
+                new InvocationHandler() {
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        Socket socket = null;
+                        ObjectOutputStream output = null;
+                        ObjectInputStream input = null;
+                        try {
+                            // 2.创建Socket客户端，根据指定地址连接远程服务提供者
+                            socket = new Socket();
+                            socket.connect(addr);
+ 
+                            // 3.将远程服务调用所需的接口类、方法名、参数列表等编码后发送给服务提供者
+                            output = new ObjectOutputStream(socket.getOutputStream());
+                            output.writeUTF(serviceInterface.getName());
+                            output.writeUTF(method.getName());
+                            output.writeObject(method.getParameterTypes());
+                            output.writeObject(args);
+ 
+                            // 4.同步阻塞等待服务器返回应答，获取应答后返回
+                            input = new ObjectInputStream(socket.getInputStream());
+                            return input.readObject();
+                        } finally {
+                            if (socket != null) socket.close();
+                            if (output != null) output.close();
+                            if (input != null) input.close();
+                        }
+                    }
+                });
+    }
 }
