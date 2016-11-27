@@ -12,11 +12,11 @@ import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
@@ -25,6 +25,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 制作创世块
@@ -33,17 +34,14 @@ import org.inchain.utils.Utils;
  */
 public class MakeGengsisBlock {
 
-	public static void main(String[] args) throws Exception {
-		makeTestNetGengsisBlock();
-	}
+	@Autowired
+	private NetworkParams network;
 
-	private static void makeTestNetGengsisBlock() throws Exception {
+	private void makeTestNetGengsisBlock() throws Exception {
 		
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
 		
-		NetworkParameters network = new TestNetworkParameters(seedManager, 8888);
-
 		PeerKit peerKit = new PeerKit(network);
 		peerKit.startSyn();
 		

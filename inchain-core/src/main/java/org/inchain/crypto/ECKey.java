@@ -6,7 +6,7 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 
 import org.inchain.account.Address;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -145,7 +145,7 @@ public class ECKey {
         return new FixedPointCombMultiplier().multiply(CURVE.getG(), privKey);
     }
     
-    public Address toAddress(NetworkParameters params) {
+    public Address toAddress(NetworkParams params) {
         return new Address(params, getPubKey(false));
     }
     

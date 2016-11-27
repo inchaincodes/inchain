@@ -2,7 +2,7 @@ package org.inchain.message;
 
 import org.inchain.core.PeerAddress;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 
 /**
  * <p>The verack message, sent by a client accepting the version message they
@@ -12,11 +12,11 @@ import org.inchain.network.NetworkParameters;
  */
 public class VerackMessage extends VersionMessage {
 
-	public VerackMessage(NetworkParameters params, byte[] payload) throws ProtocolException {
+	public VerackMessage(NetworkParams params, byte[] payload) throws ProtocolException {
         super(params, payload);
     }
 	
-	public VerackMessage(NetworkParameters params, int newBestHeight, PeerAddress remoteAddress) {
+	public VerackMessage(NetworkParams params, int newBestHeight, PeerAddress remoteAddress) {
 		super(params, newBestHeight, remoteAddress);
 	}
 	

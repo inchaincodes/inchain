@@ -4,22 +4,27 @@ import org.inchain.message.DefaultMessageSerializer;
 import org.inchain.message.MessageSerializer;
 import org.inchain.store.BlockStore;
 
-public class MainNetParams extends NetworkParameters {
+/**
+ * 主网各参数
+ * @author ln
+ *
+ */
+public class MainNetworkParams extends NetworkParams {
 	
-	private static MainNetParams instance;
-    public static synchronized MainNetParams get() {
+	private static MainNetworkParams instance;
+    public static synchronized MainNetworkParams get() {
         if (instance == null) {
-            instance = new MainNetParams();
+            instance = new MainNetworkParams();
         }
         return instance;
     }
     
-    public MainNetParams() {
+    public MainNetworkParams() {
     	this.seedManager = new RemoteSeedManager();
     	this.acceptableAddressCodes = new int[]{0x00,0x01,0x02,0x3,0x9};
 	}
     
-    public MainNetParams(SeedManager seedManager, int port) {
+    public MainNetworkParams(SeedManager seedManager, int port) {
     	this.seedManager = seedManager;
     	this.port = port;
 	}
@@ -38,6 +43,12 @@ public class MainNetParams extends NetworkParameters {
 	public BlockStore getGengsisBlock() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public int getBestBlockHeight() {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 
 }

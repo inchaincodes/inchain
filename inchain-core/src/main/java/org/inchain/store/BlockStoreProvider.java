@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 
@@ -29,10 +29,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	private static BlockStoreProvider INSTACE;
 	
 	//单例
-	public static BlockStoreProvider getInstace(String dir, NetworkParameters network) {
+	public static BlockStoreProvider getInstace(String dir, NetworkParams network) {
 		return getInstace(dir, network, -1, -1);
 	}
-	public static BlockStoreProvider getInstace(String dir, NetworkParameters network, long leveldbReadCache, int leveldbWriteCache) {
+	public static BlockStoreProvider getInstace(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
 		if(INSTACE == null) {
 			synchronized (locker) {
 				if(INSTACE == null)
@@ -42,7 +42,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		return INSTACE;
 	}
 	
-	BlockStoreProvider(String dir, NetworkParameters network) {
+	BlockStoreProvider(String dir, NetworkParams network) {
 		super(dir, network);
 	}
 

@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 
 /**
  * <p>Parent class for header only messages that don't have a payload.
@@ -35,12 +35,12 @@ public abstract class EmptyMessage extends Message {
         length = 0;
     }
 
-    public EmptyMessage(NetworkParameters params) {
+    public EmptyMessage(NetworkParams params) {
         super(params);
         length = 0;
     }
 
-    public EmptyMessage(NetworkParameters params, byte[] payload, int offset) throws ProtocolException {
+    public EmptyMessage(NetworkParams params, byte[] payload, int offset) throws ProtocolException {
         super(params, payload, offset);
         length = 0;
     }

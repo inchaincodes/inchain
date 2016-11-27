@@ -12,13 +12,8 @@ import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
-import org.inchain.store.BlockHeaderStore;
-import org.inchain.store.BlockStore;
-import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.TransactionStore;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
@@ -26,15 +21,16 @@ import org.iq80.leveldb.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class BlockStoreProvderTest {
 
-	private NetworkParameters network;
+	@Autowired
+	private NetworkParams network;
 	private BlockStoreProvider storeProvider;
 	
 	@Before
 	public void init() throws IOException {
-		network = TestNetworkParameters.get();
 		
 		//清空目录
 		FileUtils.deleteDirectoryContents(new File(Configure.DATA_BLOCK));

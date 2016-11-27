@@ -7,11 +7,11 @@ import org.inchain.Configure;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.listener.Listener;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 
 public class AppKitDemo {
 
@@ -20,7 +20,7 @@ public class AppKitDemo {
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 8322), true, 25000));
 		
-		NetworkParameters network = new TestNetworkParameters(seedManager, 8888);
+		NetworkParams network = new TestNetworkParams(seedManager);
 		
 		//测试前先清空帐户目录
 		File dir = new File(Configure.DATA_ACCOUNT);
@@ -30,7 +30,7 @@ public class AppKitDemo {
 			}
 		}
 		
-		final AppKit kit = new AppKit(network);
+		final AppKit kit = new AppKit();
 		kit.startSyn();
 		
 		kit.setInitListener(new Listener() {

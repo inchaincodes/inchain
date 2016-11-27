@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 public class PongMessage extends Message {
     private long nonce;
 
-    public PongMessage(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+    public PongMessage(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0);
     }
     

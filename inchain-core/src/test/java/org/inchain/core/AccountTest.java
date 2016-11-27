@@ -7,17 +7,20 @@ import java.math.BigInteger;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccountTest {
 	
 	private Logger log = LoggerFactory.getLogger(getClass());
+	
+	@Autowired
+	private NetworkParams network;
 
 	@Test
 	public void testAddress() {
@@ -26,8 +29,6 @@ public class AccountTest {
 		log.info("pri key is :" + key.getPrivateKeyAsHex());
 		log.info("pub key is :" + key.getPublicKeyAsHex());
 		log.info("pub key not compressed is :" + key.getPublicKeyAsHex(false));
-		
-		NetworkParameters network = TestNetworkParameters.get();
 		
 		int i = 0;
 		while(true) {
@@ -55,14 +56,4 @@ public class AccountTest {
 		assertEquals(address.getHash160AsHex(), "437e59f902d96c513ecba8e997f982e40a65b461");
 	}
 	
-	public static void main(String[] args) {
-		TestNetworkParameters network = TestNetworkParameters.get();
-		for (int i = 0; i < 254; i++) {
-			Address address = AccountTool.newAddress(network, Address.VERSION_TEST_PK);
-			System.out.println(address);
-		}
-		
-		//生成测试地址
-		
-	}
 }

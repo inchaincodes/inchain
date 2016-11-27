@@ -11,21 +11,21 @@ import java.util.Set;
  */
 public class Networks {
     /** Registered networks */
-    private static Set<NetworkParameters> networks = new HashSet<NetworkParameters>();
+    private static Set<NetworkParams> networks = new HashSet<NetworkParams>();
 
-    public static Set<? extends NetworkParameters> get() {
+    public static Set<? extends NetworkParams> get() {
         return networks;
     }
 
-    public static void register(NetworkParameters network) {
+    public static void register(NetworkParams network) {
     	networks.add(network);
     }
 
-    public static void register(Set<NetworkParameters> networks) {
+    public static void register(Set<NetworkParams> networks) {
         Networks.networks = networks;
     }
 
-    public static void unregister(NetworkParameters network) {
+    public static void unregister(NetworkParams network) {
         if (networks.contains(network)) {
             networks.remove(network);
         }

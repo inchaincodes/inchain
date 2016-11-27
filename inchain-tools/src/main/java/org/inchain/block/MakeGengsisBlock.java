@@ -12,11 +12,11 @@ import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
@@ -43,7 +43,7 @@ public class MakeGengsisBlock {
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
 		
-		NetworkParameters network = new TestNetworkParameters(seedManager, 8888);
+		NetworkParams network = new TestNetworkParams(seedManager);
 
 		PeerKit peerKit = new PeerKit(network);
 		peerKit.startSyn();

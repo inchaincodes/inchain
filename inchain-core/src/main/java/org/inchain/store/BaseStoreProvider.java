@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.inchain.db.Db;
 import org.inchain.db.LevelDB;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 /**
@@ -18,13 +18,13 @@ public abstract class BaseStoreProvider implements StoreProvider {
 	protected static Object locker = new Object();
 
 	protected Db db;
-	protected NetworkParameters network;
+	protected NetworkParams network;
 	
-	public BaseStoreProvider(String dir, NetworkParameters network) {
+	public BaseStoreProvider(String dir, NetworkParams network) {
 		this.db = new LevelDB(Utils.checkNotNull(dir));
 		this.network = Utils.checkNotNull(network);
 	}
-	public BaseStoreProvider(String dir, NetworkParameters network, long leveldbReadCache, int leveldbWriteCache) {
+	public BaseStoreProvider(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
 		//存储目录不能为空
 		Utils.checkNotNull(dir);
 		if(leveldbReadCache <= 0l || leveldbWriteCache <= 0l) {

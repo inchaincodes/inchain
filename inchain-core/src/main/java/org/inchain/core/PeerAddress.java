@@ -29,8 +29,8 @@ import java.util.Objects;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.message.Message;
 import org.inchain.message.MessageSerializer;
-import org.inchain.network.MainNetParams;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.MainNetworkParams;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 /**
@@ -54,7 +54,7 @@ public class PeerAddress extends Message {
     /**
      * Construct a peer address from a serialized payload.
      */
-    public PeerAddress(NetworkParameters params, byte[] payload, int offset, int protocolVersion) throws ProtocolException {
+    public PeerAddress(NetworkParams params, byte[] payload, int offset, int protocolVersion) throws ProtocolException {
         super(params, payload, offset, protocolVersion);
     }
 
@@ -74,14 +74,14 @@ public class PeerAddress extends Message {
      * for Bitcoin.
      */
     public PeerAddress(InetAddress addr, int port) {
-        this(addr, port, NetworkParameters.ProtocolVersion.CURRENT.getVersion());
+        this(addr, port, NetworkParams.ProtocolVersion.CURRENT.getVersion());
     }
 
     /**
      * Constructs a peer address from the given IP address and port.
      */
-    public PeerAddress(NetworkParameters params, InetAddress addr, int port) {
-        this(addr, port, params.getProtocolVersionNum(NetworkParameters.ProtocolVersion.CURRENT));
+    public PeerAddress(NetworkParams params, InetAddress addr, int port) {
+        this(addr, port, params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT));
     }
 
     /**
@@ -89,15 +89,15 @@ public class PeerAddress extends Message {
      * are default for Bitcoin mainnet.
      */
     public PeerAddress(InetAddress addr) {
-        this(addr, MainNetParams.get().getPort());
+        this(addr, MainNetworkParams.get().getPort());
     }
 
     /**
      * Constructs a peer address from the given IP address. Port is default for
      * Bitcoin mainnet, version number is default for the given parameters.
      */
-    public PeerAddress(NetworkParameters params, InetAddress addr) {
-        this(params, addr, MainNetParams.get().getPort());
+    public PeerAddress(NetworkParams params, InetAddress addr) {
+        this(params, addr, MainNetworkParams.get().getPort());
     }
 
     /**
@@ -107,14 +107,14 @@ public class PeerAddress extends Message {
      * for Bitcoin.
      */
     public PeerAddress(InetSocketAddress addr) {
-        this(addr.getAddress(), addr.getPort(), NetworkParameters.ProtocolVersion.CURRENT.getVersion());
+        this(addr.getAddress(), addr.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
     }
 
     /**
      * Constructs a peer address from an {@link InetSocketAddress}. An InetSocketAddress can take in as parameters an
      * InetAddress or a String hostname. If you want to connect to a .onion, set the hostname to the .onion address.
      */
-    public PeerAddress(NetworkParameters params, InetSocketAddress addr) {
+    public PeerAddress(NetworkParams params, InetSocketAddress addr) {
         this(params, addr.getAddress(), addr.getPort());
     }
 
@@ -125,22 +125,22 @@ public class PeerAddress extends Message {
     public PeerAddress(String hostname, int port) {
         this.hostname = hostname;
         this.port = port;
-        this.protocolVersion = NetworkParameters.ProtocolVersion.CURRENT.getVersion();
+        this.protocolVersion = NetworkParams.ProtocolVersion.CURRENT.getVersion();
         this.services = BigInteger.ZERO;
     }
 
     /**
      * Constructs a peer address from a stringified hostname+port. Use this if you want to connect to a Tor .onion address.
      */
-    public PeerAddress(NetworkParameters params, String hostname, int port) {
+    public PeerAddress(NetworkParams params, String hostname, int port) {
         super(params);
         this.hostname = hostname;
         this.port = port;
-        this.protocolVersion = params.getProtocolVersionNum(NetworkParameters.ProtocolVersion.CURRENT);
+        this.protocolVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         this.services = BigInteger.ZERO;
     }
 
-    public static PeerAddress localhost(NetworkParameters params) {
+    public static PeerAddress localhost(NetworkParams params) {
         try {
 			return new PeerAddress(params, InetAddress.getByName("127.0.0.1"), params.getPort());
 		} catch (UnknownHostException e) {

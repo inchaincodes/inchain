@@ -12,25 +12,28 @@ import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.MainNetParams;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.MainNetworkParams;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccountTest {
 	
 	private Logger log = LoggerFactory.getLogger(getClass());
 
+	@Autowired
+	private NetworkParams network;
+	
 	@Test
 	public void testAddress() {
-		NetworkParameters network = TestNetworkParameters.get();
 		
 //		int i = 0;
 //		while(true) {
@@ -62,8 +65,6 @@ public class AccountTest {
 	public void testAccountManager() throws Exception {
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
-		
-		NetworkParameters network = new TestNetworkParameters(seedManager, 8888);
 		
 		//测试前先清空帐户目录
 		File dir = new File(Configure.DATA_ACCOUNT);

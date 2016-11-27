@@ -8,7 +8,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.utils.Utils;
 
@@ -98,7 +98,7 @@ public class Account {
 	 * @param datas
 	 * @return Account
 	 */
-	public static Account parse(byte[] datas, NetworkParameters network) {
+	public static Account parse(byte[] datas, NetworkParams network) {
 		Account account = new Account();
 		
 		int cursor = 0;

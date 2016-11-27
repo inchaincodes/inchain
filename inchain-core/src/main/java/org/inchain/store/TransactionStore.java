@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 
@@ -28,20 +28,20 @@ public class TransactionStore extends Store {
 	private long height;
 	
 	
-	public TransactionStore(NetworkParameters network, byte[] content) {
+	public TransactionStore(NetworkParams network, byte[] content) {
 		super(network, content, 0);
 	}
 	
-	public TransactionStore(NetworkParameters network, byte[] content, int offset) {
+	public TransactionStore(NetworkParams network, byte[] content, int offset) {
 		super(network, content, offset);
 	}
 	
-	public TransactionStore(NetworkParameters network, Transaction transaction) {
+	public TransactionStore(NetworkParams network, Transaction transaction) {
 		super(network);
 		this.transaction = transaction;
 	}
 
-	public TransactionStore(NetworkParameters network, Transaction transaction, long height, int status) {
+	public TransactionStore(NetworkParams network, Transaction transaction, long height, int status) {
 		super(network);
 		this.transaction = transaction;
 		this.height = height;

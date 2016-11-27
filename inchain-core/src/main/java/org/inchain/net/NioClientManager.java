@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.inchain.core.Peer;
 import org.inchain.core.PeerAddress;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.utils.ContextPropagatingThreadFactory;
 import org.inchain.utils.Utils;
@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class NioClientManager implements ClientConnectionManager {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(NioClientManager.class);
 
-    private final NetworkParameters network;
+    private final NetworkParams network;
     
     private final Selector selector;
     
@@ -64,7 +64,7 @@ public class NioClientManager implements ClientConnectionManager {
     private boolean isServer = false; //是否启动本地监听服务 ， SPV就不需要
     private ServerSocket serverSocket;
     
-    public NioClientManager(NetworkParameters network, boolean isServer, int port) {
+    public NioClientManager(NetworkParams network, boolean isServer, int port) {
     	try {
     		this.network = Utils.checkNotNull(network);
     		this.isServer = isServer;

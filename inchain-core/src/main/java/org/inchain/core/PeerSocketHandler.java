@@ -20,7 +20,7 @@ import org.inchain.message.MessageSerializer.MessagePacketHeader;
 import org.inchain.net.AbstractTimeoutHandler;
 import org.inchain.net.MessageWriteTarget;
 import org.inchain.net.StreamConnection;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,13 +43,13 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
  	
  	private Lock lock = new ReentrantLock();
 
- 	public PeerSocketHandler(NetworkParameters params, InetSocketAddress remoteIp) {
+ 	public PeerSocketHandler(NetworkParams params, InetSocketAddress remoteIp) {
         checkNotNull(params);
         serializer = params.getDefaultSerializer();
         this.peerAddress = new PeerAddress(params, remoteIp);
     }
 
-    public PeerSocketHandler(NetworkParameters params, PeerAddress peerAddress) {
+    public PeerSocketHandler(NetworkParams params, PeerAddress peerAddress) {
         checkNotNull(params);
         serializer = params.getDefaultSerializer();
         this.peerAddress = checkNotNull(peerAddress);

@@ -13,7 +13,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
@@ -47,7 +47,7 @@ public class BlockMessageProcess implements MessageProcess {
 	private TransactionStoreProvider transactionStoreProvider;
 	private ChainstateStoreProvider chainstateStoreProvider;
 	
-	public BlockMessageProcess(NetworkParameters network) {
+	public BlockMessageProcess(NetworkParams network) {
 		blockStoreProvider = BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
 		transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
 		chainstateStoreProvider = ChainstateStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);

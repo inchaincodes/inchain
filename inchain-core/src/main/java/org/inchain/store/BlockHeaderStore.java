@@ -8,8 +8,8 @@ import java.util.List;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.NetworkParameters.ProtocolVersion;
+import org.inchain.network.NetworkParams;
+import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.utils.Utils;
 
 /**
@@ -36,15 +36,15 @@ public class BlockHeaderStore extends Store {
 	
 	protected List<Sha256Hash> txHashs;
 	
-	public BlockHeaderStore(NetworkParameters network) {
+	public BlockHeaderStore(NetworkParams network) {
 		super(network);
 	}
 	
-	public BlockHeaderStore(NetworkParameters network, byte[] payload, int offset) throws ProtocolException {
+	public BlockHeaderStore(NetworkParams network, byte[] payload, int offset) throws ProtocolException {
 		super(network, payload, offset);
     }
 	
-	public BlockHeaderStore(NetworkParameters network, byte[] payload) throws ProtocolException {
+	public BlockHeaderStore(NetworkParams network, byte[] payload) throws ProtocolException {
 		super(network);
 		
         this.protocolVersion = network.getProtocolVersionNum(ProtocolVersion.CURRENT);

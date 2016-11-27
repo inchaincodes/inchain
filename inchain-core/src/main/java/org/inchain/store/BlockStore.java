@@ -9,7 +9,7 @@ import java.util.List;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 
@@ -23,11 +23,11 @@ public class BlockStore extends BlockHeaderStore {
 	//交易列表
 	private List<TransactionStore> txs;
 	
-	public BlockStore(NetworkParameters network) {
+	public BlockStore(NetworkParams network) {
 		super(network);
 	}
 
-	public BlockStore(NetworkParameters network, byte[] content) {
+	public BlockStore(NetworkParams network, byte[] content) {
 		super(network, content, 0);
 	}
 

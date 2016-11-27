@@ -1,15 +1,13 @@
 package org.inchain.core;
 
 import org.inchain.kits.AppKit;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 
 public class AppKitTest {
 
 	public static void main(String[] args) {
 		
-		TestNetworkParameters network = TestNetworkParameters.get();
-		
-		AppKit kit = new AppKit(network);
+		AppKit kit = new AppKit();
 		kit.startSyn();
 	}
 }

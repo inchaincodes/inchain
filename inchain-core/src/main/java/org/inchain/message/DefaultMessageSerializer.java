@@ -10,7 +10,7 @@ import java.util.Map;
 
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Hex;
@@ -22,7 +22,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
 
 	private static final Logger log = LoggerFactory.getLogger(DefaultMessageSerializer.class);
 	
-	private final NetworkParameters network;
+	private final NetworkParams network;
 	
 	private static final Map<Class<? extends Message>, String> COMMANDS = new HashMap<Class<? extends Message>, String>();
 
@@ -35,7 +35,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(BlockMessage.class, "block");
     }
 
-	public DefaultMessageSerializer(NetworkParameters network) {
+	public DefaultMessageSerializer(NetworkParams network) {
 		this.network = network;
 	}
 

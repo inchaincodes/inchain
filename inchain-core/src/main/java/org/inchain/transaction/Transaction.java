@@ -19,7 +19,7 @@ import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
 import org.inchain.message.Message;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
@@ -85,17 +85,17 @@ public class Transaction extends Message {
         }
     }
 	
-	public Transaction(NetworkParameters network) {
+	public Transaction(NetworkParams network) {
 		super(network);
 		inputs = new ArrayList<Input>();
         outputs = new ArrayList<Output>();
 	}
 
-	public Transaction(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+	public Transaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0);
     }
 
-	public Transaction(NetworkParameters params, byte[] payloadBytes, int offset) throws ProtocolException {
+	public Transaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
         super(params, payloadBytes, offset);
     }
 

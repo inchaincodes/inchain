@@ -3,8 +3,8 @@ package org.inchain.net;
 import java.net.InetSocketAddress;
 
 import org.inchain.kits.PeerKit;
-import org.inchain.network.MainNetParams;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.MainNetworkParams;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
@@ -20,7 +20,7 @@ public class PeerGroupTest2 {
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
 		
-		NetworkParameters network = new MainNetParams(seedManager, 8888);
+		NetworkParams network = new MainNetworkParams(seedManager, 8888);
 		
 		PeerKit peerGroup = new PeerKit(network, 10);
 		

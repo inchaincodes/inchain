@@ -1,9 +1,9 @@
 package org.inchain.net;
 
 import org.inchain.kits.PeerKit;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.RemoteSeedManager;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.TestNetworkParams;
 
 public class PeerGroupTest {
 
@@ -11,7 +11,7 @@ public class PeerGroupTest {
 		
 		RemoteSeedManager seedManager = new RemoteSeedManager();
 		
-		NetworkParameters params = new TestNetworkParameters(seedManager, 6888);
+		NetworkParams params = new TestNetworkParams(seedManager);
 		
 		PeerKit peerGroup = new PeerKit(params, 5);
 		

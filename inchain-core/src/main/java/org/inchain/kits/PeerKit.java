@@ -14,7 +14,7 @@ import org.inchain.net.ClientConnectionManager;
 import org.inchain.net.ConnectionListener;
 import org.inchain.net.NewInConnectionListener;
 import org.inchain.net.NioClientManager;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
 import org.inchain.transaction.Transaction;
@@ -34,7 +34,7 @@ public class PeerKit implements TransactionBroadcaster {
 	private static final int DEFAULT_MAX_CONNECTION = 10;
 	
 	//网络
-	private NetworkParameters network;
+	private NetworkParams network;
 	//连接变化监听器
 	private ConnectionListener connectionListener;
 	//被动连接节点
@@ -49,11 +49,11 @@ public class PeerKit implements TransactionBroadcaster {
 	//最大连接数
 	private int maxConnectionCount;
 	
-	public PeerKit(NetworkParameters params) {
+	public PeerKit(NetworkParams params) {
 		this(params, DEFAULT_MAX_CONNECTION);
 	}
 	
-	public PeerKit(NetworkParameters params,int maxConnectionCount) {
+	public PeerKit(NetworkParams params,int maxConnectionCount) {
 		this.network = params;
 		this.maxConnectionCount = maxConnectionCount;
 		this.connectionManager = new NioClientManager(params, true, params.getPort());

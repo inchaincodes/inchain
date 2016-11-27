@@ -9,14 +9,14 @@ import org.inchain.msgprocess.DefaultMessageProcessFactory;
 import org.inchain.msgprocess.MessageProcess;
 import org.inchain.msgprocess.MessageProcessFactory;
 import org.inchain.msgprocess.MessageProcessResult;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.slf4j.LoggerFactory;
 
 public class Peer extends PeerSocketHandler {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(Peer.class);
 
-	private NetworkParameters network;
+	private NetworkParams network;
 
 	//节点版本信息
 	private VersionMessage peerVersionMessage;
@@ -25,11 +25,11 @@ public class Peer extends PeerSocketHandler {
 	
 	private static MessageProcessFactory messageProcessFactory = DefaultMessageProcessFactory.getInstance();
 	
-	public Peer(NetworkParameters network, InetSocketAddress address) {
+	public Peer(NetworkParams network, InetSocketAddress address) {
 		this(network, new PeerAddress(address));
 	}
 	
-	public Peer(NetworkParameters network, PeerAddress peerAddress) {
+	public Peer(NetworkParams network, PeerAddress peerAddress) {
 		super(network, peerAddress);
 		this.network = network;
 		this.peerAddress = peerAddress;
@@ -63,7 +63,7 @@ public class Peer extends PeerSocketHandler {
 		return peerAddress;
 	}
 
-	public NetworkParameters getNetwork() {
+	public NetworkParams getNetwork() {
 		return network;
 	}
 	

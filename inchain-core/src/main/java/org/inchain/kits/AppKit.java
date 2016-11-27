@@ -2,28 +2,34 @@ package org.inchain.kits;
 
 import java.io.IOException;
 
+import javax.annotation.PostConstruct;
+
 import org.inchain.Configure;
 import org.inchain.consensus.LocalMining;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.listener.Listener;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 程序核心，所有服务在此启动
  * @author ln
  *
  */
+@Service
 public class AppKit {
 	
 	private static final Logger log = LoggerFactory.getLogger(AppKit.class);
 	
-	private final BlockStoreProvider blockStoreProvider;
-	private final NetworkParameters network;
+	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private NetworkParams network;
 	
 	//初始化监听器
 	private Listener initListener;
@@ -35,12 +41,12 @@ public class AppKit {
 	//帐户管理 
 	private AccountKit accountKit;
 	
-	public AppKit(NetworkParameters network) {
-		this.network = network;
-		this.blockStoreProvider = BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
+	public AppKit() {
+		
 	}
 
 	//异步启动
+	@PostConstruct
 	public void startSyn() {
 		new Thread(){
 			public void run() {

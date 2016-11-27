@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.Transaction;
@@ -22,11 +22,11 @@ public class BlockMessage extends Message {
 
 	private BlockStore blockStore;
 
-	public BlockMessage(NetworkParameters network, byte[] payloadBytes) {
+	public BlockMessage(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
 	
-	public BlockMessage(NetworkParameters network, BlockStore blockStore) {
+	public BlockMessage(NetworkParams network, BlockStore blockStore) {
 		super(network);
 		
 		this.blockStore = blockStore;

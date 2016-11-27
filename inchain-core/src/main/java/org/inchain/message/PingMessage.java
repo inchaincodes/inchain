@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 /**
@@ -13,7 +13,7 @@ import org.inchain.utils.Utils;
 public class PingMessage extends Message {
     private long nonce;
     
-    public PingMessage(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+    public PingMessage(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0);
     }
     

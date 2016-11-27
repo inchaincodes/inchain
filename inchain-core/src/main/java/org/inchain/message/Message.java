@@ -9,8 +9,8 @@ import java.util.Arrays;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.NetworkParameters.ProtocolVersion;
+import org.inchain.network.NetworkParams;
+import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -41,26 +41,26 @@ public abstract class Message {
     protected byte[] payload;
     protected int protocolVersion;
 
-    protected NetworkParameters network;
+    protected NetworkParams network;
 
     protected Message() {
     	
     }
 
-    protected Message(NetworkParameters network) {
+    protected Message(NetworkParams network) {
         this.network = network;
         serializer = network.getDefaultSerializer();
     }
     
-    protected Message(NetworkParameters network, byte[] payload, int offset) throws ProtocolException {
+    protected Message(NetworkParams network, byte[] payload, int offset) throws ProtocolException {
         this(network, payload, offset, network.getProtocolVersionNum(ProtocolVersion.CURRENT));
     }
 
-    protected Message(NetworkParameters network, byte[] payload, int offset, int protocolVersion) throws ProtocolException {
+    protected Message(NetworkParams network, byte[] payload, int offset, int protocolVersion) throws ProtocolException {
         this(network, payload, offset, protocolVersion, network.getDefaultSerializer(), UNKNOWN_LENGTH);
     }
     
-    protected Message(NetworkParameters network, byte[] payload, int offset, int protocolVersion, MessageSerializer serializer, int length) throws ProtocolException {
+    protected Message(NetworkParams network, byte[] payload, int offset, int protocolVersion, MessageSerializer serializer, int length) throws ProtocolException {
         this.serializer = serializer;
         this.protocolVersion = protocolVersion;
         this.network = network;
@@ -267,7 +267,7 @@ public abstract class Message {
 		this.serializer = serializer;
 	}
 	
-	public NetworkParameters getNetwork() {
+	public NetworkParams getNetwork() {
 		return network;
 	}
 

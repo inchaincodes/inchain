@@ -6,9 +6,9 @@ import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.MainNetParams;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.MainNetworkParams;
+import org.inchain.network.NetworkParams;
+import org.inchain.network.TestNetworkParams;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.utils.Hex;
 import org.iq80.leveldb.util.FileUtils;
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 public class RPCServiceImpl implements RPCService {
 	private final static Logger log = LoggerFactory.getLogger(RPCServiceImpl.class);
 
-	private NetworkParameters network = MainNetParams.get();
+	private NetworkParams network = MainNetworkParams.get();
 	private BlockStoreProvider storeProvider =BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
 	private PeerKit peerKit = new PeerKit(network);
 	private AccountKit accountKit =  AccountKit.getInstace(network, peerKit);

@@ -9,7 +9,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Message;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Transaction;
@@ -32,7 +32,7 @@ public class TransactionMessageProcess implements MessageProcess {
 	
 	private TransactionStoreProvider transactionStoreProvider;
 	
-	public TransactionMessageProcess(NetworkParameters network) {
+	public TransactionMessageProcess(NetworkParams network) {
 		transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
 	}
 	

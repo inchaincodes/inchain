@@ -1,6 +1,6 @@
 package org.inchain.store;
 
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
 
 /**
@@ -13,10 +13,10 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	private static ChainstateStoreProvider INSTACE;
 	
 	//单例
-	public static ChainstateStoreProvider getInstace(String dir, NetworkParameters network) {
+	public static ChainstateStoreProvider getInstace(String dir, NetworkParams network) {
 		return getInstace(dir, network, -1, -1);
 	}
-	public static ChainstateStoreProvider getInstace(String dir, NetworkParameters network, long leveldbReadCache, int leveldbWriteCache) {
+	public static ChainstateStoreProvider getInstace(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
 		if(INSTACE == null) {
 			synchronized (locker) {
 				if(INSTACE == null)
@@ -26,10 +26,10 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return INSTACE;
 	}
 	
-	protected ChainstateStoreProvider(String dir, NetworkParameters network) {
+	protected ChainstateStoreProvider(String dir, NetworkParams network) {
 		this(dir, network, -1, -1);
 	}
-	protected ChainstateStoreProvider(String dir, NetworkParameters network, long leveldbReadCache,
+	protected ChainstateStoreProvider(String dir, NetworkParams network, long leveldbReadCache,
 			int leveldbWriteCache) {
 		super(dir, network, leveldbReadCache, leveldbWriteCache);
 	}

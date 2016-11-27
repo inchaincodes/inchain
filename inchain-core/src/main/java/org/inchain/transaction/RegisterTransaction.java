@@ -11,7 +11,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptChunk;
@@ -31,7 +31,7 @@ public class RegisterTransaction extends Transaction {
 	//帐户信息
 	private Account account;
 
-	public RegisterTransaction(NetworkParameters network, Account account) {
+	public RegisterTransaction(NetworkParams network, Account account) {
 		super(network);
 		this.setVersion(VERSION);
 		this.setType(TYPE_REGISTER);
@@ -45,11 +45,11 @@ public class RegisterTransaction extends Transaction {
 		this.outputs.add(output);
 	}
 	
-	public RegisterTransaction(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+	public RegisterTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
 		this(params, payloadBytes, 0);
     }
 	
-	public RegisterTransaction(NetworkParameters params, byte[] payloadBytes, int offset) throws ProtocolException {
+	public RegisterTransaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
 		super(params, payloadBytes, offset);
 		this.setType(TYPE_REGISTER);
 	}

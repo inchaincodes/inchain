@@ -12,8 +12,8 @@ import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.BlockMessage;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.NetworkParameters.ProtocolVersion;
+import org.inchain.network.NetworkParams;
+import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
@@ -37,7 +37,7 @@ public final class LocalMining implements Mining {
 	//运行状态，0没运行，1准备就绪，2打包中，3等待停止，4停止，5异常结束
 	private int runState = 0;
 	
-	private NetworkParameters network;
+	private NetworkParams network;
 	private PeerKit peerKit;
 	private AccountKit accountKit;
 	
@@ -45,7 +45,7 @@ public final class LocalMining implements Mining {
 	
 	private BlockStoreProvider blockStoreProvider;
 	
-	public LocalMining(NetworkParameters network, AccountKit accountKit, PeerKit peerKit) {
+	public LocalMining(NetworkParams network, AccountKit accountKit, PeerKit peerKit) {
 		this.network = network;
 		this.peerKit = peerKit;
 		this.accountKit = accountKit;

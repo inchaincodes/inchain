@@ -5,11 +5,9 @@ import java.util.EnumSet;
 
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
-import org.inchain.core.Coin;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
-import org.inchain.network.TestNetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
@@ -18,13 +16,15 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class TranslationTest {
+	
+	@Autowired
+	private NetworkParams network;
 
 	@Test
 	public void testTranslation() {
-		
-		NetworkParameters network = TestNetworkParameters.get();
 		
         Address addr = Address.fromP2PKHash(network, Address.VERSION_TEST_PK, Hex.decode("ffdf74c494d27474def57c5cb4b41a5455705956"));
 

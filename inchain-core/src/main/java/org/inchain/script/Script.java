@@ -26,7 +26,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Hex;
@@ -334,33 +334,8 @@ public class Script {
      * transaction can actually receive coins on it. This method may be removed in future.
      */
     @Deprecated
-    public Address getFromAddress(NetworkParameters params) throws ScriptException {
+    public Address getFromAddress(NetworkParams params) throws ScriptException {
         return new Address(params, Utils.sha256hash160(getPubKey()));
-    }
-
-    /**
-     * Gets the destination address from this script, if it's in the required form (see getPubKey).
-     */
-    public Address getToAddress(NetworkParameters params) throws ScriptException {
-        return getToAddress(params, false);
-    }
-
-    /**
-     * Gets the destination address from this script, if it's in the required form (see getPubKey).
-     * 
-     * @param forcePayToPubKey
-     *            If true, allow payToPubKey to be casted to the corresponding address. This is useful if you prefer
-     *            showing addresses rather than pubkeys.
-     */
-    public Address getToAddress(NetworkParameters params, boolean forcePayToPubKey) throws ScriptException {
-        if (isSentToAddress())
-            return new Address(params, getPubKeyHash());
-        else if (isPayToScriptHash())
-            return Address.fromP2PKScript(params, this);
-        else if (forcePayToPubKey && isSentToRawPubKey())
-            return ECKey.fromPublicOnly(getPubKey()).toAddress(params);
-        else
-            throw new ScriptException("Cannot cast this script to a pay-to-address type");
     }
 
     ////////////////////// Interface for writing scripts from scratch ////////////////////////////////

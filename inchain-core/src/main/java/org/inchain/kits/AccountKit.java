@@ -21,7 +21,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.StoreProvider;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.RegisterTransaction;
@@ -41,7 +41,7 @@ public class AccountKit {
 
 	private final static Lock locker = new ReentrantLock();
 	
-	private NetworkParameters network;
+	private NetworkParams network;
 	//账户文件路径
 	private String accountDir;
 	private List<Account> accountList = new ArrayList<Account>();
@@ -55,7 +55,7 @@ public class AccountKit {
 	
 	private static AccountKit INSTACE;
 	//单例
-	public static AccountKit getInstace( NetworkParameters network,  PeerKit peerKit) {
+	public static AccountKit getInstace( NetworkParams network,  PeerKit peerKit) {
 		if(INSTACE == null) {
 			synchronized (locker) {
 				if(INSTACE == null)
@@ -69,7 +69,7 @@ public class AccountKit {
 		}
 		return INSTACE;
 	}	
-	public AccountKit(NetworkParameters network, PeerKit peerKit) throws IOException {
+	public AccountKit(NetworkParams network, PeerKit peerKit) throws IOException {
 		
 		this.network = Utils.checkNotNull(network);
 		this.peerKit = Utils.checkNotNull(peerKit);

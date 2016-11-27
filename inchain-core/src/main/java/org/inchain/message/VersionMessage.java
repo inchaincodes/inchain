@@ -8,7 +8,7 @@ import java.net.UnknownHostException;
 import org.inchain.core.PeerAddress;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 
@@ -59,17 +59,17 @@ public class VersionMessage extends Message {
      */
     public boolean relayTxesBeforeFilter;
     
-	public VersionMessage(NetworkParameters params) throws ProtocolException {
+	public VersionMessage(NetworkParams params) throws ProtocolException {
         super(params);
     }
 	
-	public VersionMessage(NetworkParameters params, byte[] payload) throws ProtocolException {
+	public VersionMessage(NetworkParams params, byte[] payload) throws ProtocolException {
         super(params, payload, 0);
     }
 	
-	public VersionMessage(NetworkParameters params, int newBestHeight, PeerAddress remoteAddress) {
+	public VersionMessage(NetworkParams params, int newBestHeight, PeerAddress remoteAddress) {
 	    super(params);
-        clientVersion = params.getProtocolVersionNum(NetworkParameters.ProtocolVersion.CURRENT);
+        clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         localServices = NODE_NETWORK;
         time = System.currentTimeMillis() / 1000;
         // Note that the Bitcoin Core doesn't do anything with these, and finding out your own external IP address

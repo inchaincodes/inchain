@@ -4,7 +4,7 @@ import java.math.BigInteger;
 
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 /**
@@ -27,33 +27,33 @@ public final class AccountTool {
 	 * @param network
 	 * @return Address
 	 */
-	public final static Address newAddress(NetworkParameters network) {
+	public final static Address newAddress(NetworkParams network) {
 		return newAddress(network, Address.VERSION_DEFAULT);
 	}
 	
-	public final static Address newAddress(NetworkParameters network, ECKey key) {
+	public final static Address newAddress(NetworkParams network, ECKey key) {
 		return newAddress(network, Address.VERSION_DEFAULT, key);
 	}
 	
-	public final static Address newAddress(NetworkParameters network, int version) {
+	public final static Address newAddress(NetworkParams network, int version) {
 		ECKey key = newPriKey();
 		return Address.fromP2PKHash(network, version, Utils.sha256hash160(key.getPubKey(false)));
 	}
 	
-	public final static Address newAddress(NetworkParameters network, int version, ECKey key) {
+	public final static Address newAddress(NetworkParams network, int version, ECKey key) {
 		return Address.fromP2PKHash(network, version, Utils.sha256hash160(key.getPubKey(false)));
 	}
 	
-	public final static Address newAddressFromPrikey(NetworkParameters network, int version, BigInteger pri) {
+	public final static Address newAddressFromPrikey(NetworkParams network, int version, BigInteger pri) {
 		ECKey key = ECKey.fromPrivate(pri);
 		return Address.fromP2PKHash(network, version, Utils.sha256hash160(key.getPubKey(false)));
 	}
 	
-	public final static Address newAddressFromKey(NetworkParameters network, ECKey key) {
+	public final static Address newAddressFromKey(NetworkParams network, ECKey key) {
 		return Address.fromP2PKHash(network, Address.VERSION_DEFAULT, Utils.sha256hash160(key.getPubKey(false)));
 	}
 	
-	public final static Address newAddressFromKey(NetworkParameters network, int version, ECKey key) {
+	public final static Address newAddressFromKey(NetworkParams network, int version, ECKey key) {
 		return Address.fromP2PKHash(network, version, Utils.sha256hash160(key.getPubKey(false)));
 	}
 	

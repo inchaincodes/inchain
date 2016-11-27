@@ -1,7 +1,7 @@
 package org.inchain.message;
 
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.network.NetworkParameters;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 
 /**
@@ -11,7 +11,7 @@ public class UnknownMessage extends EmptyMessage {
 
     private String name;
 
-    public UnknownMessage(NetworkParameters params, String name, byte[] payloadBytes) throws ProtocolException {
+    public UnknownMessage(NetworkParams params, String name, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0);
         this.name = name;
     }

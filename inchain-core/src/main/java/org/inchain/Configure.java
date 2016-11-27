@@ -21,7 +21,19 @@ public final class Configure {
 	private static Logger log = LoggerFactory.getLogger(Configure.class);
 	
 	private static final String CONFIG_FILE = "config.conf";
+	
+	/**
+	 * 运行模式，1主网， 2 测试网络，3 单元测试
+	 */
+	@Property(key="run.mode", defaultValue="1")
+	public static int RUN_MODE;
 
+	/**
+	 * p2p 端口
+	 */
+	@Property(key="port", defaultValue="8631")
+	public static int PORT;
+	
 	/**
 	 * 是否挖矿
 	 */

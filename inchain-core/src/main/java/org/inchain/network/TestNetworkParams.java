@@ -22,26 +22,16 @@ import org.inchain.utils.Utils;
  * @author ln
  *
  */
-public class TestNetworkParameters extends NetworkParameters {
+public class TestNetworkParams extends NetworkParams {
 	
-	private static TestNetworkParameters instance;
-    public static synchronized TestNetworkParameters get() {
-        if (instance == null) {
-            instance = new TestNetworkParameters();
-        }
-        return instance;
-    }
-    
-    public TestNetworkParameters() {
+    public TestNetworkParams() {
     	this.seedManager = new RemoteSeedManager();
-    	this.port = 8322; 
     	init();
 	}
     
 
-	public TestNetworkParameters(SeedManager seedManager, int port) {
+	public TestNetworkParams(SeedManager seedManager) {
     	this.seedManager = seedManager;
-    	this.port = port;
     	init();
 	}
     
@@ -107,11 +97,6 @@ public class TestNetworkParameters extends NetworkParameters {
 		return gengsisBlock;
 	}
 	
-	public static void main(String[] args) {
-		TestNetworkParameters network = get();
-		network.getGengsisBlock();
-	}
-	
 	@Override
 	public int getProtocolVersionNum(ProtocolVersion version) {
 		return version.getVersion();
@@ -120,6 +105,12 @@ public class TestNetworkParameters extends NetworkParameters {
 	@Override
 	public MessageSerializer getSerializer(boolean parseRetain) {
 		return new DefaultMessageSerializer(this);
+	}
+
+	@Override
+	public int getBestBlockHeight() {
+		//TODO
+		return 0;
 	}
 
 }
