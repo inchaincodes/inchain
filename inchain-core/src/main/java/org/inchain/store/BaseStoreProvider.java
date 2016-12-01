@@ -6,6 +6,7 @@ import org.inchain.db.Db;
 import org.inchain.db.LevelDB;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 存储基类服务
@@ -18,7 +19,13 @@ public abstract class BaseStoreProvider implements StoreProvider {
 	protected static Object locker = new Object();
 
 	protected Db db;
+	
+	@Autowired
 	protected NetworkParams network;
+	
+	public BaseStoreProvider() {
+		this.db = new LevelDB(".");
+	}
 	
 	public BaseStoreProvider(String dir, NetworkParams network) {
 		this.db = new LevelDB(Utils.checkNotNull(dir));

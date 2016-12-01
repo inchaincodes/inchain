@@ -28,6 +28,8 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 新区块广播消息
@@ -39,16 +41,17 @@ import org.slf4j.LoggerFactory;
  * @author ln
  *
  */
+@Service
 public class BlockMessageProcess implements MessageProcess {
 
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	private TransactionStoreProvider transactionStoreProvider;
 	private ChainstateStoreProvider chainstateStoreProvider;
 	
 	public BlockMessageProcess(NetworkParams network) {
-		blockStoreProvider = BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
 		transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
 		chainstateStoreProvider = ChainstateStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
 	}

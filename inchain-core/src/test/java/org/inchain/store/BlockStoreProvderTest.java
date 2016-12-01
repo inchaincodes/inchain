@@ -35,7 +35,7 @@ public class BlockStoreProvderTest {
 		//清空目录
 		FileUtils.deleteDirectoryContents(new File(Configure.DATA_BLOCK));
 		
-		storeProvider = new BlockStoreProvider(Configure.DATA_BLOCK, network);
+		storeProvider = new BlockStoreProvider();
 		
 		//保存创始块
 		storeProvider.saveBlock(network.getGengsisBlock());

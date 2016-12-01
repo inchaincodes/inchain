@@ -120,9 +120,6 @@ public class MainServer {
 
 		String cmd = args[0];
 
-		// 加载配置文件
-		Configure.load();
-		
 		MainServer server = MainServer.getInstance();
 
 		if (cmd.equals(START)) {

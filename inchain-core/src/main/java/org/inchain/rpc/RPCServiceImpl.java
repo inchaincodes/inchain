@@ -19,7 +19,8 @@ public class RPCServiceImpl implements RPCService {
 	private final static Logger log = LoggerFactory.getLogger(RPCServiceImpl.class);
 
 	private NetworkParams network = MainNetworkParams.get();
-	private BlockStoreProvider storeProvider =BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
+//	private BlockStoreProvider storeProvider =BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
+	private BlockStoreProvider storeProvider = null;
 	private PeerKit peerKit = new PeerKit(network);
 	private AccountKit accountKit =  AccountKit.getInstace(network, peerKit);
 

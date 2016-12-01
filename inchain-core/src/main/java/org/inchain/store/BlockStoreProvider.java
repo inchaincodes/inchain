@@ -7,17 +7,22 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.Resource;
+import javax.annotation.Resources;
+
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.springframework.stereotype.Repository;
 
 /**
  * 区块提供服务
  * @author ln
  *
  */
+@Repository
 public class BlockStoreProvider extends BaseStoreProvider {
 
 	//区块锁，保证每次新增区块时，不会有并发问题，每次读取最新区块时始终会返回本地最新的一个块
@@ -26,24 +31,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	//最新区块标识
 	private final static byte[] bestBlockKey = Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")).getBytes();
 	
-	private static BlockStoreProvider INSTACE;
-	
 	//单例
-	public static BlockStoreProvider getInstace(String dir, NetworkParams network) {
-		return getInstace(dir, network, -1, -1);
-	}
-	public static BlockStoreProvider getInstace(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
-		if(INSTACE == null) {
-			synchronized (locker) {
-				if(INSTACE == null)
-					INSTACE = new BlockStoreProvider(dir, network);
-			}
-		}
-		return INSTACE;
-	}
-	
-	BlockStoreProvider(String dir, NetworkParams network) {
-		super(dir, network);
+	BlockStoreProvider() {
+		super();
 	}
 
 	@Override

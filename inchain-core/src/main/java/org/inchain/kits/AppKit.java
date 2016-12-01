@@ -27,6 +27,7 @@ public class AppKit {
 	
 	private static final Logger log = LoggerFactory.getLogger(AppKit.class);
 	
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private NetworkParams network;

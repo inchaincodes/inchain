@@ -50,7 +50,7 @@ public final class LocalMining implements Mining {
 		this.peerKit = peerKit;
 		this.accountKit = accountKit;
 		
-		blockStoreProvider = BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
+		blockStoreProvider = null;
 	}
 	
 	/**
