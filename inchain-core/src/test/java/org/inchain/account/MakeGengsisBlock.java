@@ -1,22 +1,15 @@
 package org.inchain.account;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.account.Account;
-import org.inchain.account.AccountTool;
-import org.inchain.account.Address;
+import org.inchain.BaseTestCase;
 import org.inchain.core.Coin;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.network.NodeSeedManager;
-import org.inchain.network.Seed;
-import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
@@ -25,6 +18,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -32,23 +26,23 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author ln
  *
  */
-public class MakeGengsisBlock {
+public class MakeGengsisBlock extends BaseTestCase {
 
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private PeerKit peerKit;
+	@Autowired
+	private AccountKit accountKit;
 
-	private void makeTestNetGengsisBlock() throws Exception {
+	@Test
+	public void makeTestNetGengsisBlock() throws Exception {
 		
-		SeedManager seedManager = new NodeSeedManager();
-		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
-		
-		PeerKit peerKit = new PeerKit(network);
 		peerKit.startSyn();
 		
 		String mgpw = "123456";
 		String trpw = "654321";
 		
-		AccountKit accountKit = new AccountKit(network, peerKit);
 		try {
 			Thread.sleep(2000l);
 			if(accountKit.getAccountList().isEmpty()) {

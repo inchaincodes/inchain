@@ -233,12 +233,11 @@ public class Script {
      * way to make payments due to the short and recognizable base58 form addresses come in.
      */
     public boolean isSentToAddress() {
-        return chunks.size() == 5 &&
-               chunks.get(0).equalsOpCode(OP_DUP) &&
-               chunks.get(1).equalsOpCode(OP_HASH160) &&
-               chunks.get(2).data.length == Address.LENGTH &&
-               chunks.get(3).equalsOpCode(OP_EQUALVERIFY) &&
-               chunks.get(4).equalsOpCode(OP_CHECKSIG);
+        return chunks.size() == 4 &&
+	    	   chunks.get(0).data.length == Address.LENGTH &&
+               chunks.get(1).equalsOpCode(OP_DUP) &&
+               chunks.get(2).equalsOpCode(OP_PUBKEY) &&
+               chunks.get(3).equalsOpCode(OP_CHECKSIG);
     }
 
     /**
@@ -1750,6 +1749,11 @@ public class Script {
                 case OP_16:
                     stack.add(Utils.reverseBytes(Utils.encodeMPI(BigInteger.valueOf(decodeFromOpN(opcode)), false)));
                     break;
+                case OP_DUP:
+                    if (stack.size() < 1)
+                        throw new ScriptException("Attempted OP_DUP on an empty stack");
+                    stack.add(stack.getLast());
+                    break;
                 case OP_IFDUP:
                     if (stack.size() < 1)
                         throw new ScriptException("Attempted OP_IFDUP on an empty stack");
@@ -1792,6 +1796,9 @@ public class Script {
                 	} else {
                 		stack.add(new byte[] {0});
                 	}
+                	break;
+                case OP_PUBKEY:	//根据栈顶元素的交易hash获取公匙
+                	//TODO
                 	break;
                 case OP_RIPEMD160:
                     if (stack.size() < 1)

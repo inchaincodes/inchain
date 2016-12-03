@@ -23,15 +23,10 @@ public abstract class BaseStoreProvider implements StoreProvider {
 	@Autowired
 	protected NetworkParams network;
 	
-	public BaseStoreProvider() {
-		this.db = new LevelDB(".");
-	}
-	
-	public BaseStoreProvider(String dir, NetworkParams network) {
+	public BaseStoreProvider(String dir) {
 		this.db = new LevelDB(Utils.checkNotNull(dir));
-		this.network = Utils.checkNotNull(network);
 	}
-	public BaseStoreProvider(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
+	public BaseStoreProvider(String dir, long leveldbReadCache, int leveldbWriteCache) {
 		//存储目录不能为空
 		Utils.checkNotNull(dir);
 		if(leveldbReadCache <= 0l || leveldbWriteCache <= 0l) {
@@ -39,7 +34,6 @@ public abstract class BaseStoreProvider implements StoreProvider {
 		} else {
 			this.db = new LevelDB(Utils.checkNotNull(dir), leveldbReadCache, leveldbWriteCache);
 		}
-		this.network = Utils.checkNotNull(network);
 	}
 	
 	protected abstract byte[] toByte(Store store);

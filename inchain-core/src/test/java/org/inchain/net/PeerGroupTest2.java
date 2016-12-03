@@ -2,6 +2,7 @@ package org.inchain.net;
 
 import java.net.InetSocketAddress;
 
+import org.inchain.BaseTestCase;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.MainNetworkParams;
 import org.inchain.network.NetworkParams;
@@ -9,10 +10,18 @@ import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
 import org.inchain.transaction.Transaction;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class PeerGroupTest2 {
+public class PeerGroupTest2 extends BaseTestCase {
 
-	public static void main(String[] args) {
+	@Autowired
+	private PeerKit peerKit;
+	@Autowired
+	private NetworkParams network;
+	
+	@Test
+	public void test() {
 		
 //		SeedManager seedManager = new RemoteSeedManager();
 //		seedManager.add(new Seed(new InetSocketAddress("192.168.1.181", 6888)));
@@ -20,14 +29,10 @@ public class PeerGroupTest2 {
 		SeedManager seedManager = new NodeSeedManager();
 		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
 		
-		NetworkParams network = new MainNetworkParams(seedManager, 8888);
-		
-		PeerKit peerGroup = new PeerKit(network, 10);
-		
-		peerGroup.startSyn();
+		peerKit.startSyn();
 
 		while(true) {
-			peerGroup.broadcastTransaction(new Transaction(network));
+			peerKit.broadcastTransaction(new Transaction(network));
 			try {
 				Thread.sleep(100000l);
 			} catch (InterruptedException e) {

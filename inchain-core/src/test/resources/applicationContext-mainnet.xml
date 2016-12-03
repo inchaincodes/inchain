@@ -8,9 +8,5 @@
 	http://www.springframework.org/schema/context 
 	http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-    <context:component-scan base-package="org.inchain"/>  
-	<context:annotation-config />  
-    <context:property-placeholder location="classpath:*.properties"/>
-    
     <bean id="network" class="org.inchain.network.MainNetworkParams"></bean>
 </beans>

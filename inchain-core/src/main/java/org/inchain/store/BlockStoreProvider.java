@@ -10,6 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.Resource;
 import javax.annotation.Resources;
 
+import org.inchain.Configure;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
@@ -33,7 +34,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	
 	//单例
 	BlockStoreProvider() {
-		super();
+		super(Configure.DATA_BLOCK);
 	}
 
 	@Override

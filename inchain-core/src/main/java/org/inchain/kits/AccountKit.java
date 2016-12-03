@@ -14,9 +14,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
+import org.inchain.account.Account.AccountType;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
-import org.inchain.account.Account.AccountType;
 import org.inchain.core.Coin;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
@@ -29,60 +29,46 @@ import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 账户管理
  * @author ln
  *
  */
+@Service
 public class AccountKit {
 	
 	private final static Logger log = LoggerFactory.getLogger(AccountKit.class);
 
 	private final static Lock locker = new ReentrantLock();
 	
-	private NetworkParams network;
 	//账户文件路径
 	private String accountDir;
 	private List<Account> accountList = new ArrayList<Account>();
 	//状态连存储服务
+	@Autowired
 	private StoreProvider chainstateStoreProvider;
 	//交易存储服务
+	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
-	
+	//网络
+	@Autowired
+	private NetworkParams network;
 	//节点管理器
+	@Autowired
 	private PeerKit peerKit;
 	
-	private static AccountKit INSTACE;
-	//单例
-	public static AccountKit getInstace( NetworkParams network,  PeerKit peerKit) {
-		if(INSTACE == null) {
-			synchronized (locker) {
-				if(INSTACE == null)
-					try {
-						INSTACE = new AccountKit(network,peerKit);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-			}
-		}
-		return INSTACE;
-	}	
-	public AccountKit(NetworkParams network, PeerKit peerKit) throws IOException {
-		
-		this.network = Utils.checkNotNull(network);
-		this.peerKit = Utils.checkNotNull(peerKit);
-		
+	public AccountKit() throws IOException {
 		//帐户信息保存于数据目录下的account目录，以account开始的dat文件，一个文件一个帐户，支持多帐户
 		this.accountDir = Configure.DATA_ACCOUNT;
 		
-		//初始化交易存储服务，保存与帐户有关的所有交易，保存于数据目录下的transaction文件夹
-		this.transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
-		//初始化状态链存储服务，该目录保存的所有未花费的交易，保存于数据目录下的chainstate文件夹
-		this.chainstateStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
+//		//初始化交易存储服务，保存与帐户有关的所有交易，保存于数据目录下的transaction文件夹
+//		this.transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
+//		//初始化状态链存储服务，该目录保存的所有未花费的交易，保存于数据目录下的chainstate文件夹
+//		this.chainstateStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
 		
-		init();
 	}
 	
 	/**
@@ -348,7 +334,7 @@ public class AccountKit {
 	/*
 	 * 初始化账户信息
 	 */
-	private synchronized void init() throws IOException {
+	public synchronized void init() throws IOException {
 		maybeCreateAccountDir();
 		loadAccount();
 	}

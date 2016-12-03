@@ -1,27 +1,25 @@
 package org.inchain.net;
 
+import org.inchain.BaseTestCase;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.NetworkParams;
-import org.inchain.network.RemoteSeedManager;
-import org.inchain.network.TestNetworkParams;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class PeerGroupTest {
+public class PeerGroupTest extends BaseTestCase {
 
-	public static void main(String[] args) {
+	@Autowired
+	private PeerKit peerKit;
+	
+	@Test
+	public void test() {
 		
-		RemoteSeedManager seedManager = new RemoteSeedManager();
-		
-		NetworkParams params = new TestNetworkParams(seedManager);
-		
-		PeerKit peerGroup = new PeerKit(params, 5);
-		
-		peerGroup.startSyn();
+		peerKit.startSyn();
 		
 //		try {
 //			Thread.sleep(10000l);
 //		} catch (InterruptedException e) {
 //			e.printStackTrace();
 //		}
-//		peerGroup.broadcastTransaction(new Transaction());
+//		peerKit.broadcastTransaction(new Transaction());
 	}
 }

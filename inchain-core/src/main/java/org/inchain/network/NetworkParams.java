@@ -1,10 +1,10 @@
 package org.inchain.network;
 
+import org.inchain.Configure;
 import org.inchain.message.MessageSerializer;
 import org.inchain.store.BlockStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 
 /**
  * 网络参数，网络协议参数配置都在本类下面
@@ -21,13 +21,13 @@ public abstract class NetworkParams {
 	
 	protected String id;
 	
-	//p2p网络端口 , 默认9031
-	protected @Value("${port:9031}") int port;
+	//p2p网络端口
+	protected int port = Configure.PORT;
 	//网络协议魔法参数
 	protected long packetMagic;
 	
     //允许的地址前缀
-    protected int[] acceptableAddressCodes;
+    protected int[] acceptableAddressCodes = {};
 
 	//种子管理器
 	protected SeedManager seedManager;

@@ -37,6 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.inchain.Configure;
 import org.inchain.core.Peer;
 import org.inchain.core.PeerAddress;
 import org.inchain.network.NetworkParams;
@@ -44,31 +45,32 @@ import org.inchain.network.Seed;
 import org.inchain.utils.ContextPropagatingThreadFactory;
 import org.inchain.utils.Utils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * A class which manages a set of client connections. Uses Java NIO to select network events and processes them in a
  * single network processing thread.
  */
+@Service
 public class NioClientManager implements ClientConnectionManager {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(NioClientManager.class);
 
-    private final NetworkParams network;
-    
-    private final Selector selector;
-    
     private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    
+    @Autowired
+    private NetworkParams network;
+    
+    private Selector selector;
     
     //被动连接监听
     private NewInConnectionListener newInConnectionListener;
     
-    private boolean isServer = false; //是否启动本地监听服务 ， SPV就不需要
+    private boolean isServer = true; //是否启动本地监听服务 ， SPV就不需要
     private ServerSocket serverSocket;
     
-    public NioClientManager(NetworkParams network, boolean isServer, int port) {
+    public NioClientManager() {
     	try {
-    		this.network = Utils.checkNotNull(network);
-    		this.isServer = isServer;
-    		
             selector = SelectorProvider.provider().openSelector();
             if(this.isServer) {
 	            // 打开服务器套接字通道  
@@ -78,10 +80,10 @@ public class NioClientManager implements ClientConnectionManager {
 	            // 检索与此通道关联的服务器套接字  
 	            serverSocket = serverSocketChannel.socket();  
 	            // 进行服务的绑定  
-	            serverSocket.bind(new InetSocketAddress(port));  
+	            serverSocket.bind(new InetSocketAddress(Configure.PORT));  
 	            // 注册到selector，等待连接  
 	            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);  
-	            log.info("Server Start on port {}:", port);
+	            log.info("Server Started on port {}", Configure.PORT);
             }
         } catch (IOException e) {
             throw new RuntimeException(e); // Shouldn't ever happen

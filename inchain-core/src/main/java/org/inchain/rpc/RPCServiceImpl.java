@@ -21,8 +21,9 @@ public class RPCServiceImpl implements RPCService {
 	private NetworkParams network = MainNetworkParams.get();
 //	private BlockStoreProvider storeProvider =BlockStoreProvider.getInstace(Configure.DATA_BLOCK, network);
 	private BlockStoreProvider storeProvider = null;
-	private PeerKit peerKit = new PeerKit(network);
-	private AccountKit accountKit =  AccountKit.getInstace(network, peerKit);
+	private PeerKit peerKit = new PeerKit();
+//	private AccountKit accountKit =  AccountKit.getInstace(network, peerKit);
+	private AccountKit accountKit =  null;
 
 
 	//获取区块的数量

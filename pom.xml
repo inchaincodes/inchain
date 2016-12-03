@@ -103,6 +103,33 @@
 		    <artifactId>leveldb</artifactId>
 		    <version>0.9</version>
 		</dependency>
+		
+		<!-- 单元测试包 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- spring 相关  -->
+		<dependency>
+		    <groupId>org.springframework</groupId>
+		    <artifactId>spring-core</artifactId>
+		    <version>4.3.4.RELEASE</version>
+		</dependency>
+		
+        <dependency>
+		    <groupId>org.springframework</groupId>
+		    <artifactId>spring-context</artifactId>
+		    <version>4.3.4.RELEASE</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>org.springframework</groupId>
+		    <artifactId>spring-test</artifactId>
+		    <version>4.3.4.RELEASE</version>
+		</dependency>
     </dependencies>
     
 	<properties>

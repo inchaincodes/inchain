@@ -9,8 +9,6 @@ import java.net.Socket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
-import org.inchain.kits.AppKit;
-import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -45,15 +43,15 @@ public class MainServer {
 		// 通过Spring启动服务器
 		new Thread() {
 			public void run() {
-				try {
+				try { 
 					
 					String[] xmls = null;
 					if(Configure.RUN_MODE == 1) {
-						xmls = new String[] { "classpath:/applicationContext-mainnet.xml" };
+						xmls = new String[] { "classpath:/applicationContext-mainnet.xml", "classpath:/applicationContext.xml" };
 					} else if(Configure.RUN_MODE == 2) {
-						xmls = new String[] { "classpath:/applicationContext-testnet.xml" };
+						xmls = new String[] { "classpath:/applicationContext-testnet.xml", "classpath:/applicationContext.xml" };
 					} else {
-						xmls = new String[] { "classpath:/applicationContext-unit.xml" };
+						xmls = new String[] { "classpath:/applicationContext-unit.xml", "classpath:/applicationContext.xml" };
 					}
 
 					springContext = new ClassPathXmlApplicationContext(xmls);

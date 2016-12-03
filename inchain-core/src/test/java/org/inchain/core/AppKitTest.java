@@ -1,13 +1,17 @@
 package org.inchain.core;
 
+import org.inchain.BaseTestCase;
 import org.inchain.kits.AppKit;
-import org.inchain.network.TestNetworkParams;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
-public class AppKitTest {
+public class AppKitTest extends BaseTestCase {
 
-	public static void main(String[] args) {
-		
-		AppKit kit = new AppKit();
-		kit.startSyn();
+	@Autowired
+	private AppKit appKit;
+	
+	@Test
+	public void testAppKit() {
+		appKit.startSyn();
 	}
 }

@@ -24,34 +24,32 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 本地打包交易，当被委托时自动执行
  * @author ln
  *
  */
+@Service
 public final class LocalMining implements Mining {
 	
 	private final static Logger log = LoggerFactory.getLogger(LocalMining.class);
 	
+	private static MempoolContainer mempool = MempoolContainerMap.getInstace();
+	
 	//运行状态，0没运行，1准备就绪，2打包中，3等待停止，4停止，5异常结束
 	private int runState = 0;
 	
+	@Autowired
 	private NetworkParams network;
+	@Autowired
 	private PeerKit peerKit;
+	@Autowired
 	private AccountKit accountKit;
-	
-	private MempoolContainer mempool = MempoolContainerMap.getInstace();
-	
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
-	
-	public LocalMining(NetworkParams network, AccountKit accountKit, PeerKit peerKit) {
-		this.network = network;
-		this.peerKit = peerKit;
-		this.accountKit = accountKit;
-		
-		blockStoreProvider = null;
-	}
 	
 	/**
 	 * mining 
@@ -181,12 +179,17 @@ public final class LocalMining implements Mining {
 		
 		while(true) {
 			if(runState == 1) {
-				mining();
+				try {
+					mining();
+				} catch (Exception e) {
+					log.error("mining err", e);
+					runState = 1;
+				}
 			}
 			try {
 				Thread.sleep(1000l);
 			} catch (InterruptedException e) {
-				log.error("mining err", e);
+				log.error("mining wait err", e);
 			}
 		}
 	}

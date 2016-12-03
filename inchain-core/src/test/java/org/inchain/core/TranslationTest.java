@@ -3,6 +3,7 @@ package org.inchain.core;
 import java.math.BigInteger;
 import java.util.EnumSet;
 
+import org.inchain.BaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -18,7 +19,7 @@ import org.inchain.utils.Hex;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TranslationTest {
+public class TranslationTest extends BaseTestCase {
 	
 	@Autowired
 	private NetworkParams network;
@@ -67,8 +68,7 @@ public class TranslationTest {
 		Transaction verfyTx = network.getDefaultSerializer().makeTransaction(txBytes, null);
 		verfyTx.verfify();
 		
-		verfyTx.getInput(0).getScriptSig().correctlySpends(verfyTx, 0, 
-				((TransactionInput)verfyTx.getInput(0)).getFrom().getScript(), EnumSet.of(Script.VerifyFlag.DERSIG, Script.VerifyFlag.P2SH));
+		verfyTx.getInput(0).getScriptSig().run(verfyTx, ((TransactionInput)verfyTx.getInput(0)).getFrom().getScript());
 
 	}
 }

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.BaseTestCase;
 import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -23,20 +24,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class BlockStoreProvderTest {
+public class BlockStoreProvderTest extends BaseTestCase {
 
 	@Autowired
 	private NetworkParams network;
+	@Autowired
 	private BlockStoreProvider storeProvider;
 	
 	@Before
 	public void init() throws IOException {
-		
-		//清空目录
-		FileUtils.deleteDirectoryContents(new File(Configure.DATA_BLOCK));
-		
-		storeProvider = new BlockStoreProvider();
-		
+		storeProvider.delete(storeProvider.getBestBlock().getHash().getBytes());
 		//保存创始块
 		storeProvider.saveBlock(network.getGengsisBlock());
 		testSave();
@@ -44,7 +41,6 @@ public class BlockStoreProvderTest {
 	
 	@After
 	public void close() throws IOException {
-		storeProvider.close();
 	}
 	
 	@Test

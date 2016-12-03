@@ -18,22 +18,25 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 交易消息
  * @author ln
  *
  */
+@Service
 public class TransactionMessageProcess implements MessageProcess {
 	
 	private static final Logger log = LoggerFactory.getLogger(TransactionMessageProcess.class);
 	
 	private MempoolContainer mempool = MempoolContainerMap.getInstace();
 	
+	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
 	
-	public TransactionMessageProcess(NetworkParams network) {
-		transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
+	public TransactionMessageProcess() {
 	}
 	
 	@Override

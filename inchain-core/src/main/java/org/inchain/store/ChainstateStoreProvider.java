@@ -1,37 +1,27 @@
 package org.inchain.store;
 
-import org.inchain.network.NetworkParams;
+import org.inchain.Configure;
 import org.inchain.transaction.Transaction;
+import org.springframework.stereotype.Repository;
 
 /**
  * 链状态查询提供服务，存放的是所有的未花费交易
  * @author ln
  *
  */
+@Repository
 public class ChainstateStoreProvider extends BaseStoreProvider {
 
-	private static ChainstateStoreProvider INSTACE;
-	
-	//单例
-	public static ChainstateStoreProvider getInstace(String dir, NetworkParams network) {
-		return getInstace(dir, network, -1, -1);
-	}
-	public static ChainstateStoreProvider getInstace(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
-		if(INSTACE == null) {
-			synchronized (locker) {
-				if(INSTACE == null)
-					INSTACE = new ChainstateStoreProvider(dir, network, leveldbReadCache, leveldbWriteCache);
-			}
-		}
-		return INSTACE;
+	protected ChainstateStoreProvider() {
+		this(Configure.DATA_CHAINSTATE);
 	}
 	
-	protected ChainstateStoreProvider(String dir, NetworkParams network) {
-		this(dir, network, -1, -1);
+	protected ChainstateStoreProvider(String dir) {
+		this(dir, -1, -1);
 	}
-	protected ChainstateStoreProvider(String dir, NetworkParams network, long leveldbReadCache,
+	protected ChainstateStoreProvider(String dir, long leveldbReadCache,
 			int leveldbWriteCache) {
-		super(dir, network, leveldbReadCache, leveldbWriteCache);
+		super(dir, leveldbReadCache, leveldbWriteCache);
 	}
 
 	@Override

@@ -5,7 +5,7 @@ import java.io.IOException;
 import javax.annotation.PostConstruct;
 
 import org.inchain.Configure;
-import org.inchain.consensus.LocalMining;
+import org.inchain.consensus.Mining;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.listener.Listener;
 import org.inchain.network.NetworkParams;
@@ -36,10 +36,13 @@ public class AppKit {
 	private Listener initListener;
 	
 	//挖矿程序
-	private LocalMining mining;
-	//结点管理
+	@Autowired
+	private Mining mining;
+	//节点管理
+	@Autowired
 	private PeerKit peerKit;
 	//帐户管理 
+	@Autowired
 	private AccountKit accountKit;
 	
 	public AppKit() {
@@ -82,19 +85,17 @@ public class AppKit {
 	
 	//初始化节点管理器
 	private void initPeerKit() {
-		peerKit = new PeerKit(network, Configure.MAX_CONNECT_COUNT);
 		peerKit.startSyn();
 	}
 
 	//初始化帐户信息
 	private void initAccountKit() throws IOException {
-		accountKit = new AccountKit(network, peerKit);
+		accountKit.init();
 	}
 
 	//初始化挖矿
 	private void initMining() {
 		if(Configure.MINING) {
-			mining = new LocalMining(network, accountKit, peerKit);
 			mining.start();
 		}
 	}

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.inchain.Configure;
 import org.inchain.account.Account.AccountType;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -13,7 +12,6 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
-import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
@@ -48,12 +46,12 @@ public class BlockMessageProcess implements MessageProcess {
 	
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
+	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 	
-	public BlockMessageProcess(NetworkParams network) {
-		transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
-		chainstateStoreProvider = ChainstateStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
+	public BlockMessageProcess() {
 	}
 	
 	/**

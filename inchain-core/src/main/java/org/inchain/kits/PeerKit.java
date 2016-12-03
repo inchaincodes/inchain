@@ -6,6 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.inchain.Configure;
 import org.inchain.core.Peer;
 import org.inchain.core.TransactionBroadcast;
 import org.inchain.core.TransactionBroadcaster;
@@ -13,19 +14,21 @@ import org.inchain.message.BlockMessage;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.net.ConnectionListener;
 import org.inchain.net.NewInConnectionListener;
-import org.inchain.net.NioClientManager;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * 节点管理
  * @author ln
  *
  */
+@Service
 public class PeerKit implements TransactionBroadcaster {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
@@ -34,6 +37,7 @@ public class PeerKit implements TransactionBroadcaster {
 	private static final int DEFAULT_MAX_CONNECTION = 10;
 	
 	//网络
+	@Autowired
 	private NetworkParams network;
 	//连接变化监听器
 	private ConnectionListener connectionListener;
@@ -45,18 +49,34 @@ public class PeerKit implements TransactionBroadcaster {
 	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
 	
 	//连接管理器
-	private final ClientConnectionManager connectionManager;
+	@Autowired
+	private ClientConnectionManager connectionManager;
 	//最大连接数
-	private int maxConnectionCount;
+	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
 	
-	public PeerKit(NetworkParams params) {
-		this(params, DEFAULT_MAX_CONNECTION);
+	public PeerKit() {
+		
+	}
+
+	//启动服务
+	private void start() {
+		
+		Utils.checkNotNull(network);
+		Utils.checkNotNull(connectionManager);
+		
+		init();
+		
+		//初始化连接器
+		connectionManager.start();
+		
+		//初始化节点
+		initPeers();
+		
+		//ping task
+		startPingTask();
 	}
 	
-	public PeerKit(NetworkParams params,int maxConnectionCount) {
-		this.network = params;
-		this.maxConnectionCount = maxConnectionCount;
-		this.connectionManager = new NioClientManager(params, true, params.getPort());
+	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
 			public boolean allowConnection() {
@@ -75,22 +95,6 @@ public class PeerKit implements TransactionBroadcaster {
 		});
 	}
 
-	//启动服务
-	private void start() {
-		
-		Utils.checkNotNull(network);
-		Utils.checkNotNull(connectionManager);
-		
-		//初始化连接器
-		connectionManager.start();
-		
-		//初始化节点
-		initPeers();
-		
-		//ping task
-		startPingTask();
-	}
-	
 	//ping task
 	private void startPingTask() {
 		executor.scheduleWithFixedDelay(new Runnable() {

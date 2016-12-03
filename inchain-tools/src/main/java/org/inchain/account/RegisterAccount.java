@@ -5,6 +5,7 @@ import java.net.InetSocketAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.inchain.Configure;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
@@ -16,14 +17,22 @@ import org.inchain.network.TestNetworkParams;
 
 public class RegisterAccount {
 	
-	private Logger log = LoggerFactory.getLogger(getClass());
+	private static Logger log = LoggerFactory.getLogger(RegisterAccount.class);
 
 	public static void main(String[] args) throws Exception {
 		
-		SeedManager seedManager = new NodeSeedManager();
-		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 8322), true, 25000));
+		String[] xmls = null;
+		if(Configure.RUN_MODE == 1) {
+			xmls = new String[] { "classpath:/applicationContext-mainnet.xml", "classpath:/applicationContext.xml" };
+		} else if(Configure.RUN_MODE == 2) {
+			xmls = new String[] { "classpath:/applicationContext-testnet.xml", "classpath:/applicationContext.xml" };
+		} else {
+			xmls = new String[] { "classpath:/applicationContext-unit.xml", "classpath:/applicationContext.xml" };
+		}
+
+		ClassPathXmlApplicationContext springContext = new ClassPathXmlApplicationContext(xmls);
 		
-		NetworkParams network = new TestNetworkParams(seedManager);
+		springContext.start();
 		
 		//测试前先清空帐户目录
 		File dir = new File(Configure.DATA_ACCOUNT);
@@ -33,18 +42,20 @@ public class RegisterAccount {
 			}
 		}
 		
-		PeerKit peerKit = new PeerKit(network);
+		PeerKit peerKit = springContext.getBean(PeerKit.class);
 		peerKit.startSyn();
 		
-		AccountKit accountKit = new AccountKit(network, peerKit);
+		AccountKit accountKit = springContext.getBean(AccountKit.class);
 		try {
 			Thread.sleep(1000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				accountKit.createNewAccount("123456", "0123456");
+				Address address = accountKit.createNewAccount("123456", "0123456");
+				log.info("new address is : "+address.getBase58());
 			}
 		} finally {
-//			accountKit.close();
-//			peerKit.stop();
+			accountKit.close();
+			peerKit.stop();
+			springContext.stop();
 		}
 	}
 	

@@ -561,11 +561,11 @@ public class ScriptBuilder {
 	 * @return
 	 */
 	public static Script createOutputScript(Address to) {
-            return new ScriptBuilder()
-        		.data(to.getHash160())
-                .op(OP_DUP)
-                .op(OP_PUBKEY)
-                .op(OP_CHECKSIG)
-                .build();
+        return new ScriptBuilder()
+    		.data(to.getHash160())
+            .op(OP_DUP)
+            .op(OP_PUBKEY)
+            .op(OP_CHECKSIG)
+            .build();
     }
 }

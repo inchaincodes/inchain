@@ -1,37 +1,28 @@
 package org.inchain.store;
 
+import org.inchain.Configure;
 import org.inchain.core.Coin;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
+import org.springframework.stereotype.Repository;
 
 /**
  * 交易存储提供服务
  * @author ln
  *
  */
+@Repository
 public class TransactionStoreProvider extends ChainstateStoreProvider {
 
-	private static TransactionStoreProvider INSTACE;
-	
-	//单例
-	public static TransactionStoreProvider getInstace(String dir, NetworkParams network) {
-		return getInstace(dir, network, -1, -1);
-	}
-	public static TransactionStoreProvider getInstace(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
-		if(INSTACE == null) {
-			synchronized (locker) {
-				if(INSTACE == null)
-					INSTACE = new TransactionStoreProvider(dir, network, leveldbReadCache, leveldbWriteCache);
-			}
-		}
-		return INSTACE;
+	public TransactionStoreProvider() {
+		this(Configure.DATA_TRANSACTION);
 	}
 	
-	private TransactionStoreProvider(String dir, NetworkParams network) {
-		super(dir, network);
+	public TransactionStoreProvider(String dir) {
+		super(dir);
 	}
-	private TransactionStoreProvider(String dir, NetworkParams network, long leveldbReadCache, int leveldbWriteCache) {
-		super(dir, network, leveldbReadCache, leveldbWriteCache);
+	public TransactionStoreProvider(String dir, long leveldbReadCache, int leveldbWriteCache) {
+		super(dir, leveldbReadCache, leveldbWriteCache);
 	}
 
 	@Override

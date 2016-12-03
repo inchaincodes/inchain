@@ -1,9 +1,9 @@
 package org.inchain.block;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
@@ -13,12 +13,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.network.NodeSeedManager;
-import org.inchain.network.Seed;
-import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParams;
 import org.inchain.script.ScriptBuilder;
-import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.RegisterTransaction;
@@ -26,6 +21,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * 制作创世块
@@ -40,18 +36,28 @@ public class MakeGengsisBlock {
 
 	private static void makeTestNetGengsisBlock() throws Exception {
 		
-		SeedManager seedManager = new NodeSeedManager();
-		seedManager.add(new Seed(new InetSocketAddress("127.0.0.1", 6888), true, 25000));
-		
-		NetworkParams network = new TestNetworkParams(seedManager);
+		String[] xmls = null;
+		if(Configure.RUN_MODE == 1) {
+			xmls = new String[] { "classpath:/applicationContext-mainnet.xml", "classpath:/applicationContext.xml" };
+		} else if(Configure.RUN_MODE == 2) {
+			xmls = new String[] { "classpath:/applicationContext-testnet.xml", "classpath:/applicationContext.xml" };
+		} else {
+			xmls = new String[] { "classpath:/applicationContext-unit.xml", "classpath:/applicationContext.xml" };
+		}
 
-		PeerKit peerKit = new PeerKit(network);
+		ClassPathXmlApplicationContext springContext = new ClassPathXmlApplicationContext(xmls);
+		
+		springContext.start();
+		
+		NetworkParams network = springContext.getBean(NetworkParams.class);
+		
+		PeerKit peerKit = springContext.getBean(PeerKit.class);
 		peerKit.startSyn();
 		
 		String mgpw = "123456";
 		String trpw = "654321";
 		
-		AccountKit accountKit = new AccountKit(network, peerKit);
+		AccountKit accountKit = springContext.getBean(AccountKit.class);
 		try {
 			Thread.sleep(2000l);
 			if(accountKit.getAccountList().isEmpty()) {
@@ -121,7 +127,7 @@ public class MakeGengsisBlock {
 		
 		gengsisBlock.setTxs(txs);
 		
-		Sha256Hash merkleHash = gengsisBlock.getMerkleHash();
+		Sha256Hash merkleHash = gengsisBlock.buildMerkleHash();
 		System.out.println(merkleHash);
 		Utils.checkState("c29b8e98c531ddf9211bbf1954885ceaf998d14c21e29edda8250fbacb2bf9f1".equals(Hex.encode(merkleHash.getBytes())), "the gengsis block merkle hash is error");
 		
@@ -130,5 +136,6 @@ public class MakeGengsisBlock {
 		
 		System.out.println(Hex.encode(gengsisBlock.baseSerialize()));
 		
+		springContext.close();
 	}
 }
