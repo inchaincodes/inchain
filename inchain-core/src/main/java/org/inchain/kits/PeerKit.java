@@ -7,10 +7,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
+import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
 import org.inchain.core.TransactionBroadcast;
-import org.inchain.core.TransactionBroadcaster;
 import org.inchain.message.BlockMessage;
+import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.net.ConnectionListener;
 import org.inchain.net.NewInConnectionListener;
@@ -29,7 +30,7 @@ import org.springframework.stereotype.Service;
  *
  */
 @Service
-public class PeerKit implements TransactionBroadcaster {
+public class PeerKit implements Broadcaster {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
 
@@ -165,6 +166,26 @@ public class PeerKit implements TransactionBroadcaster {
 		}
 	}
 
+	/**
+	 * 广播消息
+	 * @param message  要广播的消息
+	 * @return boolean 返回广播是否成功
+	 */
+	public boolean broadcastMessage(Message message) {
+		if(inPeers.size() > 0 || outPeers.size() > 0) {
+			for (Peer peer : inPeers) {
+				peer.sendMessage(message);
+			}
+			for (Peer peer : outPeers) {
+				peer.sendMessage(message);
+			}
+			return true;
+		} else {
+			log.warn("广播消息失败，没有可广播的节点");
+		}
+		return false;
+	}
+	
 	/**
 	 * 广播区块
 	 * @param block
