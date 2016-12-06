@@ -17,7 +17,7 @@ public class NodeSeedManager implements SeedManager {
 	}
 	
 	@Override
-	public List<Seed> getSeedList(int maxConnectionCount) {
+	public synchronized List<Seed> getSeedList(int maxConnectionCount) {
 		List<Seed> newList = new ArrayList<Seed>();
 		List<Seed> removeList = new ArrayList<Seed>();
 		//排除连接失败且不重试的
