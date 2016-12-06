@@ -1,19 +1,13 @@
 package org.inchain.account;
 
 import java.io.File;
-import java.net.InetSocketAddress;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.inchain.Configure;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.network.NetworkParams;
-import org.inchain.network.NodeSeedManager;
-import org.inchain.network.Seed;
-import org.inchain.network.SeedManager;
-import org.inchain.network.TestNetworkParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class RegisterAccount {
 	
