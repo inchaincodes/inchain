@@ -1,4 +1,4 @@
-package org.inchain.core;
+package org.inchain.kit;
 
 import java.io.IOException;
 import java.io.InputStream;
