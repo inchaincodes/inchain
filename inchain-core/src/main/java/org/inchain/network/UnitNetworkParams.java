@@ -113,9 +113,4 @@ public class UnitNetworkParams extends NetworkParams {
 		return new DefaultMessageSerializer(this);
 	}
 
-	@Override
-	public int getBestBlockHeight() {
-		return 0;
-	}
-
 }

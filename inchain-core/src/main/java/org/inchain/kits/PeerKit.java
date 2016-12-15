@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
 import org.inchain.core.Broadcaster;
+import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.TransactionBroadcast;
 import org.inchain.message.BlockMessage;
@@ -37,6 +38,9 @@ public class PeerKit implements Broadcaster {
 	//默认最大节点连接数，这里指单向连接
 	private static final int DEFAULT_MAX_CONNECTION = 10;
 	
+	//任务调度器
+	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
+	
 	//网络
 	@Autowired
 	private NetworkParams network;
@@ -46,8 +50,6 @@ public class PeerKit implements Broadcaster {
 	private CopyOnWriteArrayList<Peer> inPeers = new CopyOnWriteArrayList<Peer>();
 	//主动连接节点
 	private CopyOnWriteArrayList<Peer> outPeers = new CopyOnWriteArrayList<Peer>();
-	//任务调度器
-	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
 	
 	//连接管理器
 	@Autowired
@@ -110,7 +112,7 @@ public class PeerKit implements Broadcaster {
 
 	//初始化节点
 	private void initPeers() {
-		executor.scheduleWithFixedDelay(new PeerStatusManager(), 0, 10, TimeUnit.SECONDS);
+		executor.scheduleWithFixedDelay(new PeerStatusManager(), 2, 10, TimeUnit.SECONDS);
 	}
 
 	//异步启动

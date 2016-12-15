@@ -360,6 +360,15 @@ public class AccountKit {
 			address.setBalance(balances[0]);
 			address.setUnconfirmedBalance(balances[1]);
 		}
+		
+		//判断账户不存在时是否自动创建
+		if(accountList.size() == 0 && Configure.ACCOUNT_AUTO_INIT) {
+			try {
+				createNewAccount("1", "2");
+			} catch (Exception e) {
+				log.error("自动初始化账户失败", e);
+			}
+		}
 	}
 	
 	public List<Account> getAccountList() {

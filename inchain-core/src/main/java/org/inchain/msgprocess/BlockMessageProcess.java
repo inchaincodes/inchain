@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account.AccountType;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -26,7 +27,6 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -39,19 +39,18 @@ import org.springframework.stereotype.Service;
  * @author ln
  *
  */
-@Service
 public class BlockMessageProcess implements MessageProcess {
 
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
-	@Autowired
 	private BlockStoreProvider blockStoreProvider;
-	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
-	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 	
 	public BlockMessageProcess() {
+		blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+		transactionStoreProvider = SpringContextUtils.getBean(TransactionStoreProvider.class);
+		chainstateStoreProvider = SpringContextUtils.getBean("chainstateStoreProvider", ChainstateStoreProvider.class);
 	}
 	
 	/**
@@ -67,7 +66,9 @@ public class BlockMessageProcess implements MessageProcess {
 		BlockMessage blockMessage = (BlockMessage) message;
 		
 		//验证区块消息的合法性
-		verifyBlock(blockMessage);
+		if(!verifyBlock(blockMessage)) {
+			return null;
+		}
 		
 		//验证通过 ，存储区块数据
 		try {
@@ -140,14 +141,15 @@ public class BlockMessageProcess implements MessageProcess {
 	/*
 	 * 验证区块的合法性，如果验证不通过，则抛出验证异常
 	 */
-	private void verifyBlock(BlockMessage blockMessage) {
+	private boolean verifyBlock(BlockMessage blockMessage) {
 		//获取区块的最新高度
 		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 		//必需衔接
 		BlockStore blockStore = blockMessage.getBlockStore();
 		if(!blockStore.getPreHash().equals(bestBlockHeader.getHash()) ||
 				blockStore.getHeight() != bestBlockHeader.getHeight() + 1) {
-			throw new VerificationException("block info error");
+			log.warn("block info warn");
+			return false;
 		}
 		//验证区块签名
 		//TODO
@@ -267,7 +269,10 @@ public class BlockMessageProcess implements MessageProcess {
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		if(!fee.equals(inputFee.subtract(outputFee)) || !coinbaseFee.equals(fee)) {
-			throw new VerificationException("the fee error");
+			
+			log.warn("the fee error");
+			return false;
 		}
+		return true;
 	}
 }

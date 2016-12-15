@@ -8,6 +8,11 @@ import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 接收版本回应
+ * @author ln
+ *
+ */
 public class VerackMessageProcess implements MessageProcess {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VerackMessageProcess.class);

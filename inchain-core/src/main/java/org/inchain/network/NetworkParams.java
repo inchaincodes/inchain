@@ -3,8 +3,10 @@ package org.inchain.network;
 import org.inchain.Configure;
 import org.inchain.message.MessageSerializer;
 import org.inchain.store.BlockStore;
+import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 网络参数，网络协议参数配置都在本类下面
@@ -34,6 +36,9 @@ public abstract class NetworkParams {
 	
 	//消息序列化工具
 	protected transient MessageSerializer defaultSerializer = null;
+	
+	@Autowired
+	protected BlockStoreProvider blockStoreProvider;
 	
 	/**
 	 * 获取默认的消息序列化工具
@@ -88,9 +93,11 @@ public abstract class NetworkParams {
     
 	/**
 	 * 获取最新区块高度
-	 * @return int
+	 * @return long
 	 */
-	public abstract int getBestBlockHeight();
+	public long getBestBlockHeight() {
+		return blockStoreProvider.getBestBlockHeader().getHeight();
+	}
 	
     /**
      * 运行的地址前缀
@@ -114,5 +121,9 @@ public abstract class NetworkParams {
     
     public String getId() {
 		return id;
+	}
+
+	public void setBlockStoreProvider(BlockStoreProvider blockStoreProvider) {
+		this.blockStoreProvider = blockStoreProvider;
 	}
 }

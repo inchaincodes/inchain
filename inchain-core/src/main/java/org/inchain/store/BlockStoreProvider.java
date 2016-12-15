@@ -7,13 +7,9 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.Resource;
-import javax.annotation.Resources;
-
 import org.inchain.Configure;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.springframework.stereotype.Repository;

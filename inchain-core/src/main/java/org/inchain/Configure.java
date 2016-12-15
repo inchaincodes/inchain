@@ -82,7 +82,7 @@ public final class Configure {
 	 */
 	public static String DATA_TRANSACTION = DATA_DIR + File.separator + "transaction";
 	
-	/*************  RPC 相关配置  begin  *****************/
+/*************  RPC 相关配置  begin  *****************/
 	
 	/**
 	 * RPC 端口
@@ -90,6 +90,16 @@ public final class Configure {
 	public static int RPC_SERVER_PORT = getProperty("rpc.server.port", 8632);
 	
 	/*************  RPC 相关配置   end  *****************/
+	
+	/*************  账户相关配置  begin  *****************/
+	
+	/**
+	 * 账户不存在时，是否自动创建
+	 */
+	public static boolean ACCOUNT_AUTO_INIT = getProperty("account.auto.init", false);
+	
+	/*************  账户相关配置   end  *****************/
+	
 
     /**
      * 获取配置信息

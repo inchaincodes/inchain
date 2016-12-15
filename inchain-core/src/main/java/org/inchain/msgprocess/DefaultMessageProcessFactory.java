@@ -28,6 +28,8 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 			return new TransactionMessageProcess();
 		} else if(message instanceof BlockMessage) {
 			return new BlockMessageProcess();
+		} else if(message instanceof GetBlockMessage) {
+			return new GetBlockMessageProcess();
 		} else {
 			return new UnknownMessageProcess();
 		}

@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.inchain.message.Message;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -26,7 +27,7 @@ class ConnectionHandler implements MessageWriteTarget {
     private static final int BUFFER_SIZE_LOWER_BOUND = 4096;
     private static final int BUFFER_SIZE_UPPER_BOUND = 65536;
 
-    private static final int OUTBOUND_BUFFER_BYTE_COUNT = 512 + 24; // 24 byte message header
+    private static final int OUTBOUND_BUFFER_BYTE_COUNT = Message.MAX_SIZE + 24; // 24 byte message header
 
     // We lock when touching local flags and when writing data, but NEVER when calling any methods which leave this
     // class into non-Java classes.

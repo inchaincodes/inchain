@@ -25,7 +25,7 @@ import org.inchain.utils.Utils;
 public class TestNetworkParams extends NetworkParams {
 	
     public TestNetworkParams() {
-    	this.seedManager = new RemoteSeedManager();
+    	this.seedManager = new NodeSeedManager();
     	init();
 	}
     
@@ -106,11 +106,4 @@ public class TestNetworkParams extends NetworkParams {
 	public MessageSerializer getSerializer(boolean parseRetain) {
 		return new DefaultMessageSerializer(this);
 	}
-
-	@Override
-	public int getBestBlockHeight() {
-		//TODO
-		return 0;
-	}
-
 }

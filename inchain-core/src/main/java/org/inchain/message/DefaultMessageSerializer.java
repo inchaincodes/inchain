@@ -33,6 +33,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(VerackMessage.class, "verack");
     	COMMANDS.put(RegisterTransaction.class, "accreg");
     	COMMANDS.put(BlockMessage.class, "block");
+    	COMMANDS.put(GetBlockMessage.class, "getblock");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {
@@ -138,6 +139,8 @@ public class DefaultMessageSerializer extends MessageSerializer {
         	message = new RegisterTransaction(network, payloadBytes);
         } else if (command.equals("block")) {
         	message = new BlockMessage(network, payloadBytes);
+        } else if (command.equals("getblock")) {
+        	message = new GetBlockMessage(network, payloadBytes);
         } else {
         	log.warn("No support for deserializing message with name {}", command);
         	message = new UnknownMessage(network, command, payloadBytes);

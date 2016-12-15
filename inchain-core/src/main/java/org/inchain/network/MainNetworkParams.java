@@ -45,10 +45,4 @@ public class MainNetworkParams extends NetworkParams {
 		return null;
 	}
 
-	@Override
-	public int getBestBlockHeight() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
 }

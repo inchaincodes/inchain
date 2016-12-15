@@ -67,7 +67,7 @@ public class VersionMessage extends Message {
         super(params, payload, 0);
     }
 	
-	public VersionMessage(NetworkParams params, int newBestHeight, PeerAddress remoteAddress) {
+	public VersionMessage(NetworkParams params, long newBestHeight, PeerAddress remoteAddress) {
 	    super(params);
         clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         localServices = NODE_NETWORK;
