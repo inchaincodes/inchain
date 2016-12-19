@@ -568,4 +568,18 @@ public class ScriptBuilder {
             .op(OP_CHECKSIG)
             .build();
     }
+	
+	/**
+	 * 创建通用的验证脚本
+	 * @param pubkey	公钥
+	 * @param sign		签名
+	 * @return Script
+	 */
+	public static Script createVerifyScript(byte[] pubkey, byte[] sign) {
+        return new ScriptBuilder()
+    		.data(pubkey)
+    		.data(sign)
+            .op(OP_CHECKSIG)
+            .build();
+    }
 }

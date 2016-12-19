@@ -1,11 +1,18 @@
 package org.inchain.store;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.inchain.Configure;
+import org.inchain.account.Address;
 import org.inchain.transaction.Transaction;
+import org.iq80.leveldb.DBIterator;
 import org.springframework.stereotype.Repository;
 
 /**
- * 链状态查询提供服务，存放的是所有的未花费交易
+ * 链状态查询提供服务，存放的是所有的未花费交易，以及共识节点
  * @author ln
  *
  */
@@ -46,5 +53,27 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		Transaction transaction = new Transaction(network, content);
 		TransactionStore store = new TransactionStore(network, transaction);
 		return store;
+	}
+	
+	/**
+	 * 加载所以的共识节点
+	 * @return
+	 */
+	public Map<byte[], byte[]> loadAllConsensusAccount() {
+		DBIterator iterator = db.getSourceDb().iterator();
+		Map<byte[], byte[]> consunsusMap = new HashMap<byte[], byte[]>();
+		while(iterator.hasNext()) {
+			Entry<byte[], byte[]> item = iterator.next();
+			byte[] key = item.getKey();
+			if(key.length == Address.LENGTH) {
+				byte[] value = item.getValue();
+				if(value.length >= 42) {
+					if(value[41] == 1) {
+						consunsusMap.put(key, Arrays.copyOfRange(value, 8, 41));
+					}
+				}
+			}
+		}
+		return consunsusMap;
 	}
 }

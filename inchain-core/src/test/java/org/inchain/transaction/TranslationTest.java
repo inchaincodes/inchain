@@ -1,20 +1,17 @@
-package org.inchain.core;
+package org.inchain.transaction;
 
 import java.math.BigInteger;
-import java.util.EnumSet;
 
 import org.inchain.BaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
+import org.inchain.core.Coin;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
-import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionInput;
-import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;

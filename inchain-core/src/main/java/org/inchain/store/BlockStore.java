@@ -34,12 +34,12 @@ public class BlockStore extends BlockHeaderStore {
 	@Override
 	public void parse() throws ProtocolException {
 		super.parse();
-		
 		txs = new ArrayList<TransactionStore>();
 		for (int i = 0; i < txCount; i++) {
-			TransactionStore store = new TransactionStore(network, payload, cursor);
+			Transaction transaction = network.getDefaultSerializer().makeTransaction(payload, cursor);
+			TransactionStore store = new TransactionStore(network, transaction);
 			txs.add(store);
-			cursor += store.getLength();
+			cursor += transaction.getLength();
 		}
 		length = cursor;
 	}
@@ -61,7 +61,7 @@ public class BlockStore extends BlockHeaderStore {
 		for (int i = 0; i < txCount; i++) {
 			Transaction tx = txs.get(i).getTransaction();
 			stream.write(tx.baseSerialize());
-			Utils.uint32ToByteStreamLE(height, stream);
+//			Utils.uint32ToByteStreamLE(height, stream);
 		}
     }
 	

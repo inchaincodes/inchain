@@ -8,10 +8,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.transaction.CreditTransaction;
+import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.Transaction;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -27,6 +32,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	private final static Lock blockLock = new ReentrantLock();
 	//最新区块标识
 	private final static byte[] bestBlockKey = Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")).getBytes();
+	//区块状态提供器
+	@Autowired
+	private ChainstateStoreProvider chainstateStoreProvider;
+	//共识缓存器
+	@Autowired
+	private ConsensusPool consensusPool;
 	
 	//单例
 	BlockStoreProvider() {
@@ -48,7 +59,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * @param block
 	 * @throws IOException 
 	 */
-	public void saveBlock(BlockStore block) throws IOException {
+	public synchronized void saveBlock(BlockStore block) throws IOException {
 		//最新的区块
 		BlockHeaderStore bestBlockHeader = getBestBlockHeader();
 		//判断当前要保存的区块，是否是在最新区块之后
@@ -72,7 +83,56 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			for (int i = 0; i < block.getTxCount(); i++) {
 				TransactionStore tx = block.getTxs().get(i);
 		        
-				db.put(tx.getTransaction().getHash().getBytes(), tx.baseSerialize());
+				Transaction transaction = tx.getTransaction();
+				
+				db.put(transaction.getHash().getBytes(), transaction.baseSerialize());
+				
+				//如果是共识注册交易，则保存至区块状态表
+				if(transaction instanceof RegConsensusTransaction) {
+					RegConsensusTransaction regTransaction = (RegConsensusTransaction)transaction;
+					
+					byte[] uinfos = chainstateStoreProvider.getBytes(regTransaction.getHash160());
+					
+					if(uinfos == null) {
+						throw new VerificationException("没有信用数据，不允许注册共识");
+					}
+					//4信用，4余额，33公钥，1是否共识
+					byte[] values = new byte[42];
+					System.arraycopy(uinfos, 0, values, 0, uinfos.length);
+					values[41] = 1;
+					//公钥
+					byte[] pubkey = regTransaction.getScriptSig().getChunks().get(0).data;
+					System.arraycopy(pubkey, 0, values, 8, pubkey.length);
+					
+					chainstateStoreProvider.put(regTransaction.getHash160(), values);
+					//添加到共识缓存器里
+					consensusPool.add(regTransaction.getHash160(), pubkey);
+				} else if(transaction instanceof CreditTransaction) {
+					//只有创世块支持该类型交易
+					if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
+						CreditTransaction creditTransaction = (CreditTransaction)transaction;
+						
+						byte[] uinfos = chainstateStoreProvider.getBytes(creditTransaction.getHash160());
+						if(uinfos == null) {
+							//不存在时，直接写入信用
+							byte[] value = new byte[4];
+							Utils.uint32ToByteArrayBE(creditTransaction.getCredit(), value, 0);
+							chainstateStoreProvider.put(creditTransaction.getHash160(), value);
+						} else {
+							//存在时，增加信用
+							if(uinfos.length < 4) {
+								throw new VerificationException("错误的信用数据");
+							}
+							long credit = Utils.readUint32BE(uinfos, 0);
+							credit += creditTransaction.getCredit();
+							Utils.uint32ToByteArrayBE(credit, uinfos, 0);
+
+							chainstateStoreProvider.put(creditTransaction.getHash160(), uinfos);
+						}
+					} else {
+						throw new VerificationException("出现不支持的交易，保存失败");
+					}
+				}
 			}
 			
 			byte[] heightBytes = new byte[4]; 

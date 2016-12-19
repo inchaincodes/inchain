@@ -23,11 +23,11 @@ import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 /**
  * 新区块广播消息
@@ -91,10 +91,10 @@ public class BlockMessageProcess implements MessageProcess {
 		for (TransactionStore txst : txs) {
 			//从状态区移出本次的所有输入，并加入本次的所有输出
 			Transaction tx = txst.getTransaction();
-			if(tx.getType() == Transaction.TYPE_PAY || 
-					tx.getType() == Transaction.TYPE_COINBASE) {
+			if(tx.getType() == TransactionDefinition.TYPE_PAY || 
+					tx.getType() == TransactionDefinition.TYPE_COINBASE) {
 				//coinbase交易没有输入
-				if(tx.getType() == Transaction.TYPE_PAY) {
+				if(tx.getType() == TransactionDefinition.TYPE_PAY) {
 					List<Input> inputs = tx.getInputs();
 					for (Input input : inputs) {
 						TransactionInput tInput = (TransactionInput) input;
@@ -129,7 +129,7 @@ public class BlockMessageProcess implements MessageProcess {
 					
 					chainstateStoreProvider.put(key, new byte[]{1});
 				}
-			} else if(tx.getType() == Transaction.TYPE_REGISTER || tx.getType() == Transaction.TYPE_CHANGEPWD) {
+			} else if(tx.getType() == TransactionDefinition.TYPE_REGISTER || tx.getType() == TransactionDefinition.TYPE_CHANGEPWD) {
 				//帐户注册和修改密码
 				RegisterTransaction rtx = (RegisterTransaction) tx;
 				
@@ -185,17 +185,17 @@ public class BlockMessageProcess implements MessageProcess {
 			
 			//区块的第一个交易必然是coinbase交易，除第一个之外的任何交易都不应是coinbase交易，否则出错
 			if(!coinbase) {
-				if(tx.getType() != Transaction.TYPE_COINBASE) {
+				if(tx.getType() != TransactionDefinition.TYPE_COINBASE) {
 					throw new VerificationException("the block first tx is not coinbase tx");
 				}
 				coinbaseFee = Coin.valueOf(((TransactionOutput)tx.getOutput(0)).getValue());
 				coinbase = true;
 				continue;
-			} else if(tx.getType() == Transaction.TYPE_COINBASE) {
+			} else if(tx.getType() == TransactionDefinition.TYPE_COINBASE) {
 				throw new VerificationException("the block too much coinbase tx");
 			}
 			//如果是转帐交易
-			if(tx.getType() == Transaction.TYPE_PAY) {
+			if(tx.getType() == TransactionDefinition.TYPE_PAY) {
 				//验证交易的输入来源，是否已花费的交易，同时验证金额
 				Coin txInputFee = Coin.ZERO;
 				Coin txOutputFee = Coin.ZERO;
@@ -248,7 +248,7 @@ public class BlockMessageProcess implements MessageProcess {
 				outputFee = outputFee.add(txOutputFee);
 				fee = fee.add(txInputFee.subtract(txOutputFee));
 				
-			} else if(tx.getType() == Transaction.TYPE_REGISTER) {
+			} else if(tx.getType() == TransactionDefinition.TYPE_REGISTER) {
 				//帐户注册
 				RegisterTransaction regTx = (RegisterTransaction) tx;
 				Address address = regTx.getAccount().getAddress();

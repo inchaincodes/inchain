@@ -13,6 +13,7 @@ import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
@@ -59,8 +60,8 @@ public class TestNetworkParams extends NetworkParams {
 		
 		//产出货币总量
 		Transaction coinBaseTx = new Transaction(this);
-		coinBaseTx.setVersion(Transaction.VERSION);
-		coinBaseTx.setType(Transaction.TYPE_COINBASE);
+		coinBaseTx.setVersion(TransactionDefinition.VERSION);
+		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
 		
 		TransactionInput input = new TransactionInput();
 		coinBaseTx.addInput(input);
@@ -92,7 +93,7 @@ public class TestNetworkParams extends NetworkParams {
 		if(log.isDebugEnabled()) {
 			log.debug("the gengsis block hash key is : {}", gengsisBlock.getHash());
 		}
-		Utils.checkState("59a03c5f24966e6b438e7f1d699d240fa74329f58ad10f992780b796e9e39b73".equals(Hex.encode(gengsisBlock.getHash().getBytes())), "the gengsis block hash is error");
+		Utils.checkState("9b4ea1365e0a6270d69f6aea62340a6a0e7307eedd93c81446541a51f3c9ffef".equals(Hex.encode(gengsisBlock.getHash().getBytes())), "the gengsis block hash is error");
 		
 		return gengsisBlock;
 	}

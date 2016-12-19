@@ -3,22 +3,20 @@ package org.inchain.store;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.BaseTestCase;
-import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
-import org.iq80.leveldb.util.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,8 +60,8 @@ public class BlockStoreProvderTest extends BaseTestCase {
 		
 		//coinbase
 		Transaction coinBaseTx = new Transaction(network);
-		coinBaseTx.setVersion(Transaction.VERSION);
-		coinBaseTx.setType(Transaction.TYPE_COINBASE);
+		coinBaseTx.setVersion(TransactionDefinition.VERSION);
+		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
 		coinBaseTx.setLockTime(1478164688l);
 		
 		TransactionInput input = new TransactionInput();

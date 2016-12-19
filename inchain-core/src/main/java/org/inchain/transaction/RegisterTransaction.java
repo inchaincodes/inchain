@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.account.Account;
-import org.inchain.account.Address;
 import org.inchain.account.Account.AccountType;
+import org.inchain.account.Address;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
@@ -33,8 +33,8 @@ public class RegisterTransaction extends Transaction {
 
 	public RegisterTransaction(NetworkParams network, Account account) {
 		super(network);
-		this.setVersion(VERSION);
-		this.setType(TYPE_REGISTER);
+		this.setVersion(TransactionDefinition.VERSION);
+		this.setType(TransactionDefinition.TYPE_REGISTER);
 		this.account = account;
 		this.inputs = new ArrayList<Input>();
 		RegisterInput input = new RegisterInput(account);
@@ -51,7 +51,7 @@ public class RegisterTransaction extends Transaction {
 	
 	public RegisterTransaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
 		super(params, payloadBytes, offset);
-		this.setType(TYPE_REGISTER);
+		this.setType(TransactionDefinition.TYPE_REGISTER);
 	}
 	
 	/**
@@ -122,7 +122,7 @@ public class RegisterTransaction extends Transaction {
 	 * @param key2
 	 */
 	public void calculateSignature(ECKey key1, ECKey key2) {
-		Script script = ScriptBuilder.createEmptyInputScript(Transaction.TYPE_REGISTER, account.getAddress().getHash160());
+		Script script = ScriptBuilder.createEmptyInputScript(TransactionDefinition.TYPE_REGISTER, account.getAddress().getHash160());
 		inputs.get(0).setScriptSig(script);
 		
 		Sha256Hash hash = Sha256Hash.of(baseSerialize());

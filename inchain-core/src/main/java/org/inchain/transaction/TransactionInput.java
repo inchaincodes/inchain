@@ -41,7 +41,7 @@ public class TransactionInput implements Input {
 	 */
 	public void serialize(OutputStream stream) throws IOException {
 		//上一交易的引用
-		if(parent.getType() != Transaction.TYPE_COINBASE) {
+		if(parent.getType() != TransactionDefinition.TYPE_COINBASE) {
 			Utils.checkNotNull(from);
 			stream.write(from.getParent().getHash().getBytes());
 			Utils.uint32ToByteStreamLE(from.getIndex(), stream);

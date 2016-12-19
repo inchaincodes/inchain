@@ -93,4 +93,8 @@ public class LevelDB implements Db {
 		db.close();
 	}
 
+	@Override
+	public DB getSourceDb() {
+		return db;
+	}
 }

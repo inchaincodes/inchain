@@ -31,13 +31,6 @@ import org.inchain.utils.Utils;
  *
  */
 public class Transaction extends Message {
-	
-	public static final long VERSION = 1;
-	
-	public static final int TYPE_COINBASE = 9;	//coinbase交易
-	public static final int TYPE_REGISTER = 1;	//帐户注册
-	public static final int TYPE_CHANGEPWD = 2;	//修改密码
-	public static final int TYPE_PAY = 6;		//普通支付交易
 
 	//锁定时间标识，小于该数表示为块数，大于则为秒级时间戳
 	public static final int LOCKTIME_THRESHOLD = 500000000;
@@ -166,7 +159,7 @@ public class Transaction extends Message {
 		TransactionInput input = new TransactionInput();
         input.setParent(this);
         
-        if(getType() == Transaction.TYPE_COINBASE) {
+        if(getType() == TransactionDefinition.TYPE_COINBASE) {
         	int signLength = (int) readVarInt();
         	byte[] msg = readBytes(signLength);
         	//TODO
@@ -224,7 +217,7 @@ public class Transaction extends Message {
 		Output output = outputs.get(0);
 		
 		//如果是coinbase交易，就不检查脚本
-		if(type != TYPE_COINBASE)
+		if(type != TransactionDefinition.TYPE_COINBASE)
 			input.getScriptSig().run(this, output.getScript());
 	}
 

@@ -1,6 +1,7 @@
 package org.inchain.msgprocess;
 
 import org.inchain.message.*;
+import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
 
 public class DefaultMessageProcessFactory implements MessageProcessFactory {
@@ -24,13 +25,16 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 			return new VerackMessageProcess();
 		} else if(message instanceof VersionMessage) {
 			return new VersionMessageProcess();
-		} else if(message instanceof Transaction) {
+		} else if(message instanceof RegConsensusTransaction) {
+			//注册成为共识节点消息
+			return new RegConsensusMessageProcess();
+		}  else if(message instanceof Transaction) {
 			return new TransactionMessageProcess();
 		} else if(message instanceof BlockMessage) {
 			return new BlockMessageProcess();
 		} else if(message instanceof GetBlockMessage) {
 			return new GetBlockMessageProcess();
-		} else {
+		}else {
 			return new UnknownMessageProcess();
 		}
 	}

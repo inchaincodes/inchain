@@ -13,6 +13,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
@@ -73,11 +74,11 @@ public class TransactionMessageProcess implements MessageProcess {
 	private void verifyTx(Transaction tx) {
 		int type = tx.getType();
 		//帐户注册，hash160不能重复
-		if(type == Transaction.TYPE_REGISTER) {
+		if(type == TransactionDefinition.TYPE_REGISTER) {
 			
-		} else if(type == Transaction.TYPE_CHANGEPWD) {
+		} else if(type == TransactionDefinition.TYPE_CHANGEPWD) {
 			
-		} else if(type == Transaction.TYPE_PAY) {
+		} else if(type == TransactionDefinition.TYPE_PAY) {
 			//普通交易，验证交易来源和交易金额是否正确
 			List<Input> inputs = tx.getInputs();
 			for (Input input : inputs) {

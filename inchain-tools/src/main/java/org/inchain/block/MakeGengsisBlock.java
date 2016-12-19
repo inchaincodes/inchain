@@ -18,6 +18,7 @@ import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
@@ -105,8 +106,8 @@ public class MakeGengsisBlock {
 		
 		//产出货币总量
 		Transaction coinBaseTx = new Transaction(network);
-		coinBaseTx.setVersion(Transaction.VERSION);
-		coinBaseTx.setType(Transaction.TYPE_COINBASE);
+		coinBaseTx.setVersion(TransactionDefinition.VERSION);
+		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
 		
 		TransactionInput input = new TransactionInput();
 		coinBaseTx.addInput(input);

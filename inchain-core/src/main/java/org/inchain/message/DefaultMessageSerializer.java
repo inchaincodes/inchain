@@ -3,6 +3,7 @@ package org.inchain.message;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Constructor;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -11,8 +12,10 @@ import java.util.Map;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
+import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -34,6 +37,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(RegisterTransaction.class, "accreg");
     	COMMANDS.put(BlockMessage.class, "block");
     	COMMANDS.put(GetBlockMessage.class, "getblock");
+    	COMMANDS.put(RegConsensusTransaction.class, "regconsensus");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {
@@ -141,6 +145,8 @@ public class DefaultMessageSerializer extends MessageSerializer {
         	message = new BlockMessage(network, payloadBytes);
         } else if (command.equals("getblock")) {
         	message = new GetBlockMessage(network, payloadBytes);
+        } else if (command.equals("regconsensus")) {
+        	message = new RegConsensusTransaction(network, payloadBytes);
         } else {
         	log.warn("No support for deserializing message with name {}", command);
         	message = new UnknownMessage(network, command, payloadBytes);
@@ -200,16 +206,24 @@ public class DefaultMessageSerializer extends MessageSerializer {
 	@Override
 	public Transaction makeTransaction(byte[] payloadBytes, int offset) throws ProtocolException {
 		//根据交易类型来创建交易
-		byte type = payloadBytes[offset];
+		int type = payloadBytes[offset];
 		
-		Transaction tx = null;
-		if(type == Transaction.TYPE_REGISTER) {
-			//帐户注册交易
-			tx = new RegisterTransaction(network, payloadBytes, offset);
-		} else {
-			tx = new Transaction(network, payloadBytes, offset);
+		String classFullName = TransactionDefinition.TRANSACTION_RELATION.get(type);
+
+		if(classFullName == null || "".equals(classFullName)) {
+			log.warn("没有配置的消息序列化");
+			return null;
 		}
-		return tx;
+		
+		try {
+			Class<?> clazz = Class.forName(classFullName);
+			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class, int.class);
+			
+			return (Transaction) constructor.newInstance(network, payloadBytes, offset);
+		} catch (Exception e) {
+			log.error("序列化消息出错：{}", e);
+			return null;
+		}
 	}
 
 }

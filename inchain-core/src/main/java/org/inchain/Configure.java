@@ -49,6 +49,11 @@ public final class Configure {
 	public static boolean MINING = getProperty("mining", false);
 	
 	/**
+	 * 参与共识所需的信用点
+	 */
+	public static final long CONSENSUS_CREDIT = 100;
+	
+	/**
 	 * 最大允许节点连接数
 	 */
 	public static int MAX_CONNECT_COUNT = getProperty("max.connect.count", 10);
