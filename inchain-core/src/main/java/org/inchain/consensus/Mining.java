@@ -12,4 +12,6 @@ public interface Mining {
 	void stop();
 	
 	int status();
+	
+	void mining();
 }

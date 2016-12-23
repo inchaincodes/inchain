@@ -2,6 +2,8 @@ package org.inchain.msgprocess;
 
 import java.util.Locale;
 
+import org.inchain.SpringContextUtils;
+import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.message.Message;
@@ -41,6 +43,10 @@ public class VerackMessageProcess implements MessageProcess {
         
         peer.setHandshake(true);
         
+        //区块下载同步器
+        DownloadHandler downloadHandler = SpringContextUtils.getBean(DownloadHandler.class);
+        downloadHandler.newPeer(peer);
+      		
 		return null;
 	}
 }

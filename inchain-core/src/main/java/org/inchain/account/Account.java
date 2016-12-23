@@ -67,19 +67,31 @@ public class Account {
 			bos.write(status);//状态，待激活
 			bos.write(accountType.value());//类型
 			bos.write(address.getHash160());
+			
 			bos.write(priSeed.length);
 			bos.write(priSeed);
-			for (byte[] mgPubkey : mgPubkeys) {
-				bos.write(mgPubkey.length);
-				bos.write(mgPubkey);
+			
+
+			if(mgPubkeys != null) {
+				for (byte[] mgPubkey : mgPubkeys) {
+					bos.write(mgPubkey.length);
+					bos.write(mgPubkey);
+				}
 			}
-			for (byte[] trPubkey : trPubkeys) {
-				bos.write(trPubkey.length);
-				bos.write(trPubkey);
+			
+			if(trPubkeys != null) {
+				for (byte[] trPubkey : trPubkeys) {
+					bos.write(trPubkey.length);
+					bos.write(trPubkey);
+				}
 			}
 			//帐户主体
-			Utils.uint32ToByteStreamLE(body.length, bos);
-			bos.write(body);
+			if(body != null) {
+				Utils.uint32ToByteStreamLE(body.length, bos);
+				bos.write(body);
+			} else {
+				Utils.uint32ToByteStreamLE(0l, bos);
+			}
 			if(signs != null) {
 				for (byte[] sign  : signs) {
 					//签名
@@ -120,55 +132,82 @@ public class Account {
 		account.setAddress(address);
 		cursor += 20;
 		
-		//私匙种子
-		int length = datas[cursor];
-		cursor ++;
-		account.setPriSeed(readBytes(cursor, length, datas));
-		cursor += length;
-		
-		//帐户管理公匙
-		length = datas[cursor];
-		cursor ++;
-		byte[] mgPubkey1 = readBytes(cursor, length, datas);
-		cursor += length;
-		
-		length = datas[cursor];
-		cursor ++;
-		byte[] mgPubkey2 = readBytes(cursor, length, datas);
-		
-		account.setMgPubkeys(new byte[][] {mgPubkey1, mgPubkey2});
-		cursor += length;
-		
-		//交易公匙
-		length = datas[cursor];
-		cursor ++;
-		byte[] trPubkey1 = readBytes(cursor, length, datas);
-		cursor += length;
-		
-		length = datas[cursor];
-		cursor ++;
-		byte[] trPubkey2 = readBytes(cursor, length, datas);
-		
-		account.setTrPubkeys(new byte[][] {trPubkey1, trPubkey2});
-		cursor += length;
-		
-		//主体
-		length = (int) Utils.readUint32(datas, cursor);
-		cursor += 4;
-		account.setBody(readBytes(cursor, length, datas));
-		cursor += length;
-		
-		//签名
-		length = datas[cursor];
-		cursor ++;
-		byte[] sign1 = readBytes(cursor, length, datas);
-		cursor += length;
-		length = datas[cursor];
-		cursor ++;
-		byte[] sign2 = readBytes(cursor, length, datas);
-		cursor += length;
-		
-		account.setSigns(new byte[][] {sign1, sign2});
+		if(type == AccountType.SYSTEM.value()) {
+			//私匙
+			int length = datas[cursor];
+			cursor ++;
+			account.setPriSeed(readBytes(cursor, length, datas));
+			cursor += length;
+			
+			//公匙
+			length = datas[cursor];
+			cursor ++;
+			byte[] mgPubkey1 = readBytes(cursor, length, datas);
+			cursor += length;
+			account.setMgPubkeys(new byte[][] {mgPubkey1});
+			
+			//主体
+			cursor += 4;
+			
+			//签名
+			length = datas[cursor];
+			cursor ++;
+			byte[] sign1 = readBytes(cursor, length, datas);
+			cursor += length;
+			
+			account.setSigns(new byte[][] {sign1});
+			
+		} else if(type == AccountType.CERT.value()) {
+			//私匙种子
+			int length = datas[cursor];
+			cursor ++;
+			account.setPriSeed(readBytes(cursor, length, datas));
+			cursor += length;
+			
+			//帐户管理公匙
+			length = datas[cursor];
+			cursor ++;
+			byte[] mgPubkey1 = readBytes(cursor, length, datas);
+			cursor += length;
+			
+			length = datas[cursor];
+			cursor ++;
+			byte[] mgPubkey2 = readBytes(cursor, length, datas);
+			
+			account.setMgPubkeys(new byte[][] {mgPubkey1, mgPubkey2});
+			cursor += length;
+			
+			//交易公匙
+			length = datas[cursor];
+			cursor ++;
+			byte[] trPubkey1 = readBytes(cursor, length, datas);
+			cursor += length;
+			
+			length = datas[cursor];
+			cursor ++;
+			byte[] trPubkey2 = readBytes(cursor, length, datas);
+			
+			account.setTrPubkeys(new byte[][] {trPubkey1, trPubkey2});
+			cursor += length;
+			
+			//主体
+			length = (int) Utils.readUint32(datas, cursor);
+			cursor += 4;
+			account.setBody(readBytes(cursor, length, datas));
+			cursor += length;
+			
+			//签名
+			length = datas[cursor];
+			cursor ++;
+			byte[] sign1 = readBytes(cursor, length, datas);
+			cursor += length;
+			length = datas[cursor];
+			cursor ++;
+			byte[] sign2 = readBytes(cursor, length, datas);
+			cursor += length;
+			
+			account.setSigns(new byte[][] {sign1, sign2});
+		}
 		
 		return account;
 	}
@@ -186,15 +225,19 @@ public class Account {
 	public final int size() {
 		int size = 1+1+20; //状态+类型+hash160
 		size += priSeed.length + 1;
-		
-		for (byte[] mgPubkey : mgPubkeys) {
-			size += mgPubkey.length + 1;
+
+		if(trPubkeys != null) {
+			for (byte[] mgPubkey : mgPubkeys) {
+				size += mgPubkey.length + 1;
+			}
 		}
-		for (byte[] trPubkey : trPubkeys) {
-			size += trPubkey.length + 1;
+		if(trPubkeys != null) {
+			for (byte[] trPubkey : trPubkeys) {
+				size += trPubkey.length + 1;
+			}
 		}
 		
-		size += body.length + 4;
+		size += body == null? 4:body.length + 4;
 		
 		if(signs != null) {
 			for (byte[] sign : signs) {
@@ -215,16 +258,27 @@ public class Account {
 
 	//签名帐户
 	public void signAccount(ECKey mgkey1, ECKey mgkey2) throws IOException {
-		//用户帐户管理私匙签名
-		Sha256Hash hash = Sha256Hash.of(serialize());
-		ECDSASignature signature1 = mgkey1.sign(hash);
-		//签名结果
-        byte[] signbs1 = signature1.encodeToDER();
-        ECDSASignature signature2 = mgkey2.sign(hash);
-        //签名结果
-        byte[] signbs2 = signature2.encodeToDER();
-        
-        signs = new byte[][] {signbs1, signbs2};
+		if(mgkey1 == null && mgkey2 == null) {
+			return;
+		} else if(mgkey1 != null && mgkey2 == null) {
+			//用户帐户管理私匙签名
+			Sha256Hash hash = Sha256Hash.of(serialize());
+			ECDSASignature signature1 = mgkey1.sign(hash);
+			//签名结果
+	        byte[] signbs1 = signature1.encodeToDER();
+	        signs = new byte[][] {signbs1};
+		} else if(mgkey1 != null && mgkey2 != null) {
+			//用户帐户管理私匙签名
+			Sha256Hash hash = Sha256Hash.of(serialize());
+			ECDSASignature signature1 = mgkey1.sign(hash);
+			//签名结果
+	        byte[] signbs1 = signature1.encodeToDER();
+	        ECDSASignature signature2 = mgkey2.sign(hash);
+	        //签名结果
+	        byte[] signbs2 = signature2.encodeToDER();
+	        
+	        signs = new byte[][] {signbs1, signbs2};
+		}
 	}
 
 	/**
@@ -232,19 +286,18 @@ public class Account {
 	 * @throws IOException 
 	 */
 	public void verify() throws IOException {
-		
-		byte[] sign1 = signs[0];
-		byte[] sign2 = signs[1];
-		
+
+		byte[][] tempSigns = signs;
 		signs = null;
 		
-		ECKey key1 = ECKey.fromPublicOnly(mgPubkeys[0]);
-		ECKey key2 = ECKey.fromPublicOnly(mgPubkeys[1]);
-		
-		byte[] hash = Sha256Hash.of(serialize()).getBytes();
-		
-		if(!key1.verify(hash, sign1) || !key2.verify(hash, sign2)) {
-			throw new VerificationException("account verify fail");
+		for (int i = 0; i < tempSigns.length; i++) {
+			byte[] sign = tempSigns[i];
+			ECKey key1 = ECKey.fromPublicOnly(mgPubkeys[i]);
+			byte[] hash = Sha256Hash.of(serialize()).getBytes();
+			
+			if(!key1.verify(hash, sign)) {
+				throw new VerificationException("account verify fail");
+			}
 		}
 	}
 	

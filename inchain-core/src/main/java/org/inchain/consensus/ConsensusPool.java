@@ -30,5 +30,5 @@ public interface ConsensusPool {
 	 * @param hash160
 	 * @return byte[]
 	 */
-	public byte[] get(byte[] hash160);
+	public byte[] getPubkey(byte[] hash160);
 }

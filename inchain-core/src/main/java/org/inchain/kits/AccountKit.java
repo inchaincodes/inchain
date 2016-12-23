@@ -193,6 +193,52 @@ public class AccountKit {
 			locker.unlock();
 		}
 	}
+	
+	/**
+	 * 初始化一个普通帐户
+	 * @param mgPw	帐户管理密码
+	 * @param trPw  帐户交易密码
+	 * @return Address
+	 * @throws Exception 
+	 */
+	public Address createNewAccount() throws Exception {
+		
+		locker.lock();
+		try {
+//			Address address = AccountTool.newAddress(network);
+			
+			//TODO
+			Address address = new Address(network, "1KA3yDwPXYjv9L2s3kkVz56zUMAgV2PxDQ"); 
+			
+			address.setBalance(Coin.ZERO);
+			address.setUnconfirmedBalance(Coin.ZERO);
+			
+			Account account = new Account();
+			
+			ECKey key = ECKey.fromPrivate(new BigInteger("52188072277803777502738867181821197739391264777454871393545634721804630880136"));
+			account.setPriSeed(key.getPrivKeyBytes());
+			
+			account.setAddress(address);
+			account.setMgPubkeys(new byte[][] {key.getPubKey(true)});
+			account.signAccount(key, null);
+			
+			File accountFile = new File(accountDir, address.getBase58()+".dat");
+			
+			FileOutputStream fos = new FileOutputStream(accountFile);
+			try {
+				//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+				fos.write(account.serialize());
+			} finally {
+				fos.close();
+			}
+			
+			accountList.add(account);
+			
+			return address;
+		} finally {
+			locker.unlock();
+		}
+	}
 
 	/**
 	 * 生成帐户信息
@@ -319,6 +365,14 @@ public class AccountKit {
 			}
 			
 		}
+		//判断账户不存在时是否自动创建
+		if(accountList.size() == 0 && Configure.ACCOUNT_AUTO_INIT) {
+			try {
+				createNewAccount();
+			} catch (Exception e) {
+				log.error("自动初始化账户失败", e);
+			}
+		}
 		//加载各地址的余额
 		loadBalanceFromChainstateAndUnconfirmedTransaction();
 	}
@@ -359,15 +413,6 @@ public class AccountKit {
 			Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(hash160);
 			address.setBalance(balances[0]);
 			address.setUnconfirmedBalance(balances[1]);
-		}
-		
-		//判断账户不存在时是否自动创建
-		if(accountList.size() == 0 && Configure.ACCOUNT_AUTO_INIT) {
-			try {
-				createNewAccount("1", "2");
-			} catch (Exception e) {
-				log.error("自动初始化账户失败", e);
-			}
 		}
 	}
 	

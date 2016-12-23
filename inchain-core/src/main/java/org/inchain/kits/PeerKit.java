@@ -8,7 +8,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
 import org.inchain.core.Broadcaster;
-import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.TransactionBroadcast;
 import org.inchain.message.BlockMessage;
@@ -235,5 +234,13 @@ public class PeerKit implements Broadcaster {
 	
 	public void setConnectionListener(ConnectionListener connectionListener) {
 		this.connectionListener = connectionListener;
+	}
+
+	/**
+	 * 是否能进行广播
+	 * @return boolean
+	 */
+	public boolean canBroadcast() {
+		return inPeers.size() > 0 || outPeers.size() > 0;
 	}
 }

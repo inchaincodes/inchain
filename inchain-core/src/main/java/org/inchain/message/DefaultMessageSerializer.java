@@ -8,6 +8,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
@@ -38,6 +39,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(BlockMessage.class, "block");
     	COMMANDS.put(GetBlockMessage.class, "getblock");
     	COMMANDS.put(RegConsensusTransaction.class, "regconsensus");
+    	COMMANDS.put(ConsensusMessage.class, "consensus");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {
@@ -130,27 +132,26 @@ public class DefaultMessageSerializer extends MessageSerializer {
 	}
 
 	private Message makeMessage(String command, int size, byte[] payloadBytes, byte[] hash, byte[] checksum) {
-		Message message;
-        if (command.equals("version")) {
-        	message = new VersionMessage(network, payloadBytes);
-        } else if (command.equals("verack")) {
-        	message = new VerackMessage(network, payloadBytes);
-        } else if (command.equals("ping")) {
-        	message = new PingMessage(network, payloadBytes);
-        } else if (command.equals("pong")) {
-        	message = new PongMessage(network, payloadBytes);
-        } else if (command.equals("accreg")) {
-        	message = new RegisterTransaction(network, payloadBytes);
-        } else if (command.equals("block")) {
-        	message = new BlockMessage(network, payloadBytes);
-        } else if (command.equals("getblock")) {
-        	message = new GetBlockMessage(network, payloadBytes);
-        } else if (command.equals("regconsensus")) {
-        	message = new RegConsensusTransaction(network, payloadBytes);
-        } else {
-        	log.warn("No support for deserializing message with name {}", command);
-        	message = new UnknownMessage(network, command, payloadBytes);
-        }
+		Message message = null;
+        //根据交易类型来创建交易
+        for (Entry<Class<? extends Message>, String> entry : COMMANDS.entrySet()) {
+			if(entry.getValue().equals(command)) {
+		  		try {
+		  			Class<?> clazz = entry.getKey();
+		  			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class);
+		  			if(constructor == null) {
+		  				constructor = clazz.getDeclaredConstructor(NetworkParams.class, String.class, byte[].class);
+		  	        	log.warn("No support for deserializing message with name {}", command);
+		  	        	message = (Message) constructor.newInstance(network, command, payloadBytes);
+		  			} else {
+		  				message = (Message) constructor.newInstance(network, payloadBytes);
+		  			}
+		  		} catch (Exception e) {
+		  			log.error("反序列化消息通用方法出错：{}", e);
+		  		}
+		  		break;
+			}
+		}
 		return message;
 	}
 

@@ -10,6 +10,7 @@ import org.inchain.msgprocess.MessageProcess;
 import org.inchain.msgprocess.MessageProcessFactory;
 import org.inchain.msgprocess.MessageProcessResult;
 import org.inchain.network.NetworkParams;
+import org.inchain.utils.RandomUtil;
 import org.slf4j.LoggerFactory;
 
 public class Peer extends PeerSocketHandler {
@@ -58,6 +59,10 @@ public class Peer extends PeerSocketHandler {
 		sendMessage(new VersionMessage(network, network.getBestBlockHeight(), getPeerAddress()));
 		log.info("send version message end");
 	}
+
+	public void ping() {
+		sendMessage(new PingMessage(RandomUtil.randomLong()));
+	}
 	
 	public PeerAddress getPeerAddress() {
 		return peerAddress;
@@ -80,9 +85,5 @@ public class Peer extends PeerSocketHandler {
 
 	public void setHandshake(boolean handshake) {
 		this.handshake = handshake;
-	}
-
-	public void ping() {
-		sendMessage(new PingMessage((long)(Math.random()*Long.MAX_VALUE)));
 	}
 }

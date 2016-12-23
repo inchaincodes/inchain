@@ -34,7 +34,9 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 			return new BlockMessageProcess();
 		} else if(message instanceof GetBlockMessage) {
 			return new GetBlockMessageProcess();
-		}else {
+		} else if(message instanceof ConsensusMessage) {
+			return new ConsensusMessageProcess();
+		} else {
 			return new UnknownMessageProcess();
 		}
 	}

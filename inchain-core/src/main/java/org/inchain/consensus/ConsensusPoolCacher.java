@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 共识池节点缓存，所有注册参与共识的节点都会存放到里面
- * 当有阶段加入或者退出，这里同时更新维护
+ * 当有节点加入或者退出，这里同时更新维护
  * @author ln
  *
  */
@@ -96,7 +96,16 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * 移除共识节点
 	 */
 	public void delete(byte[] hash160) {
-		container.remove(hash160);
+		byte[] hash160Temp = null;
+		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+			if(Arrays.equals(hash160, entry.getKey())) {
+				hash160Temp = entry.getKey();
+				break;
+			}
+		}
+		if(hash160Temp != null) {
+			container.remove(hash160Temp);
+		}
 	}
 	
 	/**
@@ -105,7 +114,12 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @return boolean
 	 */
 	public boolean contains(byte[] hash160) {
-		return container.get(hash160) != null;
+		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+			if(Arrays.equals(hash160, entry.getKey())) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
@@ -113,8 +127,13 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @param hash160
 	 * @return byte[]
 	 */
-	public byte[] get(byte[] hash160) {
-		return container.get(hash160);
+	public byte[] getPubkey(byte[] hash160) {
+		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+			if(Arrays.equals(hash160, entry.getKey())) {
+				return entry.getValue();
+			}
+		}
+		return null;
 	}
 	
 	public Map<byte[], byte[]> getContainer() {

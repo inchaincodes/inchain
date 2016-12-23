@@ -11,13 +11,17 @@ import org.inchain.crypto.ECKey;
 public class ECkeyTest {
 
 	public static void main(String[] args) throws InterruptedException {
+		
+		ECKey ek = new ECKey();
+		System.out.println(ek.getPrivKey());
+		
 		final Set<Integer> set = new HashSet<Integer>();
 		
 		long time = System.currentTimeMillis();
 		
 		ExecutorService executors = Executors.newFixedThreadPool(4);
 		
-		for (int i = 0; i < 1000000; i++) {
+		for (int i = 0; i < 100; i++) {
 			
 			executors.execute(new Thread(){
 				@Override

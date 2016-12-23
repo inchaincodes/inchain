@@ -85,7 +85,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		        
 				Transaction transaction = tx.getTransaction();
 				
-				db.put(transaction.getHash().getBytes(), transaction.baseSerialize());
+				db.put(transaction.getHash().getBytes(), tx.baseSerialize());
 				
 				//如果是共识注册交易，则保存至区块状态表
 				if(transaction instanceof RegConsensusTransaction) {
@@ -96,7 +96,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					if(uinfos == null) {
 						throw new VerificationException("没有信用数据，不允许注册共识");
 					}
-					//4信用，4余额，33公钥，1是否共识
+					//4信用，4余额，33公钥，1共识状态
 					byte[] values = new byte[42];
 					System.arraycopy(uinfos, 0, values, 0, uinfos.length);
 					values[41] = 1;
