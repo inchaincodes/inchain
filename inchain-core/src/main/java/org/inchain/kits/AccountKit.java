@@ -205,17 +205,19 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
-//			Address address = AccountTool.newAddress(network);
+			ECKey key = new ECKey();
+			
+			Address address = Address.fromP2PKHash(network, Address.VERSION_DEFAULT, Utils.sha256hash160(key.getPubKey(false)));
 			
 			//TODO
-			Address address = new Address(network, "1KA3yDwPXYjv9L2s3kkVz56zUMAgV2PxDQ"); 
+//			Address address = new Address(network, "12RZxouvtVmvh1g7t4bBbNNT92zTPEbYYY"); 
+//			ECKey key = ECKey.fromPrivate(new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"));
 			
 			address.setBalance(Coin.ZERO);
 			address.setUnconfirmedBalance(Coin.ZERO);
 			
 			Account account = new Account();
 			
-			ECKey key = ECKey.fromPrivate(new BigInteger("52188072277803777502738867181821197739391264777454871393545634721804630880136"));
 			account.setPriSeed(key.getPrivKeyBytes());
 			
 			account.setAddress(address);

@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.inchain.core.Peer;
 import org.inchain.core.TimeHelper;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
@@ -26,6 +27,8 @@ public class ConsensusMessage extends Message {
 	private static final Logger log = LoggerFactory.getLogger(ConsensusMessage.class);
 	
 	private static final int PROTOCOL_VERSION = 1;
+	
+	private Peer peer;
 	
 	//消息ID
 	private Sha256Hash id;
@@ -175,6 +178,14 @@ public class ConsensusMessage extends Message {
 
 	public void setSign(byte[] sign) {
 		this.sign = sign;
+	}
+	
+	public Peer getPeer() {
+		return peer;
+	}
+
+	public void setPeer(Peer peer) {
+		this.peer = peer;
 	}
 
 	@Override

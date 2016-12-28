@@ -1,7 +1,6 @@
 package org.inchain.network;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 
 /**
  * 种子
@@ -9,10 +8,11 @@ import java.net.SocketAddress;
  *
  */
 public class Seed {
-	
+
 	public static final int SEED_CONNECT_WAIT = 0;
-	public static final int SEED_CONNECT_SUCCESS = 1;
-	public static final int SEED_CONNECT_FAIL = 2;
+	public static final int SEED_CONNECT_ING = 1;
+	public static final int SEED_CONNECT_SUCCESS = 2;
+	public static final int SEED_CONNECT_FAIL = 3;
 	
 	private InetSocketAddress address;
 	private int staus;			//状态，0待连接，1连接成功，2连接失败

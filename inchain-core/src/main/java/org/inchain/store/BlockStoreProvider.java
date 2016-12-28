@@ -196,6 +196,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	public BlockStore getBlock(byte[] hash) {
 		
 		BlockHeaderStore header = getHeader(hash);
+		if(header == null) {
+			return null;
+		}
 		return getBlockByHeader(header);
 	}
 	

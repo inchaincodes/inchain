@@ -12,12 +12,14 @@ import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
  * 共识注册处理器
  * @author ln
  *
  */
+@Service
 public class RegConsensusMessageProcess implements MessageProcess {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());

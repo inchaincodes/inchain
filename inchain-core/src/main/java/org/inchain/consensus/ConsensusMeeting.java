@@ -47,5 +47,12 @@ public interface ConsensusMeeting {
 	 * 异步启动
 	 * @param account 
 	 */
-	void startSyn(Account account);
+	void startSyn();
+	
+	/**
+	 * 设置运行账户
+	 * @param account 
+	 */
+	void setAccount(Account account);
+
 }

@@ -12,18 +12,18 @@ import org.inchain.utils.Utils;
  * @author ln
  *
  */
-public class GetBlockMessage extends Message {
+public class GetBlocksMessage extends Message {
 
 	//开始区块高度
 	private long startBlockHeight;
 	//需要下载的区块数量
 	private long count;
 	
-	public GetBlockMessage(NetworkParams network, byte[] payloadBytes) {
+	public GetBlocksMessage(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
 	
-	public GetBlockMessage(NetworkParams network, long startBlockHeight, long count) {
+	public GetBlocksMessage(NetworkParams network, long startBlockHeight, long count) {
 		this.startBlockHeight = startBlockHeight;
 		this.count = count;
 	}

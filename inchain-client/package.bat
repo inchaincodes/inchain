@@ -1,11 +1,11 @@
-echo goto core dir ···
+echo goto core dir ..............
 cd ../inchain-core
 
-echo install core ···
+echo install core ...............
 call install.bat
 
-echo back client dir ···
+echo back client dir ...............
 cd ../inchain-client/
 
-echo package ···
+echo package ...............
 mvn clean package -Dmaven.test.skip=true

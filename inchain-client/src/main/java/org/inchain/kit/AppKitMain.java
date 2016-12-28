@@ -19,9 +19,9 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * 
  * @author ln
  */
-public class MainServer {
+public class AppKitMain {
 
-	public static final Log log = LogFactory.getLog(MainServer.class);
+	public static final Log log = LogFactory.getLog(AppKitMain.class);
 
 	private static final String START = "start";
 	private static final String STOP = "stop";
@@ -29,15 +29,15 @@ public class MainServer {
 	private ServerSocket serverSocket;
 	private ClassPathXmlApplicationContext springContext;
 
-	public static MainServer INSTANCE;
+	public static AppKitMain INSTANCE;
 
-	private MainServer() {
+	private AppKitMain() {
 		// 不允许外部创建实例
 	}
 
-	public static MainServer getInstance() {
+	public static AppKitMain getInstance() {
 		if (INSTANCE == null) {
-			INSTANCE = new MainServer();
+			INSTANCE = new AppKitMain();
 		}
 		return INSTANCE;
 	}
@@ -60,13 +60,11 @@ public class MainServer {
 					springContext = new ClassPathXmlApplicationContext(xmls);
 					
 					springContext.start();
-					
-					//连接测试节点
+
+//					//链接测试节点
 					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
-//					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.100", 6888)));
-//					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.11", 6888)));
-					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.12", 6888)));
-	
+					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.100", 6881)));
+					
 					log.info("Server启动成功。");
 
 				} catch (RuntimeException e) {
@@ -127,7 +125,7 @@ public class MainServer {
 
 		String cmd = args[0];
 
-		MainServer server = MainServer.getInstance();
+		AppKitMain server = AppKitMain.getInstance();
 
 		if (cmd.equals(START)) {
 			try {

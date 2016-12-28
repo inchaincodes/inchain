@@ -2,6 +2,7 @@ package org.inchain.network;
 
 import org.inchain.Configure;
 import org.inchain.message.MessageSerializer;
+import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
@@ -96,7 +97,12 @@ public abstract class NetworkParams {
 	 * @return long
 	 */
 	public long getBestBlockHeight() {
-		return blockStoreProvider.getBestBlockHeader().getHeight();
+		BlockHeaderStore blockHeader = blockStoreProvider.getBestBlockHeader();
+		if(blockHeader == null) {
+			return 0l;
+		} else {
+			return blockHeader.getHeight();
+		}
 	}
 	
     /**

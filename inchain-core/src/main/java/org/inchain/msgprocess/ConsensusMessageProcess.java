@@ -12,12 +12,14 @@ import org.inchain.message.Message;
 import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
  * 共识消息，整个系统的共识流程步骤，都在此体现，所有节点可见
  * @author ln
  *
  */
+@Service
 public class ConsensusMessageProcess implements MessageProcess {
 	
 	private final Logger log = LoggerFactory.getLogger(getClass());
@@ -73,14 +75,22 @@ public class ConsensusMessageProcess implements MessageProcess {
 		}
 		
 		//验证通过
-		//加入共识会议记录器
-		consensusMeeting.receiveMeetingMessage(msid, consensusMessage);
 		
 		//转发消息
-		//TODO
-		PeerKit peerKit = SpringContextUtils.getBean(PeerKit.class);
-		peerKit.broadcastMessage(consensusMessage);
-		
+		//除拉取共识状态之外的消息都转发
+		byte[] content = consensusMessage.getContent();
+		if(content[0] == 1 || content[0] == 2) {
+			//拉取和回应共识状态消息，不转发
+			consensusMessage.setPeer(peer);
+			consensusMeeting.receiveMeetingMessage(msid, consensusMessage);
+		} else {
+			//加入共识会议记录器
+			consensusMeeting.receiveMeetingMessage(msid, consensusMessage);
+			
+			//TODO
+			PeerKit peerKit = SpringContextUtils.getBean(PeerKit.class);
+			peerKit.broadcastMessage(consensusMessage);
+		}
 		return null;
 	}
 

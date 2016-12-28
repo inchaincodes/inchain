@@ -8,14 +8,15 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.Coin;
+import org.inchain.core.TimeHelper;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
-import org.inchain.message.BlockMessage;
 import org.inchain.message.ConsensusMessage;
+import org.inchain.message.NewBlockMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.ScriptBuilder;
@@ -71,7 +72,7 @@ public final class MiningService implements Mining {
 		Utils.checkNotNull(bestBlockHeader);
 		
 		//上一区块的时间戳
-		long time = bestBlockHeader.getTime();
+		long time = TimeHelper.currentTimeMillis();
 		
 		//被打包的交易列表
 		List<TransactionStore> transactionList = new ArrayList<TransactionStore>();
@@ -90,12 +91,12 @@ public final class MiningService implements Mining {
 					transactionList.add(new TransactionStore(network, tx));
 				}
 				//如果时间到了，那么退出打包，然后广区块
-				if(Utils.currentTimeSeconds() - time >= Configure.BLOCK_GEN_TIME) {
+				if(TimeHelper.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
 					break;
 				}
 			}
 			//如果时间到了，那么退出打包，然后广播区块
-			if(Utils.currentTimeSeconds() - time >= Configure.BLOCK_GEN_TIME) {
+			if(TimeHelper.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
 				break;
 			}
 			try {
@@ -122,7 +123,7 @@ public final class MiningService implements Mining {
 		BlockStore blockStore = new BlockStore(network);
 		blockStore.setHeight(bestBlockHeader.getHeight()+1);
 		blockStore.setPreHash(bestBlockHeader.getHash());
-		blockStore.setTime(Utils.currentTimeSeconds());
+		blockStore.setTime(TimeHelper.currentTimeMillis());
 		blockStore.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
 		blockStore.setTxCount(transactionList.size());
 		blockStore.setTxs(transactionList);
@@ -137,8 +138,7 @@ public final class MiningService implements Mining {
 			log.debug("broadcast new block {}", blockStore);
 		}
 		//广播
-		peerKit.broadcastBlock(new BlockMessage(network, blockStore));
-		
+		peerKit.broadcastBlock(new NewBlockMessage(network, blockStore));
 	}
 	
 	/**
@@ -170,6 +170,7 @@ public final class MiningService implements Mining {
 
 	@Override
 	public void start() {
+		
 		Account account = null;
 		try {
 			while(true) {
@@ -187,6 +188,8 @@ public final class MiningService implements Mining {
 			log.error("mining err", e);
 		}
 		
+		consensusMeeting.setAccount(account);
+		
 		//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
 		while(true) {
 			//是否可进行广播
@@ -197,7 +200,7 @@ public final class MiningService implements Mining {
 				long height = bestBlockHeader.getHeight();
 				
 				//content格式第一位为type,1为拉取共识状态信息
-				byte[] content = new byte[]{ 1 };
+				byte[] content = new byte[] { 1 };
 				
 				ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), height, content);
 				//签名共识消息
@@ -213,7 +216,7 @@ public final class MiningService implements Mining {
 			}
 		}
 		
-		consensusMeeting.startSyn(account);
+		consensusMeeting.startSyn();
 	}
 	
 	@Override

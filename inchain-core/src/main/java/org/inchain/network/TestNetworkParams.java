@@ -15,7 +15,7 @@ import org.inchain.utils.Utils;
 public class TestNetworkParams extends NetworkParams {
 	
     public TestNetworkParams() {
-    	this.seedManager = new NodeSeedManager();
+    	this.seedManager = new RemoteSeedManager();
     	init();
 	}
     

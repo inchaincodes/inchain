@@ -3,6 +3,8 @@ package org.inchain.msgprocess;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account.AccountType;
@@ -11,6 +13,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.kits.PeerKit;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
 import org.inchain.store.BlockHeaderStore;
@@ -28,9 +31,11 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
- * 新区块广播消息
+ * 下载区块的消息
  * 接收到新的区块之后，验证该区块是否合法，如果合法则进行收录并转播出去
  * 验证该区块是否合法的流程为：
  * 1、该区块基本的验证（包括区块的时间、大小、交易的合法性，梅克尔树根是否正确）。
@@ -39,19 +44,21 @@ import org.slf4j.LoggerFactory;
  * @author ln
  *
  */
+@Service
 public class BlockMessageProcess implements MessageProcess {
 
+	private static Lock lock = new ReentrantLock();
+	
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
+	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
-	
-	public BlockMessageProcess() {
-		blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
-		transactionStoreProvider = SpringContextUtils.getBean(TransactionStoreProvider.class);
-		chainstateStoreProvider = SpringContextUtils.getBean("chainstateStoreProvider", ChainstateStoreProvider.class);
-	}
+	@Autowired
+	private PeerKit peerKit;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
@@ -60,28 +67,42 @@ public class BlockMessageProcess implements MessageProcess {
 	public MessageProcessResult process(Message message, Peer peer) {
 		
 		if(log.isDebugEnabled()) {
-			log.debug("new block : {}", message);
+			log.debug("down block : {}", message);
 		}
 		
-		BlockMessage blockMessage = (BlockMessage) message;
+		lock.lock();
 		
-		//验证区块消息的合法性
-		if(!verifyBlock(blockMessage)) {
-			return null;
-		}
-		
-		//验证通过 ，存储区块数据
 		try {
-			blockStoreProvider.saveBlock(blockMessage.getBlockStore());
-			//更新区块状态区数据
-			updateState(blockMessage.getBlockStore());
+			BlockMessage blockMessage = (BlockMessage) message;
+			peer.getPeerVersionMessage().bestHeight = blockMessage.getBlockStore().getHeight();
 			
-			//更新与自己相关的交易
+			BlockHeaderStore header = blockStoreProvider.getHeader(blockMessage.getBlockStore().getHash().getBytes());
+			if(header != null) {
+				//已经存在
+				return null;
+			}
 			
-		} catch (IOException e) {
-			throw new VerificationException(e);
+			//验证区块消息的合法性
+			if(!verifyBlock(blockMessage)) {
+				return null;
+			}
+			
+			//验证通过 ，存储区块数据
+			try {
+				blockStoreProvider.saveBlock(blockMessage.getBlockStore());
+				//更新区块状态区数据
+				updateState(blockMessage.getBlockStore());
+				
+				//更新与自己相关的交易
+				
+			} catch (IOException e) {
+				throw new VerificationException(e);
+			}
+			//转发
+//			peerKit.broadcastBlock(blockMessage);
+		} finally {
+			lock.unlock();
 		}
-		
 		return null;
 	}
 

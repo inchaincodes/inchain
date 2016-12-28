@@ -10,12 +10,14 @@ import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
  * 收到一个版本消息，必须回应一个包含自己版本的信息
  * @author ln
  *
  */
+@Service
 public class VersionMessageProcess implements MessageProcess {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VersionMessageProcess.class);

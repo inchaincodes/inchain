@@ -62,7 +62,7 @@ rem echo CLASSPATH=%CLASSPATH%
 
 set _EXECJAVA="%JAVA_HOME%\bin\java"
 set _JAVA_OPTS=-Xms256m -Xmx512m -XX:PermSize=256M -XX:MaxPermSize=256m
-set _MAINCLASS=org.inchain.kit.AppKitDemo
+set _MAINCLASS=org.inchain.kit.AppKitMain
 
 if ""%1"" == """" goto help
 

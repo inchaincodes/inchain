@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.inchain.Configure;
 import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
+import org.inchain.core.TimeHelper;
 import org.inchain.core.TransactionBroadcast;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
@@ -157,7 +158,7 @@ public class PeerKit implements Broadcaster {
 								outPeers.remove(this);
 							}
 						};
-						seed.setLastTime(System.currentTimeMillis());
+						seed.setLastTime(TimeHelper.currentTimeMillis());
 						connectionManager.openConnection(seed, peer);
 					}
 				}
@@ -185,6 +186,37 @@ public class PeerKit implements Broadcaster {
 			log.warn("广播消息失败，没有可广播的节点");
 		}
 		return false;
+	}
+
+	/**
+	 * 广播消息
+	 * @param message  要广播的消息
+	 * @param message  要排除的节点
+	 * @return int 成功广播给几个节点
+	 */
+	public int broadcastMessage(Message message, Peer excludePeer) {
+		int successCount = 0;
+		if(inPeers.size() > 0 || outPeers.size() > 0) {
+			for (Peer peer : inPeers) {
+				if(excludePeer!= null && !peer.equals(excludePeer)) {
+					peer.sendMessage(message);
+					successCount ++;
+				}
+			}
+			for (Peer peer : outPeers) {
+				if(excludePeer!= null && !peer.equals(excludePeer)) {
+					peer.sendMessage(message);
+					successCount ++;
+				}
+			}
+			return successCount;
+		} else {
+			log.warn("广播消息失败，没有可广播的节点");
+		}
+		if(log.isDebugEnabled()) {
+			log.debug("成功广播给{}个节点，消息{}", successCount, message);
+		}
+		return successCount;
 	}
 	
 	/**

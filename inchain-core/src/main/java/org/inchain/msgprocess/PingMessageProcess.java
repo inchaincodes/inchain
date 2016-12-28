@@ -5,7 +5,9 @@ import org.inchain.message.Message;
 import org.inchain.message.PingMessage;
 import org.inchain.message.PongMessage;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
+@Service
 public class PingMessageProcess implements MessageProcess {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PingMessageProcess.class);

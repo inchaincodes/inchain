@@ -1,19 +1,3 @@
-/*
- * Copyright 2013 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.inchain.net;
 
 import java.io.IOException;
@@ -128,7 +112,7 @@ public class NioClientManager implements ClientConnectionManager {
                 // If e is a CancelledKeyException, there is a race to get to interestOps after finishConnect() which
                 // may cause this. Otherwise it may be any arbitrary kind of connection failure.
                 // Calling sc.socket().getRemoteSocketAddress() here throws an exception, so we can only log the error itself
-                log.warn("Failed to connect with exception: {}: {}", e.getMessage(), e.fillInStackTrace());
+                log.warn("Failed connect to {} with exception: {}", data.seed.getAddress(), e.getMessage(), e.fillInStackTrace());
                 handler.closeConnection();
                 data.seed.setStaus(Seed.SEED_CONNECT_FAIL);
             }

@@ -9,6 +9,7 @@ import java.util.Arrays;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.utils.Hex;
@@ -248,6 +249,10 @@ public abstract class Message {
         } catch (IndexOutOfBoundsException e) {
             throw new ProtocolException(e);
         }
+    }
+    
+    protected Sha256Hash readHash() throws ProtocolException {
+        return Sha256Hash.wrapReversed(readBytes(32));
     }
     
     protected boolean hasMoreBytes() {

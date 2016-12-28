@@ -3,15 +3,12 @@ package org.inchain.core;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
-import org.inchain.network.Seed;
-import org.inchain.network.TestNetworkParams;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -61,9 +58,9 @@ public class MainServer {
 					
 					springContext.start();
 
-					//链接测试节点
-					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
-					network.getSeedManager().add(new Seed(new InetSocketAddress("127.0.0.1", 6881)));
+//					//链接测试节点
+//					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
+//					network.getSeedManager().add(new Seed(new InetSocketAddress("127.0.0.1", 6881)));
 					
 					log.info("Server启动成功。");
 
@@ -118,7 +115,7 @@ public class MainServer {
 
 		if (args.length != 1) {
 
-			System.out.println("Usage: leonid <start|stop>");
+			System.out.println("Usage: inchain <start|stop>");
 
 			System.exit(1);
 		}

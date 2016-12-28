@@ -52,5 +52,5 @@ exec "Usage:  inchain ( commands ... )"
 fi
 
 if [ "$1" != "" ] ; then
-exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" org.inchain.kit.AppKitDemo "$@" &
+exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" org.inchain.kit.AppKitMain "$@" &
 fi
