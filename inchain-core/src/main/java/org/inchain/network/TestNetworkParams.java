@@ -26,11 +26,10 @@ public class TestNetworkParams extends NetworkParams {
 	}
     
 	private void init() {
-		int[] codes = new int[254];
-		for (int i = 0; i < 254; i++) {
-			codes[i] = i;
-		}
-		this.acceptableAddressCodes = codes;
+		
+		packetMagic = 66926688l;
+		
+		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}
 	
 	/**
@@ -64,5 +63,22 @@ public class TestNetworkParams extends NetworkParams {
 	@Override
 	public MessageSerializer getSerializer(boolean parseRetain) {
 		return new DefaultMessageSerializer(this);
+	}
+	
+	/**
+	 * 测试网络，普通地址以t开头
+	 */
+	@Override
+	public int getSystemAccountVersion() {
+		return 128;
+	}
+
+
+	/**
+	 * 测试网络，认证地址以c开头
+	 */
+	@Override
+	public int getCertAccountVersion() {
+		return 88;
 	}
 }

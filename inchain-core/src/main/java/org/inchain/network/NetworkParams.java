@@ -112,6 +112,18 @@ public abstract class NetworkParams {
     public int[] getAcceptableAddressCodes() {
         return acceptableAddressCodes;
     }
+	
+	/**
+	 * 得到普通账户的地址版本号
+	 * @return int
+	 */
+	public abstract int getSystemAccountVersion();
+	
+	/**
+	 * 得到认证账户的地址版本号
+	 * @return int
+	 */
+	public abstract int getCertAccountVersion();
     
 	public int getPort() {
 		return port;

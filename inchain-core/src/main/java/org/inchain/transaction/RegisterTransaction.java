@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.account.Account;
-import org.inchain.account.Account.AccountType;
 import org.inchain.account.Address;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
@@ -71,7 +70,7 @@ public class RegisterTransaction extends Transaction {
         
         List<ScriptChunk> chunks = script.getChunks();
         
-        account.setAddress(Address.fromP2PKHash(network, account.getAccountType().value(), chunks.get(0).data));
+        account.setAddress(Address.fromP2PKHash(network, account.getAccountType(), chunks.get(0).data));
         account.setMgPubkeys(new byte[][] { chunks.get(4).data, chunks.get(5).data});
         account.setTrPubkeys(new byte[][] { chunks.get(7).data, chunks.get(8).data});
         
@@ -91,11 +90,7 @@ public class RegisterTransaction extends Transaction {
         Utils.checkNotNull(account);
         
         byte type = payload[cursor];
-		if(type == AccountType.SYSTEM.value()) {
-			account.setAccountType(AccountType.SYSTEM);
-		} else if(type == AccountType.CERT.value()) {
-			account.setAccountType(AccountType.CERT);
-		}
+		account.setAccountType(type);
 		cursor ++;
         
 		//帐户主体

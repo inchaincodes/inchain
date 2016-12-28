@@ -20,13 +20,23 @@ public class MainNetworkParams extends NetworkParams {
     }
     
     public MainNetworkParams() {
+    	
+    	
     	this.seedManager = new RemoteSeedManager();
-    	this.acceptableAddressCodes = new int[]{0x00,0x01,0x02,0x3,0x9};
+    	
+    	init();
 	}
-    
-    public MainNetworkParams(SeedManager seedManager, int port) {
+
+	public MainNetworkParams(SeedManager seedManager, int port) {
     	this.seedManager = seedManager;
     	this.port = port;
+    	
+    	init();
+	}
+
+	private void init() {
+    	this.packetMagic = 86022698l;
+    	this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}
     
 	@Override
@@ -43,6 +53,23 @@ public class MainNetworkParams extends NetworkParams {
 	public BlockStore getGengsisBlock() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	/**
+	 * 主网，普通地址以i开头
+	 */
+	@Override
+	public int getSystemAccountVersion() {
+		return 102;
+	}
+
+
+	/**
+	 * 主网，认证地址以V开头
+	 */
+	@Override
+	public int getCertAccountVersion() {
+		return 70;
 	}
 
 }

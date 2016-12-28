@@ -1,15 +1,14 @@
-package org.inchain.account;
+package org.inchain.core;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.BaseTestCase;
-import org.inchain.core.Coin;
+import org.inchain.account.AccountTool;
+import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.kits.AccountKit;
-import org.inchain.kits.PeerKit;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
@@ -20,7 +19,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
-import org.inchain.utils.Utils;
+import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,14 +28,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author ln
  *
  */
-public class MakeGengsisBlock extends BaseTestCase {
+public class MakeUnitGengsisBlock extends BaseTestCase {
 
 	@Autowired
 	private NetworkParams network;
-	@Autowired
-	private PeerKit peerKit;
-	@Autowired
-	private AccountKit accountKit;
 
 	@Test
 	public void makeTestNetGengsisBlock() throws Exception {
@@ -95,8 +90,16 @@ public class MakeGengsisBlock extends BaseTestCase {
 		coinBaseTx.addInput(input);
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
-		coinBaseTx.addOutput(Coin.valueOf(100000000l), Address.fromBase58(network, "ThYf64mTNLSCKhEW1KVyVkAECRanhWeJC"));
-		coinBaseTx.addOutput(Coin.valueOf(100000000l), Address.fromBase58(network, "ThYf64mTNLSCKhEW1KVyVkAECRanhWeJC"));
+		//创世账户
+		ECKey key = ECKey.fromPrivate(new BigInteger("67354228887878139695633819126625517515785554606767523849461500912225575561110"));
+		
+		Address address = AccountTool.newAddress(network, key);
+
+		System.out.println("==========================");
+		System.out.println(address.getBase58());
+		System.out.println("==========================");
+				
+		coinBaseTx.addOutput(Coin.MAX, address);
 		coinBaseTx.verfify();
 		coinBaseTx.verfifyScript();
 		
@@ -110,8 +113,8 @@ public class MakeGengsisBlock extends BaseTestCase {
 //		txs.add(new TransactionStore(network, regTx));
 		
 		//共识账户1
-		ECKey key = ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"));
-		Address address = AccountTool.newAddress(network, key);
+		key = ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"));
+		address = AccountTool.newAddress(network, key);
 
 		System.out.println("==========================");
 		System.out.println(address.getBase58());
@@ -240,10 +243,12 @@ public class MakeGengsisBlock extends BaseTestCase {
 		
 		Sha256Hash merkleHash = gengsisBlock.buildMerkleHash();
 		System.out.println("merkle	hash: "+merkleHash);
-		Utils.checkState("74b42d11fff7e4d92cc851e6047a4359c6f3862990d58e53db76c886d69eda59".equals(Hex.encode(merkleHash.getBytes())), "the gengsis block merkle hash is error");
+		
+		Assert.assertEquals("bbb13bc3b5eb38c18ae660f1424ed310a95322db714605f08d5399a170ecdbfb", merkleHash.toString());
 		
 		System.out.println("block hash: "+Hex.encode(gengsisBlock.getHash().getBytes()));
-		Utils.checkState("05ede060c6027ef70bdcff81878a22530f18e998622500922d54a3913e9526bb".equals(Hex.encode(gengsisBlock.getHash().getBytes())), "the gengsis block hash is error");
+		
+		Assert.assertEquals("83f0cea8ac0a01300ce23751c55a77cb1470cd56d745d030a1c51b6642fc6610", gengsisBlock.getHash().toString());
 		
 		System.out.println(Hex.encode(gengsisBlock.baseSerialize()));
 		

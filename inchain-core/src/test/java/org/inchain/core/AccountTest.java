@@ -23,6 +23,23 @@ public class AccountTest extends BaseTestCase {
 	@Autowired
 	private NetworkParams network;
 
+//	@Test
+//	public void testAllPrefix() {
+//		for (int i = 0; i < 254; i++) {
+//			Address address = AccountTool.newAddress(network, i);
+//			if(address.getBase58().startsWith("V")) {
+//				System.out.println(address.getBase58()+"    "+i);
+//			}
+//		}
+//		
+//		for (int i = 0; i < 100000; i++) {
+//			Address address = AccountTool.newAddress(network, 71);
+//			if(!address.getBase58().startsWith("V")) {
+//				System.err.println(address.getBase58()+"   ========  "+i);
+//			}
+//		}
+//	}
+
 	@Test
 	public void testAddress() {
 		ECKey key = AccountTool.newPriKey();
@@ -33,9 +50,9 @@ public class AccountTest extends BaseTestCase {
 		
 		int i = 0;
 		while(true) {
-			Address address = AccountTool.newAddress(network, Address.VERSION_TEST_PK);
+			Address address = AccountTool.newAddress(network, network.getSystemAccountVersion());
 			log.info("new address is :" + address);
-			if(!address.getBase58().startsWith("t")) {
+			if(!address.getBase58().startsWith("u")) {
 				System.err.println("==============");
 				return;
 			}
@@ -44,17 +61,17 @@ public class AccountTest extends BaseTestCase {
 				break;
 			}
 		}
-		Address address = Address.fromP2PKHash(network, Address.VERSION_TEST_PK, 
+		Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), 
 				Utils.sha256hash160(ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"))
 						.getPubKey(false)));
 		
-		assertEquals(address.getBase58(), "tYk1ieJ5oZLLCtE1pAweqDLZHbSNENT7fA");
+		assertEquals(address.getBase58(), "uMRDgrtfDvG5qkWBs1cHoTt8YbxFf7cDch");
 		
-		address = AccountTool.newAddressFromPrikey(network, Address.VERSION_TEST_PK, new BigInteger(Hex.decode("18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725")));
-		assertEquals(address.getBase58(), "tWMgyEV2JpBkitWUxt7iPrVzKkNrtescni");
+		address = AccountTool.newAddressFromPrikey(network, network.getSystemAccountVersion(), new BigInteger(Hex.decode("18E14A7B6A307F426A94F8114701E7C8E774E7F9A47E2C2035DB29A206321725")));
+		assertEquals(address.getBase58(), "uK2twT5bjB7WMknf1inMN73ZaktkGMSMnP");
 		
-		address = Address.fromBase58(network, "179sduXmc57hbYsP5Ar476pJKkdx9CyiXD");
-		assertEquals(address.getHash160AsHex(), "437e59f902d96c513ecba8e997f982e40a65b461");
+		address = Address.fromBase58(network, "uK2twT5bjB7WMknf1inMN73ZaktkGMSMnP");
+		assertEquals(address.getHash160AsHex(), "010966776006953d5567439e5e39f86a0d273bee");
 	}
 	
 }

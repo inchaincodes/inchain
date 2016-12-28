@@ -28,11 +28,11 @@ public final class AccountTool {
 	 * @return Address
 	 */
 	public final static Address newAddress(NetworkParams network) {
-		return newAddress(network, Address.VERSION_DEFAULT);
+		return newAddress(network, network.getSystemAccountVersion());
 	}
 	
 	public final static Address newAddress(NetworkParams network, ECKey key) {
-		return newAddress(network, Address.VERSION_DEFAULT, key);
+		return newAddress(network, network.getSystemAccountVersion(), key);
 	}
 	
 	public final static Address newAddress(NetworkParams network, int version) {
@@ -50,7 +50,7 @@ public final class AccountTool {
 	}
 	
 	public final static Address newAddressFromKey(NetworkParams network, ECKey key) {
-		return Address.fromP2PKHash(network, Address.VERSION_DEFAULT, Utils.sha256hash160(key.getPubKey(false)));
+		return Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
 	}
 	
 	public final static Address newAddressFromKey(NetworkParams network, int version, ECKey key) {

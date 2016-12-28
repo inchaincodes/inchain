@@ -17,19 +17,6 @@ import org.inchain.utils.Utils;
  */
 public class Address {
 	
-	//普通帐户地址
-	public static final int VERSION_PK = 0x00;
-	//合约地址
-	public static final int VERSION_SH = 2;
-	//认证地址
-	public static final int VERSION_VR = 9;
-
-	//测试地址
-	public static final int VERSION_TEST_PK = 128;
-
-	//默认地址版本
-	public static final int VERSION_DEFAULT = VERSION_PK;
-	
 	//address 的 RIPEMD160 长度
     public static final int LENGTH = 20;
     //所处网络环境
@@ -49,7 +36,7 @@ public class Address {
      * @param hash160
      */
     public Address(NetworkParams network, byte[] hash160) {
-    	this(network, VERSION_DEFAULT, hash160);
+    	this(network, network.getSystemAccountVersion(), hash160);
     }
 
     /**

@@ -5,6 +5,11 @@ import java.math.BigDecimal;
 
 import org.inchain.utils.Utils;
 
+/**
+ * INS 单位
+ * @author ln
+ *
+ */
 public final class Coin implements Monetary, Comparable<Coin>, Serializable {
 
 	private static final long serialVersionUID = 6978149202334427537L;
@@ -14,44 +19,38 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
     private static final long COIN_VALUE = (long) Math.pow(10, SMALLEST_UNIT_EXPONENT);
 
     /**
-     * Zero Bitcoins.
+     * 10亿总量
+     */
+    public static final Coin MAX = Coin.valueOf(1000000000);
+    
+    /**
+     * 0个 INS
      */
     public static final Coin ZERO = Coin.valueOf(0);
 
     /**
-     * One Bitcoin.
+     * 1个 INS
      */
     public static final Coin COIN = Coin.valueOf(COIN_VALUE);
 
     /**
-     * 0.01 Bitcoins. This unit is not really used much.
+     * 0.01 INS
      */
     public static final Coin CENT = COIN.divide(100);
 
     /**
-     * 0.001 Bitcoins, also known as 1 mBTC.
+     * 0.001 INS
      */
     public static final Coin MILLICOIN = COIN.divide(1000);
 
     /**
-     * 0.000001 Bitcoins, also known as 1 µBTC or 1 uBTC.
+     * 0.000001 INS
      */
     public static final Coin MICROCOIN = MILLICOIN.divide(1000);
 
-    /**
-     * A satoshi is the smallest unit that can be transferred. 100 million of them fit into a Bitcoin.
-     */
-    public static final Coin SATOSHI = Coin.valueOf(1);
-
-    public static final Coin FIFTY_COINS = COIN.multiply(50);
 
     /**
-     * Represents a monetary value of minus one satoshi.
-     */
-    public static final Coin NEGATIVE_SATOSHI = Coin.valueOf(-1);
-
-    /**
-     * The number of satoshis of this monetary value.
+     * 数量
      */
     public final long value;
 

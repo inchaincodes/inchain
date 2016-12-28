@@ -23,7 +23,7 @@ public class RegisterInput extends TransactionInput {
 	public void serialize(OutputStream stream) throws IOException {
 		//上一交易的引用
 		Utils.checkNotNull(account);
-		stream.write(account.getAccountType().value());
+		stream.write(account.getAccountType());
 		//帐户主体
 		byte[] body = account.getBody();
 		if(body != null) {

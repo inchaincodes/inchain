@@ -14,7 +14,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
-import org.inchain.account.Account.AccountType;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -207,7 +206,7 @@ public class AccountKit {
 		try {
 			ECKey key = new ECKey();
 			
-			Address address = Address.fromP2PKHash(network, Address.VERSION_DEFAULT, Utils.sha256hash160(key.getPubKey(false)));
+			Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
 			
 			//TODO
 //			Address address = new Address(network, "12RZxouvtVmvh1g7t4bBbNNT92zTPEbYYY"); 
@@ -215,6 +214,9 @@ public class AccountKit {
 			
 			address.setBalance(Coin.ZERO);
 			address.setUnconfirmedBalance(Coin.ZERO);
+			System.out.println("======================");
+			System.out.println(address.getVersion());
+			System.out.println("======================");
 			
 			Account account = new Account();
 			
@@ -261,12 +263,11 @@ public class AccountKit {
 		BigInteger trPri2 = AccountTool.genPrivKey2(prikeySeed, trPw.getBytes());
 
 		//默认生成一个系统帐户
-		AccountType accountType = AccountType.SYSTEM;
-		
+
 		//随机生成一个跟前面没关系的私匙公匙对，用于产出地址
 		ECKey addressKey = new ECKey();
 		//以base58的帐户地址来命名帐户文件
-		Address address = AccountTool.newAddress(network, accountType.value(), addressKey);
+		Address address = AccountTool.newAddress(network, network.getSystemAccountVersion(), addressKey);
 
 		ECKey mgkey1 = ECKey.fromPrivate(mgPri1);
 		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
@@ -277,7 +278,7 @@ public class AccountKit {
 		//帐户信息
 		Account account = new Account();
 		account.setStatus((byte) 0);
-		account.setAccountType(accountType);
+		account.setAccountType(network.getSystemAccountVersion());
 		account.setAddress(address);
 		account.setPriSeed(key.getPubKey(true)); //存储压缩后的种子私匙
 		account.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙

@@ -48,7 +48,7 @@ public class ChainstateStoreProviderTest extends BaseTestCase {
 		
 		assertEquals(999999l, credit);
 		
-		assertEquals(1, infos[8]);
+		assertEquals(1, infos[41]);
 		
 		long blanace = Utils.readUint32BE(infos, 4);
 		assertEquals(0, blanace);

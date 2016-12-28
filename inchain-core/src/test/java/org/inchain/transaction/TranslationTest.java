@@ -24,7 +24,7 @@ public class TranslationTest extends BaseTestCase {
 	@Test
 	public void testTranslation() {
 		
-        Address addr = Address.fromP2PKHash(network, Address.VERSION_TEST_PK, Hex.decode("ffdf74c494d27474def57c5cb4b41a5455705956"));
+        Address addr = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Hex.decode("ffdf74c494d27474def57c5cb4b41a5455705956"));
 
 		//上次交易
 		Transaction out = new Transaction(network);
@@ -44,7 +44,7 @@ public class TranslationTest extends BaseTestCase {
 		//输出到该地址
 		ECKey key = ECKey.fromPrivate(new BigInteger("16426823946378490801614451355554969482806436503112915489322677953633742147003"));
 		
-		Address to = AccountTool.newAddress(network, Address.VERSION_TEST_PK, key);
+		Address to = AccountTool.newAddress(network, network.getSystemAccountVersion(), key);
 		//添加输出
 		TransactionOutput newOutput = new TransactionOutput(tx, Coin.COIN, to);
 		tx.addOutput(newOutput);

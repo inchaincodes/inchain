@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.inchain.SpringContextUtils;
-import org.inchain.account.Account.AccountType;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Peer;
@@ -282,7 +280,7 @@ public class BlockMessageProcess implements MessageProcess {
 				}
 				
 				//如果是普通帐户，任何人都可以注册，认证帐户，就需要判断是否经过认证的
-				if(regTx.getAccount().getAccountType() == AccountType.CERT) {
+				if(regTx.getAccount().getAccountType() == blockMessage.getNetwork().getCertAccountVersion()) {
 					//TODO
 					throw new VerificationException("the register has not cert");
 				}

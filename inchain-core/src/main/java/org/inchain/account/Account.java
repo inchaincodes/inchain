@@ -18,25 +18,8 @@ import org.inchain.utils.Utils;
  *
  */
 public class Account {
-
-	public static enum AccountType {
-		SYSTEM(1),		//系统帐户
-		CONTRACT(2),	//合约帐户
-		APP(3),			//应用账户
-		CERT(9),		//认证帐户
-		;
-		
-		private final int value;
-        private AccountType(final int value) {
-            this.value = value;
-        }
-        public byte value() {
-            return (byte) this.value;
-        }
-	}
-	
 	//账户类型
-	private AccountType accountType;
+	private int accountType;
 	//帐户状态
 	private byte status;
 	//帐户地址
@@ -53,7 +36,6 @@ public class Account {
 	private byte[][] signs;
 	
 	public Account() {
-		accountType = AccountType.SYSTEM;
 	}
 	
 	/**
@@ -65,7 +47,8 @@ public class Account {
 		ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(size());
 		try {
 			bos.write(status);//状态，待激活
-			bos.write(accountType.value());//类型
+			
+			bos.write(address.getVersion());//类型
 			bos.write(address.getHash160());
 			
 			bos.write(priSeed.length);
@@ -118,12 +101,8 @@ public class Account {
 		account.setStatus(datas[cursor]);
 		cursor ++;
 		//帐户类型
-		byte type = datas[cursor];
-		if(type == AccountType.SYSTEM.value()) {
-			account.setAccountType(AccountType.SYSTEM);
-		} else if(type == AccountType.CERT.value()) {
-			account.setAccountType(AccountType.CERT);
-		}
+		int type = datas[cursor] & 0xff;
+		account.setAccountType(type);
 		cursor ++;
 		
 		//hash 160
@@ -132,7 +111,7 @@ public class Account {
 		account.setAddress(address);
 		cursor += 20;
 		
-		if(type == AccountType.SYSTEM.value()) {
+		if(type == network.getSystemAccountVersion()) {
 			//私匙
 			int length = datas[cursor];
 			cursor ++;
@@ -157,7 +136,7 @@ public class Account {
 			
 			account.setSigns(new byte[][] {sign1});
 			
-		} else if(type == AccountType.CERT.value()) {
+		} else if(type == network.getCertAccountVersion()) {
 			//私匙种子
 			int length = datas[cursor];
 			cursor ++;
@@ -301,12 +280,6 @@ public class Account {
 		}
 	}
 	
-	public AccountType getAccountType() {
-		return accountType;
-	}
-	public void setAccountType(AccountType accountType) {
-		this.accountType = accountType;
-	}
 	public Address getAddress() {
 		return address;
 	}
@@ -360,5 +333,13 @@ public class Account {
 
 	public void setStatus(byte status) {
 		this.status = status;
+	}
+
+	public int getAccountType() {
+		return accountType;
+	}
+
+	public void setAccountType(int accountType) {
+		this.accountType = accountType;
 	}
 }
