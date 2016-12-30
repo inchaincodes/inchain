@@ -40,7 +40,7 @@ public class AppKitDemo {
 				try {
 					Thread.sleep(1000l);
 					if(accountKit.getAccountList().isEmpty()) {
-						accountKit.createNewAccount("123456", "0123456");
+						accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
 					}
 				} catch (Exception e) {
 					e.printStackTrace();

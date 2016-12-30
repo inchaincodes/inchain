@@ -43,13 +43,14 @@ public class RegisterAccount {
 		try {
 			Thread.sleep(1000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				Address address = accountKit.createNewAccount("123456", "0123456");
-				log.info("new address is : "+address.getBase58());
+				Account account = accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
+				log.info("new address is : "+account.getAddress().getBase58());
 			}
 		} finally {
 			accountKit.close();
 			peerKit.stop();
 			springContext.stop();
+			springContext.close();
 		}
 	}
 	

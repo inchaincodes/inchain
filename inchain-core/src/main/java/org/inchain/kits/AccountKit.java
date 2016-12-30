@@ -20,10 +20,11 @@ import org.inchain.core.Coin;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.StoreProvider;
 import org.inchain.store.TransactionStoreProvider;
-import org.inchain.transaction.RegisterTransaction;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -170,13 +171,13 @@ public class AccountKit {
 	}
 	
 	/**
-	 * 初始化一个普通帐户
+	 * 初始化一个认证帐户
 	 * @param mgPw	帐户管理密码
 	 * @param trPw  帐户交易密码
 	 * @return Address
 	 * @throws Exception 
 	 */
-	public Address createNewAccount(String mgPw, String trPw) throws Exception {
+	public Account createNewCertAccount(String mgPw, String trPw, byte[] body) throws Exception {
 		
 		Utils.checkNotNull(mgPw);
 		Utils.checkNotNull(trPw);
@@ -185,9 +186,9 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
-			Address address = genAccountInfos(mgPw, trPw);
-			loadAccount();
-			return address;
+			Account account = genAccountInfos(mgPw, trPw, body);
+//			loadAccount();
+			return account;
 		} finally {
 			locker.unlock();
 		}
@@ -195,8 +196,6 @@ public class AccountKit {
 	
 	/**
 	 * 初始化一个普通帐户
-	 * @param mgPw	帐户管理密码
-	 * @param trPw  帐户交易密码
 	 * @return Address
 	 * @throws Exception 
 	 */
@@ -204,13 +203,14 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
+			
 			ECKey key = new ECKey();
 			
 			Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
 			
 			//TODO
-//			Address address = new Address(network, "12RZxouvtVmvh1g7t4bBbNNT92zTPEbYYY"); 
-//			ECKey key = ECKey.fromPrivate(new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"));
+//				Address address = new Address(network, "12RZxouvtVmvh1g7t4bBbNNT92zTPEbYYY"); 
+//				ECKey key = ECKey.fromPrivate(new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"));
 			
 			address.setBalance(Coin.ZERO);
 			address.setUnconfirmedBalance(Coin.ZERO);
@@ -247,7 +247,7 @@ public class AccountKit {
 	/**
 	 * 生成帐户信息
 	 */
-	public Address genAccountInfos(String mgPw, String trPw) throws FileNotFoundException, IOException {
+	public Account genAccountInfos(String mgPw, String trPw, byte[] body) throws FileNotFoundException, IOException {
 		//生成新的帐户信息
 		//生成私匙公匙对
 		ECKey key = new ECKey();
@@ -267,7 +267,7 @@ public class AccountKit {
 		//随机生成一个跟前面没关系的私匙公匙对，用于产出地址
 		ECKey addressKey = new ECKey();
 		//以base58的帐户地址来命名帐户文件
-		Address address = AccountTool.newAddress(network, network.getSystemAccountVersion(), addressKey);
+		Address address = AccountTool.newAddress(network, network.getCertAccountVersion(), addressKey);
 
 		ECKey mgkey1 = ECKey.fromPrivate(mgPri1);
 		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
@@ -283,11 +283,20 @@ public class AccountKit {
 		account.setPriSeed(key.getPubKey(true)); //存储压缩后的种子私匙
 		account.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
 		account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
-		account.setBody(new byte[0]);
+		
+		if(body == null) {
+			account.setBody(new byte[0]);
+		} else {
+			account.setBody(body);
+		}
+		
 		//签名帐户
 		account.signAccount(mgkey1, mgkey2);
 		
-		File accountFile = new File(accountDir, address.getBase58()+".dat");
+		File accountFile = new File(accountDir + File.separator + "gen", address.getBase58()+".dat");
+		if(!accountFile.getParentFile().exists()) {
+			accountFile.getParentFile().mkdir();
+		}
 		
 		FileOutputStream fos = new FileOutputStream(accountFile);
 		try {
@@ -297,8 +306,9 @@ public class AccountKit {
 			fos.close();
 		}
 		//广播帐户注册消息
-		broadcastAccountReg(account, mgPw);
-		return address;
+//		broadcastAccountReg(account, mgPw);
+		//TODO
+		return account;
 	}
 	
 	/*
@@ -307,12 +317,12 @@ public class AccountKit {
 	 */
 	private void broadcastAccountReg(Account account, String pwd) {
 		//TODO
-		RegisterTransaction tx = new RegisterTransaction(network, account);
+		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
 		//根据密码计算出私匙
 		ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
 		byte[] seedPribs = seedPri.getPubKey(false);
 		
-		tx.calculateSignature(ECKey.fromPrivate(AccountTool.genPrivKey1(seedPribs, pwd.getBytes())), 
+		tx.calculateSignature(Sha256Hash.ZERO_HASH, ECKey.fromPrivate(AccountTool.genPrivKey1(seedPribs, pwd.getBytes())), 
 				ECKey.fromPrivate(AccountTool.genPrivKey2(seedPribs, pwd.getBytes())));
 		
 		tx.verfifyScript();
@@ -342,6 +352,9 @@ public class AccountKit {
 		
 		//加载帐户目录下的所有帐户
 		for (File accountFile : accountDirFile.listFiles()) {
+			if(accountFile.isDirectory()) {
+				continue;
+			}
 			//读取私匙
 			FileInputStream fis = new FileInputStream(accountFile);
 			try {
@@ -421,5 +434,9 @@ public class AccountKit {
 	
 	public List<Account> getAccountList() {
 		return accountList;
+	}
+	
+	public void clearAccountList() {
+		accountList.clear();;
 	}
 }

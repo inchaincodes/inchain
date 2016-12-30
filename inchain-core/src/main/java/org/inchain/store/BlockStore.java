@@ -11,6 +11,7 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 
 /**
@@ -112,6 +113,7 @@ public class BlockStore extends BlockHeaderStore {
         for (TransactionStore t : txs) {
             tree.add(t.getTransaction().getHash().getBytes());
         }
+        System.out.println(Hex.encode(tree.get(tree.size()-2)));
         int levelOffset = 0;
         for (int levelSize = txs.size(); levelSize > 1; levelSize = (levelSize + 1) / 2) {
             for (int left = 0; left < levelSize; left += 2) {
@@ -126,7 +128,7 @@ public class BlockStore extends BlockHeaderStore {
         if(this.merkleHash == null) {
         	this.merkleHash = merkleHash;
         } else {
-        	Utils.checkState(this.merkleHash.equals(merkleHash), "the merkle hash is error");
+        	Utils.checkState(this.merkleHash.equals(merkleHash), "the merkle hash is error " + this.merkleHash +"  !=  " + merkleHash);
         }
 		return merkleHash;
 	}

@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
@@ -14,15 +13,16 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
-import org.inchain.transaction.RegisterTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
@@ -50,13 +50,15 @@ public class BlockMessageProcess implements MessageProcess {
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
 	@Autowired
+	private PeerKit peerKit;
+	@Autowired
+	private NetworkParams network;
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
-	@Autowired
-	private PeerKit peerKit;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
@@ -148,11 +150,11 @@ public class BlockMessageProcess implements MessageProcess {
 					
 					chainstateStoreProvider.put(key, new byte[]{1});
 				}
-			} else if(tx.getType() == TransactionDefinition.TYPE_REGISTER || tx.getType() == TransactionDefinition.TYPE_CHANGEPWD) {
+			} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || tx.getType() == TransactionDefinition.TYPE_CHANGEPWD) {
 				//帐户注册和修改密码
-				RegisterTransaction rtx = (RegisterTransaction) tx;
+				CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
 				
-				chainstateStoreProvider.put(rtx.getAccount().getAddress().getHash160(), rtx.getHash().getBytes());
+				chainstateStoreProvider.put(rtx.getHash160(), rtx.getHash().getBytes());
 			}
 		}
 	}
@@ -267,12 +269,11 @@ public class BlockMessageProcess implements MessageProcess {
 				outputFee = outputFee.add(txOutputFee);
 				fee = fee.add(txInputFee.subtract(txOutputFee));
 				
-			} else if(tx.getType() == TransactionDefinition.TYPE_REGISTER) {
+			} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
 				//帐户注册
-				RegisterTransaction regTx = (RegisterTransaction) tx;
-				Address address = regTx.getAccount().getAddress();
+				CertAccountRegisterTransaction regTx = (CertAccountRegisterTransaction) tx;
 				//注册的hash160地址，不能与现有的地址重复，当然正常情况重复的机率为0，不排除有人恶意广播数据
-				byte[] hash160 = address.getHash160();
+				byte[] hash160 = regTx.getHash160();
 				
 				byte[] txid = chainstateStoreProvider.getBytes(hash160);
 				if(txid != null) {
@@ -280,7 +281,7 @@ public class BlockMessageProcess implements MessageProcess {
 				}
 				
 				//如果是普通帐户，任何人都可以注册，认证帐户，就需要判断是否经过认证的
-				if(regTx.getAccount().getAccountType() == blockMessage.getNetwork().getCertAccountVersion()) {
+				if(network.getCertAccountVersion() == blockMessage.getNetwork().getCertAccountVersion()) {
 					//TODO
 					throw new VerificationException("the register has not cert");
 				}

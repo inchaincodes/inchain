@@ -54,6 +54,15 @@ public class MainNetworkParams extends NetworkParams {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
+	/**
+	 * 获取该网络的认证管理账号的hash160
+	 * @return byte[]
+	 */
+	@Override
+	public byte[] getCertAccountManagerHash160() {
+		return null;
+	}
 	
 	/**
 	 * 主网，普通地址以i开头
@@ -62,7 +71,6 @@ public class MainNetworkParams extends NetworkParams {
 	public int getSystemAccountVersion() {
 		return 102;
 	}
-
 
 	/**
 	 * 主网，认证地址以V开头

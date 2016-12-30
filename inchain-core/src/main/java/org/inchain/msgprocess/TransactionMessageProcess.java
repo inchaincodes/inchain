@@ -74,7 +74,7 @@ public class TransactionMessageProcess implements MessageProcess {
 	private void verifyTx(Transaction tx) {
 		int type = tx.getType();
 		//帐户注册，hash160不能重复
-		if(type == TransactionDefinition.TYPE_REGISTER) {
+		if(type == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
 			
 		} else if(type == TransactionDefinition.TYPE_CHANGEPWD) {
 			

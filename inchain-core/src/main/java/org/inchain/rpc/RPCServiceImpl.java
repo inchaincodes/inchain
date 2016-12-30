@@ -1,17 +1,12 @@
 package org.inchain.rpc;
 
-import java.io.File;
-
-import org.inchain.Configure;
-import org.inchain.account.Address;
+import org.inchain.account.Account;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.MainNetworkParams;
 import org.inchain.network.NetworkParams;
-import org.inchain.network.TestNetworkParams;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.utils.Hex;
-import org.iq80.leveldb.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,15 +56,13 @@ public class RPCServiceImpl implements RPCService {
 	//，同时必需指定帐户管理密码和交易密码
 	@Override
 	public String newaccount(String mgpw, String trpw) {
-		Address accountInfo=null;
 		try {
-			 accountInfo= accountKit.createNewAccount(mgpw, trpw);
+			Account account = accountKit.createNewCertAccount(mgpw, trpw, new byte[0]);
+			return account.getAddress().getBase58();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return  e.getMessage();
 		}
-		return accountInfo.getHash().toString();
 
 	}
 	//获取帐户的地址

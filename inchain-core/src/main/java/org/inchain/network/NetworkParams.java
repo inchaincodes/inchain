@@ -57,7 +57,13 @@ public abstract class NetworkParams {
         }
         return defaultSerializer;
     }
-    
+	
+	/**
+	 * 得到创世块
+	 * @return {@link BlockStore}
+	 */
+	public abstract BlockStore getGengsisBlock();
+	
     /**
      * 不同的网络可能用到不同的消息序列化工具，这里交给具体的子类去实现
      * @param parseRetain
@@ -71,7 +77,13 @@ public abstract class NetworkParams {
      * @return int
      */
 	public abstract int getProtocolVersionNum(final ProtocolVersion version);
-    
+
+	/**
+	 * 获取该网络的认证管理账号的hash160
+	 * @return byte[]
+	 */
+	public abstract byte[] getCertAccountManagerHash160();
+	
 	public static enum ProtocolVersion {
         CURRENT(1);
 
@@ -85,12 +97,6 @@ public abstract class NetworkParams {
             return version;
         }
     }
-	
-	/**
-	 * 得到创世块
-	 * @return {@link BlockStore}
-	 */
-	public abstract BlockStore getGengsisBlock();
     
 	/**
 	 * 获取最新区块高度

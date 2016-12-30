@@ -104,7 +104,7 @@ public class Transaction extends Message {
         stream.write(new VarInt(outputs.size()).encode());
         for (Output out : outputs)
             out.serialize(stream);
-        Utils.uint32ToByteStreamLE(lockTime, stream);
+        Utils.int64ToByteStreamLE(lockTime, stream);
     }
 	
 	/**
@@ -133,7 +133,7 @@ public class Transaction extends Message {
         	output.setIndex(i);
             outputs.add(output);
         }
-        lockTime = readUint32();
+        lockTime = readInt64();
         length = cursor - offset;
 	}
 	

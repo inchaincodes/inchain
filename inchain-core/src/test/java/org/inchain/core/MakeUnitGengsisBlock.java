@@ -13,6 +13,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
 import org.inchain.store.TransactionStore;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
@@ -35,42 +36,6 @@ public class MakeUnitGengsisBlock extends BaseTestCase {
 
 	@Test
 	public void makeTestNetGengsisBlock() throws Exception {
-//		
-//		String mgpw = "123456";
-//		String trpw = "654321";
-//		
-//		try {
-//			Thread.sleep(2000l);
-//			if(accountKit.getAccountList().isEmpty()) {
-//				accountKit.createNewAccount(mgpw, trpw);
-//			}
-//		} finally {
-//			accountKit.close();
-//			peerKit.stop();
-//		}
-//		
-//		Account account = accountKit.getAccountList().get(0);
-//		
-//		RegisterTransaction tx = new RegisterTransaction(network, account);
-//		//根据密码计算出私匙
-//		ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
-//		byte[] seedPribs = seedPri.getPubKey(false);
-//		
-//		tx.calculateSignature(ECKey.fromPrivate(AccountTool.genPrivKey1(seedPribs, mgpw.getBytes())), 
-//				ECKey.fromPrivate(AccountTool.genPrivKey2(seedPribs, mgpw.getBytes())));
-//		
-//		tx.verfifyScript();
-//		
-//		//序列化和反序列化
-//		byte[] txContent = tx.baseSerialize();
-//		
-//		RegisterTransaction rtx = new RegisterTransaction(network, txContent);
-//		
-//		rtx.verfify();
-//		rtx.verfifyScript();
-//		System.out.println(Hex.encode(rtx.baseSerialize()));
-//		
-		
 		
 		BlockStore gengsisBlock = new BlockStore(network);
 		
@@ -105,138 +70,52 @@ public class MakeUnitGengsisBlock extends BaseTestCase {
 		
 		txs.add(new TransactionStore(network, coinBaseTx));
 		
-		//注册创世帐户
-//		RegisterTransaction regTx = new RegisterTransaction(network, Hex.decode("0101000000010100a547304502210082bb8fdd903133c032a00c843254c387571ec9af6372183ecf9bffc227f89cdd02207f64221d24c866ee418fc838d96543241fe676ac65bd99a16f0af6d72e2719004630440220156d0ff9e76f8834b98899881b614720bd66e9be3404fffe9364299930c48c460220118f83f1ed6f9461087a6daa991c1e4cebd572e1d5ae6e6d9ded223ffa71019051145a29d0959ae0445f837f3534304cde744a87a9e801a3145a29d0959ae0445f837f3534304cde744a87a9e888c16321035a734e4998d176a4c0b94016333e70a61a8c470ae3f854e718da34c95d960bb42102334ec39ecc5454f6899444d78f20025e68d6a0c2356c1cee84c23feb9bd658d86721021b32e71d92968bcb4c63b5adece8e1181d1a7f60c8649d35ecb9e6fc8aeeff6021029e9a848cc3c3bd112b45770d77db058a9c4d17c5fdb353d046c682b3d07f223168ac00000000"));
-//		regTx.verfify();
-//		regTx.verfifyScript();
-//		
-//		txs.add(new TransactionStore(network, regTx));
 		
-		//共识账户1
-		key = ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"));
-		address = AccountTool.newAddress(network, key);
+		//共识账户
+		BigInteger[] privateKeys = {
+				new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"),
+				new BigInteger("52188072277803777502738867181821197739391264777454871393545634721804630880136"),
+				new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"),
+				new BigInteger("35876700136292794264167572101940880527972010427306166598953832406950260704243"),
+				new BigInteger("22179228508617634730737242365679835550222360221837033410034564397849174416545"),
+		};
+		
+		for (int i = 0; i < privateKeys.length; i++) {
+			BigInteger pri = privateKeys[i];
+			
+			key = ECKey.fromPrivate(pri);
+			address = AccountTool.newAddress(network, key);
 
-		System.out.println("==========================");
-		System.out.println(address.getBase58());
-		System.out.println("==========================");
+			System.out.println("==========================");
+			System.out.println(address.getBase58());
+			System.out.println("==========================");
+			
+			//注册账户授予信用积分
+			CreditTransaction creditTx = new CreditTransaction(network);
+			creditTx.setHash160(address.getHash160());
+			creditTx.setCredit(999999l);
+			
+			txs.add(new TransactionStore(network, creditTx));
+			
+			//注册共识账户到区块里
+			byte[] hash160 = address.getHash160();
+			RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, System.currentTimeMillis());
+			regConsensusTransaction.sign(key);
+			
+			regConsensusTransaction.verfify();
+			regConsensusTransaction.verfifyScript();
+			
+			txs.add(new TransactionStore(network, regConsensusTransaction));
+		}
 		
-		//注册账户授予信用积分
-		CreditTransaction creditTx = new CreditTransaction(network);
-		creditTx.setHash160(address.getHash160());
-		creditTx.setCredit(999999l);
+		//注册创世管理帐户
+		CertAccountRegisterTransaction certTx = new CertAccountRegisterTransaction(network, Hex.decode("0b01000000000000000000000098ba9559d02ae15f34b0209a87377f1e59c501730100022103ebe369f63421457abbca40b3295a3980db5488ee34d56ebe8d488f1d5d301f8321022700a96f3fd3b0d082abfd8bd758502f2e7e881eeaa5c69662c8eac7ade6d4330221028b3106d4cac5218388d2249503abab63c9b5de10525d13299d0423ab6f455a402103ca686fce8b25c1dd648e5dcbed9a8c95d8d5ec28baaefdbd7af2117fc22a6286c9c1200000000000000000000000000000000000000000000000000000000000000000c3140000000000000000000000000000000000000000874630440220296e7127545692d5580fc89aa84060374fb733facb91709fc2d8591b746e4baf022040cf22ff7ca342528890d867050473d861f3266d17119e705c68b950c0ffea4e4730450221008075c85feeee35d99e83a2678919904ff0b15283c017531fd5900f47efb65a47022056419266e203ec18e12fd3d77d8c2b68477f91a5f14ffee38b6e7878968a5621ac"));
 		
-		txs.add(new TransactionStore(network, creditTx));
+		certTx.verfify();
+		certTx.verfifyScript();
 		
-		//注册共识账户到区块里
-		byte[] hash160 = address.getHash160();
-		RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
+		txs.add(new TransactionStore(network, certTx));
 		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
-		
-		txs.add(new TransactionStore(network, regConsensusTransaction));
-		
-		//共识账户2
-		key = ECKey.fromPrivate(new BigInteger("52188072277803777502738867181821197739391264777454871393545634721804630880136"));
-		address = AccountTool.newAddress(network, key);
-
-		System.out.println("==========================");
-		System.out.println(address.getBase58());
-		System.out.println("==========================");
-		
-		//注册账户授予信用积分
-		creditTx = new CreditTransaction(network);
-		creditTx.setHash160(address.getHash160());
-		creditTx.setCredit(999999l);
-		
-		txs.add(new TransactionStore(network, creditTx));
-		
-		//注册共识账户到区块里
-		hash160 = address.getHash160();
-		regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
-		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
-		
-		txs.add(new TransactionStore(network, regConsensusTransaction));
-		
-		//共识账户3
-		key = ECKey.fromPrivate(new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"));
-		address = AccountTool.newAddress(network, key);
-
-		System.out.println("==========================");
-		System.out.println(address.getBase58());
-		System.out.println("==========================");
-		
-		//注册账户授予信用积分
-		creditTx = new CreditTransaction(network);
-		creditTx.setHash160(address.getHash160());
-		creditTx.setCredit(999999l);
-		
-		txs.add(new TransactionStore(network, creditTx));
-		
-		//注册共识账户到区块里
-		hash160 = address.getHash160();
-		regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
-		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
-		
-		txs.add(new TransactionStore(network, regConsensusTransaction));
-		
-		//共识账户4
-		key = ECKey.fromPrivate(new BigInteger("35876700136292794264167572101940880527972010427306166598953832406950260704243"));
-		address = AccountTool.newAddress(network, key);
-
-		System.out.println("==========================");
-		System.out.println(address.getBase58());
-		System.out.println("==========================");
-		
-		//注册账户授予信用积分
-		creditTx = new CreditTransaction(network);
-		creditTx.setHash160(address.getHash160());
-		creditTx.setCredit(999999l);
-		
-		txs.add(new TransactionStore(network, creditTx));
-		
-		//注册共识账户到区块里
-		hash160 = address.getHash160();
-		regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
-		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
-		
-		txs.add(new TransactionStore(network, regConsensusTransaction));
-		
-		//共识账户5
-		key = ECKey.fromPrivate(new BigInteger("22179228508617634730737242365679835550222360221837033410034564397849174416545"));
-		address = AccountTool.newAddress(network, key);
-
-		System.out.println("==========================");
-		System.out.println(address.getBase58());
-		System.out.println("==========================");
-		
-		//注册账户授予信用积分
-		creditTx = new CreditTransaction(network);
-		creditTx.setHash160(address.getHash160());
-		creditTx.setCredit(999999l);
-		
-		txs.add(new TransactionStore(network, creditTx));
-		
-		//注册共识账户到区块里
-		hash160 = address.getHash160();
-		regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
-		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
-		
-		txs.add(new TransactionStore(network, regConsensusTransaction));
-				
 		gengsisBlock.setTxs(txs);
 		
 		gengsisBlock.setTxCount(txs.size());
@@ -244,11 +123,7 @@ public class MakeUnitGengsisBlock extends BaseTestCase {
 		Sha256Hash merkleHash = gengsisBlock.buildMerkleHash();
 		System.out.println("merkle	hash: "+merkleHash);
 		
-		Assert.assertEquals("bbb13bc3b5eb38c18ae660f1424ed310a95322db714605f08d5399a170ecdbfb", merkleHash.toString());
-		
 		System.out.println("block hash: "+Hex.encode(gengsisBlock.getHash().getBytes()));
-		
-		Assert.assertEquals("83f0cea8ac0a01300ce23751c55a77cb1470cd56d745d030a1c51b6642fc6610", gengsisBlock.getHash().toString());
 		
 		System.out.println(Hex.encode(gengsisBlock.baseSerialize()));
 		
@@ -257,6 +132,7 @@ public class MakeUnitGengsisBlock extends BaseTestCase {
 		Sha256Hash merkleHashTemp = gengsisBlockTemp.buildMerkleHash();
 		
 		System.out.println("merkle hash temp: "+merkleHashTemp);
+		Assert.assertEquals(merkleHash, merkleHashTemp);
 		
 	}
 }

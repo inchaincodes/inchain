@@ -26,7 +26,6 @@ import static org.inchain.script.ScriptOpCodes.OP_DUP;
 import static org.inchain.script.ScriptOpCodes.OP_ELSE;
 import static org.inchain.script.ScriptOpCodes.OP_ENDIF;
 import static org.inchain.script.ScriptOpCodes.OP_EQUAL;
-import static org.inchain.script.ScriptOpCodes.OP_EQUALVERIFY;
 import static org.inchain.script.ScriptOpCodes.OP_HASH160;
 import static org.inchain.script.ScriptOpCodes.OP_IF;
 import static org.inchain.script.ScriptOpCodes.OP_PUBKEY;
@@ -44,6 +43,7 @@ import java.util.Stack;
 
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
 import org.inchain.utils.Utils;
 
@@ -499,32 +499,32 @@ public class ScriptBuilder {
         return builder.build();
     }
     
-    /**
-     * 帐户注册输出脚本
-     * @param hash160
-     * @param mgpubkeys
-     * @param trpubkeys
-     * @return
-     */
-    public static Script createRegisterOutScript(byte[] hash160, byte[][] mgpubkeys, byte[][] trpubkeys) {
-    	ScriptBuilder builder = new ScriptBuilder();
-        builder.data(hash160);
-        builder.op(OP_EQUALVERIFY);
-
-        builder.op(ScriptOpCodes.OP_VERMG);
-        builder.op(ScriptOpCodes.OP_IF);
-        builder.data(mgpubkeys[0]);
-        builder.data(mgpubkeys[1]);
-        
-        builder.op(ScriptOpCodes.OP_ELSE);
-        builder.data(trpubkeys[0]);
-        builder.data(trpubkeys[1]);
-        builder.op(ScriptOpCodes.OP_ENDIF);
-        
-        builder.op(ScriptOpCodes.OP_CHECKSIG);
-        
-        return builder.build();
-    }
+//    /**
+//     * 帐户注册输出脚本
+//     * @param hash160
+//     * @param mgpubkeys
+//     * @param trpubkeys
+//     * @return
+//     */
+//    public static Script createRegisterOutScript(byte[] hash160, byte[][] mgpubkeys, byte[][] trpubkeys) {
+//    	ScriptBuilder builder = new ScriptBuilder();
+//        builder.data(hash160);
+//        builder.op(OP_EQUALVERIFY);
+//
+//        builder.op(ScriptOpCodes.OP_VERMG);
+//        builder.op(ScriptOpCodes.OP_IF);
+//        builder.data(mgpubkeys[0]);
+//        builder.data(mgpubkeys[1]);
+//        
+//        builder.op(ScriptOpCodes.OP_ELSE);
+//        builder.data(trpubkeys[0]);
+//        builder.data(trpubkeys[1]);
+//        builder.op(ScriptOpCodes.OP_ENDIF);
+//        
+//        builder.op(ScriptOpCodes.OP_CHECKSIG);
+//        
+//        return builder.build();
+//    }
 
     /**
      * 创建一个空签名
@@ -582,4 +582,26 @@ public class ScriptBuilder {
             .op(OP_CHECKSIG)
             .build();
     }
+
+	/**
+	 * 创建认证账户签名脚本
+	 * @param type  1账户管理，2交易
+	 * @param txid	认证账户信息的交易Id
+	 * @param hash160	认证账户的hash160
+	 * @param sign1		签名1
+	 * @param sign2		签名2
+	 * @return Script
+	 */
+	public static Script createCertAccountSign(int type, Sha256Hash txid, byte[] hash160, byte[] sign1, byte[] sign2) {
+		return new ScriptBuilder()
+				.op(type)
+				.data(txid.getBytes())
+				.op(OP_PUBKEY)
+				.data(hash160)
+				.op(OP_EQUAL)
+	    		.data(sign1)
+	    		.data(sign2)
+	            .op(OP_CHECKSIG)
+	            .build();
+	}
 }

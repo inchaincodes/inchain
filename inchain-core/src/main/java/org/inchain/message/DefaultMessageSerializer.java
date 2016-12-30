@@ -14,7 +14,7 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.RegisterTransaction;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.utils.Hex;
@@ -35,7 +35,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(PongMessage.class, "pong");
     	COMMANDS.put(VersionMessage.class, "version");
     	COMMANDS.put(VerackMessage.class, "verack");
-    	COMMANDS.put(RegisterTransaction.class, "accreg");
+    	COMMANDS.put(CertAccountRegisterTransaction.class, "accreg");
     	COMMANDS.put(BlockMessage.class, "block");
     	COMMANDS.put(GetBlocksMessage.class, "getblock");
     	COMMANDS.put(NewBlockMessage.class, "newblock");

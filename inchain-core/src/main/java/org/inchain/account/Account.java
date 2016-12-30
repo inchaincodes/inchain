@@ -2,15 +2,19 @@ package org.inchain.account;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.util.Arrays;
 
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 账户
@@ -18,6 +22,9 @@ import org.inchain.utils.Utils;
  *
  */
 public class Account {
+	
+	private static Logger log = LoggerFactory.getLogger(Account.class);
+	
 	//账户类型
 	private int accountType;
 	//帐户状态
@@ -34,6 +41,11 @@ public class Account {
 	private byte[] body;
 	//帐户信息签名
 	private byte[][] signs;
+	
+	//解密后的管理私钥
+	private ECKey[] mgEckeys;
+	//解密后的交易私钥
+	private ECKey[] trEckeys;
 	
 	public Account() {
 	}
@@ -113,13 +125,13 @@ public class Account {
 		
 		if(type == network.getSystemAccountVersion()) {
 			//私匙
-			int length = datas[cursor];
+			int length = datas[cursor] & 0xff;
 			cursor ++;
 			account.setPriSeed(readBytes(cursor, length, datas));
 			cursor += length;
 			
 			//公匙
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] mgPubkey1 = readBytes(cursor, length, datas);
 			cursor += length;
@@ -129,7 +141,7 @@ public class Account {
 			cursor += 4;
 			
 			//签名
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign1 = readBytes(cursor, length, datas);
 			cursor += length;
@@ -138,18 +150,18 @@ public class Account {
 			
 		} else if(type == network.getCertAccountVersion()) {
 			//私匙种子
-			int length = datas[cursor];
+			int length = datas[cursor] & 0xff;
 			cursor ++;
 			account.setPriSeed(readBytes(cursor, length, datas));
 			cursor += length;
 			
 			//帐户管理公匙
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] mgPubkey1 = readBytes(cursor, length, datas);
 			cursor += length;
 			
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] mgPubkey2 = readBytes(cursor, length, datas);
 			
@@ -157,12 +169,12 @@ public class Account {
 			cursor += length;
 			
 			//交易公匙
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] trPubkey1 = readBytes(cursor, length, datas);
 			cursor += length;
 			
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] trPubkey2 = readBytes(cursor, length, datas);
 			
@@ -176,11 +188,11 @@ public class Account {
 			cursor += length;
 			
 			//签名
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign1 = readBytes(cursor, length, datas);
 			cursor += length;
-			length = datas[cursor];
+			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign2 = readBytes(cursor, length, datas);
 			cursor += length;
@@ -277,6 +289,54 @@ public class Account {
 			if(!key1.verify(hash, sign)) {
 				throw new VerificationException("account verify fail");
 			}
+		}
+	}
+	
+	/**
+	 * 解密管理私钥
+	 * @return 
+	 */
+	public ECKey[] decryptionMg(String mgPw) {
+
+		ECKey seedPri = ECKey.fromPublicOnly(priSeed);
+		byte[] seedPribs = seedPri.getPubKey(false);
+		
+		BigInteger mgPri1 = AccountTool.genPrivKey1(seedPribs, mgPw.getBytes());
+		BigInteger mgPri2 = AccountTool.genPrivKey2(seedPribs, mgPw.getBytes());
+		ECKey mgkey1 = ECKey.fromPrivate(mgPri1);
+		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
+		
+		//验证密码是否正确
+		if(Arrays.equals(mgkey1.getPubKey(true), mgPubkeys[0]) && Arrays.equals(mgkey2.getPubKey(true), mgPubkeys[1])) {
+			mgEckeys = new ECKey[] {mgkey1, mgkey2};
+			return mgEckeys;
+		} else {
+			log.error("解密管理私钥时出错，密码不正确");
+			return null;
+		}
+	}
+	
+	/**
+	 * 解密交易私钥
+	 * @return 
+	 */
+	public ECKey[] decryptionTr(String mgTr) {
+
+		ECKey seedPri = ECKey.fromPublicOnly(priSeed);
+		byte[] seedPribs = seedPri.getPubKey(false);
+		
+		BigInteger trPri1 = AccountTool.genPrivKey1(seedPribs, mgTr.getBytes());
+		BigInteger trPri2 = AccountTool.genPrivKey2(seedPribs, mgTr.getBytes());
+		ECKey trkey1 = ECKey.fromPrivate(trPri1);
+		ECKey trkey2 = ECKey.fromPrivate(trPri2);
+		
+		//验证密码是否正确
+		if(Arrays.equals(trkey1.getPubKey(true), trPubkeys[0]) && Arrays.equals(trkey2.getPubKey(true), trPubkeys[1])) {
+			trEckeys = new ECKey[] {trkey1, trkey2};
+			return trEckeys;
+		} else {
+			log.error("解密交易私钥时出错，密码不正确");
+			return null;
 		}
 	}
 	

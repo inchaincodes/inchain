@@ -63,7 +63,7 @@ public class AccountTest extends BaseTestCase {
 		try {
 			Thread.sleep(2000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				accountKit.createNewAccount("123456", "0123456");
+				accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
 			}
 		} finally {
 			accountKit.close();
