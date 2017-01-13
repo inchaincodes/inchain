@@ -19,7 +19,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
 import org.inchain.core.Peer;
@@ -52,13 +51,14 @@ public class NioClientManager implements ClientConnectionManager {
     
     private boolean isServer = true; //是否启动本地监听服务 ， SPV就不需要
     private ServerSocket serverSocket;
+    private ServerSocketChannel serverSocketChannel;
     
     public NioClientManager() {
     	try {
             selector = SelectorProvider.provider().openSelector();
             if(this.isServer) {
 	            // 打开服务器套接字通道  
-	            ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();  
+	            serverSocketChannel = ServerSocketChannel.open();  
 	            // 服务器配置为非阻塞  
 	            serverSocketChannel.configureBlocking(false);  
 	            // 检索与此通道关联的服务器套接字  
@@ -161,19 +161,33 @@ public class NioClientManager implements ClientConnectionManager {
 
 	@Override
     public void start() {
-    	executor.scheduleWithFixedDelay(this, 0, 1, TimeUnit.SECONDS);
+//    	executor.scheduleWithFixedDelay(this, 0, 1, TimeUnit.SECONDS);
+    	new Thread() {
+    		public void run() {
+    			NioClientManager.this.run();
+    		};
+    	}.start();
     }
-    
-    @Override
+
+	@Override
     public void stop() throws IOException {
     	executor.shutdownNow();
-        serverSocket.close();
+    	
+    	triggerShutdown();
+    	
+        try {
+        	serverSocket.close();
+        	serverSocketChannel.close();
+        } catch (Exception e) {
+        	log.warn("Error closing serverSocket", e);
+		}
         log.info("stoped service");
     }
 
     public void run() {
         try {
             Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+            
             while (!executor.isShutdown()) {
                 PendingConnect conn;
                 while ((conn = newConnectionChannels.poll()) != null) {
@@ -197,6 +211,7 @@ public class NioClientManager implements ClientConnectionManager {
         } catch (Exception e) {
             log.warn("Error trying to open/read from connection: ", e);
         } finally {
+            
             // Go through and close everything, without letting IOExceptions get in our way
             for (SelectionKey key : selector.keys()) {
                 try {
@@ -209,9 +224,9 @@ public class NioClientManager implements ClientConnectionManager {
                     ConnectionHandler.handleKey(key); // Close connection if relevant
             }
             try {
-                selector.close();
+            	selector.close();
             } catch (IOException e) {
-                log.warn("Error closing client manager selector", e);
+            	log.warn("Error closing client manager selector", e);
             }
         }
     }

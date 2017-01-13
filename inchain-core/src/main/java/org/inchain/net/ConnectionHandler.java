@@ -17,10 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.inchain.message.Message;
 import org.slf4j.LoggerFactory;
 
-/**
- * A simple NIO MessageWriteTarget which handles all the business logic of a connection (reading+writing bytes).
- * Used only by the NioClient and NioServer classes
- */
 class ConnectionHandler implements MessageWriteTarget {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(ConnectionHandler.class);
 

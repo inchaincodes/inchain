@@ -26,6 +26,8 @@
         <fileSet>
             <directory>${basedir}/scripts</directory>
             <outputDirectory>bin</outputDirectory>
+            <directoryMode>755</directoryMode>
+            <fileMode>755</fileMode>
         </fileSet>
         <fileSet>
             <directory>${basedir}/src/main/resources</directory>
@@ -35,6 +37,7 @@
             <outputDirectory>conf</outputDirectory>
         </fileSet>
     </fileSets>
+    
     
     <!-- 复制该打包项目本身的jar到lib下 -->
     <files>

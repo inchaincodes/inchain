@@ -100,14 +100,14 @@ public class InventoryMessageProcess implements MessageProcess {
 			};
 			peer.setBlockDownendListener(blockDownendListener);
 			
-			try {
-				//等待下载完成，2秒超时，如果超时，则会选择其它节点下载
-				synchronized (blockDownendListener) {
-					blockDownendListener.wait(2000);
-				}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+//			try {
+//				//等待下载完成，2秒超时，如果超时，则会选择其它节点下载
+//				synchronized (blockDownendListener) {
+//					blockDownendListener.wait(2000);
+//				}
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
 		} finally {
 			blockLocker.unlock();
 			peer.setBlockDownendListener(null);

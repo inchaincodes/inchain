@@ -58,6 +58,9 @@ public final class MiningService implements Mining {
 	private AccountKit accountKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+
+	//运行状态
+	private boolean runing;
 	
 	/**
 	 * mining 
@@ -171,9 +174,11 @@ public final class MiningService implements Mining {
 	@Override
 	public void start() {
 		
+		runing = true;
+		
 		Account account = null;
 		try {
-			while(true) {
+			while(true && runing) {
 				//监控自己是否成功成为共识节点
 				List<Account> accountList = accountKit.getAccountList();
 				if(accountList != null && accountList.size() > 0) {
@@ -182,7 +187,7 @@ public final class MiningService implements Mining {
 						break;
 					}
 				}
-				Thread.sleep(5000l);
+				Thread.sleep(1000l);
 			}
 		} catch (InterruptedException e) {
 			log.error("mining err", e);
@@ -191,7 +196,7 @@ public final class MiningService implements Mining {
 		consensusMeeting.setAccount(account);
 		
 		//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
-		while(true) {
+		while(true && runing) {
 			//是否可进行广播
 			if(peerKit.canBroadcast()) {
 				//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
@@ -209,19 +214,23 @@ public final class MiningService implements Mining {
 				break;
 			} else {
 				try {
-					Thread.sleep(3000l);
+					Thread.sleep(1000l);
 				} catch (InterruptedException e) {
 					log.error("wait connect err", e);
 				}
 			}
 		}
 		
-		consensusMeeting.startSyn();
+		if(runing) {
+			consensusMeeting.startSyn();
+		}
 	}
 	
 	@Override
 	public void stop() {
+		runing = false;
 		//强制停止
+//		consensusMeeting.stop();
 	}
 	
 	@Override

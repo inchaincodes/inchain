@@ -100,7 +100,7 @@ public class DownloadHandler {
 						
 						downCount += 10;
 						if(downCount % 100 == 0) {
-							Thread.sleep(1000l);
+//							Thread.sleep(1000l);
 						}
 					}
 				} catch (Exception e) {

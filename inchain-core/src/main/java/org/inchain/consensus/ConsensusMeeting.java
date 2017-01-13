@@ -42,6 +42,11 @@ public interface ConsensusMeeting {
 	 * 新块产生，进行广播
 	 */
 	void newBlockBroadcast();
+	/**
+	 * 设置运行账户
+	 * @param account 
+	 */
+	void setAccount(Account account);
 	
 	/**
 	 * 异步启动
@@ -50,9 +55,8 @@ public interface ConsensusMeeting {
 	void startSyn();
 	
 	/**
-	 * 设置运行账户
-	 * @param account 
+	 * 停止
 	 */
-	void setAccount(Account account);
+	void stop();
 
 }

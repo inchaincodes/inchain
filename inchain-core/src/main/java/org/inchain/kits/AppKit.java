@@ -78,11 +78,27 @@ public class AppKit {
 		//初始化挖矿
 		initMining();
 		
+		addShutdownListener();
+		
 		if(initListener != null) {
 			initListener.onComplete();
 		}
 	}
 	
+	private void addShutdownListener() {
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+	        @Override  
+	        public void run() {
+	        	try {
+	        		System.out.println("=============1212");
+	        		stop();
+	        	} catch (Exception e) {
+	        		e.printStackTrace();
+				}
+	        }  
+	    }));
+	}
+
 	//初始化节点管理器
 	private void initPeerKit() {
 		peerKit.startSyn();
@@ -96,7 +112,11 @@ public class AppKit {
 	//初始化挖矿
 	private void initMining() {
 		if(Configure.MINING) {
-			mining.start();
+			new Thread() {
+				public void run() {
+					mining.start();
+				};
+			}.start();
 		}
 	}
 

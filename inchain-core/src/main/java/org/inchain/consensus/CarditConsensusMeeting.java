@@ -797,4 +797,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		this.account = account;
 	}
 
+	@Override
+	public void stop() {
+		executor.shutdownNow();
+	}
+
 }

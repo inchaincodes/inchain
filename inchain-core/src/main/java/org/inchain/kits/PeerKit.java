@@ -78,6 +78,22 @@ public class PeerKit implements Broadcaster {
 		//ping task
 		startPingTask();
 	}
+
+	//异步启动
+	public void startSyn() {
+		new Thread(){
+			public void run() {
+				PeerKit.this.start();
+			}
+		}.start();
+	}
+	//停止服务
+	public void stop() throws IOException {
+		//关闭服务
+		executor.shutdown();
+		//关闭连接器
+		connectionManager.stop();
+	}
 	
 	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
@@ -113,22 +129,6 @@ public class PeerKit implements Broadcaster {
 	//初始化节点
 	private void initPeers() {
 		executor.scheduleWithFixedDelay(new PeerStatusManager(), 2, 10, TimeUnit.SECONDS);
-	}
-
-	//异步启动
-	public void startSyn() {
-		new Thread(){
-			public void run() {
-				PeerKit.this.start();
-			}
-		}.start();
-	}
-	//停止服务
-	public void stop() throws IOException {
-		//关闭连接器
-		connectionManager.stop();
-		//关闭服务
-		executor.shutdown();
 	}
 	
 	//节点状态管理

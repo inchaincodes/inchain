@@ -1,0 +1,15 @@
+
+.root{
+	-fx-background-image: url("/images/default_bg.png");
+	-fx-background-repeat: repeat;
+	-fx-background-size: cover;
+}
+#loginPane{
+	-fx-background-radius:7;
+	-fx-padding:10,10,20,10;
+	-fx-background-color:white;
+	
+}
+CheckBox{
+	-fx-text-fill:#fff;
+}
