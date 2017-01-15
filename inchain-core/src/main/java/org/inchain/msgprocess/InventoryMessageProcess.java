@@ -102,7 +102,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			BlockDownendListener blockDownendListener = new BlockDownendListener() {
 				@Override
 				public void downend(long height) {
-					blockHeight.getAndIncrement();
+					blockHeight.set(height);
 					
 					filter.insert(inventoryItem.getHash().getBytes());
 					synchronized (this) {
