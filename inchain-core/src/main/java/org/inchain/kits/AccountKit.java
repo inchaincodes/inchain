@@ -425,7 +425,7 @@ public class AccountKit {
 		for (Account account : accountList) {
 			Address address = account.getAddress();
 			byte[] hash160 = address.getHash160();
-			//查询是否
+			//查询可用余额和等待中的余额
 			Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(hash160);
 			address.setBalance(balances[0]);
 			address.setUnconfirmedBalance(balances[1]);

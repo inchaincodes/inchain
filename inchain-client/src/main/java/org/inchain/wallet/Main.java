@@ -14,6 +14,9 @@ import java.net.URL;
 import javax.swing.ImageIcon;
 
 import org.inchain.kit.InchainInstance;
+import org.inchain.listener.Listener;
+import org.inchain.wallet.controllers.MainController;
+import org.inchain.wallet.controllers.StartPageController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +29,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
  
 /**
@@ -37,16 +41,16 @@ public class Main extends Application implements ActionListener {
 	
 	private static final Logger log = LoggerFactory.getLogger(Main.class);
 	
-
-	private InchainInstance instance;
-	
 	//如果系统支持托盘， 在第一次点击关闭按钮时，最小化到托盘，弹出提示
 	private boolean hideTip;
 		
 	private TrayIcon trayIcon;
 	private Stage stage;
 
- 
+	private Stage startPageStage;
+
+	private MainController mainController;
+	
 	/**
 	 * 程序入口
 	 * @param args
@@ -62,8 +66,6 @@ public class Main extends Application implements ActionListener {
 	public void start(final Stage stage) throws Exception {
 		this.stage = stage;
 
-//		stage.initStyle(StageStyle.UTILITY);
-		
 		//设置程序标题
 		stage.setTitle(Constant.APP_TITLE);
 		//设置程序图标
@@ -74,20 +76,60 @@ public class Main extends Application implements ActionListener {
 
 		//初始化容器
 		initContainer();
-        
-        //初始化监听器
+		
+		//初始化监听器
         initListener();
-        
-        //启动核心
-        startAppKit();
-        
+				
+		showOnStartPage(stage);
+	}
+	
+	private void showRealPage() throws IOException {
 		//显示界面
 		show();
 	}
 
-	private void startAppKit() {
-		instance = InchainInstance.newInstance();
-		instance.startup(2);
+	//显示启动界面
+	private void showOnStartPage(final Stage stage) throws IOException {
+		
+		URL location = getClass().getResource("/resources/template/startPage.fxml");
+        FXMLLoader loader = new FXMLLoader(location);
+
+        Pane mainUI = loader.load();
+        
+        StartPageController startPageController = loader.getController();
+        startPageController.setListener(new Listener() {
+			@Override
+			public void onComplete() {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							startPageStage.close();
+							showRealPage();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+        
+        startPageController.setMainController(mainController);
+        Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				startPageController.init();
+			}
+		});
+        
+		startPageStage = new Stage(StageStyle.UNDECORATED);
+		Scene scene = new Scene(mainUI, 580, 320);
+		scene.getStylesheets().add("/resources/css/startPage.css");
+		startPageStage.initOwner(stage);
+		startPageStage.setScene(scene);
+		
+		startPageStage.getIcons().add(new Image(getClass().getResourceAsStream(Constant.APP_ICON)));
+		startPageStage.show();
 	}
 
 	/**
@@ -96,7 +138,7 @@ public class Main extends Application implements ActionListener {
 	@Override
 	public void stop() throws Exception {
 		super.stop();
-		instance.shutdown();
+		InchainInstance.getInstance().shutdown();
 		System.exit(0);
 	}
 	
@@ -110,16 +152,18 @@ public class Main extends Application implements ActionListener {
         
         URL location = getClass().getResource("/resources/template/main.fxml");
         FXMLLoader loader = new FXMLLoader(location);
-        
 
         Pane mainUI = loader.load();
+        
+        mainController = loader.getController();
  
         StackPane uiStack = new StackPane(mainUI);
 		Scene scene = new Scene(uiStack);
         scene.getStylesheets().add(getClass().getResource("/resources/css/wallet.css").toString());
         stage.setScene(scene);
-		
-
+        
+        stage.setMinHeight(480);
+        stage.setMinWidth(680);
 	}
 
 	/*
@@ -196,9 +240,10 @@ public class Main extends Application implements ActionListener {
         });
         
         popupMenu.add(itemShow);
+        popupMenu.addSeparator();
         
         //创建弹出菜单中的退出项
-        MenuItem itemExit = new MenuItem("退出系统");    
+        MenuItem itemExit = new MenuItem("退出系统");
         popupMenu.add(itemExit);
         
         //给退出系统添加事件监听

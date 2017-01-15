@@ -11,11 +11,12 @@ import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeHelper;
 import org.inchain.core.TransactionBroadcast;
+import org.inchain.listener.BlockChangedListener;
+import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.listener.NewInConnectionListener;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
-import org.inchain.net.ConnectionListener;
-import org.inchain.net.NewInConnectionListener;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
@@ -45,7 +46,11 @@ public class PeerKit implements Broadcaster {
 	@Autowired
 	private NetworkParams network;
 	//连接变化监听器
-	private ConnectionListener connectionListener;
+	private ConnectionChangedListener connectionChangedListener;
+	
+	//区块变化监听器
+	private BlockChangedListener blockChangedListener;
+	
 	//被动连接节点
 	private CopyOnWriteArrayList<Peer> inPeers = new CopyOnWriteArrayList<Peer>();
 	//主动连接节点
@@ -105,11 +110,15 @@ public class PeerKit implements Broadcaster {
 			public void connectionOpened(Peer peer) {
 				inPeers.add(peer);
 				log.info("新连接{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
+				
+				connectionOnChange();
 			}
 			@Override
 			public void connectionClosed(Peer peer) {
 				inPeers.remove(peer);
 				log.info("连接关闭{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
+				
+				connectionOnChange();
 			}
 		});
 	}
@@ -129,6 +138,15 @@ public class PeerKit implements Broadcaster {
 	//初始化节点
 	private void initPeers() {
 		executor.scheduleWithFixedDelay(new PeerStatusManager(), 2, 10, TimeUnit.SECONDS);
+	}
+	
+	/*
+	 * 节点变化
+	 */
+	public void connectionOnChange() {
+		if(connectionChangedListener != null) {
+			connectionChangedListener.onChanged(inPeers.size(), outPeers.size(), inPeers, outPeers);
+		}
 	}
 	
 	//节点状态管理
@@ -151,11 +169,13 @@ public class PeerKit implements Broadcaster {
 							public void connectionOpened() {
 								super.connectionOpened();
 								outPeers.add(this);
+								connectionOnChange();
 							}
 							@Override
 							public void connectionClosed() {
 								super.connectionClosed();
 								outPeers.remove(this);
+								connectionOnChange();
 							}
 						};
 						seed.setLastTime(TimeHelper.currentTimeMillis());
@@ -263,10 +283,6 @@ public class PeerKit implements Broadcaster {
 		log.info("消息发送失败，没有可广播的节点");
 		return null;
 	}
-	
-	public void setConnectionListener(ConnectionListener connectionListener) {
-		this.connectionListener = connectionListener;
-	}
 
 	/**
 	 * 是否能进行广播
@@ -274,5 +290,21 @@ public class PeerKit implements Broadcaster {
 	 */
 	public boolean canBroadcast() {
 		return inPeers.size() > 0 || outPeers.size() > 0;
+	}
+	
+	public BlockChangedListener getBlockChangedListener() {
+		return blockChangedListener;
+	}
+
+	public void setBlockChangedListener(BlockChangedListener blockChangedListener) {
+		this.blockChangedListener = blockChangedListener;
+	}
+	
+	public void setConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
+		this.connectionChangedListener = connectionChangedListener;
+	}
+	
+	public ConnectionChangedListener getConnectionChangedListener() {
+		return connectionChangedListener;
 	}
 }

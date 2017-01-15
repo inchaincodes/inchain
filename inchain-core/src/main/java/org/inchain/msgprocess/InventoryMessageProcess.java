@@ -3,11 +3,13 @@ package org.inchain.msgprocess;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.core.Peer;
 import org.inchain.filter.InventoryFilter;
+import org.inchain.kits.PeerKit;
 import org.inchain.listener.BlockDownendListener;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.InventoryItem;
@@ -33,9 +35,13 @@ public class InventoryMessageProcess implements MessageProcess {
 	
 	@Autowired
 	private InventoryFilter filter;
+	@Autowired
+	private PeerKit peerKit;
 	
 	//区块下载锁
 	private static Lock blockLocker = new ReentrantLock();
+	
+	private AtomicLong blockHeight = new AtomicLong();
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -81,18 +87,27 @@ public class InventoryMessageProcess implements MessageProcess {
 		blockLocker.lock();
 		
 		try {
+			
 			if(filter.contains(inventoryItem.getHash().getBytes())) {
 				return;
 			}
 			peer.sendMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
+			
+			//区块变化监听器
+			if(peerKit.getBlockChangedListener() != null) {
+				peerKit.getBlockChangedListener().onChanged(-1l, blockHeight.get() + 1, null, inventoryItem.getHash());
+			}
+			
 			//监听完成
 			BlockDownendListener blockDownendListener = new BlockDownendListener() {
 				@Override
-				public void downend() {
+				public void downend(long height) {
+					blockHeight.getAndIncrement();
+					
 					filter.insert(inventoryItem.getHash().getBytes());
 					synchronized (this) {
 						if(log.isDebugEnabled()) {
-							log.debug("新区快 {} 同步成功", inventoryItem.getHash());
+							log.debug("新区快 高度:{} hash:{} 同步成功", height, inventoryItem.getHash());
 						}
 						notify();
 					}
@@ -100,14 +115,14 @@ public class InventoryMessageProcess implements MessageProcess {
 			};
 			peer.setBlockDownendListener(blockDownendListener);
 			
-//			try {
-//				//等待下载完成，2秒超时，如果超时，则会选择其它节点下载
-//				synchronized (blockDownendListener) {
-//					blockDownendListener.wait(2000);
-//				}
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
+			try {
+				//等待下载完成，2秒超时，如果超时，则会选择其它节点下载
+				synchronized (blockDownendListener) {
+					blockDownendListener.wait(2000);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		} finally {
 			blockLocker.unlock();
 			peer.setBlockDownendListener(null);

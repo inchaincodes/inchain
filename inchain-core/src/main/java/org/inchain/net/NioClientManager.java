@@ -23,6 +23,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import org.inchain.Configure;
 import org.inchain.core.Peer;
 import org.inchain.core.PeerAddress;
+import org.inchain.listener.NewInConnectionListener;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.utils.ContextPropagatingThreadFactory;

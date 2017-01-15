@@ -3,6 +3,7 @@ package org.inchain.net;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
+import org.inchain.listener.NewInConnectionListener;
 import org.inchain.network.Seed;
 
 public interface ClientConnectionManager {

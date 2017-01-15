@@ -7,6 +7,7 @@ import org.inchain.kits.PeerKit;
 import org.inchain.message.BlockMessage;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
+import org.inchain.store.BlockHeaderStore;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.slf4j.Logger;
@@ -42,19 +43,27 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 
 		BlockMessage blockMessage = (BlockMessage) message;
 		
+		peer.getNetwork().setBestHeight(blockMessage.getBlockStore().getHeight());
+		
 		if(log.isDebugEnabled()) {
 			log.debug("new block : {}", blockMessage.getBlockStore().getHash());
 		}
 		
 		super.process(message, peer);
 		
+		//区块变化监听器
+		if(peerKit.getBlockChangedListener() != null) {
+			BlockHeaderStore localBestBlockHeader = blockMessage.getBlockStore();
+			peerKit.getBlockChangedListener().onChanged(-1l, localBestBlockHeader.getHeight(), null, localBestBlockHeader.getHash());
+		}
+		
 		//转发新区块消息
 		if(log.isDebugEnabled()) {
 			log.debug("new block {} saved", blockMessage.getBlockStore().getHash());
 		}
 		
-		peer.getBlockDownendListener().downend();
 		if(peer.getBlockDownendListener() != null) {
+			peer.getBlockDownendListener().downend(blockMessage.getBlockStore().getHeight());
 		} else {
 			InventoryFilter filter = SpringContextUtils.getBean(InventoryFilter.class);
 			filter.insert(blockMessage.getBlockStore().getHash().getBytes());

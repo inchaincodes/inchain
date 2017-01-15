@@ -6,5 +6,5 @@ package org.inchain.listener;
  *
  */
 public interface BlockDownendListener {
-	void downend();
+	void downend(long height);
 }

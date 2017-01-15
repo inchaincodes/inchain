@@ -1,4 +1,4 @@
-package org.inchain.net;
+package org.inchain.listener;
 
 import org.inchain.core.Peer;
 

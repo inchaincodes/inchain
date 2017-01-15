@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?scenebuilder-classpath-element ../../../../target/classes?>
+<?scenebuilder-classpath-element ../../../../../core/target/bitcoinj-0.12-SNAPSHOT.jar?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.input.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.text.*?>
+<?import wallettemplate.controls.*?>
+
+<AnchorPane maxHeight="Infinity" maxWidth="Infinity" styleClass="root-pane" fx:controller="org.inchain.wallet.controllers.StartPageController" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+  <children>
+  </children>
+</AnchorPane>

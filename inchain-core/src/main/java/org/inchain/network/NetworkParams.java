@@ -41,6 +41,9 @@ public abstract class NetworkParams {
 	@Autowired
 	protected BlockStoreProvider blockStoreProvider;
 	
+	//网络最新高度
+	protected long bestHeight;
+	
 	/**
 	 * 获取默认的消息序列化工具
 	 * @return {@link MessageSerializer}
@@ -111,6 +114,14 @@ public abstract class NetworkParams {
 		}
 	}
 	
+	/**
+	 * 获取最新区块头信息
+	 * @return long
+	 */
+	public BlockHeaderStore getBestBlockHeader() {
+		return blockStoreProvider.getBestBlockHeader();
+	}
+	
     /**
      * 运行的地址前缀
      * @return int[]
@@ -149,5 +160,13 @@ public abstract class NetworkParams {
 
 	public void setBlockStoreProvider(BlockStoreProvider blockStoreProvider) {
 		this.blockStoreProvider = blockStoreProvider;
+	}
+
+	public long getBestHeight() {
+		return bestHeight;
+	}
+
+	public void setBestHeight(long bestHeight) {
+		this.bestHeight = bestHeight;
 	}
 }

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<Pane AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AccountInfoController">
+   <children>
+      <HBox prefHeight="29.0" prefWidth="300.0">
+         <children>
+            <Label text="可用余额：" />
+            <Label text="0.00" />
+            <Label text="INS" />
+         </children>
+         <padding>
+            <Insets left="20.0" top="20.0" />
+         </padding>
+      </HBox>
+      <HBox layoutY="29.0" prefHeight="29.0" prefWidth="300.0">
+         <children>
+            <Label text="不可用余额：" />
+            <Label text="0.00" />
+            <Label text="INS" />
+         </children>
+         <padding>
+            <Insets left="20.0" top="20.0" />
+         </padding>
+      </HBox>
+      <HBox layoutY="58.0" prefHeight="29.0" prefWidth="300.0">
+         <children>
+            <Label text="信用：" />
+            <Label text="0" />
+         </children>
+         <padding>
+            <Insets left="20.0" top="20.0" />
+         </padding>
+      </HBox>
+      <HBox layoutY="87.0" prefHeight="30.0" spacing="10.0">
+         <children>
+            <Button mnemonicParsing="false" text="备份钱包" />
+            <Button mnemonicParsing="false" text="导入钱包" />
+            <Button mnemonicParsing="false" text="加密钱包" />
+         </children>
+         <padding>
+            <Insets left="20.0" top="20.0" />
+         </padding>
+      </HBox>
+   </children>
+</Pane>

@@ -98,6 +98,13 @@ public class BlockMessageProcess implements MessageProcess {
 			} catch (IOException e) {
 				throw new VerificationException(e);
 			}
+			
+			//区块变化监听器
+			if(peerKit.getBlockChangedListener() != null) {
+				BlockHeaderStore localBestBlockHeader = blockMessage.getBlockStore();
+				peerKit.getBlockChangedListener().onChanged(localBestBlockHeader.getHeight(), -1l, localBestBlockHeader.getHash(), null);
+			}
+			
 			//转发
 //			peerKit.broadcastBlock(blockMessage);
 		} finally {

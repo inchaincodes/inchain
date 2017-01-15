@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.inchain.kits.PeerKit;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.network.NetworkParams;
 import org.slf4j.Logger;
@@ -32,6 +33,12 @@ public class DownloadHandler {
 	
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private PeerKit peerKit;
+	
+	private int synchronousStatus; //1同步中，2同步完成
+	private boolean monitorRuning;
+	private long currentHeight;
 	
 	/**
 	 * 新节点连接，如果高度比当前节点高，那么下载区块数据
@@ -43,13 +50,19 @@ public class DownloadHandler {
 		if(peer.getPeerVersionMessage().bestHeight > localHeight) {
 			peers.add(peer);
 			
-			//当比自己高度更新的节点达到3个及以上
+			//当比自己高度更新的节点达到3个及以上 TODO
 			if(peers.size() >= 1) {
 				//启动下载
 				new Thread() {
 					public void run() {
-						log.info("开始同步区块数据...........");
-						startDownload();
+						//大多数节点一致的高度
+						long bestHeight = getMostPeerBestHeight(peers);
+						if(synchronousStatus == 0) {
+							if(peerKit.getBlockChangedListener() != null) {
+								peerKit.getBlockChangedListener().onChanged(-1l, bestHeight, null, null);
+							}
+							startDownload(bestHeight);
+						}
 					};
 				}.start();
 			}
@@ -59,16 +72,23 @@ public class DownloadHandler {
 	/*
 	 * 下载区块
 	 */
-	private void startDownload() {
+	private void startDownload(long bestHeight) {
 		locker.lock();
 		
+		synchronousStatus = 1;
+		
+		if(!monitorRuning) {
+			monitorRuning = true;
+			startMonitor();
+		}
 		try {
 			
 			//开始下载区块
-			log.info("开始下载...........");
+			if(log.isDebugEnabled()) {
+				log.debug("开始同步区块...........");
+			}
 			
-			//大多数节点一致的高度
-			long bestHeight = getMostPeerBestHeight();
+			currentHeight = bestHeight;
 			
 			long localBestHeight = network.getBestBlockHeight();
 			if(bestHeight == localBestHeight) {
@@ -116,14 +136,48 @@ public class DownloadHandler {
 //				}
 			}
 		} finally {
+			synchronousStatus = 2;
 			locker.unlock();
 		}
 	}
 
-	/*
+	private void startMonitor() {
+		new Thread() {
+			public void run() {
+				int synchronousCount = 0;
+				while(true) {
+					if(network.getBestHeight() > currentHeight && synchronousStatus == 2) {
+						new Thread() {
+							public void run() {
+								startDownload(network.getBestHeight());
+							};
+						}.start();
+					} else if(network.getBestHeight() == currentHeight) {
+						synchronousCount++;
+						if(synchronousCount > 60) {
+							if(log.isDebugEnabled()) {
+								log.info("====================区块同步完成=================");
+							}
+							break;
+						}
+					}
+
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		}.start();
+	}
+
+	/**
 	 * 大多数节点一致的高度
+	 * @param peers
+	 * @return long
 	 */
-	private long getMostPeerBestHeight() {
+	public static long getMostPeerBestHeight(Set<Peer> peers) {
 		if(peers.size() == 0) {
 			return 0l;
 		}
@@ -131,6 +185,9 @@ public class DownloadHandler {
 		List<Item> list = new ArrayList<Item>();
 		
 		for (Peer peer : peers) {
+			if(peer.getPeerVersionMessage() == null) {
+				continue;
+			}
 			long height = peer.getPeerVersionMessage().bestHeight;
 			boolean exist = false;
 			for (Item item : list) {
@@ -145,6 +202,10 @@ public class DownloadHandler {
 			}
 		}
 		
+		if(list.size() == 0) {
+			return 0l;
+		}
+		
 		list.sort(new Comparator<Item>() {
 			@Override
 			public int compare(Item o1, Item o2) {
@@ -154,7 +215,7 @@ public class DownloadHandler {
 		return list.get(0).getHeight();
 	}
 	
-	public class Item {
+	public static class Item {
 		private long height;
 		private int count;
 		

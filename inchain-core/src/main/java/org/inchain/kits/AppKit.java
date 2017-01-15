@@ -2,11 +2,11 @@ package org.inchain.kits;
 
 import java.io.IOException;
 
-import javax.annotation.PostConstruct;
-
 import org.inchain.Configure;
 import org.inchain.consensus.Mining;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.listener.BlockChangedListener;
+import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.Listener;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
@@ -50,7 +50,6 @@ public class AppKit {
 	}
 
 	//异步启动
-	@PostConstruct
 	public void startSyn() {
 		new Thread(){
 			public void run() {
@@ -83,14 +82,28 @@ public class AppKit {
 		if(initListener != null) {
 			initListener.onComplete();
 		}
+		//初始化一些数据变化监听器
+		initDataChangeListener();
 	}
 	
+	//初始化数据变化监听器
+	private void initDataChangeListener() {
+		//如果设置了区块变化监听器，那么首先通知一次本地的高度
+		if(peerKit.getBlockChangedListener() != null) {
+			BlockHeaderStore blockHeader = network.getBestBlockHeader();
+			peerKit.getBlockChangedListener().onChanged(blockHeader.getHeight(), -1, blockHeader.getHash(), null);
+		}
+		
+		//节点变化
+		peerKit.connectionOnChange();
+	}
+
+	//系统关闭钩子，确保能正确关闭
 	private void addShutdownListener() {
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 	        @Override  
 	        public void run() {
 	        	try {
-	        		System.out.println("=============1212");
 	        		stop();
 	        	} catch (Exception e) {
 	        		e.printStackTrace();
@@ -175,5 +188,13 @@ public class AppKit {
 	
 	public void setInitListener(Listener initListener) {
 		this.initListener = initListener;
+	}
+	
+	public void addBlockChangedListener(BlockChangedListener blockChangedListener) {
+		peerKit.setBlockChangedListener(blockChangedListener);
+	}
+
+	public void addConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
+		peerKit.setConnectionChangedListener(connectionChangedListener);
 	}
 }

@@ -69,10 +69,9 @@ public class Peer extends PeerSocketHandler {
 
 	@Override
 	public void connectionOpened() {
-		log.info("connectionOpened");
+		log.info("connectionOpened {}", this);
 		//发送版本信息
 		sendMessage(new VersionMessage(network, network.getBestBlockHeight(), getPeerAddress()));
-		log.info("send version message end");
 	}
 
 	public void ping() {
