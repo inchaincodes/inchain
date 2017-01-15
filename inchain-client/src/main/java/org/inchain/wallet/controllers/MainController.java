@@ -1,7 +1,9 @@
 package org.inchain.wallet.controllers;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -29,6 +31,11 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 
+/**
+ * 首页控制器
+ * @author ln
+ *
+ */
 public class MainController {
 	
 	private static final Logger log = LoggerFactory.getLogger(MainController.class);
@@ -46,10 +53,11 @@ public class MainController {
 	public Button transactionRecordId;		//交易记录
 	public Button consensusRecordId;		//共识节点列表
 	public Button sellerRecordId;			//商家列表
-	
-	public StackPane contentId;				//内容
+	public StackPane contentId;				//子页面内容控件
 	
 	private Map<String, Node> pageMaps = new HashMap<>();	//页面列表
+	private List<Button> buttons = new ArrayList<>();
+	private List<SubPageController> subPageControllers = new ArrayList<>();
 	
 	
 	/**
@@ -82,12 +90,16 @@ public class MainController {
 				showPage(id);
 			}
 		};
+		
+		buttons.add(accountInfoId);
+		buttons.add(sendAmountId);
+		buttons.add(transactionRecordId);
+		buttons.add(consensusRecordId);
+		buttons.add(sellerRecordId);
     	
-    	accountInfoId.setOnAction(buttonEventHandler);
-    	sendAmountId.setOnAction(buttonEventHandler);
-    	transactionRecordId.setOnAction(buttonEventHandler);
-    	consensusRecordId.setOnAction(buttonEventHandler);
-    	sellerRecordId.setOnAction(buttonEventHandler);
+		for (Button button : buttons) {
+			button.setOnAction(buttonEventHandler);
+		}
     }
 
     /**
@@ -95,16 +107,68 @@ public class MainController {
      * @param startupListener 
      */
 	public void init(StartupListener startupListener) {
+
+    	startupOnChange(startupListener, "初始化网络时间", 3);
 		//界面时间
     	startShowTime();
     	
+    	startupOnChange(startupListener, "初始化监听器", 3);
     	//初始化监听器
     	initListeners();
     	
-    	showPage(accountInfoId.getId());
+    	startupOnChange(startupListener, "初始化ui", 3);
+    	initPages();
+    	
+    	startupOnChange(startupListener, "初始化页面数据", 3);
+    	initDatas(startupListener);
     	
     	//加载完成
     	startupListener.onComplete();
+	}
+	
+	/*
+	 * 初始化各个页面的数据
+	 */
+	private void initDatas(StartupListener startupListener) {
+		int completionRate = (100 - startupListener.getCompletionRate()) / subPageControllers.size();
+		for (SubPageController controller : subPageControllers) {
+			String tip = null;
+			if(controller instanceof AccountInfoController) {
+				tip = "初始化账户信息";
+			} else if(controller instanceof AccountInfoController) {
+				tip = "初始化交易记录";
+			} else if(controller instanceof AccountInfoController) {
+				tip = "初始化共识信息";
+			} else if(controller instanceof AccountInfoController) {
+				tip = "初始化商家信息";
+			}
+			if(tip != null) {
+				startupOnChange(startupListener, tip, completionRate);
+			}
+			controller.initDatas();
+		}
+	}
+	
+	/*
+	 * 启动变化
+	 */
+	private void startupOnChange(StartupListener startupListener, String tip, int completionRate) {
+    	startupListener.setCompletionRate(startupListener.getCompletionRate() + completionRate);
+    	startupListener.onChange(tip);
+	}
+
+	/*
+	 * 初始化各个界面
+	 */
+	private void initPages() {
+		for (Button button : buttons) {
+			String id = button.getId();
+			pageMaps.put(id, getPage(id));
+		}
+		//显示第一个子页面
+		if(buttons.size() > 0) {
+			showPage(buttons.get(0).getId());
+		}
 	}
 
 	/*
@@ -213,7 +277,13 @@ public class MainController {
 		
 		if(fxml != null) {
 			try {
-				Pane page = FXMLLoader.load(getClass().getResource(fxml));
+		        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
+				Pane page = loader.load();
+				
+				SubPageController subPageController = loader.getController();
+				if(subPageController != null) {
+					subPageControllers.add(subPageController);
+				}
 				return page;
 			} catch (Exception e) {
 				log.error(e.getMessage(), e);

@@ -8,6 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import javafx.scene.control.Label;
 
+/**
+ * 启动页面控制器
+ * @author ln
+ *
+ */
 public class StartPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(StartPageController.class);
@@ -20,7 +25,7 @@ public class StartPageController {
 	//控制器
 	private MainController mainController;
 	
-	private Label tipLabel;
+	public Label tipLabel;
 	
 	
 	/**
@@ -50,6 +55,9 @@ public class StartPageController {
 		instance.startup(2, appKitInitListener);
     }
     
+    /*
+     * 初始化数据
+     */
     protected void initDatas() {
     	try {
 			Thread.sleep(5000l);
@@ -57,16 +65,33 @@ public class StartPageController {
 			e.printStackTrace();
 		}
     	startupListener = new StartupListener() {
+    		private int completionRate;
+    		
 			@Override
 			public void onComplete() {
 	    		listener.onComplete();
 			}
 			
 			@Override
-			public void onChange(String tip, float completionRate) {
-				//TODO
-				tipLabel.setText(tip);
-				
+			public void onChange(String tip) {
+				try {
+					//TODO
+					tipLabel.setText(tip);
+					
+					//使用 this.getCompletionRate() 来获取进度
+				} catch (Exception e) {
+					log.error(e.getMessage(), e);
+				}
+			}
+
+			@Override
+			public int getCompletionRate() {
+				return completionRate;
+			}
+
+			@Override
+			public void setCompletionRate(int completionRate) {
+				this.completionRate = completionRate;
 			}
 		};
 		

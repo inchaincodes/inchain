@@ -5,7 +5,12 @@ import org.slf4j.LoggerFactory;
 
 import javafx.scene.control.Label;
 
-public class AccountInfoController {
+/**
+ * 账户信息控制器
+ * @author ln
+ *
+ */
+public class AccountInfoController implements SubPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(AccountInfoController.class);
 	
@@ -26,7 +31,7 @@ public class AccountInfoController {
     /**
      * 初始化钱包信息
      */
-    public void init() {
+    public void initDatas() {
     	
     }
 }
