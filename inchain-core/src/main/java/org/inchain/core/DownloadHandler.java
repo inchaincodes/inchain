@@ -1,6 +1,7 @@
 package org.inchain.core;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +30,7 @@ public class DownloadHandler {
 	//下载锁，避免多节点重复下载
 	private Lock locker = new ReentrantLock();
 
-	private Set<Peer> peers = new HashSet<Peer>();
+	private Set<Peer> peers = Collections.synchronizedSet(new HashSet<Peer>());
 	
 	@Autowired
 	private NetworkParams network;
@@ -48,6 +49,7 @@ public class DownloadHandler {
 		long localHeight = network.getBestBlockHeight();
 		
 		if(peer.getPeerVersionMessage().bestHeight > localHeight) {
+			
 			peers.add(peer);
 			
 			//当比自己高度更新的节点达到3个及以上 TODO
