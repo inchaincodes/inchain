@@ -446,7 +446,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			BlockStore blockStore = network.getGengsisBlock();
 			Sha256Hash nextHash = blockStore.getBlock().getHash();
 			
-			List<TransactionStore> mineTxs = new ArrayList<>();
+			List<TransactionStore> mineTxs = new ArrayList<TransactionStore>();
 			while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
 				BlockStore nextBlockStore = getBlock(nextHash.getBytes());
 				

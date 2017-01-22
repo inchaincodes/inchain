@@ -97,7 +97,7 @@ public class Main extends Application implements ActionListener {
 
         Pane mainUI = loader.load();
         
-        StartPageController startPageController = loader.getController();
+        final StartPageController startPageController = loader.getController();
         startPageController.setListener(new Listener() {
 			@Override
 			public void onComplete() {

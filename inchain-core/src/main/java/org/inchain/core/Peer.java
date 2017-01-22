@@ -48,7 +48,7 @@ public class Peer extends PeerSocketHandler {
 	}
 
 	@Override
-	protected void processMessage(Message message) throws Exception {
+	protected void processMessage(final Message message) throws Exception {
 		final MessageProcess messageProcess = messageProcessFactory.getFactory(message);
 		executorService.submit(new Thread(){
 			public void run() {

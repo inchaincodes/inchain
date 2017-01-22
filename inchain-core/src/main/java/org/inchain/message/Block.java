@@ -57,7 +57,7 @@ public class Block extends BlockHeader {
 		height = readUint32();
 		txCount = readVarInt();
 		
-		txs = new ArrayList<>();
+		txs = new ArrayList<Transaction>();
 		for (int i = 0; i < txCount; i++) {
 			Transaction transaction = network.getDefaultSerializer().makeTransaction(payload, cursor);
 			txs.add(transaction);

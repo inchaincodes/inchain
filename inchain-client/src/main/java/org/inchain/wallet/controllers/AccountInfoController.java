@@ -49,7 +49,7 @@ public class AccountInfoController implements SubPageController {
     			accountInfoListener.onLoad(account);
     		}
     		//设置内页的余额
-    		Address address = account.getAddress();
+    		final Address address = account.getAddress();
     		Platform.runLater(new Runnable() {
 			    @Override
 			    public void run() {

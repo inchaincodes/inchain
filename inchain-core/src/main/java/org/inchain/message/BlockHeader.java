@@ -55,7 +55,7 @@ public class BlockHeader extends Message {
 		height = readUint32();
 		txCount = readVarInt();
 		
-		txHashs = new ArrayList<>();
+		txHashs = new ArrayList<Sha256Hash>();
 		for (int i = 0; i < txCount; i++) {
 			txHashs.add(Sha256Hash.wrap(readBytes(32)));
 		}

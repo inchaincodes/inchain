@@ -46,7 +46,7 @@ public class InventoryMessageProcess implements MessageProcess {
 	private AtomicLong blockHeight = new AtomicLong();
 	
 	@Override
-	public MessageProcessResult process(Message message, Peer peer) {
+	public MessageProcessResult process(final Message message, final Peer peer) {
 		
 		if(log.isDebugEnabled()) {
 			log.debug("receive inv message: {}", message);
@@ -59,7 +59,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			return null;
 		}
 		
-		for (InventoryItem inventoryItem : invList) {
+		for (final InventoryItem inventoryItem : invList) {
 			if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
 				//新区块诞生
 				executorService.submit(new Runnable() {
@@ -85,7 +85,7 @@ public class InventoryMessageProcess implements MessageProcess {
 	/*
 	 * 新区块诞生，下载
 	 */
-	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
+	private void newBlockInventory(final InventoryItem inventoryItem, Peer peer) {
 		blockLocker.lock();
 		
 		try {

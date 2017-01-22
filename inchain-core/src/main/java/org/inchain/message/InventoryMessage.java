@@ -23,7 +23,7 @@ public class InventoryMessage extends Message {
 	
 	public InventoryMessage(NetworkParams network, InventoryItem item) {
 		super(network);
-		invs = new ArrayList<>();
+		invs = new ArrayList<InventoryItem>();
 		invs.add(item);
 	}
 	
@@ -37,7 +37,7 @@ public class InventoryMessage extends Message {
 		if (size > MAX_INVENTORY_ITEMS) {
             throw new ProtocolException("超过 inv 消息最大条数限制: " + size);
 		}
-		invs = new ArrayList<>();
+		invs = new ArrayList<InventoryItem>();
 		for (int i = 0; i < size; i++) {
             if (cursor + InventoryItem.MESSAGE_LENGTH > payload.length) {
                 throw new ProtocolException("Ran off the end of the INV");

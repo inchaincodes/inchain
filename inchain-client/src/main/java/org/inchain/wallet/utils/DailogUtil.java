@@ -29,7 +29,7 @@ public class DailogUtil {
 		hideDailog(tip);
 	}
 
-	private static void hideDailog(Tooltip tip) {
+	private static void hideDailog(final Tooltip tip) {
 		new Thread(){
     		public void run() {
     			try {

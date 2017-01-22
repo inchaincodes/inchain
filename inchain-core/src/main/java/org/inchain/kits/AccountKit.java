@@ -350,7 +350,7 @@ public class AccountKit {
 	private List<TransactionOutput> selectNotSpentTransaction(Coin add, Address myAddress) {
 		List<TransactionOutput> outputs = transactionStoreProvider.getNotSpentTransactionOutputs(myAddress.getHash160());
 		
-		List<TransactionOutput> thisOutputs = new ArrayList<>();
+		List<TransactionOutput> thisOutputs = new ArrayList<TransactionOutput>();
 		for (TransactionOutput transactionOutput : outputs) {
 			thisOutputs.add(transactionOutput);
 		}
@@ -622,7 +622,7 @@ public class AccountKit {
 	
 	//获取账户对应的has160
 	private List<byte[]> getAccountHash160s() {
-		CopyOnWriteArrayList<byte[]> hash160s = new CopyOnWriteArrayList<>();
+		CopyOnWriteArrayList<byte[]> hash160s = new CopyOnWriteArrayList<byte[]>();
 		for (Account account : accountList) {
 			Address address = account.getAddress();
 			byte[] hash160 = address.getHash160();

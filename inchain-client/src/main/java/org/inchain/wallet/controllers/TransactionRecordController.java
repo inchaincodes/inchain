@@ -51,11 +51,11 @@ public class TransactionRecordController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
-    	status.setCellValueFactory(new PropertyValueFactory<>("status"));
-    	type.setCellValueFactory(new PropertyValueFactory<>("type"));
-    	detail.setCellValueFactory(new PropertyValueFactory<>("detail"));
-    	amount.setCellValueFactory(new PropertyValueFactory<>("amount"));
-    	time.setCellValueFactory(new PropertyValueFactory<>("time"));
+    	status.setCellValueFactory(new PropertyValueFactory<TransactionEntity, Long>("status"));
+    	type.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("type"));
+    	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("detail"));
+    	amount.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("amount"));
+    	time.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("time"));
     }
     
     /**
@@ -69,7 +69,7 @@ public class TransactionRecordController implements SubPageController {
     	
     	List<TransactionStore> txs = InchainInstance.getInstance().getAccountKit().getTransactions();
     	
-    	List<TransactionEntity> list = new ArrayList<>();
+    	List<TransactionEntity> list = new ArrayList<TransactionEntity>();
     	
     	tx2Entity(txs, list);
     	

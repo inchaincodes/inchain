@@ -39,7 +39,7 @@ public class TransactionValidator implements Validator<Transaction> {
 	@Override
 	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx) {
 		
-		TransactionValidatorResult result = new TransactionValidatorResult();
+		final TransactionValidatorResult result = new TransactionValidatorResult();
 		ValidatorResult<TransactionValidatorResult> validatorResult = new ValidatorResult<TransactionValidatorResult>() {
 			@Override
 			public TransactionValidatorResult getResult() {

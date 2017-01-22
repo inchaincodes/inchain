@@ -69,9 +69,9 @@ public class MainController {
 	public Button sellerRecordId;			//商家列表
 	public StackPane contentId;				//子页面内容控件
 	
-	private Map<String, Node> pageMaps = new HashMap<>();	//页面列表
-	private List<Button> buttons = new ArrayList<>();
-	private List<SubPageController> subPageControllers = new ArrayList<>();
+	private Map<String, Node> pageMaps = new HashMap<String, Node>();	//页面列表
+	private List<Button> buttons = new ArrayList<Button>();
+	private List<SubPageController> subPageControllers = new ArrayList<SubPageController>();
 	
 	private Stage stage;
 	
@@ -156,8 +156,8 @@ public class MainController {
 					@Override
 					public void onLoad(Account account) {
 						//设置地址
-						Address address = account.getAddress();
-						String addressBase58 = address.getBase58();
+						final Address address = account.getAddress();
+						final String addressBase58 = address.getBase58();
 						Platform.runLater(new Runnable() {
 						    @Override
 						    public void run() {
@@ -218,8 +218,8 @@ public class MainController {
     	AppKit appKit = instance.getAppKit();
     	appKit.addBlockChangedListener(new BlockChangedListener() {
 			@Override
-			public void onChanged(long localNewestHeight, long netNewestHeight, Sha256Hash localNewestHash,
-					Sha256Hash netNewestHash) {
+			public void onChanged(final long localNewestHeight, final long netNewestHeight, final Sha256Hash localNewestHash,
+					final Sha256Hash netNewestHash) {
 				Platform.runLater(new Runnable() {
 				    @Override
 				    public void run() {
@@ -243,8 +243,8 @@ public class MainController {
     	//网络变化监听器
     	appKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(final int inCount, final int outCount, final CopyOnWriteArrayList<Peer> inPeers,
+					final CopyOnWriteArrayList<Peer> outPeers) {
 				Platform.runLater(new Runnable() {
 				    @Override
 				    public void run() {
@@ -273,7 +273,7 @@ public class MainController {
 	 * 显示子页面
 	 * @param id
 	 */
-	private void showPage(String id) {
+	private void showPage(final String id) {
 		Platform.runLater(new Runnable() {
 		    @Override
 		    public void run() {

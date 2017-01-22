@@ -86,7 +86,7 @@ public class StartPageController {
 			}
 			
 			@Override
-			public void onChange(String tip) {
+			public void onChange(final String tip) {
 				try {
 					Platform.runLater(new Runnable() {
 						@Override

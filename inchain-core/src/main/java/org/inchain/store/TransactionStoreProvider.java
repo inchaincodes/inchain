@@ -34,9 +34,9 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 	//存放交易记录账号的key
 	private final static byte[] ADDRESSES_KEY = Sha256Hash.ZERO_HASH.getBytes();
 	//交易记录对应的账号列表
-	private List<byte[]> addresses = new CopyOnWriteArrayList<>();
+	private List<byte[]> addresses = new CopyOnWriteArrayList<byte[]>();
 	//我的交易列表
-	private List<TransactionStore> mineTxList = new ArrayList<>();
+	private List<TransactionStore> mineTxList = new ArrayList<TransactionStore>();
 	
 	//新交易监听器
 	private TransactionListener transactionListener;
@@ -260,7 +260,7 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 	 */
 	public List<TransactionOutput> getNotSpentTransactionOutputs(byte[] hash160) {
 		
-		List<TransactionOutput> txs = new ArrayList<>();
+		List<TransactionOutput> txs = new ArrayList<TransactionOutput>();
 		
 		//查询当前区块最新高度
 		long bestBlockHeight = network.getBestHeight();
