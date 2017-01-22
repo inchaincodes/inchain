@@ -21,4 +21,8 @@ public interface Output {
 	void setScript(Script scriptSig);
 	
 	Script getScript();
+	
+	long getValue();
+	
+	long getLockTime();
 }

@@ -65,7 +65,7 @@ public class TranslationTest extends BaseTestCase {
 		Transaction verfyTx = network.getDefaultSerializer().makeTransaction(txBytes, null);
 		verfyTx.verfify();
 		
-		verfyTx.getInput(0).getScriptSig().run(verfyTx, ((TransactionInput)verfyTx.getInput(0)).getFrom().getScript());
+		verfyTx.getInput(0).getScriptSig().run(verfyTx, 0, ((TransactionInput)verfyTx.getInput(0)).getFrom().getScript());
 
 	}
 }

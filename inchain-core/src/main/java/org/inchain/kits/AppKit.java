@@ -91,7 +91,7 @@ public class AppKit {
 		//如果设置了区块变化监听器，那么首先通知一次本地的高度
 		if(peerKit.getBlockChangedListener() != null) {
 			BlockHeaderStore blockHeader = network.getBestBlockHeader();
-			peerKit.getBlockChangedListener().onChanged(blockHeader.getHeight(), -1, blockHeader.getHash(), null);
+			peerKit.getBlockChangedListener().onChanged(blockHeader.getBlockHeader().getHeight(), -1, blockHeader.getBlockHeader().getHash(), null);
 		}
 		
 		//节点变化
@@ -171,10 +171,10 @@ public class AppKit {
 	private void checkGenesisBlock() throws IOException {
 		BlockStore gengsisBlock = network.getGengsisBlock();
 		
-		BlockHeaderStore localGengsisBlockHeader = blockStoreProvider.getHeader(gengsisBlock.getHash().getBytes());
+		BlockHeaderStore localGengsisBlockHeader = blockStoreProvider.getHeader(gengsisBlock.getBlock().getHash().getBytes());
 		
 		//存在，判断区块信息是否正确
-		if(localGengsisBlockHeader != null && !localGengsisBlockHeader.equals((BlockHeaderStore)gengsisBlock)) {
+		if(localGengsisBlockHeader != null && !localGengsisBlockHeader.getBlockHeader().equals(gengsisBlock.getBlock())) {
 			throw new VerificationException("the genesis block check error!");
 		} else if(localGengsisBlockHeader == null) {
 			//新增
@@ -184,6 +184,9 @@ public class AppKit {
 	
 	public AccountKit getAccountKit() {
 		return accountKit;
+	}
+	public NetworkParams getNetwork() {
+		return network;
 	}
 	
 	public void setInitListener(Listener initListener) {

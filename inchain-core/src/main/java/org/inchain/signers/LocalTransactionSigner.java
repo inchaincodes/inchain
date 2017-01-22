@@ -3,7 +3,6 @@ package org.inchain.signers;
 import java.util.EnumSet;
 
 import org.inchain.account.RedeemData;
-import org.inchain.core.exception.ScriptException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.TransactionSignature;
 import org.inchain.script.Script;
@@ -33,14 +32,6 @@ public class LocalTransactionSigner implements TransactionSigner {
             if (txIn.getFrom() == null) {
                 log.warn("缺少上次交易的引用,index:{}", i);
                 continue;
-            }
-
-            try {
-                txIn.getScriptSig().correctlySpends(tx, i, txIn.getFrom().getScript(), ALLOW_VERIFY_FLAGS);
-                log.warn("已经签名,index:{}", i);
-                continue;
-            } catch (ScriptException e) {
-//            	e.printStackTrace();
             }
 
             RedeemData redeemData = txIn.getFrom().getRedeemData(key);

@@ -44,6 +44,8 @@ public class TransactionMessageProcess implements MessageProcess {
 	public MessageProcessResult process(Message message, Peer peer) {
 		
 		Transaction tx = (Transaction) message;
+
+		log.info("接收到新交易 {}", tx);
 		
 		if(log.isDebugEnabled()) {
 			log.debug("transaction message {}", Hex.encode(tx.baseSerialize()));

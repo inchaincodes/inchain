@@ -21,7 +21,7 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
     /**
      * 10亿总量
      */
-    public static final Coin MAX = Coin.valueOf(1000000000);
+    public static final Coin MAX = Coin.valueOf(1000000000).multiply(COIN_VALUE);
     
     /**
      * 0个 INS
@@ -48,18 +48,17 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
      */
     public static final Coin MICROCOIN = MILLICOIN.divide(1000);
 
-
     /**
      * 数量
      */
     public final long value;
 
-    private Coin(final long satoshis) {
-        this.value = satoshis;
+    private Coin(final long coin) {
+        this.value = coin;
     }
 
-    public static Coin valueOf(final long satoshis) {
-        return new Coin(satoshis);
+    public static Coin valueOf(final long coin) {
+        return new Coin(coin);
     }
 
     @Override
@@ -67,17 +66,11 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
         return SMALLEST_UNIT_EXPONENT;
     }
 
-    /**
-     * Returns the number of satoshis of this monetary value.
-     */
     @Override
     public long getValue() {
         return value;
     }
 
-    /**
-     * Convert an amount expressed in the way humans are used to into satoshis.
-     */
     public static Coin valueOf(final int coins, final int cents) {
     	Utils.checkState(cents < 100);
         Utils.checkState(cents >= 0);
@@ -86,20 +79,12 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
         return coin;
     }
 
-    /**
-     * Parses an amount expressed in the way humans are used to.<p>
-     * <p/>
-     * This takes string in a format understood by {@link BigDecimal#BigDecimal(String)},
-     * for example "0", "1", "0.10", "1.23E3", "1234.5E-5".
-     *
-     * @throws IllegalArgumentException if you try to specify fractional satoshis, or a value out of range.
-     */
     public static Coin parseCoin(final String str) {
         try {
-            long satoshis = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).toBigIntegerExact().longValue();
-            return Coin.valueOf(satoshis);
+            long value = new BigDecimal(str).movePointRight(SMALLEST_UNIT_EXPONENT).toBigIntegerExact().longValue();
+            return Coin.valueOf(value);
         } catch (ArithmeticException e) {
-            throw new IllegalArgumentException(e); // Repackage exception to honor method contract
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -224,11 +209,16 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
         return this.value;
     }
 
+    public String toText() {
+    	Coin[] coins = divideAndRemainder(Coin.COIN.value);
+		return coins[0].toString()+"."+coins[1];
+    }
+    
     @Override
     public String toString() {
         return Long.toString(value);
     }
-
+    
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;

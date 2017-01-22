@@ -2,7 +2,9 @@ package org.inchain.kit;
 
 import java.io.IOException;
 
+import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
+import org.inchain.kits.PeerKit;
 import org.inchain.listener.Listener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,8 @@ public final class InchainInstance {
 	private ClassPathXmlApplicationContext springContext;
 
 	private AppKit appKit;
+	private PeerKit peerKit;
+	private AccountKit accountKit;
 	
 	private InchainInstance() {
 		// 不允许外部创建实例
@@ -72,6 +76,10 @@ public final class InchainInstance {
 		}
 		appKit.startSyn();
 
+
+		peerKit = springContext.getBean(PeerKit.class);
+		accountKit = springContext.getBean(AccountKit.class);
+		
 		log.info("Server启动成功。");
 
 	}
@@ -87,5 +95,11 @@ public final class InchainInstance {
 	
 	public AppKit getAppKit() {
 		return appKit;
+	}
+	public AccountKit getAccountKit() {
+		return accountKit;
+	}
+	public PeerKit getPeerKit() {
+		return peerKit;
 	}
 }

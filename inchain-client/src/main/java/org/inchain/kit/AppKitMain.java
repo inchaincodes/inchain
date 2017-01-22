@@ -10,6 +10,7 @@ import java.net.Socket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
+import org.inchain.kits.AppKit;
 import org.inchain.network.Seed;
 import org.inchain.network.TestNetworkParams;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -61,6 +62,9 @@ public class AppKitMain {
 					
 					springContext.start();
 
+					AppKit appKit = springContext.getBean(AppKit.class);
+					appKit.startSyn();
+					
 //					//链接测试节点
 					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
 					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.100", 6881)));

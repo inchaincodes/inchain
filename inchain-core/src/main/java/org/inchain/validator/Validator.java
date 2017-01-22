@@ -1,7 +1,7 @@
 package org.inchain.validator;
 
 /**
- * 验证器
+ * 交易验证器验证器
  * @author ln
  * @param <T>
  *
@@ -9,9 +9,9 @@ package org.inchain.validator;
 public interface Validator<T> {
 	
 	/**
-	 * 验证
+	 * 交易验证
 	 * @param t
 	 * @return
 	 */
-	ValidatorResult valDo(T t);
+	ValidatorResult<?> valDo(T t);
 }

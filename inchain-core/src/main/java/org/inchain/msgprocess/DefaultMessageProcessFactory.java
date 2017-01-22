@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.inchain.SpringContextUtils;
-import org.inchain.message.BlockMessage;
+import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.message.GetDatasMessage;
@@ -16,6 +16,7 @@ import org.inchain.message.PongMessage;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.Transaction;
 
 public class DefaultMessageProcessFactory implements MessageProcessFactory {
 
@@ -43,13 +44,14 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
     	FACTORYS.put(VersionMessage.class, "versionMessageProcess");
     	FACTORYS.put(VerackMessage.class, "verackMessageProcess");
 //    	FACTORYS.put(RegisterTransaction.class, RegisterTransaction);
-    	FACTORYS.put(BlockMessage.class, "blockMessageProcess");
+    	FACTORYS.put(Block.class, "blockMessageProcess");
     	FACTORYS.put(GetBlocksMessage.class, "getBlocksMessageProcess");
     	FACTORYS.put(NewBlockMessage.class, "newBlockMessageProcess");
     	FACTORYS.put(RegConsensusTransaction.class, "regConsensusMessageProcess");
     	FACTORYS.put(ConsensusMessage.class, "consensusMessageProcess");
     	FACTORYS.put(InventoryMessage.class, "inventoryMessageProcess");
     	FACTORYS.put(GetDatasMessage.class, "getDatasMessageProcess");
+    	FACTORYS.put(Transaction.class, "transactionMessageProcess");
     }
 
 	private DefaultMessageProcessFactory() {

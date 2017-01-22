@@ -2,12 +2,12 @@ package org.inchain.msgprocess;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.core.Peer;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
-import org.inchain.message.BlockMessage;
+import org.inchain.message.Block;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
-import org.inchain.store.BlockHeaderStore;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.slf4j.Logger;
@@ -41,35 +41,36 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		//验证新区块打包的人是否合法
 		//TODO
 
-		BlockMessage blockMessage = (BlockMessage) message;
+		Block block = (Block) message;
 		
-		peer.getNetwork().setBestHeight(blockMessage.getBlockStore().getHeight());
+		peer.getNetwork().setBestHeight(block.getHeight());
 		
 		if(log.isDebugEnabled()) {
-			log.debug("new block : {}", blockMessage.getBlockStore().getHash());
+			log.debug("new block : {}", block.getHash());
 		}
 		
 		super.process(message, peer);
 		
+		Sha256Hash hash = block.getHash();
+		
 		//区块变化监听器
 		if(peerKit.getBlockChangedListener() != null) {
-			BlockHeaderStore localBestBlockHeader = blockMessage.getBlockStore();
-			peerKit.getBlockChangedListener().onChanged(-1l, localBestBlockHeader.getHeight(), null, localBestBlockHeader.getHash());
+			peerKit.getBlockChangedListener().onChanged(-1l, block.getHeight(), null, hash);
 		}
 		
 		//转发新区块消息
 		if(log.isDebugEnabled()) {
-			log.debug("new block {} saved", blockMessage.getBlockStore().getHash());
+			log.debug("new block {} saved", hash);
 		}
 		
 		if(peer.getBlockDownendListener() != null) {
-			peer.getBlockDownendListener().downend(blockMessage.getBlockStore().getHeight());
+			peer.getBlockDownendListener().downend(block.getHeight());
 		} else {
 			InventoryFilter filter = SpringContextUtils.getBean(InventoryFilter.class);
-			filter.insert(blockMessage.getBlockStore().getHash().getBytes());
+			filter.insert(hash.getBytes());
 		}
 		//转发
-		InventoryItem item = new InventoryItem(Type.NewBlock, blockMessage.getBlockStore().getHash());
+		InventoryItem item = new InventoryItem(Type.NewBlock, hash);
 		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
 		peerKit.broadcastMessage(invMessage, peer);
 		

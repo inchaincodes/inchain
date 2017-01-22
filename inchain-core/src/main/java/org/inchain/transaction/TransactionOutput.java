@@ -23,28 +23,41 @@ public class TransactionOutput implements Output {
 	private Transaction parent;
 	//下次的花费
 	private TransactionInput spentBy;
-	
+	//交易金额
 	private long value;
-
+	//锁定时间
+	private long lockTime;
+	
     private byte[] scriptBytes;
     
     private Script script;
     //交易输出的索引
     private int index;
-    
+
     public TransactionOutput() {
     	
     }
+
+    public TransactionOutput(Transaction parent) {
+    	this.parent = parent;
+    }
 	
 	public TransactionOutput(Transaction parent, Coin value, Address to) {
-		this(parent, value, ScriptBuilder.createOutputScript(to).getProgram());
+		this(parent, value, 0l, ScriptBuilder.createOutputScript(to).getProgram());
+	}
+	public TransactionOutput(Transaction parent, Coin value, long lockTime, Address to) {
+		this(parent, value, lockTime, ScriptBuilder.createOutputScript(to).getProgram());
 	}
 	public TransactionOutput(Transaction parent, Coin value, ECKey to) {
-		this(parent, value, ScriptBuilder.createOutputScript(to).getProgram());
+		this(parent, value, 0l, ScriptBuilder.createOutputScript(to).getProgram());
 	}
-	public TransactionOutput(Transaction parent, Coin value, byte[] scriptBytes) {
+	public TransactionOutput(Transaction parent, Coin value,  byte[] scriptBytes) {
+		this(parent, value, 0l, scriptBytes);
+	}
+	public TransactionOutput(Transaction parent, Coin value, long lockTime, byte[] scriptBytes) {
 		this.parent = parent;
 		this.value = value.value;
+		this.lockTime = lockTime;
         this.scriptBytes = scriptBytes;
         this.script = new Script(scriptBytes);
 	}
@@ -56,6 +69,7 @@ public class TransactionOutput implements Output {
 	 */
 	public void serialize(OutputStream stream) throws IOException {
 		Utils.int64ToByteStreamLE(value, stream);
+		Utils.int64ToByteStreamLE(lockTime, stream);
 		stream.write(new VarInt(scriptBytes.length).encode());
 		stream.write(scriptBytes);
 	}
@@ -112,5 +126,10 @@ public class TransactionOutput implements Output {
 	public void setValue(long value) {
 		this.value = value;
 	}
-	
+	public void setLockTime(long lockTime) {
+		this.lockTime = lockTime;
+	}
+	public long getLockTime() {
+		return lockTime;
+	}
 }

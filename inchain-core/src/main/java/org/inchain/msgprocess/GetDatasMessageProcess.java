@@ -56,7 +56,7 @@ public class GetDatasMessageProcess implements MessageProcess {
 	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
 		BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
 		BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
-		peer.sendMessage(new NewBlockMessage(peer.getNetwork(), blockStore));
+		peer.sendMessage(new NewBlockMessage(peer.getNetwork(), blockStore.getBlock().baseSerialize()));
 	}
 
 }

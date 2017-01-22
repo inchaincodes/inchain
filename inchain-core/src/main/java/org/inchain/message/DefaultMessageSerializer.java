@@ -36,13 +36,14 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(VersionMessage.class, "version");
     	COMMANDS.put(VerackMessage.class, "verack");
     	COMMANDS.put(CertAccountRegisterTransaction.class, "accreg");
-    	COMMANDS.put(BlockMessage.class, "block");
+    	COMMANDS.put(Block.class, "block");
     	COMMANDS.put(GetBlocksMessage.class, "getblock");
     	COMMANDS.put(NewBlockMessage.class, "newblock");
     	COMMANDS.put(RegConsensusTransaction.class, "regconsensus");
     	COMMANDS.put(ConsensusMessage.class, "consensus");
     	COMMANDS.put(InventoryMessage.class, "inv");
     	COMMANDS.put(GetDatasMessage.class, "getdatas");
+    	COMMANDS.put(Transaction.class, "tx");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {

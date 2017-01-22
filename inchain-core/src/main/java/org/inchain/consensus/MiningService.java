@@ -10,11 +10,11 @@ import org.inchain.account.Account;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeHelper;
 import org.inchain.crypto.ECKey;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.NewBlockMessage;
 import org.inchain.network.NetworkParams;
@@ -24,11 +24,15 @@ import org.inchain.signers.ConsensusSigner;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.TransactionStore;
+import org.inchain.transaction.Input;
+import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Utils;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +62,10 @@ public final class MiningService implements Mining {
 	private AccountKit accountKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	
+	//交易验证器
+	@Autowired
+	private TransactionValidator transactionValidator;
 
 	//运行状态
 	private boolean runing;
@@ -78,9 +86,9 @@ public final class MiningService implements Mining {
 		long time = TimeHelper.currentTimeMillis();
 		
 		//被打包的交易列表
-		List<TransactionStore> transactionList = new ArrayList<TransactionStore>();
+		List<Transaction> transactionList = new ArrayList<Transaction>();
 		//预留一个coinbase交易
-		transactionList.add(new TransactionStore(network, new Transaction(network)));
+		transactionList.add(new Transaction(network));
 		
 		Coin fee = Coin.ZERO;
 		
@@ -91,7 +99,14 @@ public final class MiningService implements Mining {
 			for (Transaction tx : txs) {
 				//如果某笔交易验证失败，则不打包进区块
 				if(verifyTx(tx)) {
-					transactionList.add(new TransactionStore(network, tx));
+					//交易费
+					fee = fee.add(getTransactionFee(tx));
+					transactionList.add(tx);
+				} else {
+					//验证失败
+					if(log.isDebugEnabled()) {
+						log.info("交易验证失败 {}", tx.getHash());
+					}
 				}
 				//如果时间到了，那么退出打包，然后广区块
 				if(TimeHelper.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
@@ -109,28 +124,34 @@ public final class MiningService implements Mining {
 			}
 		}
 		//coinbase交易获取手续费
-		Transaction coinBaseTx = transactionList.get(0).getTransaction();
+		Transaction coinBaseTx = transactionList.get(0);
 		coinBaseTx.setVersion(TransactionDefinition.VERSION);
 		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
-		coinBaseTx.setLockTime(bestBlockHeader.getHeight() + 1 + Configure.MINING_MATURE_COUNT);	//冻结区块数
+		coinBaseTx.setLockTime(bestBlockHeader.getBlockHeader().getHeight() + 1 + Configure.MINING_MATURE_COUNT);	//冻结区块数
 		
 		TransactionInput input = new TransactionInput();
 		coinBaseTx.addInput(input);
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
+		
+		log.info("高度： "+bestBlockHeader.getBlockHeader().getHeight()+"=======================手续费： " + fee);
 		
 		coinBaseTx.addOutput(fee, accountKit.getAccountList().get(0).getAddress());
 		coinBaseTx.verfify();
 		coinBaseTx.verfifyScript();
 		
 		//广播区块
-		BlockStore blockStore = new BlockStore(network);
-		blockStore.setHeight(bestBlockHeader.getHeight()+1);
-		blockStore.setPreHash(bestBlockHeader.getHash());
-		blockStore.setTime(TimeHelper.currentTimeMillis());
-		blockStore.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
-		blockStore.setTxCount(transactionList.size());
-		blockStore.setTxs(transactionList);
-		blockStore.setMerkleHash(blockStore.buildMerkleHash());
+		Block block = new Block(network);
+
+		block.setHeight(bestBlockHeader.getBlockHeader().getHeight()+1);
+		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
+		block.setTime(TimeHelper.currentTimeMillis());
+		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
+		block.setTxCount(transactionList.size());
+		block.setTxs(transactionList);
+		block.setMerkleHash(block.buildMerkleHash());
+		
+		BlockStore blockStore = new BlockStore(network, block);
+		
 
 		try {
 			blockStoreProvider.saveBlock(blockStore);
@@ -141,34 +162,38 @@ public final class MiningService implements Mining {
 			log.debug("broadcast new block {}", blockStore);
 		}
 		//广播
-		peerKit.broadcastBlock(new NewBlockMessage(network, blockStore));
+		peerKit.broadcastBlock(new NewBlockMessage(network, block.baseSerialize()));
 	}
 	
-	/**
+	/*
+	 * 获取交易的手续费
+	 */
+	private Coin getTransactionFee(Transaction tx) {
+		Coin inputFee = Coin.ZERO;
+		
+		List<Input> inputs = tx.getInputs();
+		for (Input input : inputs) {
+			inputFee = inputFee.add(Coin.valueOf(input.getFrom().getValue()));
+		}
+		
+		Coin outputFee = Coin.ZERO;
+		List<Output> outputs = tx.getOutputs();
+		for (Output output : outputs) {
+			outputFee = outputFee.add(Coin.valueOf(output.getValue()));
+		}
+		return inputFee.subtract(outputFee);
+	}
+
+	/*
 	 * 验证交易的合法性
 	 * @param tx
 	 * @return
 	 */
 	private boolean verifyTx(Transaction tx) {
 
-		Sha256Hash txid = tx.getHash();
-		try {
-			//运行交易脚本
-			tx.verfify();
-			tx.verfifyScript();
-		} catch (Exception e) {
-			log.warn("tx {} verify fail", txid, e);
-			return false;
-		}
-		//一些其它合法性的验证
-		try {
-			//TODO
-			
-		} catch (Exception e) {
-			log.warn("交易处理失败，txid {} , ", txid, e);
-			return false;
-		}
-		return true;
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+		
+		return rs.getResult().isSuccess();
 	}
 
 	@Override
@@ -202,7 +227,7 @@ public final class MiningService implements Mining {
 				//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
 				BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 				Utils.checkNotNull(bestBlockHeader);
-				long height = bestBlockHeader.getHeight();
+				long height = bestBlockHeader.getBlockHeader().getHeight();
 				
 				//content格式第一位为type,1为拉取共识状态信息
 				byte[] content = new byte[] { 1 };

@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.BaseTestCase;
+import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.message.Block;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.transaction.Transaction;
@@ -31,7 +33,10 @@ public class BlockStoreProvderTest extends BaseTestCase {
 	
 	@Before
 	public void init() throws IOException {
-		storeProvider.delete(storeProvider.getBestBlock().getHash().getBytes());
+		BlockStore bestBlock = storeProvider.getBestBlock();
+		if(bestBlock != null) {
+			storeProvider.delete(bestBlock.getBlock().getHash().getBytes());
+		}
 		//保存创始块
 		storeProvider.saveBlock(network.getGengsisBlock());
 		testSave();
@@ -51,12 +56,14 @@ public class BlockStoreProvderTest extends BaseTestCase {
 		
 		BlockStore testBlock = new BlockStore(network);
 		
-		testBlock.setPreHash(Sha256Hash.wrap(Hex.decode("f388da4f984346ea964f3e758aa405d97810d2283ccc265e1ca1574604367e28")));
-		testBlock.setHeight(1);
-		testBlock.setTime(1478164677l);
+		Block block = new Block(network);
+		
+		block.setPreHash(Sha256Hash.wrap(Hex.decode("0d438118c28d4b3644779d18032db8af3a5dfac6d2d004212e90473380e0cb62")));
+		block.setHeight(1);
+		block.setTime(1478164677l);
 
 		//交易列表
-		List<TransactionStore> txs = new ArrayList<TransactionStore>();
+		List<Transaction> txs = new ArrayList<Transaction>();
 		
 		//coinbase
 		Transaction coinBaseTx = new Transaction(network);
@@ -68,19 +75,21 @@ public class BlockStoreProvderTest extends BaseTestCase {
 		coinBaseTx.addInput(input);
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
-		coinBaseTx.addOutput(Coin.valueOf(100l), Address.fromBase58(network, "ThYf64mTNLSCKhEW1KVyVkAECRanhWeJC"));
+		coinBaseTx.addOutput(Coin.valueOf(100l), Address.fromBase58(network, "uNdmAUpGqrNYgguFQT97eByXb6v1CUtcHR"));
 		coinBaseTx.verfify();
 		coinBaseTx.verfifyScript();
 		
-		txs.add(new TransactionStore(network, coinBaseTx, testBlock.getHeight(), 0));
+		txs.add(coinBaseTx);
 		
-		testBlock.setTxs(txs);
-		testBlock.setTxCount(txs.size());
+		block.setTxs(txs);
+		block.setTxCount(txs.size());
 		
-		Sha256Hash merkleHash = testBlock.buildMerkleHash();
-		testBlock.setMerkleHash(merkleHash);
+		Sha256Hash merkleHash = block.buildMerkleHash();
+		block.setMerkleHash(merkleHash);
 		
-		System.out.println(testBlock.getHash());
+		testBlock.setBlock(block);
+		
+		System.out.println(testBlock.getBlock().getHash());
 		
 		storeProvider.saveBlock(testBlock);
 		
@@ -88,38 +97,38 @@ public class BlockStoreProvderTest extends BaseTestCase {
 	
 	@Test
 	public void testGetBlockHeader() {
-		Sha256Hash hash = Sha256Hash.wrap(Hex.decode("dc806dcad31d0410fdc10e6ae5869e24da01874c48cd23f228f9822dd77bb2c5"));
+		Sha256Hash hash = Sha256Hash.wrap(Hex.decode("23971206eec0ac170be2a9371867442b15cd422729c5265e3c580c2c51b36ea7"));
 		BlockHeaderStore header = storeProvider.getHeader(hash.getBytes());
 		assertNotNull(header);
 		
-		assertEquals("625617ae421a0ce77b5e32c34f183c60d3cf3fc05fba0d7ca8b77a57db6e2a24", Hex.encode(header.getMerkleHash().getBytes()));
+		assertEquals("995a76201ae69cf05f58519f7c858829442d4d3c05029826c9c06e206795e447", Hex.encode(header.getBlockHeader().getMerkleHash().getBytes()));
 		
-		assertEquals("f388da4f984346ea964f3e758aa405d97810d2283ccc265e1ca1574604367e28", Hex.encode(header.getPreHash().getBytes()));
+		assertEquals("0d438118c28d4b3644779d18032db8af3a5dfac6d2d004212e90473380e0cb62", Hex.encode(header.getBlockHeader().getPreHash().getBytes()));
 		
-		List<Sha256Hash> txHashs = header.getTxHashs();
+		List<Sha256Hash> txHashs = header.getBlockHeader().getTxHashs();
 		
 		assertEquals(1, txHashs.size());
 		
-		TransactionStore tx = storeProvider.getTransaction(txHashs.get(0).getBytes());
+		Transaction tx = storeProvider.getTransaction(txHashs.get(0).getBytes()).getTransaction();
 		assertNotNull(tx);
-		assertEquals("625617ae421a0ce77b5e32c34f183c60d3cf3fc05fba0d7ca8b77a57db6e2a24", Hex.encode(tx.getKey()));
+		assertEquals("995a76201ae69cf05f58519f7c858829442d4d3c05029826c9c06e206795e447", tx.getHash().toString());
 	}
 	
 	@Test
 	public void testGetBlockHeaderByTx() {
-		TransactionStore tx = storeProvider.getTransaction(Hex.decode("625617ae421a0ce77b5e32c34f183c60d3cf3fc05fba0d7ca8b77a57db6e2a24"));
+		TransactionStore tx = storeProvider.getTransaction(Hex.decode("995a76201ae69cf05f58519f7c858829442d4d3c05029826c9c06e206795e447"));
 		assertNotNull(tx);
-		assertEquals("625617ae421a0ce77b5e32c34f183c60d3cf3fc05fba0d7ca8b77a57db6e2a24", Hex.encode(tx.getKey()));
+		assertEquals("995a76201ae69cf05f58519f7c858829442d4d3c05029826c9c06e206795e447", tx.getTransaction().getHash().toString());
 
 		BlockHeaderStore header = storeProvider.getHeaderByHeight(tx.getHeight());
 		assertNotNull(header);
-		assertEquals("625617ae421a0ce77b5e32c34f183c60d3cf3fc05fba0d7ca8b77a57db6e2a24", Hex.encode(header.getMerkleHash().getBytes()));
+		assertEquals("995a76201ae69cf05f58519f7c858829442d4d3c05029826c9c06e206795e447", Hex.encode(header.getBlockHeader().getMerkleHash().getBytes()));
 	}
 	
 	@Test
 	public void testGetBlock() {
 
-		BlockStore blockStore = storeProvider.getBlock(Hex.decode("dc806dcad31d0410fdc10e6ae5869e24da01874c48cd23f228f9822dd77bb2c5"));
+		BlockStore blockStore = storeProvider.getBlock(Hex.decode("23971206eec0ac170be2a9371867442b15cd422729c5265e3c580c2c51b36ea7"));
 		
 		assertNotNull(blockStore);
 	}
@@ -129,7 +138,7 @@ public class BlockStoreProvderTest extends BaseTestCase {
 
 		BlockStore blockStore = storeProvider.getBlockByHeight(1l);
 		
-		assertEquals("dc806dcad31d0410fdc10e6ae5869e24da01874c48cd23f228f9822dd77bb2c5", Hex.encode(blockStore.getHash().getBytes()));
+		assertEquals("23971206eec0ac170be2a9371867442b15cd422729c5265e3c580c2c51b36ea7", Hex.encode(blockStore.getBlock().getHash().getBytes()));
 		assertNotNull(blockStore);
 	}
 	
@@ -138,7 +147,7 @@ public class BlockStoreProvderTest extends BaseTestCase {
 
 		BlockStore blockStore = storeProvider.getBestBlock();
 		
-		assertEquals("dc806dcad31d0410fdc10e6ae5869e24da01874c48cd23f228f9822dd77bb2c5", Hex.encode(blockStore.getHash().getBytes()));
+		assertEquals("23971206eec0ac170be2a9371867442b15cd422729c5265e3c580c2c51b36ea7", Hex.encode(blockStore.getBlock().getHash().getBytes()));
 		assertNotNull(blockStore);
 	}
 }

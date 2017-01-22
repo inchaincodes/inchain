@@ -18,6 +18,8 @@ public class TransactionStore extends Store {
 	public final static int STATUS_SEND_CONFIRMED = 3;
 	//转入已确认
 	public final static int STATUS_RECE_CONFIRMED = 4;
+	//转入已花费
+	public final static int STATUS_RECE_USED = 5;
 	
 	private byte[] key;
 	//交易内容

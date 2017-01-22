@@ -10,6 +10,7 @@ import java.net.Socket;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
+import org.inchain.kits.AppKit;
 import org.inchain.network.Seed;
 import org.inchain.network.TestNetworkParams;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -67,6 +68,9 @@ public class MainServer {
 //					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.11", 6888)));
 					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.12", 6888)));
 	
+					AppKit appKit = springContext.getBean(AppKit.class);
+					appKit.startSyn();
+					
 					log.info("Server启动成功。");
 
 				} catch (RuntimeException e) {

@@ -24,18 +24,18 @@ public class RPCServiceImpl implements RPCService {
 	//获取区块的数量
 	@Override
 	public String getblockcount() {
-		return String.valueOf(storeProvider.getBestBlockHeader().getHeight());
+		return String.valueOf(storeProvider.getBestBlockHeader().getBlockHeader().getHeight());
 	}
 	//获取最新区块的高度 
 	@Override
 	public String getnewestblockheight() {
 	;
-		return String.valueOf(storeProvider.getBestBlockHeader().getHeight());
+		return String.valueOf(storeProvider.getBestBlockHeader().getBlockHeader().getHeight());
 	}
 	//获取最新区块的hash
 	@Override
 	public String getnewestblockhash() {
-		return String.valueOf(storeProvider.getBestBlockHeader().getHash());
+		return String.valueOf(storeProvider.getBestBlockHeader().getBlockHeader().getHash());
 	}
 	//通过区块的hash或者高度获取区块的头信息
 	@Override

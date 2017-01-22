@@ -101,4 +101,12 @@ public class TransactionInput implements Input {
 		this.scriptBytes = scriptSig.getProgram();
 	}
 
+	@Override
+	public Script getFromScriptSig() {
+		if(from == null ) {
+			return null;
+		}
+		return from.getScript();
+	}
+
 }

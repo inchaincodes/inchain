@@ -1,5 +1,7 @@
 package org.inchain.wallet.controllers;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -7,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.inchain.account.Account;
+import org.inchain.account.Address;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeHelper;
 import org.inchain.crypto.Sha256Hash;
@@ -14,8 +18,12 @@ import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AppKit;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.listener.TransactionListener;
+import org.inchain.store.TransactionStore;
 import org.inchain.utils.DateUtil;
+import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.listener.StartupListener;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +35,11 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
+import javafx.stage.Stage;
 
 /**
  * 首页控制器
@@ -39,6 +49,10 @@ import javafx.scene.text.Font;
 public class MainController {
 	
 	private static final Logger log = LoggerFactory.getLogger(MainController.class);
+	
+	public Label balanceId;						//账户余额
+	public Label accountAddressId;				//账户地址
+	public Button copyAccountAddressId;			//复制账户地址按钮
 	
 	public Label nowNetTimeId;					//当前网络时间
 	public Label localNewestHeightId;			//本地最新高度
@@ -59,11 +73,13 @@ public class MainController {
 	private List<Button> buttons = new ArrayList<>();
 	private List<SubPageController> subPageControllers = new ArrayList<>();
 	
+	private Stage stage;
 	
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	
     	Tooltip localTooltip = new Tooltip("本地最新高度");
     	localTooltip.setFont(Font.font("宋体", 14));
     	localNewestHeightId.setTooltip(localTooltip);
@@ -112,15 +128,15 @@ public class MainController {
 		//界面时间
     	startShowTime();
     	
-    	startupOnChange(startupListener, "初始化监听器", 3);
-    	//初始化监听器
-    	initListeners();
-    	
     	startupOnChange(startupListener, "初始化ui", 3);
     	initPages();
     	
     	startupOnChange(startupListener, "初始化页面数据", 3);
     	initDatas(startupListener);
+    	
+    	startupOnChange(startupListener, "初始化监听器", 3);
+    	//初始化监听器
+    	initListeners();
     	
     	//加载完成
     	startupListener.onComplete();
@@ -130,12 +146,31 @@ public class MainController {
 	 * 初始化各个页面的数据
 	 */
 	private void initDatas(StartupListener startupListener) {
-		int completionRate = (100 - startupListener.getCompletionRate()) / subPageControllers.size();
+		int completionRate = (100 - startupListener.getCompletionRate()) / 4;//subPageControllers.size();
 		for (SubPageController controller : subPageControllers) {
 			String tip = null;
 			if(controller instanceof AccountInfoController) {
+				//账户信息加载完成之后，设置主界面的余额和地址信息
+				AccountInfoController accountInfoController = (AccountInfoController) controller;
+				accountInfoController.setAccountInfoListener(new AccountInfoListener() {
+					@Override
+					public void onLoad(Account account) {
+						//设置地址
+						Address address = account.getAddress();
+						String addressBase58 = address.getBase58();
+						Platform.runLater(new Runnable() {
+						    @Override
+						    public void run() {
+								accountAddressId.setText(addressBase58);
+								accountAddressId.getTooltip().setText(addressBase58);
+								//设置余额
+								balanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
+						    }
+						});
+					}
+				});
 				tip = "初始化账户信息";
-			} else if(controller instanceof AccountInfoController) {
+			} else if(controller instanceof TransactionRecordController) {
 				tip = "初始化交易记录";
 			} else if(controller instanceof AccountInfoController) {
 				tip = "初始化共识信息";
@@ -161,6 +196,9 @@ public class MainController {
 	 * 初始化各个界面
 	 */
 	private void initPages() {
+
+		stage.getScene().getStylesheets().add("/resources/css/tableView.css");
+		
 		for (Button button : buttons) {
 			String id = button.getId();
 			pageMaps.put(id, getPage(id));
@@ -216,6 +254,19 @@ public class MainController {
 				});
 			}
 		});
+    	
+    	//注入新交易监听器
+    	appKit.getAccountKit().setTransactionListener(new TransactionListener() {
+    		@Override
+    		public void newTransaction(TransactionStore tx) {
+    			for (SubPageController controller : subPageControllers) {
+    				if(controller instanceof AccountInfoController
+    						|| controller instanceof TransactionRecordController) {
+        				controller.initDatas();
+    				}
+    			}
+    		}
+		});
 	}
 	
 	/**
@@ -261,7 +312,7 @@ public class MainController {
 			break;
 		case "transactionRecordId":
 			//点击交易记录按钮
-			
+			fxml = "/resources/template/transactionRecord.fxml";
 			break;
 		case "consensusRecordId":
 			//点击共识列表按钮
@@ -279,7 +330,6 @@ public class MainController {
 			try {
 		        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
 				Pane page = loader.load();
-				
 				SubPageController subPageController = loader.getController();
 				if(subPageController != null) {
 					subPageControllers.add(subPageController);
@@ -315,4 +365,23 @@ public class MainController {
     	}.start();
 	}
 
+	
+	/**
+	 * 复制地址到剪切板
+	 */
+	public void onCopy(MouseEvent e) {
+		
+		String address = accountAddressId.getText();
+		StringSelection stsel = new StringSelection(address);
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
+		
+		DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
+	}
+	
+    public void setStage(Stage stage) {
+		this.stage = stage;
+	}
+    public Stage getStage() {
+		return stage;
+	}
 }

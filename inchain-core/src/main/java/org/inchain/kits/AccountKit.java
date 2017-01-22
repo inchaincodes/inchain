@@ -7,8 +7,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.Future;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -17,16 +20,31 @@ import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.TimeHelper;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.listener.TransactionListener;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.ScriptBuilder;
+import org.inchain.signers.LocalTransactionSigner;
+import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.StoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.Input;
+import org.inchain.transaction.Output;
+import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
+import org.inchain.transaction.TransactionInput;
+import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,12 +71,19 @@ public class AccountKit {
 	//交易存储服务
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
+	@Autowired
+	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private TransactionValidator transactionValidator;
 	//网络
 	@Autowired
 	private NetworkParams network;
 	//节点管理器
 	@Autowired
 	private PeerKit peerKit;
+
+	//交易监听器
+	private TransactionListener transactionListener;
 	
 	public AccountKit() throws IOException {
 		//帐户信息保存于数据目录下的account目录，以account开始的dat文件，一个文件一个帐户，支持多帐户
@@ -69,6 +94,23 @@ public class AccountKit {
 //		//初始化状态链存储服务，该目录保存的所有未花费的交易，保存于数据目录下的chainstate文件夹
 //		this.chainstateStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
 		
+	}
+	
+	/**
+	 * 初始化账户信息
+	 */
+	public synchronized void init() throws IOException {
+		maybeCreateAccountDir();
+		loadAccount();
+		initListeners();
+	}
+
+	/**
+	 * 关闭资源
+	 * @throws IOException 
+	 */
+	public void close() throws IOException {
+		chainstateStoreProvider.close();
 	}
 	
 	/**
@@ -96,42 +138,91 @@ public class AccountKit {
 	 * 获取余额
 	 */
 	public Coin getBalance() {
-		return null;
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		return getBalance(accountList.get(0));
 	}
 	
 	/**
 	 * 获取余额
 	 */
-	public Coin getBalance(String accountId) {
-		return null;
+	public Coin getBalance(String address) {
+		return getBalance(Address.fromBase58(network, address));
 	}
 	
 	/**
 	 * 获取余额
 	 */
 	public Coin getBalance(Account account) {
-		return null;
+		return getBalance(account.getAddress());
 	}
 	
 	/**
 	 * 获取余额
 	 */
 	public Coin getBalance(Address address) {
-		return null;
+		if(address == null) {
+			return Coin.ZERO;
+		}
+		return address.getBalance();
 	}
 	
 	/**
-	 * 获取余额
+	 * 获取可用余额
 	 */
-	public Coin getAddressBalance(String address) {
-		return null;
+	public Coin getCanUseBalance() {
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		return getCanUseBalance(accountList.get(0).getAddress());
+	}
+	
+	/**
+	 * 获取可用余额
+	 */
+	public Coin getCanUseBalance(Address address) {
+		if(address == null) {
+			return Coin.ZERO;
+		}
+		return address.getBalance().subtract(address.getUnconfirmedBalance());
+	}
+	
+	/**
+	 * 获取不可用余额
+	 */
+	public Coin getCanNotUseBalance() {
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		return getCanNotUseBalance(accountList.get(0).getAddress());
+	}
+	
+	/**
+	 * 获取不可用余额
+	 */
+	public Coin getCanNotUseBalance(Address address) {
+		if(address == null) {
+			return Coin.ZERO;
+		}
+		return address.getUnconfirmedBalance();
+	}
+	
+
+	/**
+	 * 通过交易ID查询交易
+	 * @param hash
+	 * @return TransactionStore
+	 */
+	public TransactionStore getTransaction(Sha256Hash hash) {
+		return blockStoreProvider.getTransaction(hash.getBytes());
 	}
 	
 	/**
 	 * 获取交易列表
 	 */
-	public void getTransaction() {
-		
+	public List<TransactionStore> getTransactions() {
+		return transactionStoreProvider.getTransactions();
 	}
 	
 	/**
@@ -146,13 +237,19 @@ public class AccountKit {
 	 * @param to   base58的地址
 	 * @param money	发送金额
 	 * @param fee	手续费
-	 * @return Future
+	 * @return String
 	 * @throws MoneyNotEnoughException
 	 */
-	public Future sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
+	public String sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
-		Utils.checkNotNull(to);
+		
+		Address receiveAddress = null;
+		try {
+			receiveAddress = Address.fromBase58(network, to);
+		} catch (Exception e) {
+			throw new VerificationException("错误的接收地址");
+		}
 		
 		//发送的金额必须大于0
 		if(money.compareTo(Coin.ZERO) <= 0) {
@@ -161,15 +258,106 @@ public class AccountKit {
 		if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
 			fee = Coin.ZERO;
 		}
+		
+		if(accountList == null || accountList.size() == 0) {
+			throw new VerificationException("没有可用账户");
+		}
+		
 		//当前余额
-		Coin balance = getBalance();
+		Account account = accountList.get(0);
+		Address myAddress = account.getAddress();
+		
+		//可用余额
+		Coin balance = myAddress.getBalance().subtract(myAddress.getUnconfirmedBalance());
+		
 		//检查余额是否充足
 		if(money.add(fee).compareTo(balance) > 0) {
-			throw new MoneyNotEnoughException();
+			throw new MoneyNotEnoughException("余额不足");
 		}
-		return null;
+		
+		Transaction tx = new Transaction(network);
+		tx.setTime(TimeHelper.currentTimeMillis());
+		tx.setLockTime(TimeHelper.currentTimeMillis());
+		tx.setType(TransactionDefinition.TYPE_PAY);
+		tx.setVersion(TransactionDefinition.VERSION);
+		
+		Coin totalInputCoin = Coin.ZERO;
+		
+		ECKey key = ECKey.fromPrivate(new BigInteger(account.getPriSeed()));
+		
+		//选择输入
+		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
+		
+		for (TransactionOutput output : fromOutputs) {
+			TransactionInput input = new TransactionInput(output);
+			//创建一个输入的空签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, key));
+			tx.addInput(input);
+			
+			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+		}
+		
+		//交易输出
+		tx.addOutput(money, receiveAddress);
+		//是否找零
+		if(totalInputCoin.compareTo(money.add(fee)) > 0) {
+			tx.addOutput(totalInputCoin.subtract(money.add(fee)), myAddress);
+		}
+		
+		//签名交易
+		final LocalTransactionSigner signer = new LocalTransactionSigner();
+		signer.signInputs(tx, key);
+
+		//验证交易是否合法
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+		
+		System.out.println(rs.getResult());
+		if(!rs.getResult().isSuccess()) {
+			throw new MoneyNotEnoughException(rs.getResult().getMessage());
+		}
+		
+		System.out.println("发送交易："+tx.getHash()+"   tx fee: "+getTransactionFee(tx));
+		
+		peerKit.broadcastTransaction(tx);
+		
+		
+		return "成功";
 	}
 	
+	/*
+	 * 获取交易的手续费
+	 */
+	private Coin getTransactionFee(Transaction tx) {
+		Coin inputFee = Coin.ZERO;
+		
+		List<Input> inputs = tx.getInputs();
+		for (Input input : inputs) {
+			inputFee = inputFee.add(Coin.valueOf(input.getFrom().getValue()));
+		}
+		
+		Coin outputFee = Coin.ZERO;
+		List<Output> outputs = tx.getOutputs();
+		for (Output output : outputs) {
+			outputFee = outputFee.add(Coin.valueOf(output.getValue()));
+		}
+		return inputFee.subtract(outputFee);
+	}
+	
+	/*
+	 * 交易选择
+	 * 查找并返回最接近该金额的未花费的交易
+	 */
+	private List<TransactionOutput> selectNotSpentTransaction(Coin add, Address myAddress) {
+		List<TransactionOutput> outputs = transactionStoreProvider.getNotSpentTransactionOutputs(myAddress.getHash160());
+		
+		List<TransactionOutput> thisOutputs = new ArrayList<>();
+		for (TransactionOutput transactionOutput : outputs) {
+			thisOutputs.add(transactionOutput);
+		}
+		
+		return thisOutputs;
+	}
+
 	/**
 	 * 初始化一个认证帐户
 	 * @param mgPw	帐户管理密码
@@ -204,19 +392,13 @@ public class AccountKit {
 		locker.lock();
 		try {
 			
+//			ECKey key = ECKey.fromPrivate(new BigInteger(""));
 			ECKey key = new ECKey();
 			
 			Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
 			
-			//TODO
-//				Address address = new Address(network, "12RZxouvtVmvh1g7t4bBbNNT92zTPEbYYY"); 
-//				ECKey key = ECKey.fromPrivate(new BigInteger("70949774079351797875601732907368565593785330858428914876767198731857299028554"));
-			
 			address.setBalance(Coin.ZERO);
 			address.setUnconfirmedBalance(Coin.ZERO);
-			System.out.println("======================");
-			System.out.println(address.getVersion());
-			System.out.println("======================");
 			
 			Account account = new Account();
 			
@@ -389,24 +571,65 @@ public class AccountKit {
 				log.error("自动初始化账户失败", e);
 			}
 		}
+		
+		//加载账户信息
+		List<byte[]> hash160s = getAccountHash160s();
+		
+		//初始化账户交易过滤器
+		initAccountFilter(hash160s);
+		
+		//或许重新加载账户相关的交易记录
+		maybeReLoadTransaction(hash160s);
+		
 		//加载各地址的余额
-		loadBalanceFromChainstateAndUnconfirmedTransaction();
+		loadBalanceFromChainstateAndUnconfirmedTransaction(hash160s);
+	}
+
+	//是否重新加载账户交易
+	private void maybeReLoadTransaction(List<byte[]> hash160s) {
+		
+		//判断上次加载的和本次的账户是否完全一致
+		List<byte[]> hash160sStore = transactionStoreProvider.getAddresses();
+
+		//如果个数一样，则判断是否完全相同
+		if(hash160s.size() == hash160sStore.size()) {
+			Comparator<byte[]> comparator = new Comparator<byte[]>() {
+				@Override
+				public int compare(byte[] o1, byte[] o2) {
+					return Hex.encode(o1).compareTo(Hex.encode(o2));
+				}
+			};
+			Collections.sort(hash160s, comparator);
+			Collections.sort(hash160sStore, comparator);
+			boolean fullSame = true;
+			for (int i = 0; i < hash160s.size(); i++) {
+				if(!Arrays.equals(hash160sStore.get(i), hash160s.get(i))) {
+					fullSame = false;
+					break;
+				}
+			}
+			if(fullSame) {
+				return;
+			}
+		}
+		transactionStoreProvider.reloadTransaction(hash160s);
+	}
+
+	//初始化账户交易过滤器
+	private void initAccountFilter(List<byte[]> hash160s) {
+		blockStoreProvider.initAccountFilter(hash160s);
 	}
 	
-	/**
-	 * 关闭资源
-	 * @throws IOException 
-	 */
-	public void close() throws IOException {
-		chainstateStoreProvider.close();
-	}
-	
-	/*
-	 * 初始化账户信息
-	 */
-	public synchronized void init() throws IOException {
-		maybeCreateAccountDir();
-		loadAccount();
+	//获取账户对应的has160
+	private List<byte[]> getAccountHash160s() {
+		CopyOnWriteArrayList<byte[]> hash160s = new CopyOnWriteArrayList<>();
+		for (Account account : accountList) {
+			Address address = account.getAddress();
+			byte[] hash160 = address.getHash160();
+			
+			hash160s.add(hash160);
+		}
+		return hash160s;
 	}
 
 	//如果钱包目录不存在则创建
@@ -421,14 +644,19 @@ public class AccountKit {
 	/*
 	 * 从状态链（未花费的地址集合）和未确认的交易加载余额
 	 */
-	private void loadBalanceFromChainstateAndUnconfirmedTransaction() {
-		for (Account account : accountList) {
-			Address address = account.getAddress();
-			byte[] hash160 = address.getHash160();
-			//查询可用余额和等待中的余额
-			Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(hash160);
-			address.setBalance(balances[0]);
-			address.setUnconfirmedBalance(balances[1]);
+	private void loadBalanceFromChainstateAndUnconfirmedTransaction(List<byte[]> hash160s) {
+		
+		try {
+			for (Account account : accountList) {
+				Address address = account.getAddress();
+				//查询可用余额和等待中的余额
+				Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(address.getHash160());
+				
+				address.setBalance(balances[0]);
+				address.setUnconfirmedBalance(balances[1]);
+			}
+		}catch (Exception e) {
+			log.error(e.getMessage(), e);
 		}
 	}
 	
@@ -438,5 +666,30 @@ public class AccountKit {
 	
 	public void clearAccountList() {
 		accountList.clear();;
+	}
+	
+	/*
+	 * 初始化监听器
+	 */
+	private void initListeners() {
+		TransactionListener tl = new TransactionListener() {
+			@Override
+			public void newTransaction(TransactionStore tx) {
+				//更新余额
+				loadBalanceFromChainstateAndUnconfirmedTransaction(getAccountHash160s());
+				if(transactionListener != null) {
+					transactionListener.newTransaction(tx);
+				}
+			}
+		};
+		transactionStoreProvider.setTransactionListener(tl);
+	}
+	
+	/**
+	 * 设置新交易监听器
+	 * @param transactionListener
+	 */
+	public void setTransactionListener(TransactionListener transactionListener) {
+		this.transactionListener = transactionListener;
 	}
 }

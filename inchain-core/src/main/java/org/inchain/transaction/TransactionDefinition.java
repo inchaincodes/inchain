@@ -13,6 +13,13 @@ public class TransactionDefinition {
 
 	public static final long VERSION = 1;
 	
+	//lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒）
+	public static final long LOCKTIME_THRESHOLD = 50000000000l;
+	
+	public static void main(String[] args) {
+		System.out.println(System.currentTimeMillis());
+	}
+	
 	public static final int TYPE_COINBASE = 1;					//coinbase交易
 	public static final int TYPE_PAY = 2;						//普通支付交易
 	public static final int TYPE_REG_CONSENSUS = 3;				//注册成为共识节点

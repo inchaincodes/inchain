@@ -9,16 +9,17 @@ import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.message.Block;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
-import org.inchain.store.BlockStore;
-import org.inchain.store.TransactionStore;
+import org.inchain.signers.LocalTransactionSigner;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
+import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -44,14 +45,14 @@ public class MakeTestNetGengsisBlock {
 		
 			NetworkParams network = springContext.getBean(NetworkParams.class);
 			
-			BlockStore gengsisBlock = new BlockStore(network);
+			Block gengsisBlock = new Block(network);
 			
 			gengsisBlock.setPreHash(Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")));
 			gengsisBlock.setHeight(0);
 			gengsisBlock.setTime(1478070769l);
 	
 			//交易列表
-			List<TransactionStore> txs = new ArrayList<TransactionStore>();
+			List<Transaction> txs = new ArrayList<Transaction>();
 			
 			//产出货币总量
 			Transaction coinBaseTx = new Transaction(network);
@@ -63,20 +64,46 @@ public class MakeTestNetGengsisBlock {
 			input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 			
 			//货币存放账户
-//			ECKey key = ECKey.fromPrivate(new BigInteger(""));
-//			Address address = AccountTool.newAddress(network, key);
+			ECKey key = ECKey.fromPrivate(new BigInteger("78448139577019774065854737654668714060779258923948372860518458045054970376981"));
+			Address address = AccountTool.newAddress(network, key);
 			
-			Address address = Address.fromBase58(network, "toMahRViJBfKJ49QzYymKVb6JqNCLxTPN4");
+//			Address address = Address.fromBase58(network, "toMahRViJBfKJ49QzYymKVb6JqNCLxTPN4");
 	
 			System.out.println("==========================");
 			System.out.println(address.getBase58());
 			System.out.println("==========================");
 			
-			coinBaseTx.addOutput(Coin.MAX, address);
+			coinBaseTx.addOutput(Coin.MAX, 0, address);
 			coinBaseTx.verfify();
 			coinBaseTx.verfifyScript();
 			
-			txs.add(new TransactionStore(network, coinBaseTx));
+			txs.add(coinBaseTx);
+			
+			//货币存放账户
+			ECKey key1 = ECKey.fromPrivate(new BigInteger("107447043214236960233284625627849494703774370863291752674105079799661386075456"));
+			Address address1 = AccountTool.newAddress(network, key1);
+			
+			//把永久锁定的转入一个账号内
+			Transaction tx = new Transaction(network);
+			tx.setVersion(TransactionDefinition.VERSION);
+			tx.setType(TransactionDefinition.TYPE_PAY);
+			tx.setLockTime(0l);
+			input = new TransactionInput((TransactionOutput)coinBaseTx.getOutput(0));
+			tx.addInput(input);
+			tx.addOutput(Coin.valueOf(400000000).multiply(Coin.COIN.value), -1, address1);
+			tx.addOutput(Coin.valueOf(600000000).multiply(Coin.COIN.value), 0, address);
+			//创建一个输入的空签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, key));
+			//签名交易
+			final LocalTransactionSigner signer = new LocalTransactionSigner();
+			signer.signInputs(tx, key);
+//			tx.verfify(); 创世块检查不通过，所以不检查
+			tx.verfifyScript();
+			
+			txs.add(tx);
+			
+			tx = new Transaction(network, tx.baseSerialize());
+			tx.verfifyScript();
 			
 			//共识账户
 			BigInteger[] privateKeys = {
@@ -92,7 +119,7 @@ public class MakeTestNetGengsisBlock {
 			for (int i = 0; i < privateKeys.length; i++) {
 				BigInteger pri = privateKeys[i];
 				
-				ECKey key = ECKey.fromPrivate(pri);
+				key = ECKey.fromPrivate(pri);
 				address = AccountTool.newAddress(network, key);
 
 				System.out.println("==========================");
@@ -104,7 +131,7 @@ public class MakeTestNetGengsisBlock {
 				creditTx.setHash160(address.getHash160());
 				creditTx.setCredit(999999l);
 				
-				txs.add(new TransactionStore(network, creditTx));
+				txs.add(creditTx);
 				
 				//注册共识账户到区块里
 				byte[] hash160 = address.getHash160();
@@ -114,7 +141,7 @@ public class MakeTestNetGengsisBlock {
 				regConsensusTransaction.verfify();
 				regConsensusTransaction.verfifyScript();
 				
-				txs.add(new TransactionStore(network, regConsensusTransaction));
+				txs.add(regConsensusTransaction);
 			}
 			
 			//注册创世管理帐户
@@ -124,7 +151,7 @@ public class MakeTestNetGengsisBlock {
 			//创世块里不验证签名
 //			certTx.verfifyScript();
 			
-			txs.add(new TransactionStore(network, certTx));
+			txs.add(certTx);
 			
 			System.out.println("cert id : "+certTx.getHash());
 			

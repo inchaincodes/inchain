@@ -64,8 +64,9 @@ public class Main extends Application implements ActionListener {
 	 */
 	@Override
 	public void start(final Stage stage) throws Exception {
+		Context.stage = stage;
 		this.stage = stage;
-
+    	
 		//设置程序标题
 		stage.setTitle(Constant.APP_TITLE);
 		//设置程序图标
@@ -156,6 +157,7 @@ public class Main extends Application implements ActionListener {
         Pane mainUI = loader.load();
         
         mainController = loader.getController();
+        mainController.setStage(stage);
  
         StackPane uiStack = new StackPane(mainUI);
 		Scene scene = new Scene(uiStack);
@@ -310,7 +312,4 @@ public class Main extends Application implements ActionListener {
 		SystemTray.getSystemTray().remove(trayIcon);
 		Platform.exit();
 	}
-	
-	
- 
 }

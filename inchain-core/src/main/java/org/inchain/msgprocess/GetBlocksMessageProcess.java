@@ -1,10 +1,8 @@
 package org.inchain.msgprocess;
 
-import javax.xml.ws.WebFault;
-
 import org.inchain.SpringContextUtils;
 import org.inchain.core.Peer;
-import org.inchain.message.BlockMessage;
+import org.inchain.message.Block;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.message.Message;
 import org.inchain.store.BlockStore;
@@ -44,16 +42,16 @@ public class GetBlocksMessageProcess implements MessageProcess {
 		long count = getBlockMessage.getCount();
 		
 		//得到区块提供器
-		BlockStoreProvider blockStore = SpringContextUtils.getBean(BlockStoreProvider.class);
+		BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
 		
 		for (int i = 1; i <= count; i++) {
 			//查询
-			BlockStore block = blockStore.getBlockByHeight(startBlockHeight + i);
+			BlockStore blockStore = blockStoreProvider.getBlockByHeight(startBlockHeight + i);
 			
 			
-			BlockMessage blockMessage = new BlockMessage(peer.getNetwork(), block);
+			Block block = blockStore.getBlock();
 			
-			peer.sendMessage(blockMessage);
+			peer.sendMessage(block);
 			
 		}
 		

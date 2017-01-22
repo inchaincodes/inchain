@@ -1,38 +1,7 @@
-/*
- * Copyright 2013 Google Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package org.inchain.script;
 
-import static org.inchain.script.ScriptOpCodes.OP_0;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKLOCKTIMEVERIFY;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKMULTISIG;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKSIG;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKSIGVERIFY;
-import static org.inchain.script.ScriptOpCodes.OP_DROP;
-import static org.inchain.script.ScriptOpCodes.OP_DUP;
-import static org.inchain.script.ScriptOpCodes.OP_ELSE;
-import static org.inchain.script.ScriptOpCodes.OP_ENDIF;
-import static org.inchain.script.ScriptOpCodes.OP_EQUAL;
-import static org.inchain.script.ScriptOpCodes.OP_HASH160;
-import static org.inchain.script.ScriptOpCodes.OP_IF;
-import static org.inchain.script.ScriptOpCodes.OP_PUBKEY;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA1;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA2;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA4;
-import static org.inchain.script.ScriptOpCodes.OP_RETURN;
+import static org.inchain.script.ScriptOpCodes.*;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -562,9 +531,10 @@ public class ScriptBuilder {
 	 */
 	public static Script createOutputScript(Address to) {
         return new ScriptBuilder()
-    		.data(to.getHash160())
             .op(OP_DUP)
-            .op(OP_PUBKEY)
+            .op(OP_HASH160)
+            .data(to.getHash160())
+            .op(OP_EQUALVERIFY)
             .op(OP_CHECKSIG)
             .build();
     }

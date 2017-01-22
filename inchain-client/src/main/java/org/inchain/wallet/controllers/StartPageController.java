@@ -1,12 +1,17 @@
 package org.inchain.wallet.controllers;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.inchain.kit.InchainInstance;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.listener.StartupListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.application.Platform;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 
 /**
  * 启动页面控制器
@@ -17,6 +22,10 @@ public class StartPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(StartPageController.class);
 	
+	//任务调度器
+	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+	private int kitStartBarCount;
+	
 	private Listener listener;
 	//核心启动完成监听器
 	private Listener appKitInitListener;
@@ -26,18 +35,24 @@ public class StartPageController {
 	private MainController mainController;
 	
 	public Label tipLabel;
-	
+	public ProgressBar progressBar;
 	
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
-    	log.info("==========================");
-    	
-    	//TODO
-    	
     	//正在启动程序核心
-    	
+		executor.scheduleWithFixedDelay(new Thread(){
+    		public void run() {
+				kitStartBarCount++;
+    			Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						progressBar.setProgress(kitStartBarCount/800d);
+					}
+				});
+    		};
+    	}, 0, 10, TimeUnit.MILLISECONDS);
     }
     
     public void init() {
@@ -59,11 +74,9 @@ public class StartPageController {
      * 初始化数据
      */
     protected void initDatas() {
-    	try {
-			Thread.sleep(5000l);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+    	
+    	executor.shutdownNow();
+    	
     	startupListener = new StartupListener() {
     		private int completionRate;
     		
@@ -75,10 +88,14 @@ public class StartPageController {
 			@Override
 			public void onChange(String tip) {
 				try {
-					//TODO
-					tipLabel.setText(tip);
-					
-					//使用 this.getCompletionRate() 来获取进度
+					Platform.runLater(new Runnable() {
+						@Override
+						public void run() {
+							tipLabel.setText(tip);
+							//使用 this.getCompletionRate() 来获取进度
+							progressBar.setProgress((float)(getCompletionRate()/100.0));
+						}
+					});
 				} catch (Exception e) {
 					log.error(e.getMessage(), e);
 				}
@@ -94,7 +111,8 @@ public class StartPageController {
 				this.completionRate = completionRate;
 			}
 		};
-		
+		startupListener.setCompletionRate(30);
+		startupListener.onChange("核心启动成功···");
     	mainController.init(startupListener);
 	}
 

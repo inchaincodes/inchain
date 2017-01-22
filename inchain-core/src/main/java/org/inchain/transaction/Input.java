@@ -21,4 +21,9 @@ public interface Input {
 	void clearScriptBytes();
 	void setScriptSig(Script scriptSig);
 	Script getScriptSig();
+
+	Script getFromScriptSig();
+	
+	TransactionOutput getFrom();
+	void setFrom(TransactionOutput from);
 }

@@ -23,7 +23,7 @@
               <Font name="System Bold" size="25.0" fx:id="x1" />
             </font>
           </Label>
-        <Label fx:id="balance" text="0.00" underline="false">
+        <Label fx:id="balanceId" text="0.00" underline="false">
           <font>
             <Font size="25.0" />
           </font>
@@ -43,16 +43,16 @@
       <HBox alignment="CENTER_RIGHT" prefHeight="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="10.0">
          <children>
             <Label text="地址：" />
-            <Label prefWidth="160.0" text="tcJLUcf4nqzMgFjDJD5rH17ZfXV61MDx5S">
+            <Label fx:id="accountAddressId" prefWidth="160.0" text="">
                <tooltip>
-                  <Tooltip text="tcJLUcf4nqzMgFjDJD5rH17ZfXV61MDx5S">
+                  <Tooltip text="">
                      <font>
                         <Font size="16.0" />
                      </font>
                   </Tooltip>
                </tooltip>
             </Label>
-            <Button mnemonicParsing="false" text="复制">
+            <Button fx:id="copyAccountAddressId" mnemonicParsing="false" onMouseClicked="#onCopy" text="复制">
                <HBox.margin>
                   <Insets right="20.0" />
                </HBox.margin>

@@ -14,7 +14,7 @@ import org.inchain.core.TransactionBroadcast;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.NewInConnectionListener;
-import org.inchain.message.BlockMessage;
+import org.inchain.message.Block;
 import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.network.NetworkParams;
@@ -243,7 +243,7 @@ public class PeerKit implements Broadcaster {
 	 * 广播区块
 	 * @param block
 	 */
-	public void broadcastBlock(BlockMessage block) {
+	public void broadcastBlock(Block block) {
 		//TODO
 		if(inPeers.size() > 0 || outPeers.size() > 0) {
 			for (Peer peer : inPeers) {

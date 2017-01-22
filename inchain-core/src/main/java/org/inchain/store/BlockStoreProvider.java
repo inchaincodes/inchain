@@ -11,10 +11,23 @@ import org.inchain.Configure;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.filter.BloomFilter;
+import org.inchain.listener.TransactionListener;
+import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.message.Block;
+import org.inchain.message.BlockHeader;
+import org.inchain.script.Script;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CreditTransaction;
+import org.inchain.transaction.Input;
+import org.inchain.transaction.Output;
 import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionDefinition;
+import org.inchain.transaction.TransactionInput;
+import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
+import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -32,12 +45,17 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	private final static Lock blockLock = new ReentrantLock();
 	//最新区块标识
 	private final static byte[] bestBlockKey = Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")).getBytes();
+	//账户过滤器，用于判断交易是否与我有关
+	private BloomFilter accountFilter = new BloomFilter(100000, 0.0001, RandomUtil.randomLong());;
 	//区块状态提供器
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 	//共识缓存器
 	@Autowired
 	private ConsensusPool consensusPool;
+
+	//新交易监听器
+	private TransactionListener transactionListener;
 	
 	//单例
 	BlockStoreProvider() {
@@ -59,37 +77,44 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * @param block
 	 * @throws IOException 
 	 */
-	public synchronized void saveBlock(BlockStore block) throws IOException {
-		//最新的区块
-		BlockHeaderStore bestBlockHeader = getBestBlockHeader();
-		//判断当前要保存的区块，是否是在最新区块之后
-		//保存创始块则不限制
-		if (block.getPreHash() == null) {
-			throw new VerificationException("要保存的区块缺少上一区块的引用");
-		} else if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
-			//创世块则通过
-		} else if(bestBlockHeader != null && bestBlockHeader.getHash().equals(block.getPreHash()) &&
-				bestBlockHeader.getHeight() + 1 == block.getHeight()) {
-			//要保存的块和最新块能连接上，通过
-		} else {
-			throw new VerificationException("错误的区块，保存失败");
-		}
-		
+	public void saveBlock(BlockStore blockStore) throws IOException {
 		blockLock.lock();
 		try {
+			//最新的区块
+			BlockHeaderStore bestBlockHeader = getBestBlockHeader();
+			//判断当前要保存的区块，是否是在最新区块之后
+			//保存创始块则不限制
+			Block block = blockStore.getBlock();
+			Sha256Hash hash = block.getHash();
+			
+			Sha256Hash preHash = block.getPreHash();
+			if (preHash == null) {
+				throw new VerificationException("要保存的区块缺少上一区块的引用");
+			} else if(bestBlockHeader == null && Arrays.equals(bestBlockKey, preHash.getBytes()) && block.getHeight() == 0l) {
+				//创世块则通过
+			} else if(bestBlockHeader != null && bestBlockHeader.getBlockHeader().getHash().equals(preHash) &&
+					bestBlockHeader.getBlockHeader().getHeight() + 1 == block.getHeight()) {
+				//要保存的块和最新块能连接上，通过
+			} else {
+				throw new VerificationException("错误的区块，保存失败");
+			}
+		
+			if(blockStore.getNextHash() == null) {
+				blockStore.setNextHash(Sha256Hash.ZERO_HASH);
+			}
 			//保存块头
-			db.put(block.getHash().getBytes(), block.serializeHeader());
+			db.put(hash.getBytes(), blockStore.serializeHeaderToBytes());
 			//保存交易
 			for (int i = 0; i < block.getTxCount(); i++) {
-				TransactionStore tx = block.getTxs().get(i);
+				TransactionStore txs = new TransactionStore(network, block.getTxs().get(i));
 		        
-				Transaction transaction = tx.getTransaction();
+				Transaction tx = txs.getTransaction();
 				
-				db.put(transaction.getHash().getBytes(), tx.baseSerialize());
+				db.put(tx.getHash().getBytes(), new TransactionStore(network, tx, block.getHeight(), 1).baseSerialize());
 				
 				//如果是共识注册交易，则保存至区块状态表
-				if(transaction instanceof RegConsensusTransaction) {
-					RegConsensusTransaction regTransaction = (RegConsensusTransaction)transaction;
+				if(tx instanceof RegConsensusTransaction) {
+					RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
 					
 					byte[] uinfos = chainstateStoreProvider.getBytes(regTransaction.getHash160());
 					
@@ -107,10 +132,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					chainstateStoreProvider.put(regTransaction.getHash160(), values);
 					//添加到共识缓存器里
 					consensusPool.add(regTransaction.getHash160(), pubkey);
-				} else if(transaction instanceof CreditTransaction) {
+				} else if(tx instanceof CreditTransaction) {
 					//只有创世块支持该类型交易
 					if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
-						CreditTransaction creditTransaction = (CreditTransaction)transaction;
+						CreditTransaction creditTransaction = (CreditTransaction)tx;
 						
 						byte[] uinfos = chainstateStoreProvider.getBytes(creditTransaction.getHash160());
 						if(uinfos == null) {
@@ -132,18 +157,130 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					} else {
 						throw new VerificationException("出现不支持的交易，保存失败");
 					}
+				} else if(tx.getType() == TransactionDefinition.TYPE_PAY || 
+						tx.getType() == TransactionDefinition.TYPE_COINBASE) {
+					//普通交易
+					//coinbase交易没有输入
+					if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+						List<Input> inputs = tx.getInputs();
+						for (Input input : inputs) {
+							TransactionInput tInput = (TransactionInput) input;
+							TransactionOutput output = tInput.getFrom();
+							if(output == null) {
+								throw new VerificationException("error input");
+							}
+							//对上一交易的引用以及索引值
+							Sha256Hash fromId = output.getParent().getHash();
+							int index = output.getIndex();
+							
+							byte[] key = new byte[fromId.getBytes().length + 1];
+							
+							System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
+							key[key.length - 1] = (byte) index;
+							
+							chainstateStoreProvider.delete(key);
+						}
+					}
+					//添加输出
+					List<Output> outputs = tx.getOutputs();
+					for (Output output : outputs) {
+						TransactionOutput tOutput = (TransactionOutput) output;
+						
+						Sha256Hash id = tx.getHash();
+						int index = tOutput.getIndex();
+						
+						byte[] key = new byte[id.getBytes().length + 1];
+						
+						System.arraycopy(id.getBytes(), 0, key, 0, key.length - 1);
+						key[key.length - 1] = (byte) index;
+						
+						chainstateStoreProvider.put(key, new byte[]{1});
+					}
+				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
+						tx.getType() == TransactionDefinition.TYPE_CHANGEPWD) {
+					//帐户注册和修改密码
+					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
+					
+					chainstateStoreProvider.put(rtx.getHash160(), rtx.getHash().getBytes());
 				}
+				
+				//移除內存中的交易
+				MempoolContainerMap.getInstace().remove(tx.getHash());
+				//交易是否与我有关
+				checkIsMineAndUpdate(txs);
 			}
 			
 			byte[] heightBytes = new byte[4]; 
 			Utils.uint32ToByteArrayBE(block.getHeight(), heightBytes, 0);
 			
-			db.put(heightBytes, block.getKey());
+			db.put(heightBytes, hash.getBytes());
 			
 			//更新最新区块
-			db.put(bestBlockKey, block.getHash().getBytes());
+			db.put(bestBlockKey, hash.getBytes());
+			
+			//更新上一区块的指针
+			if(!Sha256Hash.ZERO_HASH.equals(block.getPreHash())) {
+				BlockHeaderStore preBlockHeader = getHeader(block.getPreHash().getBytes());
+				preBlockHeader.setNextHash(block.getHash());
+				db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
+			}
 		} finally {
 			blockLock.unlock();
+		}
+	}
+
+	/**
+	 * 检查交易是否与我有关，并且更新状态
+	 * @param transaction
+	 */
+	public void checkIsMineAndUpdate(TransactionStore txs) {
+		Transaction transaction = txs.getTransaction();
+		
+		//是否是跟自己有关的交易
+		if(transaction.getType() == TransactionDefinition.TYPE_PAY || 
+				transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
+			//普通交易
+			//输入
+			List<Input> inputs = transaction.getInputs();
+			if(inputs != null && inputs.size() > 0) {
+				for (Input input : inputs) {
+					TransactionInput tInput = (TransactionInput) input;
+					TransactionOutput output = tInput.getFrom();
+					if(output == null) {
+						continue;
+					}
+					//对上一交易的引用以及索引值
+					Sha256Hash fromId = output.getParent().getHash();
+					int index = output.getIndex();
+					output = (TransactionOutput) getTransaction(fromId.getBytes()).getTransaction().getOutput(index);
+					
+					Script script = output.getScript();
+					if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
+						//
+						updateMineTx(txs);
+						return;
+					}
+				}
+			}
+			//输出
+			List<Output> outputs = transaction.getOutputs();
+			for (Output output : outputs) {
+				TransactionOutput tOutput = (TransactionOutput) output;
+				
+				Script script = tOutput.getScript();
+				if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
+					//
+					updateMineTx(txs);
+					return;
+				}
+			}
+		}
+	}
+
+	//更新与自己相关的交易
+	private void updateMineTx(TransactionStore txs) {
+		if(transactionListener != null) {
+			transactionListener.newTransaction(txs);
 		}
 	}
 
@@ -157,10 +294,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		if(content == null) {
 			return null;
 		}
-		BlockHeaderStore header = new BlockHeaderStore(network, content);
-		header.setHash(Sha256Hash.wrap(hash));
-		
-		return header;
+		BlockHeaderStore blockHeaderStore = new BlockHeaderStore(network, content);
+		blockHeaderStore.getBlockHeader().setHash(Sha256Hash.wrap(hash));
+		return blockHeaderStore;
 	}
 	
 	/**
@@ -180,7 +316,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
-	 * 获取区块头信息
+	 * 获取区块
 	 * @param height
 	 * @return BlockStore
 	 */
@@ -209,23 +345,32 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 */
 	public BlockStore getBlockByHeader(BlockHeaderStore header) {
 		//交易列表
-		List<TransactionStore> txs = new ArrayList<TransactionStore>();
+		List<Transaction> txs = new ArrayList<Transaction>();
 		
-		for (Sha256Hash txHash : header.getTxHashs()) {
-			txs.add(getTransaction(txHash.getBytes()));
+		BlockHeader blockHeader = header.getBlockHeader();
+		if(blockHeader.getTxHashs() != null) {
+			for (Sha256Hash txHash : header.getBlockHeader().getTxHashs()) {
+				TransactionStore tx = getTransaction(txHash.getBytes());
+				txs.add(tx.getTransaction());
+			}
 		}
 		
-		BlockStore block = new BlockStore(network);
+		BlockStore blockStore = new BlockStore(network);
+		
+		Block block = new Block(network);
 		block.setTxs(txs);
-		block.setVersion(header.getVersion());
-		block.setHash(header.getHash());
-		block.setHeight(header.getHeight());
-		block.setKey(header.getKey());
-		block.setMerkleHash(header.getMerkleHash());
-		block.setPreHash(header.getPreHash());
-		block.setTime(header.getTime());
-		block.setTxCount(header.getTxCount());
-		return block;
+		block.setVersion(header.getBlockHeader().getVersion());
+		block.setHash(header.getBlockHeader().getHash());
+		block.setHeight(header.getBlockHeader().getHeight());
+		block.setMerkleHash(header.getBlockHeader().getMerkleHash());
+		block.setPreHash(header.getBlockHeader().getPreHash());
+		block.setTime(header.getBlockHeader().getTime());
+		block.setTxCount(header.getBlockHeader().getTxCount());
+		
+		blockStore.setBlock(block);
+		blockStore.setNextHash(header.getNextHash());
+		
+		return blockStore;
 	}
 	
 	/**
@@ -271,7 +416,109 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	public BlockStore getBestBlock() {
 		//获取最新的区块
 		BlockHeaderStore header = getBestBlockHeader();
-		
+		if(header == null) {
+			return null;
+		}
 		return getBlockByHeader(header);
+	}
+	
+	/**
+	 * 初始化账户过滤器
+	 * @param hash160s
+	 */
+	public void initAccountFilter(List<byte[]> hash160s) {
+		accountFilter = new BloomFilter(100000, 0.0001, RandomUtil.randomLong());
+		for (byte[] hash160 : hash160s) {
+			accountFilter.insert(hash160);
+		}
+	}
+
+	/**
+	 * 重新加载相关的所有交易，意味着会遍历整个区块
+	 * 该操作一遍只会在账号导入之后进行操作
+	 * @param hash160s
+	 * @return List<TransactionStore>  返回交易列表
+	 */
+	public List<TransactionStore> loadRelatedTransactions(List<byte[]> hash160s) {
+		blockLock.lock();
+		try {
+			//从创始快开始遍历所有区块
+			BlockStore blockStore = network.getGengsisBlock();
+			Sha256Hash nextHash = blockStore.getBlock().getHash();
+			
+			List<TransactionStore> mineTxs = new ArrayList<>();
+			while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
+				BlockStore nextBlockStore = getBlock(nextHash.getBytes());
+				
+				Block block = nextBlockStore.getBlock();
+				
+				List<Transaction> txs = block.getTxs();
+				for (Transaction tx : txs) {
+					//普通交易
+					if(tx.getType() == TransactionDefinition.TYPE_COINBASE ||
+							tx.getType() == TransactionDefinition.TYPE_PAY) {
+						//获取转入交易转入的多少钱
+						List<Output> outputs = tx.getOutputs();
+						
+						if(outputs == null) {
+							continue;
+						}
+						//是否是转入交易
+						boolean isSendToMe = false;
+						for (Output output : outputs) {
+							Script script = output.getScript();
+							
+							for (byte[] hash160 : hash160s) {
+								if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+									mineTxs.add(new TransactionStore(network, tx, block.getHeight(), 1));
+									isSendToMe = true;
+									break;
+								}
+							}
+							if(isSendToMe) {
+								break;
+							}
+						}
+						//是否是转出交易
+						if(!isSendToMe) {
+	//						tx.verfify();
+							List<Input> inputs = tx.getInputs();
+							if(inputs != null) {
+								for (Input input : inputs) {
+									TransactionInput txInput = (TransactionInput) input;
+									if(txInput.getFrom() == null) {
+										continue;
+									}
+									Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
+									
+									for (TransactionStore transactionStore : mineTxs) {
+										if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+											mineTxs.add(new TransactionStore(network, tx, block.getHeight(), 1));
+											isSendToMe = true;
+											break;
+										}
+									}
+									if(isSendToMe) {
+										break;
+									}
+								}
+							}
+						}
+					} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
+						//参与共识交易
+						
+					}
+				}
+				nextHash = nextBlockStore.getNextHash();
+			}
+			
+			return mineTxs;
+		} finally {
+			blockLock.unlock();
+		}
+	}
+
+	public void addTransactionListener(TransactionListener transactionListener) {
+		this.transactionListener = transactionListener;
 	}
 }

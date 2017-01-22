@@ -7,6 +7,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.PostConstruct;
+
 import org.inchain.core.Peer;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
@@ -94,7 +96,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			peer.sendMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 			
 			//区块变化监听器
-			if(peerKit.getBlockChangedListener() != null) {
+			if(peerKit.getBlockChangedListener() != null && blockHeight.get() != 0l) {
 				peerKit.getBlockChangedListener().onChanged(-1l, blockHeight.get() + 1, null, inventoryItem.getHash());
 			}
 			

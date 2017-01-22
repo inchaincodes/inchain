@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -364,12 +365,14 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	}
 
 	long waitTime,waitedTime;
+	AtomicInteger counter = new AtomicInteger();
 	/*
 	 * 执行共识流程
 	 */
 	private void meeting() {
-		log.info("========================="+System.currentTimeMillis()+"   status: "+meetingStatus+"    bestblockHeight: "+bestblockHeight+"    nextblockHeigth:"+nextMeetingHeight+"     currentMeetingHeight:"+currentMeetingHeight+"  readys: "+readys.get(currentMeetingHeight)+"   sequences: "+sequences.get(currentMeetingHeight));
-		
+		if(counter.getAndIncrement() % 10 == 0) {
+			log.info("========================="+System.currentTimeMillis()+"   status: "+meetingStatus+"    bestblockHeight: "+bestblockHeight+"    nextblockHeigth:"+nextMeetingHeight+"     currentMeetingHeight:"+currentMeetingHeight+"  readys: "+readys.get(currentMeetingHeight)+"   sequences: "+sequences.get(currentMeetingHeight));
+		}
 		bestblockHeight = network.getBestBlockHeight();
 		
 		//大于多少个共识节点后开始共识产块

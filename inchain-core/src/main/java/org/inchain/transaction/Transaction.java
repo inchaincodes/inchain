@@ -8,9 +8,11 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.TimeHelper;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
@@ -23,6 +25,8 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
+import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.utils.Utils;
 
 /**
@@ -38,41 +42,41 @@ public class Transaction extends Message {
     //允许的交易最大值
     public static final int MAX_STANDARD_TX_SIZE = 100000;
     
+    
+    //tx hash
+    protected Sha256Hash hash;
 	//交易输入
     protected List<Input> inputs;
 	//交易输出
     protected List<Output> outputs;
-	
-	//tx hash
-	protected Sha256Hash hash;
+	//交易时间
+	protected long time;
+	//锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度
 	protected long lockTime;
 	//交易版本
 	protected long version;
 	//交易类型
 	protected int type;
 	
+	/**
+	 * 签名类型
+	 * @author ln
+	 *
+	 */
 	public enum SigHash {
+		//对整个交易签名
         ALL(1),
-        NONE(2),
-        SINGLE(3),
-        ANYONECANPAY(0x80), // Caution: Using this type in isolation is non-standard. Treated similar to ANYONECANPAY_ALL.
-        ANYONECANPAY_ALL(0x81),
-        ANYONECANPAY_NONE(0x82),
-        ANYONECANPAY_SINGLE(0x83),
-        UNSET(0); // Caution: Using this type in isolation is non-standard. Treated similar to ALL.
+        //只签名输入部分
+        SING_INPUT(2),
+        
+        NONE(3);
 
         public final int value;
 
-        /**
-         * @param value
-         */
         private SigHash(final int value) {
             this.value = value;
         }
 
-        /**
-         * @return the value as a byte
-         */
         public byte byteValue() {
             return (byte) this.value;
         }
@@ -82,6 +86,7 @@ public class Transaction extends Message {
 		super(network);
 		inputs = new ArrayList<Input>();
         outputs = new ArrayList<Output>();
+        time = TimeHelper.currentTimeMillis();
 	}
 
 	public Transaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
@@ -104,6 +109,7 @@ public class Transaction extends Message {
         stream.write(new VarInt(outputs.size()).encode());
         for (Output out : outputs)
             out.serialize(stream);
+        Utils.int64ToByteStreamLE(time, stream);
         Utils.int64ToByteStreamLE(lockTime, stream);
     }
 	
@@ -133,6 +139,7 @@ public class Transaction extends Message {
         	output.setIndex(i);
             outputs.add(output);
         }
+        time = readInt64();
         lockTime = readInt64();
         length = cursor - offset;
 	}
@@ -145,6 +152,7 @@ public class Transaction extends Message {
 		TransactionOutput output = new TransactionOutput();
         output.setParent(this);
         output.setValue(readInt64());
+        output.setLockTime(readInt64());
         //赎回脚本名的长度
         int signLength = (int)readVarInt();
         output.setScriptBytes(readBytes(signLength));
@@ -190,7 +198,7 @@ public class Transaction extends Message {
         //TODO 根据交易类型，生成对应的赎回脚本
         
 		Script script = ScriptBuilder.createOutputScript(
-				AccountTool.newAddressFromKey(network, (int)version, key));
+				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
 		
         pre.setScript(script);
         
@@ -202,7 +210,34 @@ public class Transaction extends Message {
 	 */
 	public void verfify() throws VerificationException {
 		
-		
+		if(type == TransactionDefinition.TYPE_COINBASE) {
+			return;
+		}
+		//是否引用了不可用的输出
+		for (int i = 0; i < inputs.size(); i++) {
+			Input input = inputs.get(i);
+			TransactionOutput fromOutput = input.getFrom();
+			if(fromOutput == null || fromOutput.getParent() == null) {
+				throw new VerificationException("交易引用不存在");
+			}
+			
+			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+			TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
+			if(txs == null) {
+				throw new VerificationException("引用了不存在的交易");
+			}
+			Transaction tx = txs.getTransaction();
+			if(tx == null) {
+				throw new VerificationException("引用不存在的交易");
+			} else if(tx.getLockTime() == -1) {
+				throw new VerificationException("引用了不可用的交易");
+			}
+			TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
+			if(output.getLockTime() == -1) {
+				throw new VerificationException("引用了不可用的交易");
+			}
+			input.setFrom(output);
+		}
 	}
 
 	/**
@@ -210,21 +245,27 @@ public class Transaction extends Message {
 	 */
 	public void verfifyScript() {
 
-		Utils.checkState(inputs.size() > 0);
-		Utils.checkState(outputs.size() > 0);
+		//验证交易的输入脚本是否正确
+		if(type == TransactionDefinition.TYPE_COINBASE) {
+			return;
+		}
+		if(inputs != null) {
+			for (int i = 0; i < inputs.size(); i++) {
+				Input input = inputs.get(i);
+				Script outputScript = input.getFromScriptSig();
+				if(outputScript == null) {
+					throw new VerificationException("交易脚本验证失败，输入应用脚本不存在");
+				}
+				input.getScriptSig().run(this, i, outputScript);
+			}
+		}
 		
-		Input input = inputs.get(0);
-		Output output = outputs.get(0);
-		
-		//如果是coinbase交易，就不检查脚本
-		if(type != TransactionDefinition.TYPE_COINBASE)
-			input.getScriptSig().run(this, output.getScript());
 	}
 
 	public Sha256Hash hashForSignature(int index, byte[] redeemScript, byte sigHashType) {
 		try {
-//            Transaction tx = this.network.getDefaultSerializer().makeTransaction(this.baseSerialize());
-            Transaction tx = this;
+            Transaction tx = this.network.getDefaultSerializer().makeTransaction(this.baseSerialize());
+//            Transaction tx = this;
 
             //清空输入脚本
             for (int i = 0; i < tx.inputs.size(); i++) {
@@ -240,11 +281,8 @@ public class Transaction extends Message {
             if ((sigHashType & 0x1f) == SigHash.NONE.value) {
             	//TODO
             	
-            } else if ((sigHashType & 0x1f) == SigHash.SINGLE.value) {
-            	//TODO
-            	
             }
-
+            
             ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(tx.length == UNKNOWN_LENGTH ? 256 : tx.length + 4);
             tx.serializeToStream(bos);
             //把hash的类型加到最后
@@ -301,6 +339,7 @@ public class Transaction extends Message {
      */
 	public TransactionOutput addOutput(TransactionOutput output) {
 		output.setParent(this);
+		output.setIndex(outputs.size());
 		outputs.add(output);
         return output;
 	}
@@ -314,6 +353,16 @@ public class Transaction extends Message {
 	public TransactionOutput addOutput(Coin value, Address address) {
         return addOutput(new TransactionOutput(this, value, address));
     }
+	
+	/**
+	 * 输出到指定地址
+	 * @param value
+	 * @param address
+	 * @return TransactionOutput
+	 */
+	public TransactionOutput addOutput(Coin value, long lockTime, Address address) {
+		return addOutput(new TransactionOutput(this, value, lockTime, address));
+	}
 
 	/**
 	 * 输出到pubkey
@@ -332,7 +381,7 @@ public class Transaction extends Message {
 	 * @return TransactionOutput
 	 */
     public TransactionOutput addOutput(Coin value, Script script) {
-        return addOutput(new TransactionOutput(this, value, script.getProgram()));
+        return addOutput(new TransactionOutput(this, value, 0l, script.getProgram()));
     }
     
     public Input getInput(int index) {
@@ -356,6 +405,12 @@ public class Transaction extends Message {
 	}
     public void setLockTime(long lockTime) {
 		this.lockTime = lockTime;
+	}
+    public long getTime() {
+		return time;
+	}
+    public void setTime(long time) {
+		this.time = time;
 	}
 
 	public Sha256Hash getHash() {

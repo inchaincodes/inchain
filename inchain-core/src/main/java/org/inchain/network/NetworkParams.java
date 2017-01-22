@@ -110,7 +110,7 @@ public abstract class NetworkParams {
 		if(blockHeader == null) {
 			return 0l;
 		} else {
-			return blockHeader.getHeight();
+			return blockHeader.getBlockHeader().getHeight();
 		}
 	}
 	

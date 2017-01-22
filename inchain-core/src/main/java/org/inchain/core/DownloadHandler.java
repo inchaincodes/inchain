@@ -158,7 +158,7 @@ public class DownloadHandler {
 						synchronousCount++;
 						if(synchronousCount > 60) {
 							if(log.isDebugEnabled()) {
-								log.info("====================区块同步完成=================");
+								log.debug("====================区块同步完成=================");
 							}
 							break;
 						}
