@@ -85,15 +85,19 @@ public class RemoteSeedManager implements SeedManager {
 			}
 			Set<String> myIps = IpUtil.getIps();
 			for (String seedDomain : SEED_DOMAINS) {
-				InetAddress[] response = InetAddress.getAllByName(seedDomain);
-				for (InetAddress inetAddress : response) {
-					//排除自己
-					if(myIps.contains(inetAddress.getHostAddress())) {
-						continue;
+				try {
+					InetAddress[] response = InetAddress.getAllByName(seedDomain);
+					for (InetAddress inetAddress : response) {
+						//排除自己
+						if(myIps.contains(inetAddress.getHostAddress())) {
+							continue;
+						}
+						//若连接失败，5分钟后重试
+						Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.PORT), false, 5 * 60000);
+						add(seed);
 					}
-					//若连接失败，5分钟后重试
-					Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.PORT), false, 5 * 60000);
-					add(seed);
+				} catch (Exception e) {
+					log.error("种子域名{}获取出错", seedDomain, e);
 				}
 			}
 			
@@ -101,7 +105,7 @@ public class RemoteSeedManager implements SeedManager {
 				log.debug("种子节点初始化完成");
 			}
 		} catch (Exception e) {
-			log.debug("种子节点获取出错", e);
+			log.error("种子节点获取出错", e);
 		}
 	}
 }
