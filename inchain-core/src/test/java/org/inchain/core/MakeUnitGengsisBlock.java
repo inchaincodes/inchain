@@ -2,7 +2,6 @@ package org.inchain.core;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.inchain.BaseTestCase;
@@ -15,7 +14,6 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
-import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
@@ -69,7 +67,6 @@ public class MakeUnitGengsisBlock extends BaseTestCase {
 		System.out.println("==========================");
 				
 		coinBaseTx.addOutput(Coin.MAX, address);
-		coinBaseTx.verfify();
 		coinBaseTx.verfifyScript();
 		
 		txs.add(coinBaseTx);

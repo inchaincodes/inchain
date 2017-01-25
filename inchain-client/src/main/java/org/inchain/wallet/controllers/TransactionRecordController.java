@@ -12,6 +12,7 @@ import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeHelper;
 import org.inchain.kit.InchainInstance;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.TransactionStore;
@@ -117,7 +118,18 @@ public class TransactionRecordController implements SubPageController {
 						for (Input input : inputs) {
 							TransactionOutput from = input.getFrom();
 							TransactionStore fromTx = InchainInstance.getInstance().getAccountKit().getTransaction(from.getParent().getHash());
-							Output fromOutput = fromTx.getTransaction().getOutput(from.getIndex());
+							
+							Transaction ftx = null;
+							if(fromTx == null) {
+								//交易不存在区块里，那么应该在内存里面
+								ftx = MempoolContainerMap.getInstace().get(from.getParent().getHash());
+							} else {
+								ftx = fromTx.getTransaction();
+							}
+							if(ftx == null) {
+								continue;
+							}
+							Output fromOutput = ftx.getOutput(from.getIndex());
 							
 							Script script = fromOutput.getScript();
 							for (Account account : accounts) {
@@ -170,11 +182,19 @@ public class TransactionRecordController implements SubPageController {
 						type = "转出";
 					}
 					amount = fee.toText();
-					time = DateUtil.convertDate(new Date(tx.getTime()));
+					time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
 				}
 				
 				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detail, amount, time));
 			}
 		}
+	}
+	
+	@Override
+	public void onShow() {
+	}
+
+	@Override
+	public void onHide() {
 	}
 }

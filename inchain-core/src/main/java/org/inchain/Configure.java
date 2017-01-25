@@ -106,6 +106,18 @@ public final class Configure {
 	/*************  账户相关配置   end  *****************/
 	
 
+	/*************  交易相关配置   begin  *****************/
+	
+	/**
+	 * 转账时为花费交易选择机制
+	 * 1 以交易数据小优先，该种机制尽量选择一笔输入
+	 * 2 优先使用零钱
+	 */
+	public static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
+	
+	/*************  交易相关配置   end  *****************/
+	
+	
     /**
      * 获取配置信息
      * @param name 配置名称

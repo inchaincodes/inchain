@@ -29,7 +29,7 @@ public class DateUtil {
 	 * 把日期转换成yyyy-MM-dd HH:mm:ss格式
 	 * 
 	 * @param date
-	 * @return
+	 * @return String
 	 */
 	public static String convertDate(Date date) {
 		if (date == null) {
@@ -43,7 +43,7 @@ public class DateUtil {
 	 * 
 	 * @param date
 	 * @param pattern
-	 * @return
+	 * @return String
 	 */
 	public static String convertDate(Date date, String pattern) {
 		if (date == null) {
@@ -54,7 +54,7 @@ public class DateUtil {
 
 	/**
 	 * @param date
-	 * @return
+	 * @return Date
 	 */
 	public static Date convertStringToDate(String date) {
 		try {
@@ -67,7 +67,7 @@ public class DateUtil {
 	/**
 	 * @param date
 	 * @param pattern
-	 * @return
+	 * @return Date
 	 */
 	public static Date convertStringToDate(String date, String pattern) {
 		try {
@@ -81,7 +81,7 @@ public class DateUtil {
 	 * 判断传入的日期是不是当月的第一天
 	 * 
 	 * @param date
-	 * @return
+	 * @return boolean
 	 */
 	public static boolean isFirstDayInMonth(Date date) {
 		Calendar calendar = Calendar.getInstance();
@@ -93,7 +93,7 @@ public class DateUtil {
 	 * 判断传入的日期是不是当年的第一天
 	 * 
 	 * @param date
-	 * @return
+	 * @return boolean
 	 */
 	public static boolean isFirstDayInYear(Date date) {
 		Calendar calendar = Calendar.getInstance();
@@ -105,7 +105,7 @@ public class DateUtil {
 	 * 去点时分秒后返回
 	 * 
 	 * @param date
-	 * @return
+	 * @return Date
 	 */
 	public static Date rounding(Date date) {
 		Calendar calendar = Calendar.getInstance();
@@ -121,7 +121,7 @@ public class DateUtil {
 	 * 
 	 * @param date
 	 * @param day
-	 * @return
+	 * @return Date
 	 */
 	public static Date dateAdd(Date date, int day) {
 		Calendar calendar = Calendar.getInstance();
@@ -135,7 +135,7 @@ public class DateUtil {
 	 * 
 	 * @param date
 	 * @param month
-	 * @return
+	 * @return Date
 	 */
 	public static Date dateAddMonth(Date date, int month) {
 		Calendar calendar = Calendar.getInstance();
@@ -147,7 +147,7 @@ public class DateUtil {
 	/**
 	 * 获取上一个月的第一天
 	 * 
-	 * @return
+	 * @return Date
 	 */
 	public static Date getFirstDayOfPreviousMonth() {
 		Calendar calendar = Calendar.getInstance();
@@ -162,7 +162,7 @@ public class DateUtil {
 	/**
 	 * 获取本月的第一天
 	 * 
-	 * @return
+	 * @return Date
 	 */
 	public static Date getFirstDayOfMonth() {
 		return getFirstDayOfMonth(new Date());
@@ -171,7 +171,7 @@ public class DateUtil {
 	/**
 	 * 获取本月的第一天
 	 * 
-	 * @return
+	 * @return Date
 	 */
 	public static Date getFirstDayOfMonth(Date date) {
 		Calendar calendar = Calendar.getInstance();
@@ -186,7 +186,7 @@ public class DateUtil {
 	/**
 	 * 获取上一年的第一天
 	 * 
-	 * @return
+	 * @return Date
 	 */
 	public static Date getFirstDayOfPreviousYear() {
 		Calendar calendar = Calendar.getInstance();
@@ -246,7 +246,7 @@ public class DateUtil {
 	 * 获取星期几
 	 * 
 	 * @param c
-	 * @return
+	 * @return String
 	 */
 	public static String getWeekDay(Calendar c) {
 		if (c == null) {
@@ -281,7 +281,7 @@ public class DateUtil {
 	 * 
 	 * @param startTime
 	 * @param endTime
-	 * @return
+	 * @return String
 	 */
 	public static String convertLebalFull(Date startTime, Date endTime,
 			boolean showSuffix) {
@@ -302,7 +302,7 @@ public class DateUtil {
 	 * 
 	 * @param startTime
 	 * @param endTime
-	 * @return
+	 * @return String
 	 */
 	public static String convertLebal(Date startTime, Date endTime,
 			boolean showSuffix) {
@@ -369,7 +369,7 @@ public class DateUtil {
 	 * 获取两个日期之间的间隔天数
 	 * @param startTime
 	 * @param endTime
-	 * @return
+	 * @return int
 	 */
 	public static int getBetweenDateDays(Date startTime, Date endTime) {
 		if(startTime == null || endTime == null) {
@@ -388,8 +388,8 @@ public class DateUtil {
 	/**
 	 * 检查传入的时间是否在当前时间小时数之后
 	 * @param date
-	 * @param startDayTime
-	 * @return
+	 * @param time
+	 * @return boolean
 	 */
 	public static boolean checkAfterTime(Date date, String time) {
 		Date dateTime = convertStringToDate(convertDate(date, "yyyy-MM-dd").concat(" ").concat(time));

@@ -6,6 +6,7 @@ import java.util.List;
 import org.inchain.core.Coin;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
@@ -23,11 +24,10 @@ import org.springframework.stereotype.Component;
 /**
  * 交易验证器
  * @author ln
- * @param <T>
  *
  */
 @Component
-public class TransactionValidator implements Validator<Transaction> {
+public class TransactionValidator {
 	
 	@Autowired
 	private NetworkParams network;
@@ -36,8 +36,13 @@ public class TransactionValidator implements Validator<Transaction> {
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 
-	@Override
-	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx) {
+	/**
+	 * 交易验证器，验证交易的输入输出是否合法
+	 * @param tx	待验证的交易
+	 * @param txs	当输入引用找不到时，就在这个列表里面查找（当同一个区块包含多个交易链时需要用到）
+	 * @return ValidatorResult<TransactionValidatorResult>
+	 */
+	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx, List<Transaction> txs) {
 		
 		final TransactionValidatorResult result = new TransactionValidatorResult();
 		ValidatorResult<TransactionValidatorResult> validatorResult = new ValidatorResult<TransactionValidatorResult>() {
@@ -47,9 +52,7 @@ public class TransactionValidator implements Validator<Transaction> {
 			}
 		};
 		
-		
 		//验证交易的合法性
-		tx.verfify();
 		tx.verfifyScript();
 		
 		//交易的txid不能和区块里面的交易重复
@@ -82,18 +85,44 @@ public class TransactionValidator implements Validator<Transaction> {
 				System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
 				key[key.length - 1] = (byte) index;
 				
+				//查询上次的交易
+				Transaction preTransaction = null;
+				
 				//判断是否未花费
 				byte[] state = chainstateStoreProvider.getBytes(key);
 				if(!Arrays.equals(state, new byte[]{1})) {
-					result.setSuccess(false);
-					result.setMessage("引用了不可用的交易");
-					return validatorResult;
+					//查询内存池里是否有该交易
+					preTransaction = MempoolContainerMap.getInstace().get(fromId);
+					if(preTransaction == null) {
+						//区块链和内存池里面都没有，那么是否在传入的列表里面
+						boolean exist = false;
+						if(txs != null && txs.size() > 0) {
+							for (Transaction transaction : txs) {
+								if(transaction.getHash().equals(fromId)) {
+									exist = true;
+									preTransaction = transaction;
+									break;
+								}
+							}
+						}
+						if(!exist) {
+							result.setSuccess(false);
+							result.setMessage("引用了不可用的交易");
+							return validatorResult;
+						}
+					}
+				} else {
+					//查询上次的交易
+					preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
+					if(preTransaction == null) {
+						result.setSuccess(false);
+						result.setMessage("引用了不存在的交易");
+						return validatorResult;
+					}
 				}
-				//查询上次的交易
-				Transaction preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
-				TransactionOutput perOutput = (TransactionOutput) preTransaction.getOutput(index);
-				
-				txInputFee = txInputFee.add(Coin.valueOf(perOutput.getValue()));
+				TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
+				txInputFee = txInputFee.add(Coin.valueOf(preOutput.getValue()));
+				output.setValue(preOutput.getValue());
 			}
 			//验证本次交易的输出
 			List<Output> outputs = tx.getOutputs();

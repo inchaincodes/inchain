@@ -3,7 +3,6 @@ package org.inchain.msgprocess;
 import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.core.Peer;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Message;
@@ -72,10 +71,8 @@ public class RegConsensusMessageProcess implements MessageProcess {
 		regConsensusMessage.verfify();
 		regConsensusMessage.verfifyScript();
 		
-		Sha256Hash id = regConsensusMessage.getHash();
-		
 		//加入内存池
-		mempool.add(id, regConsensusMessage);
+		mempool.add(regConsensusMessage);
 		
 		//验证通过，转发该消息
 		//TODO

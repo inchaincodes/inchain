@@ -16,7 +16,7 @@
           <TableColumn resizable="true" sortable="false" text="交易类型" maxWidth="60" minWidth="60" fx:id="type"/>
           <TableColumn resizable="true" sortable="false" text="交易详情" fx:id="detail"/>
           <TableColumn resizable="true" sortable="false" text="交易金额" maxWidth="100" minWidth="100" fx:id="amount"/>
-          <TableColumn resizable="true" sortable="false" text="交易时间" maxWidth="130" minWidth="130" fx:id="time"/>
+          <TableColumn resizable="true" sortable="false" text="交易时间" maxWidth="150" minWidth="150" fx:id="time"/>
         </columns>
       </TableView>
    </children>

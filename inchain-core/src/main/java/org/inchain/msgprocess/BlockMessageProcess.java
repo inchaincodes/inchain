@@ -1,7 +1,6 @@
 package org.inchain.msgprocess;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -9,24 +8,18 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.inchain.core.Coin;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.Message;
+import org.inchain.message.VersionMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
-import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
-import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.Input;
-import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
-import org.inchain.transaction.TransactionInput;
-import org.inchain.transaction.TransactionOutput;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
 import org.inchain.validator.ValidatorResult;
@@ -48,9 +41,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class BlockMessageProcess implements MessageProcess {
 
+	private static final Logger log = LoggerFactory.getLogger(BlockMessageProcess.class);
+
 	private static Lock lock = new ReentrantLock();
-	
-	private Logger log = LoggerFactory.getLogger(getClass());
 	
 	@Autowired
 	private PeerKit peerKit;
@@ -79,7 +72,11 @@ public class BlockMessageProcess implements MessageProcess {
 		
 		try {
 			Block block = (Block) message;
-			peer.getPeerVersionMessage().bestHeight = block.getHeight();
+			
+			VersionMessage peerVersion = peer.getPeerVersionMessage();
+			if(peerVersion != null) {
+				peerVersion.bestHeight = block.getHeight();
+			}
 			
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(header != null) {
@@ -142,7 +139,7 @@ public class BlockMessageProcess implements MessageProcess {
 		List<Transaction> txs = block.getTxs();
 		for (Transaction tx : txs) {
 			
-			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
 			
 			if(!rs.getResult().isSuccess()) {
 				throw new VerificationException(rs.getResult().getMessage());

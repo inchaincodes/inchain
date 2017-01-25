@@ -57,7 +57,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	
 	/**
 	 * 加载所以的共识节点
-	 * @return
+	 * @return Map<byte[], byte[]>
 	 */
 	public Map<byte[], byte[]> loadAllConsensusAccount() {
 		DBIterator iterator = db.getSourceDb().iterator();

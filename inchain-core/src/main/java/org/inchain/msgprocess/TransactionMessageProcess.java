@@ -2,7 +2,6 @@ package org.inchain.msgprocess;
 
 import java.util.List;
 
-import org.inchain.Configure;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -10,8 +9,12 @@ import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.Script;
+import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Input;
+import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
@@ -35,6 +38,10 @@ public class TransactionMessageProcess implements MessageProcess {
 	private MempoolContainer mempool = MempoolContainerMap.getInstace();
 	
 	@Autowired
+	private NetworkParams network;
+	@Autowired
+	private BlockStoreProvider blockStoreProvider;
+	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
 	
 	public TransactionMessageProcess() {
@@ -45,13 +52,11 @@ public class TransactionMessageProcess implements MessageProcess {
 		
 		Transaction tx = (Transaction) message;
 
-		log.info("接收到新交易 {}", tx);
-		
 		if(log.isDebugEnabled()) {
 			log.debug("transaction message {}", Hex.encode(tx.baseSerialize()));
 		}
+		
 		//验证交易的合法性
-		tx.verfify();
 		tx.verfifyScript();
 		
 		Sha256Hash id = tx.getHash();
@@ -63,11 +68,18 @@ public class TransactionMessageProcess implements MessageProcess {
 		//交易逻辑验证，验证不通过抛出VerificationException
 		verifyTx(tx);
 		
+		
 		//转发交易
 		//TODO
 		
 		//加入内存池
-		mempool.add(id, tx);
+		boolean res = mempool.add(tx);
+		if(!res) {
+			log.error("加入内存池失败："+ tx.getHash());
+		}
+
+		//验证是否是转入到我账上的交易
+		checkIsMine(tx);
 		
 		return new MessageProcessResult();
 	}
@@ -95,6 +107,19 @@ public class TransactionMessageProcess implements MessageProcess {
 			
 		} else {
 			throw new VerificationException("error transaction");
+		}
+	}
+
+	/*
+	 * 是否转入到我的账上的交易，如果是，则通知
+	 */
+	private void checkIsMine(Transaction tx) {
+		Output output = tx.getOutputs().get(0);
+		TransactionOutput tOutput = (TransactionOutput) output;
+		
+		Script script = tOutput.getScript();
+		if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
+			blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
 		}
 	}
 }

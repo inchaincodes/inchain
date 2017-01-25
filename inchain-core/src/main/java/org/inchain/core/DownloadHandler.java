@@ -1,11 +1,11 @@
 package org.inchain.core;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -30,7 +30,7 @@ public class DownloadHandler {
 	//下载锁，避免多节点重复下载
 	private Lock locker = new ReentrantLock();
 
-	private Set<Peer> peers = Collections.synchronizedSet(new HashSet<Peer>());
+	private Set<Peer> peers = new ConcurrentSkipListSet<Peer>();
 	
 	@Autowired
 	private NetworkParams network;
@@ -49,7 +49,7 @@ public class DownloadHandler {
 		long localHeight = network.getBestBlockHeight();
 		
 		if(peer.getPeerVersionMessage().bestHeight > localHeight) {
-			
+
 			peers.add(peer);
 			
 			//当比自己高度更新的节点达到3个及以上 TODO
@@ -59,6 +59,7 @@ public class DownloadHandler {
 					public void run() {
 						//大多数节点一致的高度
 						long bestHeight = getMostPeerBestHeight(peers);
+						
 						if(synchronousStatus == 0) {
 							if(peerKit.getBlockChangedListener() != null) {
 								peerKit.getBlockChangedListener().onChanged(-1l, bestHeight, null, null);
@@ -77,13 +78,13 @@ public class DownloadHandler {
 	private void startDownload(long bestHeight) {
 		locker.lock();
 		
-		synchronousStatus = 1;
-		
-		if(!monitorRuning) {
-			monitorRuning = true;
-			startMonitor();
-		}
 		try {
+			synchronousStatus = 1;
+			
+			if(!monitorRuning) {
+				monitorRuning = true;
+				startMonitor();
+			}
 			
 			//开始下载区块
 			if(log.isDebugEnabled()) {

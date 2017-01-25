@@ -43,6 +43,8 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 
 		Block block = (Block) message;
 		
+		log.info("new block : {}", block);
+		
 		peer.getNetwork().setBestHeight(block.getHeight());
 		
 		if(log.isDebugEnabled()) {

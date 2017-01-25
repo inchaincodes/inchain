@@ -1,9 +1,12 @@
 package org.inchain.mempool;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.transaction.Transaction;
@@ -16,9 +19,14 @@ import org.inchain.transaction.Transaction;
  */
 public class MempoolContainerMap implements MempoolContainer {
 
-	private static final ConcurrentSkipListMap<Sha256Hash, Transaction> container = new ConcurrentSkipListMap<Sha256Hash, Transaction>();
+	private Lock locker = new ReentrantLock();
+	
+	private static final ConcurrentLinkedQueue<Transaction> container = new ConcurrentLinkedQueue<Transaction>();
+	private static final Map<Sha256Hash, Transaction> indexContainer = new HashMap<Sha256Hash, Transaction>();
+	
 	private static final MempoolContainer instace = new MempoolContainerMap();
 
+	
 	private MempoolContainerMap() {
 	}
 	
@@ -27,13 +35,30 @@ public class MempoolContainerMap implements MempoolContainer {
 	}
 	
 	@Override
-	public boolean add(Sha256Hash hash, Transaction tx) {
-		return container.put(hash, tx) != null;
+	public boolean add(Transaction tx) {
+		locker.lock();
+		try {
+			if(indexContainer.containsKey(tx.getHash())) {
+				return false;
+			}
+			boolean success = container.add(tx);
+			if(success) {
+				indexContainer.put(tx.getHash(), tx);
+			}
+			return success;
+		} finally {
+			locker.unlock();
+		}
 	}
 
 	@Override
 	public boolean remove(Sha256Hash hash) {
-		return container.remove(hash) != null;
+		Transaction tx = indexContainer.remove(hash);
+		if(tx != null) {
+			return container.remove(tx);
+		} else {
+			return false;
+		}
 	}
 
 	@Override
@@ -45,8 +70,17 @@ public class MempoolContainerMap implements MempoolContainer {
 	}
 
 	@Override
+	public Transaction get() {
+		Transaction tx = container.poll();
+		if(tx != null) {
+			indexContainer.remove(tx.getHash());
+		}
+		return tx;
+	}
+	
+	@Override
 	public Transaction get(Sha256Hash hash) {
-		return container.get(hash);
+		return indexContainer.get(hash);
 	}
 
 	@Override
@@ -54,11 +88,13 @@ public class MempoolContainerMap implements MempoolContainer {
 		List<Transaction> list = new ArrayList<Transaction>();
 
 		while(max > 0) {
-			Entry<Sha256Hash, Transaction> entry = container.pollLastEntry();
-			if(entry == null) {
+			Transaction tx = container.poll();
+			if(tx == null) {
 				break;
+			} else {
+				indexContainer.remove(tx.getHash());
 			}
-			list.add(entry.getValue());
+			list.add(tx);
 			max--;
 		}
 		return list.toArray(new Transaction[list.size()]);

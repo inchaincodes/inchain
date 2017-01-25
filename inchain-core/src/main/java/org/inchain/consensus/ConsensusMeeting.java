@@ -50,7 +50,6 @@ public interface ConsensusMeeting {
 	
 	/**
 	 * 异步启动
-	 * @param account 
 	 */
 	void startSyn();
 	

@@ -63,4 +63,12 @@ public class AccountInfoController implements SubPageController {
 	public void setAccountInfoListener(AccountInfoListener accountInfoListener) {
 		this.accountInfoListener = accountInfoListener;
 	}
+
+	@Override
+	public void onShow() {
+	}
+
+	@Override
+	public void onHide() {
+	}
 }

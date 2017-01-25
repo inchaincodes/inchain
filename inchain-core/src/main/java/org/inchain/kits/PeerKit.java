@@ -191,40 +191,29 @@ public class PeerKit implements Broadcaster {
 	/**
 	 * 广播消息
 	 * @param message  要广播的消息
-	 * @return boolean 返回广播是否成功
+	 * @return int 成功广播给几个节点
 	 */
-	public boolean broadcastMessage(Message message) {
-		if(inPeers.size() > 0 || outPeers.size() > 0) {
-			for (Peer peer : inPeers) {
-				peer.sendMessage(message);
-			}
-			for (Peer peer : outPeers) {
-				peer.sendMessage(message);
-			}
-			return true;
-		} else {
-			log.warn("广播消息失败，没有可广播的节点");
-		}
-		return false;
+	public int broadcastMessage(Message message) {
+		return broadcastMessage(message, null);
 	}
 
 	/**
 	 * 广播消息
-	 * @param message  要广播的消息
-	 * @param message  要排除的节点
+	 * @param message  		要广播的消息
+	 * @param excludePeer   要排除的节点
 	 * @return int 成功广播给几个节点
 	 */
 	public int broadcastMessage(Message message, Peer excludePeer) {
 		int successCount = 0;
-		if(inPeers.size() > 0 || outPeers.size() > 0) {
+		if(canBroadcast()) {
 			for (Peer peer : inPeers) {
-				if(excludePeer!= null && !peer.equals(excludePeer)) {
+				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
 					peer.sendMessage(message);
 					successCount ++;
 				}
 			}
 			for (Peer peer : outPeers) {
-				if(excludePeer!= null && !peer.equals(excludePeer)) {
+				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
 					peer.sendMessage(message);
 					successCount ++;
 				}
@@ -245,7 +234,7 @@ public class PeerKit implements Broadcaster {
 	 */
 	public void broadcastBlock(Block block) {
 		//TODO
-		if(inPeers.size() > 0 || outPeers.size() > 0) {
+		if(canBroadcast()) {
 			for (Peer peer : inPeers) {
 				peer.sendMessage(block);
 			}
@@ -265,7 +254,7 @@ public class PeerKit implements Broadcaster {
 		//等待1分钟，如果还没有可用的连接，就结束返回失败
 		int retryCount = 1;
 		while(retryCount-- > 0) {
-			if(inPeers.size() > 0 || outPeers.size() > 0) {
+			if(canBroadcast()) {
 				for (Peer peer : inPeers) {
 					peer.sendMessage(tx);
 				}

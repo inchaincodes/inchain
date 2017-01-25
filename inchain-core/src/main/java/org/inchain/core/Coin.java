@@ -141,7 +141,7 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
     public long divide(final Coin divisor) {
         return this.value / divisor.value;
     }
-
+    
     /**
      * Returns true if and only if this instance represents a monetary value greater than zero,
      * otherwise false.
@@ -210,8 +210,7 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
     }
 
     public String toText() {
-    	Coin[] coins = divideAndRemainder(Coin.COIN.value);
-		return coins[0].toString()+"."+coins[1];
+		return new BigDecimal(value).divide(BigDecimal.valueOf(Coin.COIN.value)).toString();
     }
     
     @Override

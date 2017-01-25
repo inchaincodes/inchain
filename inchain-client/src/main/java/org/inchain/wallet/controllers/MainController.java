@@ -1,12 +1,16 @@
 package org.inchain.wallet.controllers;
 
+import java.awt.SystemTray;
 import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.TrayIcon.MessageType;
 import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.account.Account;
@@ -18,6 +22,7 @@ import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AppKit;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.store.TransactionStore;
 import org.inchain.utils.DateUtil;
@@ -69,9 +74,10 @@ public class MainController {
 	public Button sellerRecordId;			//商家列表
 	public StackPane contentId;				//子页面内容控件
 	
-	private Map<String, Node> pageMaps = new HashMap<String, Node>();	//页面列表
 	private List<Button> buttons = new ArrayList<Button>();
-	private List<SubPageController> subPageControllers = new ArrayList<SubPageController>();
+	private Map<String, Node> pageMaps = new HashMap<String, Node>();	//页面列表
+	private Map<String, SubPageController> subPageControllerMaps = new HashMap<String, SubPageController>();	//页面控制器
+	private String currentPageId;			//当前显示的页面
 	
 	private Stage stage;
 	
@@ -93,26 +99,13 @@ public class MainController {
     	networkInfosTipId.setTooltip(networkInfosTooltip);
     	networkInfosNumId.setTooltip(networkInfosTooltip);
     	
-    	EventHandler<ActionEvent> buttonEventHandler = new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				Button button = (Button) event.getSource();
-				if(button == null) {
-					return;
-				}
-				
-				String id = button.getId();
-				
-				showPage(id);
-			}
-		};
-		
 		buttons.add(accountInfoId);
 		buttons.add(sendAmountId);
 		buttons.add(transactionRecordId);
 		buttons.add(consensusRecordId);
 		buttons.add(sellerRecordId);
     	
+		EventHandler<ActionEvent> buttonEventHandler = getPageEventHandler();
 		for (Button button : buttons) {
 			button.setOnAction(buttonEventHandler);
 		}
@@ -141,13 +134,44 @@ public class MainController {
     	//加载完成
     	startupListener.onComplete();
 	}
+
+	/*
+	 * 获取页面切换事件
+	 */
+	private EventHandler<ActionEvent> getPageEventHandler() {
+		EventHandler<ActionEvent> buttonEventHandler = new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				Button button = (Button) event.getSource();
+				if(button == null) {
+					return;
+				}
+				
+				String id = button.getId();
+				
+				//触发页面显示隐藏事件
+				for (Entry<String, SubPageController> entry : subPageControllerMaps.entrySet()) {
+					String pageId = entry.getKey();
+					SubPageController pageController = entry.getValue();
+					//隐藏上个页面
+					if(pageId.equals(currentPageId)) {
+						pageController.onHide();
+					} else if(pageId.equals(id)) {
+						pageController.onShow();
+					}
+				}
+				showPage(id);
+			}
+		};
+		return buttonEventHandler;
+	}
 	
 	/*
 	 * 初始化各个页面的数据
 	 */
 	private void initDatas(StartupListener startupListener) {
 		int completionRate = (100 - startupListener.getCompletionRate()) / 4;//subPageControllers.size();
-		for (SubPageController controller : subPageControllers) {
+		for (SubPageController controller : subPageControllerMaps.values()) {
 			String tip = null;
 			if(controller instanceof AccountInfoController) {
 				//账户信息加载完成之后，设置主界面的余额和地址信息
@@ -259,13 +283,44 @@ public class MainController {
     	appKit.getAccountKit().setTransactionListener(new TransactionListener() {
     		@Override
     		public void newTransaction(TransactionStore tx) {
-    			for (SubPageController controller : subPageControllers) {
+    			for (SubPageController controller : subPageControllerMaps.values()) {
     				if(controller instanceof AccountInfoController
     						|| controller instanceof TransactionRecordController) {
         				controller.initDatas();
     				}
     			}
     		}
+		});
+    	
+		//通知器
+    	instance.getAccountKit().setNoticeListener(new NoticeListener() {
+			@Override
+			public void onNotice(String title, String message) {
+				onNotice(NOTICE_TYPE_NONE, title, message);
+			}
+			@Override
+			public void onNotice(int type, String title, String message) {
+				//如果是同步过程中，则不提示
+				boolean blockNewest = appKit.getNetwork().blockIsNewestStatus();
+				if(!blockNewest) {
+					return;
+				}
+				
+				TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
+    			if(trayIcons != null && trayIcons.length > 0) {
+    				MessageType messageType;
+    				if(type == NOTICE_TYPE_ERROR) {
+    					messageType = MessageType.ERROR;
+    				} else if(type == NOTICE_TYPE_WARNING) {
+    					messageType = MessageType.WARNING;
+    				} else if(type == NOTICE_TYPE_NONE) {
+    					messageType = MessageType.NONE;
+    				} else {
+    					messageType = MessageType.INFO;
+    				}
+    				trayIcons[0].displayMessage(title, message, messageType);
+    			}
+			}
 		});
 	}
 	
@@ -288,6 +343,7 @@ public class MainController {
 				}
 				contentId.getChildren().clear();
 				contentId.getChildren().add(page);
+				currentPageId = id;
 		    }
 		});
 	}
@@ -332,7 +388,7 @@ public class MainController {
 				Pane page = loader.load();
 				SubPageController subPageController = loader.getController();
 				if(subPageController != null) {
-					subPageControllers.add(subPageController);
+					subPageControllerMaps.put(id, subPageController);
 				}
 				return page;
 			} catch (Exception e) {

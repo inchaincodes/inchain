@@ -294,7 +294,7 @@ public class Account {
 	
 	/**
 	 * 解密管理私钥
-	 * @return 
+	 * @return ECKey[]
 	 */
 	public ECKey[] decryptionMg(String mgPw) {
 
@@ -318,7 +318,7 @@ public class Account {
 	
 	/**
 	 * 解密交易私钥
-	 * @return 
+	 * @return ECKey[]
 	 */
 	public ECKey[] decryptionTr(String mgTr) {
 

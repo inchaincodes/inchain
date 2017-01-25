@@ -60,7 +60,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
@@ -102,9 +101,6 @@ public class Script {
         P2SH
     }
 
-    /** Flags to pass to {@link Script#correctlySpends(Transaction, long, Script, Set)}.
-     * Note currently only P2SH, DERSIG and NULLDUMMY are actually supported.
-     */
     public enum VerifyFlag {
         P2SH, // Enable BIP16-style subscript evaluation.
         STRICTENC, // Passing a non-strict-DER signature or one with undefined hashtype to a checksig operation causes script failure.
@@ -345,7 +341,7 @@ public class Script {
 
     /**
      * Retrieves the sender public key from a LOCKTIMEVERIFY transaction
-     * @return
+     * @return byte[]
      * @throws ScriptException
      */
     public byte[] getCLTVPaymentChannelSenderPubKey() throws ScriptException {
@@ -357,7 +353,7 @@ public class Script {
 
     /**
      * Retrieves the recipient public key from a LOCKTIMEVERIFY transaction
-     * @return
+     * @return byte[]
      * @throws ScriptException
      */
     public byte[] getCLTVPaymentChannelRecipientPubKey() throws ScriptException {
@@ -802,8 +798,7 @@ public class Script {
     }
 
     /**
-     * Get the {@link org.bitcoinj.script.Script.ScriptType}.
-     * @return The script type.
+     * @return ScriptType
      */
     public ScriptType getScriptType() {
         ScriptType type = ScriptType.NO_TYPE;

@@ -6,11 +6,9 @@ import org.inchain.SpringContextUtils;
 import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.kits.PeerKit;
 import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -22,9 +20,6 @@ import org.springframework.stereotype.Service;
 public class VerackMessageProcess implements MessageProcess {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VerackMessageProcess.class);
-	
-	@Autowired
-	private PeerKit peerKit;
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {

@@ -16,11 +16,6 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
 import org.inchain.utils.Utils;
 
-/**
- * <p>Tools for the construction of commonly used script types. You don't normally need this as it's hidden behind
- * convenience methods on {@link org.bitcoinj.core.Transaction}, but they are useful when working with the
- * protocol at a lower level.</p>
- */
 public class ScriptBuilder {
     private List<ScriptChunk> chunks;
 
@@ -117,7 +112,6 @@ public class ScriptBuilder {
      * Adds the given number as a OP_N opcode to the end of the program.
      * Only handles values 0-16 inclusive.
      * 
-     * @see #number(int)
      */
     public ScriptBuilder smallNum(int num) {
         return smallNum(chunks.size(), num);
@@ -127,8 +121,6 @@ public class ScriptBuilder {
      * This is intended to use for negative numbers or values > 16, and although
      * it will accept numbers in the range 0-16 inclusive, the encoding would be
      * considered non-standard.
-     * 
-     * @see #number(int)
      */
     protected ScriptBuilder bigNum(long num) {
         return bigNum(chunks.size(), num);
@@ -137,8 +129,6 @@ public class ScriptBuilder {
     /**
      * Adds the given number as a OP_N opcode to the given index in the program.
      * Only handles values 0-16 inclusive.
-     * 
-     * @see #number(int)
      */
     public ScriptBuilder smallNum(int index, int num) {
         Utils.checkState(num >= 0, "Cannot encode negative numbers with smallNum");
@@ -151,8 +141,6 @@ public class ScriptBuilder {
      * This is intended to use for negative numbers or values > 16, and although
      * it will accept numbers in the range 0-16 inclusive, the encoding would be
      * considered non-standard.
-     * 
-     * @see #number(int)
      */
     protected ScriptBuilder bigNum(int index, long num) {
         final byte[] data;
@@ -454,7 +442,7 @@ public class ScriptBuilder {
      * @param hash160
      * @param signs
      * @param version
-     * @return
+     * @return Script
      */
     public static Script createRegisterInputScript(byte[] hash160, byte[][] signs, int version) {
     	ScriptBuilder builder = new ScriptBuilder();
@@ -499,7 +487,7 @@ public class ScriptBuilder {
      * 创建一个空签名
      * @param type
      * @param hash160
-     * @return
+     * @return Script
      */
 	public static Script createEmptyInputScript(int type, byte[] hash160) {
 		ScriptBuilder builder = new ScriptBuilder();
@@ -512,9 +500,8 @@ public class ScriptBuilder {
 	
 	/**
      * 创建一个空签名
-     * @param type
-     * @param hash160
-     * @return
+     * @param data
+     * @return Script
      */
 	public static Script createCoinbaseInputScript(byte[] data) {
 		ScriptBuilder builder = new ScriptBuilder();
@@ -527,7 +514,7 @@ public class ScriptBuilder {
 	/**
 	 * 普通交易的输出
 	 * @param to
-	 * @return
+	 * @return Script
 	 */
 	public static Script createOutputScript(Address to) {
         return new ScriptBuilder()

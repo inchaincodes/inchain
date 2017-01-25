@@ -73,6 +73,11 @@ public class Peer extends PeerSocketHandler {
 		//发送版本信息
 		sendMessage(new VersionMessage(network, network.getBestBlockHeight(), getPeerAddress()));
 	}
+	
+	@Override
+	public String toString() {
+		return (peerAddress == null ? "":peerAddress.toString()) + (peerVersionMessage == null ? "":peerVersionMessage.toString());
+	}
 
 	public void ping() {
 		sendMessage(new PingMessage(RandomUtil.randomLong()));

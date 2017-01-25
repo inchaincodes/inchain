@@ -43,7 +43,6 @@ public abstract class CertAccountTransaction extends Transaction {
 	/**
 	 * 验证交易的合法性
 	 */
-	@Override
 	public void verfify() throws VerificationException {
 		if(hash160 == null || hash160.length != Address.LENGTH) {
 			throw new VerificationException("hash160 错误");
@@ -94,7 +93,6 @@ public abstract class CertAccountTransaction extends Transaction {
 	
 	/**
 	 * 清楚交易验证脚本
-	 * @return
 	 */
 	public void cleanScripts() {
 		this.script = null;

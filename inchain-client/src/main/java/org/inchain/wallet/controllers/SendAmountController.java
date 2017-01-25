@@ -60,7 +60,15 @@ public class SendAmountController implements SubPageController {
      * 初始化钱包信息
      */
     public void initDatas() {
-    	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+    	//获取最新余额
+    	loadNewestBalance();
+    }
+
+    /**
+     * 获取最新的余额信息
+     */
+    protected void loadNewestBalance() {
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	List<Account> accountList = accountKit.getAccountList();
     	
     	if(accountList != null && accountList.size() > 0) {
@@ -69,7 +77,7 @@ public class SendAmountController implements SubPageController {
     		Address address = account.getAddress();
     		canUseBlanaceId.setText(address.getBalance().toText());
     	}
-    }
+	}
 
     /**
      * 发送交易
@@ -145,16 +153,20 @@ public class SendAmountController implements SubPageController {
 			}
     	}
     	
-    	//验证通过，调用接口广播交易
-    	String result = null;
+		//验证通过，调用接口广播交易
     	try {
-    		result = accountKit.sendMoney(address, money, feeCoin);
+    		String result = accountKit.sendMoney(address, money, feeCoin);
+    		//返回的交易id，则成功
+    		if(result.length() == 64) {
+    			DailogUtil.showTip("发送成功", x, y);
+    			loadNewestBalance();
+    		} else {
+    			DailogUtil.showTip(result, x, y);
+    		}
     	} catch (Exception e) {
-    		result = e.getMessage();
-    		log.error(e.getMessage(), e);
+        	DailogUtil.showTip(e.getMessage(), x, y);
+        	log.error(e.getMessage(), e);
 		}
-    	DailogUtil.showTip(result, x, y);
-		log.info("===");
 	}
     
     /**
@@ -168,5 +180,14 @@ public class SendAmountController implements SubPageController {
 		    	sendAmountId.setText("");
 		    }
 		});
+	}
+	
+	@Override
+	public void onShow() {
+		loadNewestBalance();
+	}
+
+	@Override
+	public void onHide() {
 	}
 }

@@ -10,6 +10,8 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 区块消息
@@ -18,6 +20,8 @@ import org.inchain.utils.Utils;
  */
 public class Block extends BlockHeader {
 
+	private static final Logger log = LoggerFactory.getLogger(Block.class);
+	
 	//交易列表
 	private List<Transaction> txs;
 		
@@ -91,7 +95,12 @@ public class Block extends BlockHeader {
         if(this.merkleHash == null) {
         	this.merkleHash = merkleHash;
         } else {
-        	Utils.checkState(this.merkleHash.equals(merkleHash), "the merkle hash is error " + this.merkleHash +"  !=  " + merkleHash);
+        	try {
+        		Utils.checkState(this.merkleHash.equals(merkleHash), "the merkle hash is error " + this.merkleHash +"  !=  " + merkleHash+"   blcok:" + toString());
+        	} catch (Exception e) {
+        		log.warn(e.getMessage(), e);
+        		throw e;
+			}
         }
 		return merkleHash;
 	}

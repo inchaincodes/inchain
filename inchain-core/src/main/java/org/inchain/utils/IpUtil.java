@@ -11,7 +11,7 @@ public class IpUtil {
 
 	/** 
      * 多IP处理，可以得到最终ip 
-     * @return 
+     * @return Set<String>
      */  
     public static Set<String> getIps() {  
     	//返回本机所有的IP地址 ，包括了内网和外网的IP4地址

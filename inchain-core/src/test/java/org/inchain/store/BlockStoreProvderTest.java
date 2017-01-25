@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.BaseTestCase;
-import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
@@ -76,7 +75,6 @@ public class BlockStoreProvderTest extends BaseTestCase {
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
 		coinBaseTx.addOutput(Coin.valueOf(100l), Address.fromBase58(network, "uNdmAUpGqrNYgguFQT97eByXb6v1CUtcHR"));
-		coinBaseTx.verfify();
 		coinBaseTx.verfifyScript();
 		
 		txs.add(coinBaseTx);

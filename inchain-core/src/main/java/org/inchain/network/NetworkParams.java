@@ -38,6 +38,7 @@ public abstract class NetworkParams {
 	//消息序列化工具
 	protected transient MessageSerializer defaultSerializer = null;
 	
+	//区块存储提供器
 	@Autowired
 	protected BlockStoreProvider blockStoreProvider;
 	
@@ -120,6 +121,14 @@ public abstract class NetworkParams {
 	 */
 	public BlockHeaderStore getBestBlockHeader() {
 		return blockStoreProvider.getBestBlockHeader();
+	}
+	
+	/**
+	 * 返回当前本地区块的状态，是否是最新状态
+	 * @return boolean
+	 */
+	public boolean blockIsNewestStatus() {
+		return bestHeight != 0l && getBestBlockHeight() >= bestHeight - 2;
 	}
 	
     /**

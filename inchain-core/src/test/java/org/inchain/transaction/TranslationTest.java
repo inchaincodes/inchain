@@ -63,7 +63,6 @@ public class TranslationTest extends BaseTestCase {
 		System.out.println(Hex.encode(txBytes));
 		
 		Transaction verfyTx = network.getDefaultSerializer().makeTransaction(txBytes, null);
-		verfyTx.verfify();
 		
 		verfyTx.getInput(0).getScriptSig().run(verfyTx, 0, ((TransactionInput)verfyTx.getInput(0)).getFrom().getScript());
 

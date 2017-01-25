@@ -74,7 +74,6 @@ public class MakeTestNetGengsisBlock {
 			System.out.println("==========================");
 			
 			coinBaseTx.addOutput(Coin.MAX, 0, address);
-			coinBaseTx.verfify();
 			coinBaseTx.verfifyScript();
 			
 			txs.add(coinBaseTx);

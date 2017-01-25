@@ -10,22 +10,16 @@ import org.inchain.utils.Utils;
 
 public class TransactionStore extends Store {
 	
-	//转出未确认
-	public final static int STATUS_SEND_UNCONFIRMED = 1;
-	//转入未确认
-	public final static int STATUS_RECE_UNCONFIRMED = 2;
-	//转出已确认
-	public final static int STATUS_SEND_CONFIRMED = 3;
-	//转入已确认
-	public final static int STATUS_RECE_CONFIRMED = 4;
-	//转入已花费
-	public final static int STATUS_RECE_USED = 5;
+	//未花费
+	public final static int STATUS_UNUSE = 1;
+	//已花费
+	public final static int STATUS_USED = 2;
 	
 	private byte[] key;
 	//交易内容
 	private Transaction transaction;
-	//交易状态
-	private byte status;
+	//交易状态，是否已花费，对应的输出是否花费，多个输出就有多个状态
+	private byte[] status;
 	//区块高度
 	private long height;
 	
@@ -41,28 +35,35 @@ public class TransactionStore extends Store {
 	public TransactionStore(NetworkParams network, Transaction transaction) {
 		super(network);
 		this.transaction = transaction;
+		this.height = -1l;
 	}
 
-	public TransactionStore(NetworkParams network, Transaction transaction, long height, int status) {
+	public TransactionStore(NetworkParams network, Transaction transaction, long height, byte[] status) {
 		super(network);
 		this.transaction = transaction;
 		this.height = height;
-		this.status = (byte) status;
+		this.status = status;
 	}
 	
 	@Override
 	protected void parse() throws ProtocolException {
-		status = readBytes(1)[0];
+		int statusLength = readBytes(1)[0];
+		status = readBytes(statusLength);
 		height = readUint32();
 		
-		transaction = network.getDefaultSerializer().makeTransaction(payload, 5);
+		transaction = network.getDefaultSerializer().makeTransaction(payload, 5 + statusLength);
 		
-		length = 5 + transaction.getLength();
+		length = 5 + statusLength + transaction.getLength();
 	}
 	
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
-		stream.write(status);
+		if(status == null) {
+			stream.write(0);
+		} else {
+			stream.write(status.length);
+			stream.write(status);
+		}
 		Utils.uint32ToByteStreamLE(height, stream);
 		stream.write(transaction.baseSerialize());
 	}
@@ -73,13 +74,6 @@ public class TransactionStore extends Store {
 	
 	public void setTransaction(Transaction transaction) {
 		this.transaction = transaction;
-	}
-	public byte getStatus() {
-		return status;
-	}
-
-	public void setStatus(byte status) {
-		this.status = status;
 	}
 	@Override
 	public byte[] getKey() {
@@ -101,5 +95,10 @@ public class TransactionStore extends Store {
 	public void setHeight(long height) {
 		this.height = height;
 	}
-	
+	public void setStatus(byte[] status) {
+		this.status = status;
+	}
+	public byte[] getStatus() {
+		return status;
+	}
 }

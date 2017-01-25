@@ -22,7 +22,7 @@ public abstract class MessageSerializer {
 	/**
 	 * 接收到消息流，解码为消息
 	 * @param in
-	 * @return
+	 * @return Message
 	 * @throws ProtocolException
 	 * @throws IOException
 	 * @throws UnsupportedOperationException
@@ -32,7 +32,7 @@ public abstract class MessageSerializer {
     /**
      * 接收到消息流，解析消息头
      * @param in
-     * @return
+     * @return MessagePacketHeader
      * @throws ProtocolException
      * @throws IOException
      * @throws UnsupportedOperationException
@@ -43,7 +43,7 @@ public abstract class MessageSerializer {
      * 通过消息头，解析消息主体
      * @param header
      * @param in
-     * @return
+     * @return Message
      * @throws ProtocolException
      * @throws BufferUnderflowException
      * @throws UnsupportedOperationException
@@ -100,7 +100,7 @@ public abstract class MessageSerializer {
     /**
      * 解析交易
      * @param payloadBytes
-     * @return
+     * @return Transaction
      * @throws ProtocolException
      * @throws UnsupportedOperationException
      */
@@ -110,7 +110,7 @@ public abstract class MessageSerializer {
      * 解析交易
      * @param payloadBytes
      * @param hash
-     * @return
+     * @return Transaction
      * @throws ProtocolException
      * @throws UnsupportedOperationException
      */
@@ -121,7 +121,7 @@ public abstract class MessageSerializer {
      * 解析交易
      * @param payloadBytes
      * @param offset
-     * @return
+     * @return Transaction
      * @throws ProtocolException
      */
     public abstract Transaction makeTransaction(byte[] payloadBytes, int offset) throws ProtocolException;

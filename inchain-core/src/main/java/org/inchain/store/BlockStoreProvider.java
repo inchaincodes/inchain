@@ -74,7 +74,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	
 	/**
 	 * 保存区块完整的区块信息
-	 * @param block
+	 * @param blockStore
 	 * @throws IOException 
 	 */
 	public void saveBlock(BlockStore blockStore) throws IOException {
@@ -106,11 +106,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			db.put(hash.getBytes(), blockStore.serializeHeaderToBytes());
 			//保存交易
 			for (int i = 0; i < block.getTxCount(); i++) {
-				TransactionStore txs = new TransactionStore(network, block.getTxs().get(i));
+				TransactionStore txs = new TransactionStore(network, block.getTxs().get(i), block.getHeight(), null);
 		        
 				Transaction tx = txs.getTransaction();
 				
-				db.put(tx.getHash().getBytes(), new TransactionStore(network, tx, block.getHeight(), 1).baseSerialize());
+				db.put(tx.getHash().getBytes(), txs.baseSerialize());
 				
 				//如果是共识注册交易，则保存至区块状态表
 				if(tx instanceof RegConsensusTransaction) {
@@ -231,7 +231,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 检查交易是否与我有关，并且更新状态
-	 * @param transaction
+	 * @param txs
 	 */
 	public void checkIsMineAndUpdate(TransactionStore txs) {
 		Transaction transaction = txs.getTransaction();
@@ -269,16 +269,23 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				
 				Script script = tOutput.getScript();
 				if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
-					//
-					updateMineTx(txs);
-					return;
+					//如果是coinbase交易，那么交易费大于0的才显示出来
+					if(transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
+						if(tOutput.getValue() > 0) {
+							updateMineTx(txs);
+							return;
+						}
+					} else {
+						updateMineTx(txs);
+						return;
+					}
 				}
 			}
 		}
 	}
 
 	//更新与自己相关的交易
-	private void updateMineTx(TransactionStore txs) {
+	public void updateMineTx(TransactionStore txs) {
 		if(transactionListener != null) {
 			transactionListener.newTransaction(txs);
 		}
@@ -432,6 +439,14 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			accountFilter.insert(hash160);
 		}
 	}
+	
+	/**
+	 * 获取账户过滤器
+	 * @return BloomFilter
+	 */
+	public BloomFilter getAccountFilter() {
+		return accountFilter;
+	}
 
 	/**
 	 * 重新加载相关的所有交易，意味着会遍历整个区块
@@ -463,46 +478,44 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						if(outputs == null) {
 							continue;
 						}
-						//是否是转入交易
-						boolean isSendToMe = false;
-						for (Output output : outputs) {
+						//交易状态
+						byte[] status = new byte[outputs.size()];
+						//交易是否跟我有关
+						boolean isMineTx = false;
+						
+						for (int i = 0; i < outputs.size(); i++) {
+							Output output = outputs.get(i);
 							Script script = output.getScript();
 							
 							for (byte[] hash160 : hash160s) {
 								if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-									mineTxs.add(new TransactionStore(network, tx, block.getHeight(), 1));
-									isSendToMe = true;
+									status[i] = TransactionStore.STATUS_UNUSE;
+									isMineTx = true;
 									break;
 								}
 							}
-							if(isSendToMe) {
-								break;
-							}
 						}
-						//是否是转出交易
-						if(!isSendToMe) {
-	//						tx.verfify();
-							List<Input> inputs = tx.getInputs();
-							if(inputs != null) {
-								for (Input input : inputs) {
-									TransactionInput txInput = (TransactionInput) input;
-									if(txInput.getFrom() == null) {
-										continue;
-									}
-									Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
-									
-									for (TransactionStore transactionStore : mineTxs) {
-										if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-											mineTxs.add(new TransactionStore(network, tx, block.getHeight(), 1));
-											isSendToMe = true;
-											break;
-										}
-									}
-									if(isSendToMe) {
+						List<Input> inputs = tx.getInputs();
+						if(inputs != null) {
+							for (Input input : inputs) {
+								TransactionInput txInput = (TransactionInput) input;
+								if(txInput.getFrom() == null) {
+									continue;
+								}
+								Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
+								
+								for (TransactionStore transactionStore : mineTxs) {
+									if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+										transactionStore.getStatus()[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
+										isMineTx = true;
 										break;
 									}
 								}
 							}
+						}
+						
+						if(isMineTx) {
+							mineTxs.add(new TransactionStore(network, tx, block.getHeight(), status));
 						}
 					} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
 						//参与共识交易

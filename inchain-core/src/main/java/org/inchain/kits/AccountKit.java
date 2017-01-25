@@ -25,7 +25,9 @@ import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
@@ -185,7 +187,7 @@ public class AccountKit {
 		if(address == null) {
 			return Coin.ZERO;
 		}
-		return address.getBalance().subtract(address.getUnconfirmedBalance());
+		return address.getBalance();
 	}
 	
 	/**
@@ -268,7 +270,7 @@ public class AccountKit {
 		Address myAddress = account.getAddress();
 		
 		//可用余额
-		Coin balance = myAddress.getBalance().subtract(myAddress.getUnconfirmedBalance());
+		Coin balance = myAddress.getBalance();
 		
 		//检查余额是否充足
 		if(money.add(fee).compareTo(balance) > 0) {
@@ -309,19 +311,22 @@ public class AccountKit {
 		signer.signInputs(tx, key);
 
 		//验证交易是否合法
-		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
-		
-		System.out.println(rs.getResult());
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
 		if(!rs.getResult().isSuccess()) {
 			throw new MoneyNotEnoughException(rs.getResult().getMessage());
 		}
 		
-		System.out.println("发送交易："+tx.getHash()+"   tx fee: "+getTransactionFee(tx));
-		
+		//TODO 广播结果
 		peerKit.broadcastTransaction(tx);
 		
+		//成功
+		//加入内存池
+		MempoolContainerMap.getInstace().add(tx);
 		
-		return "成功";
+		//更新交易记录
+		transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+		
+		return tx.getHash().toString();
 	}
 	
 	/*
@@ -347,15 +352,150 @@ public class AccountKit {
 	 * 交易选择
 	 * 查找并返回最接近该金额的未花费的交易
 	 */
-	private List<TransactionOutput> selectNotSpentTransaction(Coin add, Address myAddress) {
+	private List<TransactionOutput> selectNotSpentTransaction(Coin amount, Address myAddress) {
+		
+		//获取到所有未花费的交易
 		List<TransactionOutput> outputs = transactionStoreProvider.getNotSpentTransactionOutputs(myAddress.getHash160());
 		
+		//选择结果存放列表
 		List<TransactionOutput> thisOutputs = new ArrayList<TransactionOutput>();
-		for (TransactionOutput transactionOutput : outputs) {
-			thisOutputs.add(transactionOutput);
+		
+		if(outputs == null || outputs.size() == 0) {
+			return thisOutputs;
 		}
 		
+		//遍历选择，原则是尽量少的数据，也就是笔数最少
+		
+		//小于amount的集合
+		List<TransactionOutput> lessThanList = new ArrayList<TransactionOutput>();
+		//大于amount的集合
+		List<TransactionOutput> moreThanList = new ArrayList<TransactionOutput>();
+		
+		for (TransactionOutput transactionOutput : outputs) {
+			if(transactionOutput.getValue() == amount.value) {
+				//如果刚好相等，则立即返回
+				thisOutputs.add(transactionOutput);
+				return thisOutputs;
+			} else if(transactionOutput.getValue() > amount.value) {
+				//加入大于集合
+				moreThanList.add(transactionOutput);
+			} else {
+				//加入小于于集合
+				lessThanList.add(transactionOutput);
+			}
+		}
+		
+		if(Configure.TRANSFER_PREFERRED == 2) {
+			//优先使用零钱
+			transferPreferredWithSmallChange(amount, lessThanList, moreThanList, thisOutputs);
+		} else {
+			//以交易数据小优先，该种机制尽量选择一笔输入，默认方式
+			transferPreferredWithLessNumber(amount, lessThanList, moreThanList, thisOutputs);
+		}
+		//依然按照交易时间排序
+		if(thisOutputs.size() > 0) {
+			Collections.sort(thisOutputs, new Comparator<TransactionOutput>() {
+				@Override
+				public int compare(TransactionOutput o1, TransactionOutput o2) {
+					return o1.getParent().getTime() > o2.getParent().getTime() ? 1:-1;
+				}
+			});
+		}
 		return thisOutputs;
+	}
+	
+	/*
+	 * 交易选择 -- 优先使用零钱
+	 */
+	private void transferPreferredWithSmallChange(Coin amount, List<TransactionOutput> lessThanList,
+			List<TransactionOutput> moreThanList, List<TransactionOutput> thisOutputs) {
+		if(lessThanList.size() > 0) {
+			//计算所有零钱，是否足够
+			Coin lessTotal = Coin.ZERO;
+			for (TransactionOutput transactionOutput : lessThanList) {
+				lessTotal = lessTotal.add(Coin.valueOf(transactionOutput.getValue()));
+			}
+			
+			if(lessTotal.isLessThan(amount)) {
+				//不够，那么必定有大的
+				selectOneOutput(moreThanList, thisOutputs);
+			} else {
+				//选择零钱
+				selectSmallChange(amount, lessThanList, thisOutputs);
+			}
+		} else {
+			//没有比本次交易最大的未输出交易
+			selectOneOutput(moreThanList, thisOutputs);
+		}
+	}
+
+	/*
+	 * 交易选择 -- 以交易数据小优先，该种机制尽量选择一笔输入
+	 */
+	private void transferPreferredWithLessNumber(Coin amount, List<TransactionOutput> lessThanList, List<TransactionOutput> moreThanList, List<TransactionOutput> outputs) {
+		if(moreThanList.size() > 0) {
+			//有比本次交易大的未输出交易，直接使用其中最小的一个
+			selectOneOutput(moreThanList, outputs);
+		} else {
+			//没有比本次交易最大的未输出交易
+			selectSmallChange(amount, lessThanList, outputs);
+		}
+	}
+
+	/*
+	 * 选择列表里面金额最小的一笔作为输出
+	 */
+	private void selectOneOutput(List<TransactionOutput> moreThanList, List<TransactionOutput> outputs) {
+		if(moreThanList == null || moreThanList.size() == 0) {
+			return;
+		}
+		Collections.sort(moreThanList, new Comparator<TransactionOutput>() {
+			@Override
+			public int compare(TransactionOutput o1, TransactionOutput o2) {
+				return o1.getValue() > o2.getValue() ? 1:-1;
+			}
+		});
+		outputs.add(moreThanList.get(0));
+	}
+
+	/*
+	 * 选择零钱，原则是尽量少的找钱，尽量少的使用输出笔数
+	 */
+	private void selectSmallChange(Coin amount, List<TransactionOutput> lessThanList, List<TransactionOutput> outputs) {
+		if(lessThanList == null || lessThanList.size() == 0) {
+			return;
+		}
+		//排序
+		Collections.sort(lessThanList, new Comparator<TransactionOutput>() {
+			@Override
+			public int compare(TransactionOutput o1, TransactionOutput o2) {
+				return o1.getValue() > o2.getValue() ? 1:-1;
+			}
+		});
+		
+		//已选择的金额
+		Coin total = Coin.ZERO;
+		//从小到大选择
+		for (TransactionOutput transactionOutput : lessThanList) {
+			outputs.add(transactionOutput);
+			total = total.add(Coin.valueOf(transactionOutput.getValue()));
+			if(total.isGreaterThan(amount)) {
+				//判断是否可以移除最小的几笔交易
+				List<TransactionOutput> removeList = new ArrayList<TransactionOutput>();
+				for (TransactionOutput to : outputs) {
+					total = total.subtract(Coin.valueOf(to.getValue()));
+					if(total.isGreaterThan(amount)) {
+						removeList.add(to);
+					} else {
+						break;
+					}
+				}
+				if(removeList.size() > 0) {
+					outputs.removeAll(removeList);
+				}
+				break;
+			}
+		}
 	}
 
 	/**
@@ -691,5 +831,13 @@ public class AccountKit {
 	 */
 	public void setTransactionListener(TransactionListener transactionListener) {
 		this.transactionListener = transactionListener;
+	}
+	
+	/**
+	 * 设置通知监听器
+	 * @param noticeListener
+	 */
+	public void setNoticeListener(NoticeListener noticeListener) {
+		transactionStoreProvider.setNoticeListener(noticeListener);
 	}
 }

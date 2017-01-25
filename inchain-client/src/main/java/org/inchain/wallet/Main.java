@@ -50,7 +50,7 @@ public class Main extends Application implements ActionListener {
 	private Stage startPageStage;
 
 	private MainController mainController;
-	
+
 	/**
 	 * 程序入口
 	 * @param args

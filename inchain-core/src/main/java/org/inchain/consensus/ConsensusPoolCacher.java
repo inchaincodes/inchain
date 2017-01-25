@@ -82,7 +82,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * 验证hash160和公钥是否匹配
 	 * @param hash160  地址
 	 * @param pubkey  公钥
-	 * @return
+	 * @return boolean
 	 */
 	public boolean verifyOne(byte[] hash160, byte[] pubkey) {
 		Address address = AccountTool.newAddress(network, ECKey.fromPublicOnly(pubkey));

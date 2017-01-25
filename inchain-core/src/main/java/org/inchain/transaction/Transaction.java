@@ -8,7 +8,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.SpringContextUtils;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -25,8 +24,6 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
-import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.TransactionStore;
 import org.inchain.utils.Utils;
 
 /**
@@ -205,40 +202,46 @@ public class Transaction extends Message {
         return input;
 	}
 
-	/**
-	 * 验证交易的合法性
-	 */
-	public void verfify() throws VerificationException {
-		
-		if(type == TransactionDefinition.TYPE_COINBASE) {
-			return;
-		}
-		//是否引用了不可用的输出
-		for (int i = 0; i < inputs.size(); i++) {
-			Input input = inputs.get(i);
-			TransactionOutput fromOutput = input.getFrom();
-			if(fromOutput == null || fromOutput.getParent() == null) {
-				throw new VerificationException("交易引用不存在");
-			}
-			
-			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
-			TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
-			if(txs == null) {
-				throw new VerificationException("引用了不存在的交易");
-			}
-			Transaction tx = txs.getTransaction();
-			if(tx == null) {
-				throw new VerificationException("引用不存在的交易");
-			} else if(tx.getLockTime() == -1) {
-				throw new VerificationException("引用了不可用的交易");
-			}
-			TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
-			if(output.getLockTime() == -1) {
-				throw new VerificationException("引用了不可用的交易");
-			}
-			input.setFrom(output);
-		}
-	}
+//	/**
+//	 * 验证交易的合法性
+//	 */
+//	public void verfify() throws VerificationException {
+//		
+//		if(type == TransactionDefinition.TYPE_COINBASE) {
+//			return;
+//		}
+//		//是否引用了不可用的输出
+//		for (int i = 0; i < inputs.size(); i++) {
+//			Input input = inputs.get(i);
+//			TransactionOutput fromOutput = input.getFrom();
+//			if(fromOutput == null || fromOutput.getParent() == null) {
+//				throw new VerificationException("交易引用不存在");
+//			}
+//			
+//			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+//			TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
+//			Transaction tx = null;
+//			if(txs == null) {
+//				//区块里没有，则去内存池查看是否存在
+//				tx = MempoolContainerMap.getInstace().get(fromOutput.getParent().getHash());
+//				if(tx == null) {
+//					throw new VerificationException("引用了不存在的交易");
+//				}
+//			} else {
+//				tx = txs.getTransaction();
+//			}
+//			if(tx == null) {
+//				throw new VerificationException("引用不存在的交易");
+//			} else if(tx.getLockTime() == -1) {
+//				throw new VerificationException("引用了不可用的交易");
+//			}
+//			TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
+//			if(output.getLockTime() == -1) {
+//				throw new VerificationException("引用了不可用的交易");
+//			}
+//			input.setFrom(output);
+//		}
+//	}
 
 	/**
 	 * 验证交易脚本
@@ -335,7 +338,7 @@ public class Transaction extends Message {
     /**
      * 添加输出
      * @param output
-     * @return
+     * @return TransactionOutput
      */
 	public TransactionOutput addOutput(TransactionOutput output) {
 		output.setParent(this);
@@ -382,6 +385,11 @@ public class Transaction extends Message {
 	 */
     public TransactionOutput addOutput(Coin value, Script script) {
         return addOutput(new TransactionOutput(this, value, 0l, script.getProgram()));
+    }
+    
+    @Override
+    public String toString() {
+    	return "tx: " +getHash();
     }
     
     public Input getInput(int index) {
