@@ -40,6 +40,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 
 	private static final Logger log = LoggerFactory.getLogger(CarditConsensusMeeting.class);
 	
+	private Lock sequenceLocker = new ReentrantLock();
 	private Lock readerMessageLocker = new ReentrantLock();
 	
 	//所有消息队列
@@ -293,37 +294,44 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 处理接收到的顺序共识消息
 	 */
 	private void processSequenceMessage(ConsensusMessage message) {
-//		if(meetingStatus == 3 && message.getHeight() != nextMeetingHeight) {
-//			//当共识过程中，只接收下一轮的消息
-//			log.warn("错误的顺序共识高度 {}", message.getHeight());
-//			return;
-//		} else if((meetingStatus == 1 || meetingStatus == 2) && message.getHeight() != bestblockHeight) {
-//			//就绪和顺序共识过程中，只接收当前轮的消息
-//			log.warn("错误的顺序共识高度 {}", message.getHeight());
-//			return;
-//		}
 		
-		List<ConsensusMessage> sequencesList = sequences.get(message.getHeight());
-		if(sequencesList == null) {
-			sequencesList = new ArrayList<ConsensusMessage>();
-			sequencesList.add(message);
-			sequences.put(message.getHeight(), sequencesList);
-		} else {
-			//过滤重复节点
-			boolean exist = false;
-			for (ConsensusMessage sequences : sequencesList) {
-				if(Arrays.equals(sequences.getHash160(), message.getHash160())) {
-					exist = true;
-					sequences.setContent(message.getContent());
-					sequences.setNonce(message.getNonce());
-					sequences.setTime(message.getTime());
-					sequences.setSign(message.getSign());
-					break;
+		sequenceLocker.lock();
+		
+		try {
+	//		if(meetingStatus == 3 && message.getHeight() != nextMeetingHeight) {
+	//			//当共识过程中，只接收下一轮的消息
+	//			log.warn("错误的顺序共识高度 {}", message.getHeight());
+	//			return;
+	//		} else if((meetingStatus == 1 || meetingStatus == 2) && message.getHeight() != bestblockHeight) {
+	//			//就绪和顺序共识过程中，只接收当前轮的消息
+	//			log.warn("错误的顺序共识高度 {}", message.getHeight());
+	//			return;
+	//		}
+			
+			List<ConsensusMessage> sequencesList = sequences.get(message.getHeight());
+			if(sequencesList == null) {
+				sequencesList = new ArrayList<ConsensusMessage>();
+				sequencesList.add(message);
+				sequences.put(message.getHeight(), sequencesList);
+			} else {
+				//过滤重复节点
+				boolean exist = false;
+				for (ConsensusMessage sequences : sequencesList) {
+					if(Arrays.equals(sequences.getHash160(), message.getHash160())) {
+						exist = true;
+						sequences.setContent(message.getContent());
+						sequences.setNonce(message.getNonce());
+						sequences.setTime(message.getTime());
+						sequences.setSign(message.getSign());
+						break;
+					}
+				}
+				if(!exist) {
+					sequencesList.add(message);
 				}
 			}
-			if(!exist) {
-				sequencesList.add(message);
-			}
+		} finally {
+			sequenceLocker.unlock();
 		}
 	}
 
