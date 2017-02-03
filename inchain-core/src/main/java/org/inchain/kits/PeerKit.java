@@ -1,26 +1,26 @@
 package org.inchain.kits;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeHelper;
-import org.inchain.core.TransactionBroadcast;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.listener.EnoughAvailablePeersListener;
 import org.inchain.listener.NewInConnectionListener;
-import org.inchain.message.Block;
 import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
-import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
  *
  */
 @Service
-public class PeerKit implements Broadcaster {
+public class PeerKit {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
 
@@ -42,11 +42,10 @@ public class PeerKit implements Broadcaster {
 	//任务调度器
 	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
 	
-	//网络
-	@Autowired
-	private NetworkParams network;
+	//最大连接数
+	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
 	//连接变化监听器
-	private ConnectionChangedListener connectionChangedListener;
+	private CopyOnWriteArrayList<ConnectionChangedListener> connectionChangedListeners = new CopyOnWriteArrayList<ConnectionChangedListener>();
 	
 	//区块变化监听器
 	private BlockChangedListener blockChangedListener;
@@ -59,8 +58,12 @@ public class PeerKit implements Broadcaster {
 	//连接管理器
 	@Autowired
 	private ClientConnectionManager connectionManager;
-	//最大连接数
-	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
+	//网络
+	@Autowired
+	private NetworkParams network;
+	//广播器
+	@Autowired
+	private Broadcaster<Message> broadcaster;
 	
 	public PeerKit() {
 		
@@ -92,6 +95,7 @@ public class PeerKit implements Broadcaster {
 			}
 		}.start();
 	}
+	
 	//停止服务
 	public void stop() throws IOException {
 		//关闭服务
@@ -111,14 +115,14 @@ public class PeerKit implements Broadcaster {
 				inPeers.add(peer);
 				log.info("新连接{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
-				connectionOnChange();
+				connectionOnChange(true);
 			}
 			@Override
 			public void connectionClosed(Peer peer) {
 				inPeers.remove(peer);
 				log.info("连接关闭{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
-				connectionOnChange();
+				connectionOnChange(false);
 			}
 		});
 	}
@@ -143,8 +147,8 @@ public class PeerKit implements Broadcaster {
 	/*
 	 * 节点变化
 	 */
-	public void connectionOnChange() {
-		if(connectionChangedListener != null) {
+	public void connectionOnChange(boolean isOpen) {
+		for (ConnectionChangedListener connectionChangedListener : connectionChangedListeners) {
 			connectionChangedListener.onChanged(inPeers.size(), outPeers.size(), inPeers, outPeers);
 		}
 	}
@@ -169,13 +173,13 @@ public class PeerKit implements Broadcaster {
 							public void connectionOpened() {
 								super.connectionOpened();
 								outPeers.add(this);
-								connectionOnChange();
+								connectionOnChange(true);
 							}
 							@Override
 							public void connectionClosed() {
 								super.connectionClosed();
 								outPeers.remove(this);
-								connectionOnChange();
+								connectionOnChange(false);
 							}
 						};
 						seed.setLastTime(TimeHelper.currentTimeMillis());
@@ -190,87 +194,30 @@ public class PeerKit implements Broadcaster {
 
 	/**
 	 * 广播消息
-	 * @param message  要广播的消息
-	 * @return int 成功广播给几个节点
+	 * @param message  			要广播的消息
+	 * @return BroadcastResult 	广播结果
 	 */
-	public int broadcastMessage(Message message) {
-		return broadcastMessage(message, null);
+	public BroadcastResult broadcast(Message message) {
+		return broadcaster.broadcast(message);
 	}
 
 	/**
+	 * 广播消息，无需等待接收回应
+	 * @param message  			要广播的消息
+	 * @return int 				通过几个节点广播消息出去
+	 */
+	public int broadcastMessage(Message message) {
+		return broadcaster.broadcastMessage(message);
+	}
+	
+	/**
 	 * 广播消息
-	 * @param message  		要广播的消息
-	 * @param excludePeer   要排除的节点
-	 * @return int 成功广播给几个节点
+	 * @param message  			要广播的消息
+	 * @param excludePeer  		要排除的节点
+	 * @return int	 			通过几个节点广播消息出去
 	 */
 	public int broadcastMessage(Message message, Peer excludePeer) {
-		int successCount = 0;
-		if(canBroadcast()) {
-			for (Peer peer : inPeers) {
-				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
-					peer.sendMessage(message);
-					successCount ++;
-				}
-			}
-			for (Peer peer : outPeers) {
-				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
-					peer.sendMessage(message);
-					successCount ++;
-				}
-			}
-			return successCount;
-		} else {
-			log.warn("广播消息失败，没有可广播的节点");
-		}
-		if(log.isDebugEnabled()) {
-			log.debug("成功广播给{}个节点，消息{}", successCount, message);
-		}
-		return successCount;
-	}
-	
-	/**
-	 * 广播区块
-	 * @param block
-	 */
-	public void broadcastBlock(Block block) {
-		//TODO
-		if(canBroadcast()) {
-			for (Peer peer : inPeers) {
-				peer.sendMessage(block);
-			}
-			for (Peer peer : outPeers) {
-				peer.sendMessage(block);
-			}
-		} else {
-			log.warn("广播新区块失败，没有可广播的节点");
-		}
-	}
-	
-	/**
-	 * 广播交易消息
-	 */
-	@Override
-	public TransactionBroadcast broadcastTransaction(Transaction tx) {
-		//等待1分钟，如果还没有可用的连接，就结束返回失败
-		int retryCount = 1;
-		while(retryCount-- > 0) {
-			if(canBroadcast()) {
-				for (Peer peer : inPeers) {
-					peer.sendMessage(tx);
-				}
-				for (Peer peer : outPeers) {
-					peer.sendMessage(tx);
-				}
-				return null;
-			}
-			try{
-				Thread.sleep(1000l);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-		log.info("消息发送失败，没有可广播的节点");
-		return null;
+		return broadcaster.broadcastMessage(message, excludePeer);
 	}
 
 	/**
@@ -281,6 +228,63 @@ public class PeerKit implements Broadcaster {
 		return inPeers.size() > 0 || outPeers.size() > 0;
 	}
 	
+	/**
+	 * 获取已连接的节点
+	 * @return List<Peer>
+	 */
+	public List<Peer> getConnectedPeers() {
+		List<Peer> peers = new ArrayList<Peer>();
+		peers.addAll(inPeers);
+		peers.addAll(outPeers);
+		return peers;
+	}
+
+	/**
+	 * 对等体节点连接数量达到一定数量的监听
+	 * 达到minConnections时，将调用EnoughAvailablePeersListener.addCallback
+	 * @param minConnections
+	 * @param enoughAvailablePeersListener 
+	 * @return EnoughAvailablePeersListener
+	 */
+	public void waitForPeers(final int minConnections, final EnoughAvailablePeersListener enoughAvailablePeersListener) {
+		if(enoughAvailablePeersListener == null) {
+			return;
+		}
+		List<Peer> foundPeers = findAvailablePeers();
+		//如果已连接的节点达到所需，则直接执行回调
+		if (foundPeers.size() >= minConnections) {
+			enoughAvailablePeersListener.callback(foundPeers);
+			return;
+        }
+		addConnectionChangedListener(new ConnectionChangedListener() {
+			@Override
+			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers) {
+				List<Peer> peers = findAvailablePeers();
+				if(peers.size() >= minConnections) {
+					removeConnectionChangedListener(this);
+					enoughAvailablePeersListener.callback(foundPeers);
+				}
+			}
+		});
+	}
+	
+	/**
+	 * 已连接的节点列表
+	 * 此处不直接调用getConnectedPeers，是因为以后会扩展协议版本节点过滤
+	 * @return List<Peer>
+	 */
+	public List<Peer> findAvailablePeers() {
+		List<Peer> results = new ArrayList<Peer>();
+		for (Peer peer : inPeers) {
+			results.add(peer);
+		}
+		for (Peer peer : outPeers) {
+			results.add(peer);
+		}
+        return results;
+	}
+
 	public BlockChangedListener getBlockChangedListener() {
 		return blockChangedListener;
 	}
@@ -289,11 +293,11 @@ public class PeerKit implements Broadcaster {
 		this.blockChangedListener = blockChangedListener;
 	}
 	
-	public void setConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
-		this.connectionChangedListener = connectionChangedListener;
+	public void addConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
+		this.connectionChangedListeners.add(connectionChangedListener);
 	}
-	
-	public ConnectionChangedListener getConnectionChangedListener() {
-		return connectionChangedListener;
+
+	private void removeConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
+		this.connectionChangedListeners.remove(connectionChangedListener);
 	}
 }

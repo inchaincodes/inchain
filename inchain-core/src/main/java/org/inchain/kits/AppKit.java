@@ -93,9 +93,6 @@ public class AppKit {
 			BlockHeaderStore blockHeader = network.getBestBlockHeader();
 			peerKit.getBlockChangedListener().onChanged(blockHeader.getBlockHeader().getHeight(), -1, blockHeader.getBlockHeader().getHash(), null);
 		}
-		
-		//节点变化
-		peerKit.connectionOnChange();
 	}
 
 	//系统关闭钩子，确保能正确关闭
@@ -198,6 +195,6 @@ public class AppKit {
 	}
 
 	public void addConnectionChangedListener(ConnectionChangedListener connectionChangedListener) {
-		peerKit.setConnectionChangedListener(connectionChangedListener);
+		peerKit.addConnectionChangedListener(connectionChangedListener);
 	}
 }

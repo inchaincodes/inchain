@@ -5,8 +5,12 @@ import java.util.List;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.message.InventoryItem;
+import org.inchain.message.InventoryItem.Type;
+import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
@@ -40,6 +44,8 @@ public class TransactionMessageProcess implements MessageProcess {
 	@Autowired
 	private NetworkParams network;
 	@Autowired
+	private PeerKit peerKit;
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
@@ -68,15 +74,16 @@ public class TransactionMessageProcess implements MessageProcess {
 		//交易逻辑验证，验证不通过抛出VerificationException
 		verifyTx(tx);
 		
-		
-		//转发交易
-		//TODO
-		
 		//加入内存池
 		boolean res = mempool.add(tx);
 		if(!res) {
-			log.error("加入内存池失败："+ tx.getHash());
+			log.error("加入内存池失败："+ id);
 		}
+		
+		//转发交易
+		InventoryItem item = new InventoryItem(Type.Transaction, id);
+		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
+		peerKit.broadcastMessage(invMessage);
 
 		//验证是否是转入到我账上的交易
 		checkIsMine(tx);

@@ -21,6 +21,8 @@ import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeHelper;
+import org.inchain.core.BroadcastResult;
+import org.inchain.core.BroadcasterComponent;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -28,6 +30,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
@@ -315,18 +318,28 @@ public class AccountKit {
 		if(!rs.getResult().isSuccess()) {
 			throw new MoneyNotEnoughException(rs.getResult().getMessage());
 		}
+
+		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+		boolean success = MempoolContainerMap.getInstace().add(tx);
 		
-		//TODO 广播结果
-		peerKit.broadcastTransaction(tx);
+		if(success) {
 		
-		//成功
-		//加入内存池
-		MempoolContainerMap.getInstace().add(tx);
-		
-		//更新交易记录
-		transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-		
-		return tx.getHash().toString();
+			//TODO 广播结果
+			try {
+				BroadcastResult broadcastResult = peerKit.broadcast(tx).get();
+				
+				//成功
+				
+				//更新交易记录
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+				
+				return tx.getHash().toString();
+			} catch (Exception e) {
+				return "error";
+			}
+		} else {
+			return "error";
+		}
 	}
 	
 	/*
@@ -659,7 +672,7 @@ public class AccountKit {
 			log.debug("accreg tx id : {}", tx.getHash());
 			log.debug("accreg tx content : {}", Hex.encode(tx.baseSerialize()));
 		}
-		peerKit.broadcastTransaction(tx);
+		peerKit.broadcastMessage(tx);
 	}
 
 	//加载现有的帐户

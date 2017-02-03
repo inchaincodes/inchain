@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.PostConstruct;
-
+import org.inchain.core.BroadcastContext;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.Peer;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
@@ -34,16 +34,19 @@ public class InventoryMessageProcess implements MessageProcess {
 	
 	//由于新区块的同步，需要线程阻塞，等待同步完成通知，避免重复下载，所以加入一个固定的线程池，异步执行，以免阻塞影响其它消息的接收执行
 	private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+	//区块下载锁
+	private static Lock blockLocker = new ReentrantLock();
+	//交易下载锁
+	private static Lock txLocker = new ReentrantLock();
+
+	private AtomicLong blockHeight = new AtomicLong();
 	
 	@Autowired
 	private InventoryFilter filter;
 	@Autowired
 	private PeerKit peerKit;
 	
-	//区块下载锁
-	private static Lock blockLocker = new ReentrantLock();
-	
-	private AtomicLong blockHeight = new AtomicLong();
 	
 	@Override
 	public MessageProcessResult process(final Message message, final Peer peer) {
@@ -60,26 +63,58 @@ public class InventoryMessageProcess implements MessageProcess {
 		}
 		
 		for (final InventoryItem inventoryItem : invList) {
-			if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
-				//新区块诞生
-				executorService.submit(new Runnable() {
-					@Override
-					public void run() {
-						newBlockInventory(inventoryItem, peer);
-					}
-				});
-			} else {
-				//如果已经接收过，就跳过
-				if(filter.contains(inventoryItem.getHash().getBytes())) {
-					continue;
-				} else {
-					filter.insert(inventoryItem.getHash().getBytes());
-					doProcessInventoryItem(inventoryItem);
-				}
-			}
+			processInventoryItem(peer, inventoryItem);
 		}
 		
 		return null;
+	}
+
+	//处理明细
+	private void processInventoryItem(final Peer peer, final InventoryItem inventoryItem) {
+		//如果已经接收并处理过了，就跳过
+		if(filter.contains(inventoryItem.getHash().getBytes())) {
+			return;
+		} else if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
+			//新区块诞生
+			executorService.submit(new Runnable() {
+				@Override
+				public void run() {
+					newBlockInventory(inventoryItem, peer);
+				}
+			});
+		} else if(inventoryItem.getType() == InventoryItem.Type.Transaction) {
+			//交易的inv
+			txInventory(inventoryItem, peer);
+		} else {
+			//默认处理
+			filter.insert(inventoryItem.getHash().getBytes());
+			doProcessInventoryItem(inventoryItem);
+		}
+	}
+
+	/*
+	 * 交易的inv
+	 */
+	protected void txInventory(InventoryItem inventoryItem, Peer peer) {
+		txLocker.lock();
+		try {
+			//当本地有广播结果等待时，代表该交易由我广播出去的，则不下载
+			boolean needDown = false;
+			
+			BroadcastResult broadcastResult = BroadcastContext.get().get(inventoryItem.getHash());
+			if(broadcastResult == null) {
+				needDown = true;
+			} else {
+				broadcastResult.addReply(peer);
+			}
+			if(needDown) {
+				//下载交易
+				peer.sendMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
+				filter.insert(inventoryItem.getHash().getBytes());
+			}
+		} finally {
+			txLocker.unlock();
+		}
 	}
 
 	/*
