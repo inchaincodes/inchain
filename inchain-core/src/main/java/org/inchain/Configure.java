@@ -69,7 +69,7 @@ public final class Configure {
 	/**
 	 * 数据存储目录
 	 */
-	public static String DATA_DIR = getProperty("data.dir", "./data");
+	public static String DATA_DIR = getProperty("data.dir", System.getProperty("user.dir").concat("/data"));
 	/**
 	 * 账户存储目录
 	 */
