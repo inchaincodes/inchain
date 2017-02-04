@@ -12,6 +12,7 @@ import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
+import org.inchain.message.RejectMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.BlockStoreProvider;
@@ -61,34 +62,40 @@ public class TransactionMessageProcess implements MessageProcess {
 		if(log.isDebugEnabled()) {
 			log.debug("transaction message {}", Hex.encode(tx.baseSerialize()));
 		}
-		
-		//验证交易的合法性
-		tx.verfifyScript();
-		
-		Sha256Hash id = tx.getHash();
-		
-		if(log.isDebugEnabled()) {
-			log.debug("verify success! tx id : {}", id);
+		try {
+			//验证交易的合法性
+			tx.verfifyScript();
+			
+			Sha256Hash id = tx.getHash();
+			
+			if(log.isDebugEnabled()) {
+				log.debug("verify success! tx id : {}", id);
+			}
+			
+			//交易逻辑验证，验证不通过抛出VerificationException
+			verifyTx(tx);
+			
+			//加入内存池
+			boolean res = mempool.add(tx);
+			if(!res) {
+				log.error("加入内存池失败："+ id);
+			}
+			
+			//转发交易
+			InventoryItem item = new InventoryItem(Type.Transaction, id);
+			InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
+			peerKit.broadcastMessage(invMessage);
+	
+			//验证是否是转入到我账上的交易
+			checkIsMine(tx);
+			
+			return new MessageProcessResult(tx.getHash(), true);
+		} catch (Exception e) {
+			log.error("tx error ", e);
+			RejectMessage replyMessage = new RejectMessage(network);
+			//TODO
+			return new MessageProcessResult(tx.getHash(), false, replyMessage);
 		}
-		
-		//交易逻辑验证，验证不通过抛出VerificationException
-		verifyTx(tx);
-		
-		//加入内存池
-		boolean res = mempool.add(tx);
-		if(!res) {
-			log.error("加入内存池失败："+ id);
-		}
-		
-		//转发交易
-		InventoryItem item = new InventoryItem(Type.Transaction, id);
-		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
-		peerKit.broadcastMessage(invMessage);
-
-		//验证是否是转入到我账上的交易
-		checkIsMine(tx);
-		
-		return new MessageProcessResult();
 	}
 
 	//交易逻辑验证，验证不通过抛出VerificationException

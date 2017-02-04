@@ -1,9 +1,7 @@
 package org.inchain.msgprocess;
 
-import org.inchain.SpringContextUtils;
 import org.inchain.core.Peer;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.InventoryItem;
@@ -51,7 +49,11 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 			log.debug("new block : {}", block.getHash());
 		}
 		
-		super.process(message, peer);
+		MessageProcessResult result = super.process(message, peer);
+		
+		if(!result.isSuccess()) {
+			return result;
+		}
 		
 		Sha256Hash hash = block.getHash();
 		
@@ -64,18 +66,12 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		if(log.isDebugEnabled()) {
 			log.debug("new block {} saved", hash);
 		}
-		
-		if(peer.getBlockDownendListener() != null) {
-			peer.getBlockDownendListener().downend(block.getHeight());
-		} else {
-			InventoryFilter filter = SpringContextUtils.getBean(InventoryFilter.class);
-			filter.insert(hash.getBytes());
-		}
+
 		//转发
 		InventoryItem item = new InventoryItem(Type.NewBlock, hash);
 		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
 		peerKit.broadcastMessage(invMessage, peer);
 		
-		return null;
+		return result;
 	}
 }

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.inchain.account.Account;
 import org.inchain.account.Address;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -155,14 +156,13 @@ public class SendAmountController implements SubPageController {
     	
 		//验证通过，调用接口广播交易
     	try {
-    		String result = accountKit.sendMoney(address, money, feeCoin);
+    		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
     		//返回的交易id，则成功
-    		if(result.length() == 64) {
-    			DailogUtil.showTip("发送成功", x, y);
+    		if(broadcastResult.isSuccess()) {
     			loadNewestBalance();
-    		} else {
-    			DailogUtil.showTip(result, x, y);
+    			resetForms();
     		}
+    		DailogUtil.showTip(broadcastResult.getResult(), 2000, x, y);
     	} catch (Exception e) {
         	DailogUtil.showTip(e.getMessage(), x, y);
         	log.error(e.getMessage(), e);

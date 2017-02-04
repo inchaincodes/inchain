@@ -11,6 +11,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.Message;
+import org.inchain.message.RejectMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
@@ -70,9 +71,8 @@ public class BlockMessageProcess implements MessageProcess {
 		
 		lock.lock();
 		
+		Block block = (Block) message;
 		try {
-			Block block = (Block) message;
-			
 			VersionMessage peerVersion = peer.getPeerVersionMessage();
 			if(peerVersion != null) {
 				peerVersion.bestHeight = block.getHeight();
@@ -81,12 +81,12 @@ public class BlockMessageProcess implements MessageProcess {
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(header != null) {
 				//已经存在
-				return null;
+				return replyRejectMessage(block);
 			}
 			
 			//验证区块消息的合法性
 			if(!verifyBlock(block)) {
-				return null;
+				return replyRejectMessage(block);
 			}
 			
 			//验证通过 ，存储区块数据
@@ -103,10 +103,11 @@ public class BlockMessageProcess implements MessageProcess {
 			}
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
+			return replyRejectMessage(block);
 		} finally {
 			lock.unlock();
 		}
-		return null;
+		return new MessageProcessResult(block.getHash(), true);
 	}
 
 	/*
@@ -164,5 +165,16 @@ public class BlockMessageProcess implements MessageProcess {
 			return false;
 		}
 		return true;
+	}
+	
+	/**
+	 * 回复拒绝消息
+	 * @param block
+	 * @return MessageProcessResult
+	 */
+	protected MessageProcessResult replyRejectMessage(Block block) {
+		RejectMessage replyMessage = new RejectMessage(network);
+		//TODO
+		return new MessageProcessResult(block.getHash(), false, replyMessage);
 	}
 }

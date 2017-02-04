@@ -19,10 +19,9 @@ import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeHelper;
-import org.inchain.core.BroadcastResult;
-import org.inchain.core.BroadcasterComponent;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -30,7 +29,6 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
-import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
@@ -245,7 +243,7 @@ public class AccountKit {
 	 * @return String
 	 * @throws MoneyNotEnoughException
 	 */
-	public String sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
+	public BroadcastResult sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
 		
@@ -322,24 +320,30 @@ public class AccountKit {
 		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 		boolean success = MempoolContainerMap.getInstace().add(tx);
 		
-		if(success) {
+		BroadcastResult broadcastResult = null;
 		
-			//TODO 广播结果
+		if(success) {
+			//广播结果
 			try {
-				BroadcastResult broadcastResult = peerKit.broadcast(tx).get();
+				broadcastResult = peerKit.broadcast(tx);
+				//等待广播回应
+				broadcastResult.get();
 				
 				//成功
-				
-				//更新交易记录
-				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-				
-				return tx.getHash().toString();
+				if(broadcastResult.isSuccess()) {
+					//更新交易记录
+					transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+				}
 			} catch (Exception e) {
-				return "error";
+				broadcastResult.setSuccess(false);
+				broadcastResult.setResult("广播出错，"+e.getMessage());
 			}
 		} else {
-			return "error";
+			broadcastResult = new BroadcastResult();
+			broadcastResult.setSuccess(false);
+			broadcastResult.setResult("重复的交易，禁止广播");
 		}
+		return broadcastResult;
 	}
 	
 	/*

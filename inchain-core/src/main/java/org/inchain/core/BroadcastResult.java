@@ -14,10 +14,14 @@ import org.springframework.util.concurrent.SettableListenableFuture;
 
 public class BroadcastResult {
 
-    private static final Logger log = LoggerFactory.getLogger(BroadcastResult.class);
+    private final static Logger log = LoggerFactory.getLogger(BroadcastResult.class);
     
 	private final SettableListenableFuture<BroadcastResult> future =  new SettableListenableFuture<BroadcastResult>();
 
+	//广播结果
+	private boolean success;
+	//结果信息
+	private String result;
 	//等待对等体数量
 	private int numWaitingFor;
 	//消息的hash
@@ -30,7 +34,7 @@ public class BroadcastResult {
 	private Set<Peer> peerReplys = new HashSet<Peer>();
 	
 	public BroadcastResult get() throws InterruptedException, ExecutionException, TimeoutException {
-		return future.get(5, TimeUnit.SECONDS);
+		return future.get(10, TimeUnit.SECONDS);
 	}
 	
 	/**
@@ -45,6 +49,8 @@ public class BroadcastResult {
 		}
 		if(broadcastPeerReplys.size() + peerReplys.size() >= numWaitingFor) {
             log.info("broadcast: {} complete, {} , {} peer reply", hash, broadcastPeerReplys.size(), peerReplys.size());
+            success = true;
+			result = "成功";
 			future.set(BroadcastContext.get().remove(hash));
 		}
 	}
@@ -71,5 +77,21 @@ public class BroadcastResult {
 
 	public void setNumWaitingFor(int numWaitingFor) {
 		this.numWaitingFor = numWaitingFor;
+	}
+
+	public boolean isSuccess() {
+		return success;
+	}
+
+	public void setSuccess(boolean success) {
+		this.success = success;
+	}
+
+	public String getResult() {
+		return result;
+	}
+
+	public void setResult(String result) {
+		this.result = result;
 	}
 }

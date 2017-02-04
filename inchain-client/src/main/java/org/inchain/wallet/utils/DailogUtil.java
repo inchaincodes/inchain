@@ -12,28 +12,34 @@ import javafx.scene.text.Font;
  *
  */
 public class DailogUtil {
+	
+	public final static long DEFAULT_HIDE_TIME = 1000l;
 
 	public static void showTip(String message) {
 		Tooltip tip = new Tooltip(message);
 		tip.setFont(Font.font("宋体", 14));
 		tip.show(Context.stage);
 		
-		hideDailog(tip);
+		hideDailog(tip, DEFAULT_HIDE_TIME);
 	}
 	
 	public static void showTip(String message, double x, double y) {
+		showTip(message, DEFAULT_HIDE_TIME, x, y);
+	}
+	
+	public static void showTip(String message, long hideTime, double x, double y) {
 		Tooltip tip = new Tooltip(message);
 		tip.setFont(Font.font("宋体", 14));
 		tip.show(Context.stage, x, y);
 		
-		hideDailog(tip);
+		hideDailog(tip, hideTime);
 	}
 
-	private static void hideDailog(final Tooltip tip) {
+	private static void hideDailog(final Tooltip tip, final long hideTime) {
 		new Thread(){
     		public void run() {
     			try {
-					Thread.sleep(1000l);
+					Thread.sleep(hideTime);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
