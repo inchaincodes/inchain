@@ -8,10 +8,5 @@ import javafx.stage.Stage;
  *
  */
 public class Context {
-
 	public static Stage stage;
-	
-	public static Stage getStage() {
-		return stage;
-	}
 }
