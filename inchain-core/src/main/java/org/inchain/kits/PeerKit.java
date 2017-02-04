@@ -244,7 +244,6 @@ public class PeerKit {
 	 * 达到minConnections时，将调用EnoughAvailablePeersListener.addCallback
 	 * @param minConnections
 	 * @param enoughAvailablePeersListener 
-	 * @return EnoughAvailablePeersListener
 	 */
 	public void waitForPeers(final int minConnections, final EnoughAvailablePeersListener enoughAvailablePeersListener) {
 		if(enoughAvailablePeersListener == null) {
