@@ -7,9 +7,8 @@ import org.inchain.message.Message;
  * @author ln
  *
  */
-public class GetDataResult {
+public class GetDataResult extends Result {
 	//结果
-	private boolean success;
 	private Message data;
 
 	public GetDataResult(boolean success) {
@@ -19,10 +18,6 @@ public class GetDataResult {
 	public GetDataResult(Message data, boolean success) {
 		this.data = data;
 		this.success = success;
-	}
-	
-	public boolean isSuccess() {
-		return success;
 	}
 	
 	public Message getData() {

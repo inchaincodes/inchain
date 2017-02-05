@@ -106,9 +106,19 @@ public class Account {
 	 * @return Account
 	 */
 	public static Account parse(byte[] datas, NetworkParams network) {
+		return parse(datas, 0, network);
+	}
+	
+	/**
+	 * 反序列化
+	 * @param datas
+	 * @param offset
+	 * @return Account
+	 */
+	public static Account parse(byte[] datas, int offset, NetworkParams network) {
 		Account account = new Account();
 		
-		int cursor = 0;
+		int cursor = offset;
 		//状态
 		account.setStatus(datas[cursor]);
 		cursor ++;
@@ -290,6 +300,7 @@ public class Account {
 				throw new VerificationException("account verify fail");
 			}
 		}
+		signs = tempSigns;
 	}
 	
 	/**

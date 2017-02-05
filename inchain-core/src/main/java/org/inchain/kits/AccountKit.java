@@ -4,12 +4,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
@@ -21,6 +23,7 @@ import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
+import org.inchain.core.Result;
 import org.inchain.core.TimeHelper;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
@@ -43,6 +46,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.inchain.validator.TransactionValidator;
@@ -52,6 +56,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
  * 账户管理
@@ -336,12 +341,12 @@ public class AccountKit {
 				}
 			} catch (Exception e) {
 				broadcastResult.setSuccess(false);
-				broadcastResult.setResult("广播出错，"+e.getMessage());
+				broadcastResult.setMessage("广播出错，"+e.getMessage());
 			}
 		} else {
 			broadcastResult = new BroadcastResult();
 			broadcastResult.setSuccess(false);
-			broadcastResult.setResult("重复的交易，禁止广播");
+			broadcastResult.setMessage("重复的交易，禁止广播");
 		}
 		return broadcastResult;
 	}
@@ -678,8 +683,125 @@ public class AccountKit {
 		}
 		peerKit.broadcastMessage(tx);
 	}
-
-	//加载现有的帐户
+	
+	/**
+	 * 备份钱包
+	 * @param backupFilePath 备份文件路径
+	 * @return Result 成功则result.message返回备份文件的完整路径
+	 * @throws IOException 
+	 */
+	public Result backupWallet(String backupFilePath) throws IOException {
+		//目录是否存在，不存在则创建，如果传入的是一个目录，则自动生成备份的文件名
+		if(StringUtils.isEmpty(backupFilePath)) {
+			return new Result(false, "备份路径为空");
+		}
+		//账户存在才能备份
+		if(accountList == null || accountList.size() == 0) {
+			log.warn("系统内没有可备份的账户");
+			return new Result(false, "系统内没有可备份的账户");
+		}
+		File backupFile = new File(backupFilePath);
+		//判断上级目录是否存在，不存在则创建
+		if(!backupFile.getParentFile().exists() && !backupFile.getParentFile().mkdirs()) {
+			return new Result(false, "创建目录失败");
+		}
+		//如果传入的文件夹，则生成备份文件
+		if(backupFile.isDirectory()) {
+			if(!backupFile.exists() && !backupFile.mkdir()) {
+				return new Result(false, "创建目录失败");
+			}
+			backupFile = new File(backupFile, "wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")).concat(".dat"));
+		}
+		//创建备份文件
+		if(!backupFile.exists() && !backupFile.createNewFile()) {
+			return new Result(false, "创建文件失败");
+		}
+		//备份账户
+		FileOutputStream fos = new FileOutputStream(backupFile);
+		try {
+			for (Account account : accountList) {
+				fos.write(account.serialize());
+			}
+			return new Result(true, backupFile.getAbsolutePath());
+		} finally {
+			fos.close();
+		}
+	}
+	
+	/**
+	 * 导入钱包
+	 * @param walletFilePath 钱包文件路径
+	 * @return boolean 是否导入成功
+	 * @throws IOException 
+	 */
+	public Result importWallet(String walletFilePath) throws IOException {
+		//导入的文件路径不能为空
+		if(StringUtils.isEmpty(walletFilePath)) {
+			return new Result(false, "导入的文件路径为空");
+		}
+		File walletFile = new File(walletFilePath);
+		//判断将要导入的钱包文件是否存在
+		if(!walletFile.exists()) {
+			return new Result(false, "要导入的钱包文件不存在");
+		}
+		//覆盖账户
+		FileInputStream fis = new FileInputStream(walletFile);
+		try {
+			byte[] datas = new byte[fis.available()];
+			fis.read(datas);
+	
+			int index = 0;
+			//导入的账户列表
+			List<Account> importAccountList = new ArrayList<Account>();
+			while(index < datas.length) {
+				Account ac = Account.parse(datas, index, network);
+				index += ac.serialize().length;
+				try {
+					//验证不通过的忽略
+					ac.verify();
+					importAccountList.add(ac);
+				} catch (Exception e) {
+					log.warn("导入{}时出错", ac.getAddress().getBase58(), e);
+				}
+			}
+			
+			if(importAccountList.size() == 0) {
+				return new Result(false, "导入了0个账户");
+			}
+			//备份原账户
+			for (Account account : accountList) {
+				String base58 = account.getAddress().getBase58();
+				String newBackupFile = base58 + "_auto_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
+				new File(accountDir, base58 + ".dat")
+					.renameTo(new File(accountDir, newBackupFile));
+			}
+			for (Account account : importAccountList) {
+				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+				
+				FileOutputStream fos = new FileOutputStream(accountFile);
+				try {
+					fos.write(account.serialize());
+				} finally {
+					fos.close();
+				}
+			}
+			//重新加载账户
+			loadAccount();
+			//更新余额
+			loadBalanceFromChainstateAndUnconfirmedTransaction(getAccountHash160s());
+			return new Result(true, "成功导入了"+importAccountList.size()+"个账户");
+		} catch (Exception e) {
+			log.error("导入钱包失败，{}", e.getMessage(), e);
+			return new Result(false, "导入钱包失败,"+e.getMessage());
+		} finally {
+			fis.close();
+		}
+	}
+	
+	/**
+	 * 加载现有的帐户
+	 * @throws IOException
+	 */
 	public void loadAccount() throws IOException {
 		this.accountList.clear();
 		
@@ -690,7 +812,14 @@ public class AccountKit {
 		}
 		
 		//加载帐户目录下的所有帐户
-		for (File accountFile : accountDirFile.listFiles()) {
+		File[] accountFiles = accountDirFile.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".dat");
+			}
+		});
+		
+		for (File accountFile : accountFiles) {
 			if(accountFile.isDirectory()) {
 				continue;
 			}
@@ -848,6 +977,10 @@ public class AccountKit {
 	 */
 	public void setTransactionListener(TransactionListener transactionListener) {
 		this.transactionListener = transactionListener;
+	}
+	
+	public TransactionListener getTransactionListener() {
+		return transactionListener;
 	}
 	
 	/**

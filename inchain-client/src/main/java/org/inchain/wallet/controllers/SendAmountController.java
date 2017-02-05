@@ -9,7 +9,6 @@ import org.inchain.core.Coin;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.wallet.Context;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,11 +83,7 @@ public class SendAmountController implements SubPageController {
      * 发送交易
      */
     protected void sendAmount() {
-    	
-    	//提示框位置
-    	double x = Context.stage.getX() + (Context.stage.getWidth() - 100) / 2;
-    	double y = Context.stage.getY() + (Context.stage.getHeight() - 30) / 2;
-    	
+
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	NetworkParams network = InchainInstance.getInstance().getAppKit().getNetwork();
     	
@@ -97,7 +92,7 @@ public class SendAmountController implements SubPageController {
     	//验证接收地址
     	if("".equals(address)) {
     		receiveAddressId.requestFocus();
-    		DailogUtil.showTip("请输入接收地址", x, y);
+    		DailogUtil.showTip("请输入接收地址");
     		return;
     	} else {
     		//验证地址合法性
@@ -105,7 +100,7 @@ public class SendAmountController implements SubPageController {
     			Address.fromBase58(network, address);
     		} catch (Exception e) {
         		receiveAddressId.requestFocus();
-        		DailogUtil.showTip("错误的接收地址", x, y);
+        		DailogUtil.showTip("错误的接收地址");
         		return;
 			}
     	}
@@ -118,7 +113,7 @@ public class SendAmountController implements SubPageController {
     		feeCoin = Coin.parseCoin(fee);
 		} catch (Exception e) {
 			sendAmountId.requestFocus();
-    		DailogUtil.showTip("错误的手续费金额", x, y);
+    		DailogUtil.showTip("错误的手续费金额");
     		return;
 		}
     	if(feeCoin.compareTo(Coin.ZERO) <= 0) {
@@ -130,7 +125,7 @@ public class SendAmountController implements SubPageController {
     	//验证金额
     	if("".equals(amount)) {
     		sendAmountId.requestFocus();
-    		DailogUtil.showTip("请输入发送金额", x, y);
+    		DailogUtil.showTip("请输入发送金额");
     		return;
     	} else {
     		//验证金额合法性
@@ -138,18 +133,18 @@ public class SendAmountController implements SubPageController {
     			money = Coin.parseCoin(amount);
     			if(money.compareTo(Coin.MAX) > 0) {
     				sendAmountId.requestFocus();
-    				DailogUtil.showTip("发送金额超过可用余额", x, y);
+    				DailogUtil.showTip("发送金额超过可用余额");
     				return;
     			}
     			Coin balance = accountKit.getCanUseBalance();
     			if(money.add(feeCoin).compareTo(balance) > 0) {
     				sendAmountId.requestFocus();
-    				DailogUtil.showTip("发送金额超过可用余额", x, y);
+    				DailogUtil.showTip("发送金额超过可用余额");
     				return;
     			}
     		} catch (Exception e) {
     			sendAmountId.requestFocus();
-        		DailogUtil.showTip("错误的金额", x, y);
+        		DailogUtil.showTip("错误的金额");
         		return;
 			}
     	}
@@ -162,9 +157,9 @@ public class SendAmountController implements SubPageController {
     			loadNewestBalance();
     			resetForms();
     		}
-    		DailogUtil.showTip(broadcastResult.getResult(), 2000, x, y);
+    		DailogUtil.showTip(broadcastResult.getMessage(), 2000);
     	} catch (Exception e) {
-        	DailogUtil.showTip(e.getMessage(), x, y);
+        	DailogUtil.showTip(e.getMessage());
         	log.error(e.getMessage(), e);
 		}
 	}

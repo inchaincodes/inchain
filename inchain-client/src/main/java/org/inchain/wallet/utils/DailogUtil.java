@@ -16,11 +16,13 @@ public class DailogUtil {
 	public final static long DEFAULT_HIDE_TIME = 1000l;
 
 	public static void showTip(String message) {
-		Tooltip tip = new Tooltip(message);
-		tip.setFont(Font.font("宋体", 14));
-		tip.show(Context.stage);
-		
-		hideDailog(tip, DEFAULT_HIDE_TIME);
+    	showTip(message, DEFAULT_HIDE_TIME);
+	}
+	
+	public static void showTip(String message, long hideTime) {
+    	double x = Context.stage.getX() + (Context.stage.getWidth() - 100) / 2;
+    	double y = Context.stage.getY() + (Context.stage.getHeight() - 30) / 2;
+    	showTip(message, hideTime, x, y);
 	}
 	
 	public static void showTip(String message, double x, double y) {
@@ -46,7 +48,7 @@ public class DailogUtil {
     			close();
     		}
 			private void close() {
-				//1秒消失
+				//延时自动消失
     			Platform.runLater(new Runnable() {
     			    @Override
     			    public void run() {

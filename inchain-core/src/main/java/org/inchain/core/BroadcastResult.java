@@ -12,16 +12,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.concurrent.SettableListenableFuture;
 
-public class BroadcastResult {
+/**
+ * 广播结果
+ * @author ln
+ *
+ */
+public class BroadcastResult extends Result {
 
     private final static Logger log = LoggerFactory.getLogger(BroadcastResult.class);
     
 	private final SettableListenableFuture<BroadcastResult> future =  new SettableListenableFuture<BroadcastResult>();
 
-	//广播结果
-	private boolean success;
-	//结果信息
-	private String result;
 	//等待对等体数量
 	private int numWaitingFor;
 	//消息的hash
@@ -50,7 +51,7 @@ public class BroadcastResult {
 		if(broadcastPeerReplys.size() + peerReplys.size() >= numWaitingFor) {
             log.info("broadcast: {} complete, {} , {} peer reply", hash, broadcastPeerReplys.size(), peerReplys.size());
             success = true;
-			result = "成功";
+			message = "成功";
 			future.set(BroadcastContext.get().remove(hash));
 		}
 	}
@@ -85,13 +86,5 @@ public class BroadcastResult {
 
 	public void setSuccess(boolean success) {
 		this.success = success;
-	}
-
-	public String getResult() {
-		return result;
-	}
-
-	public void setResult(String result) {
-		this.result = result;
 	}
 }

@@ -6,12 +6,14 @@ import java.util.List;
 
 import org.inchain.account.Account;
 import org.inchain.account.Address;
+import org.inchain.core.Result;
 import org.inchain.core.TimeHelper;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +23,6 @@ import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.FileChooser;
-import javafx.stage.Stage;
 
 /**
  * 账户信息控制器
@@ -70,6 +71,12 @@ public class AccountInfoController implements SubPageController {
     			encryptWallet();
     		}
     	});
+    	//设置文件格式
+        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("DAT files (*.dat)", "*.dat");  
+        fileChooser.getExtensionFilters().add(extFilter);
+        //默认选择程序运行目录
+        fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+        
     }
 
 	/**
@@ -116,25 +123,32 @@ public class AccountInfoController implements SubPageController {
 	private void backupWallet() {
 		//创建一个文件选择器
 		fileChooser.setTitle("设置钱包备份路径");
-		//设置文件格式
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("DAT files (*.dat)", "*.dat");  
-        fileChooser.getExtensionFilters().add(extFilter);
-        //默认选择程序运行目录
-        fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
         //默认备份文件名
         fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
-        Stage stage = new Stage();
 		File file = fileChooser.showSaveDialog(Context.stage);
 		if(file==null) {
 			return;
 		}
 		//用户选择的完整路径
-		String exportFilePath = file.getAbsolutePath();
+		String backupFilePath = file.getAbsolutePath();
 		//去掉用户自己设置的后缀.dat
-		if(exportFilePath.endsWith(".dat") || exportFilePath.endsWith(".DAT")) {
-			exportFilePath = exportFilePath.substring(0, exportFilePath.length() - 4).concat(".dat");
+		if(backupFilePath.endsWith(".dat") || backupFilePath.endsWith(".DAT")) {
+			backupFilePath = backupFilePath.substring(0, backupFilePath.length() - 4).concat(".dat");
 		}
-		log.info("选择的路径为 "+ exportFilePath);
+		//备份
+    	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+    	try {
+    		Result result = accountKit.backupWallet(backupFilePath);
+    		if(result.isSuccess()) {
+        		DailogUtil.showTip("备份成功");
+    		} else {
+    			log.error("备份钱包失败,{}", result);
+    			DailogUtil.showTip("备份钱包失败," + result.getMessage());
+    		}
+    	} catch (Exception e) {
+    		log.error("备份钱包时出错 {} ", e.getMessage(), e);
+    		DailogUtil.showTip("备份钱包时出错" + e.getMessage());
+		}
 	}
 
 	/*
@@ -143,25 +157,34 @@ public class AccountInfoController implements SubPageController {
 	private void importWallet() {
 		//创建一个文件选择器
 		fileChooser.setTitle("选择需要导入的钱包文件");
-		//设置文件格式
-        FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("DAT files (*.dat)", "*.dat");  
-        fileChooser.getExtensionFilters().add(extFilter);
-        //默认选择程序运行目录
-        fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
         //默认备份文件名
         fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
-        Stage stage = new Stage();
 		File file = fileChooser.showOpenDialog(Context.stage);
 		if(file==null) {
 			return;
 		}
 		//用户选择的完整路径
-		String exportFilePath = file.getAbsolutePath();
+		String walletFilePath = file.getAbsolutePath();
 		//去掉用户自己设置的后缀.dat
-		if(exportFilePath.endsWith(".dat") || exportFilePath.endsWith(".DAT")) {
-			exportFilePath = exportFilePath.substring(0, exportFilePath.length() - 4).concat(".dat");
+		if(walletFilePath.endsWith(".dat") || walletFilePath.endsWith(".DAT")) {
+			walletFilePath = walletFilePath.substring(0, walletFilePath.length() - 4).concat(".dat");
 		}
-		log.info("选择的钱包文件为 "+ exportFilePath);
+		//备份
+    	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+    	try {
+    		Result result = accountKit.importWallet(walletFilePath);
+    		if(result.isSuccess()) {
+    			//更新余额及交易记录
+    			accountKit.getTransactionListener().newTransaction(null);
+        		DailogUtil.showTip(result.getMessage());
+    		} else {
+    			log.error("导入钱包失败,{}", result);
+    			DailogUtil.showTip("导入钱包失败," + result.getMessage());
+    		}
+    	} catch (Exception e) {
+    		log.error("导入钱包时出错 {} ", e.getMessage(), e);
+    		DailogUtil.showTip("导入钱包时出错" + e.getMessage());
+		}
 	}
 	
 	/*
