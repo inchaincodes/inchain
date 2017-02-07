@@ -4,15 +4,13 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * <p>An instance of EncryptedData is a holder for an initialization vector and encrypted bytes. It is typically
- * used to hold encrypted private key bytes.</p>
+ * 加密后的数据
+ * @author ln
  *
- * <p>The initialisation vector is random data that is used to initialise the AES block cipher when the
- * private key bytes were encrypted. You need these for decryption.</p>
  */
 public final class EncryptedData {
-    public final byte[] initialisationVector;
-    public final byte[] encryptedBytes;
+    private byte[] initialisationVector;		//iv
+    private byte[] encryptedBytes;			//加密结果
 
     public EncryptedData(byte[] initialisationVector, byte[] encryptedBytes) {
         this.initialisationVector = Arrays.copyOf(initialisationVector, initialisationVector.length);
@@ -37,4 +35,20 @@ public final class EncryptedData {
         return "EncryptedData [initialisationVector=" + Arrays.toString(initialisationVector)
             + ", encryptedPrivateKey=" + Arrays.toString(encryptedBytes) + "]";
     }
+
+	public byte[] getInitialisationVector() {
+		return initialisationVector;
+	}
+
+	public byte[] getEncryptedBytes() {
+		return encryptedBytes;
+	}
+
+	public void setInitialisationVector(byte[] initialisationVector) {
+		this.initialisationVector = initialisationVector;
+	}
+
+	public void setEncryptedBytes(byte[] encryptedBytes) {
+		this.encryptedBytes = encryptedBytes;
+	}
 }

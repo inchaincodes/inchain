@@ -1,5 +1,6 @@
 package org.inchain.wallet.controllers;
 
+import java.net.URL;
 import java.util.List;
 
 import org.inchain.account.Account;
@@ -16,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -151,17 +153,41 @@ public class SendAmountController implements SubPageController {
     	
 		//验证通过，调用接口广播交易
     	try {
-    		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
-    		//返回的交易id，则成功
-    		if(broadcastResult.isSuccess()) {
-    			loadNewestBalance();
-    			resetForms();
+    		//如果账户已加密，则需要先解密
+    		if(accountKit.accountIsEncrypted()) {
+    			//解密账户
+    			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+		        FXMLLoader loader = new FXMLLoader(location);
+		        final AccountKit accountKitTemp = accountKit;
+		        final String addressTemp = address;
+		        final Coin feeCoinTemp = feeCoin;
+		        final Coin moneyTemp = money;
+				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
+					@Override
+					public void run() {
+						if(!accountKit.accountIsEncrypted()) {
+				    		sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp);
+			    			accountKit.resetKeys();
+						}
+					}
+				});
+    		} else {
+	    		sendMoney(accountKit, address, money, feeCoin);
     		}
-    		DailogUtil.showTip(broadcastResult.getMessage(), 2000);
     	} catch (Exception e) {
         	DailogUtil.showTip(e.getMessage());
         	log.error(e.getMessage(), e);
 		}
+	}
+
+    public void sendMoney(AccountKit accountKit, String address, Coin money, Coin feeCoin) {
+		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
+		//返回的交易id，则成功
+		if(broadcastResult.isSuccess()) {
+			loadNewestBalance();
+			resetForms();
+		}
+		DailogUtil.showTip(broadcastResult.getMessage(), 2000);
 	}
     
     /**

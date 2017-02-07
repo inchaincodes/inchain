@@ -1,6 +1,7 @@
 package org.inchain.wallet.controllers;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Date;
 import java.util.List;
 
@@ -18,8 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.stage.FileChooser;
@@ -51,32 +51,16 @@ public class AccountInfoController implements SubPageController {
 	 */
     public void initialize() {
     	//点击备份钱包事件
-    	backupWalletId.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				backupWallet();
-			}
-		});
+    	backupWalletId.setOnAction(e -> backupWallet());
     	//点击导入钱包事件
-    	importWalletId.setOnAction(new EventHandler<ActionEvent>() {
-    		@Override
-    		public void handle(ActionEvent event) {
-    			importWallet();
-    		}
-    	});
+    	importWalletId.setOnAction(e -> importWallet());
     	//点击加密钱包事件
-    	encryptWalletId.setOnAction(new EventHandler<ActionEvent>() {
-    		@Override
-    		public void handle(ActionEvent event) {
-    			encryptWallet();
-    		}
-    	});
+    	encryptWalletId.setOnAction(e -> encryptWallet());
     	//设置文件格式
         FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("DAT files (*.dat)", "*.dat");  
         fileChooser.getExtensionFilters().add(extFilter);
         //默认选择程序运行目录
         fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
-        
     }
 
 	/**
@@ -101,6 +85,18 @@ public class AccountInfoController implements SubPageController {
 			    }
 			});
     	}
+    	
+		//判断账户是否加密
+    	Platform.runLater(new Runnable() {
+		    @Override
+		    public void run() {
+				if(accountKit.accountIsEncrypted()) {
+		    		encryptWalletId.setText("修改钱包密码");
+				} else {
+					encryptWalletId.setText("加密钱包");
+				} 
+		    }
+		});
     }
 
 	public void setAccountInfoListener(AccountInfoListener accountInfoListener) {
@@ -125,7 +121,7 @@ public class AccountInfoController implements SubPageController {
 		fileChooser.setTitle("设置钱包备份路径");
         //默认备份文件名
         fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
-		File file = fileChooser.showSaveDialog(Context.stage);
+		File file = fileChooser.showSaveDialog(Context.getMainStage());
 		if(file==null) {
 			return;
 		}
@@ -159,7 +155,7 @@ public class AccountInfoController implements SubPageController {
 		fileChooser.setTitle("选择需要导入的钱包文件");
         //默认备份文件名
         fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
-		File file = fileChooser.showOpenDialog(Context.stage);
+		File file = fileChooser.showOpenDialog(Context.getMainStage());
 		if(file==null) {
 			return;
 		}
@@ -192,5 +188,33 @@ public class AccountInfoController implements SubPageController {
 	 */
 	private void encryptWallet() {
 		
+		try {
+			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+			//判断账户是否加密
+			if(accountKit.accountIsEncrypted()) {
+				//修改密码
+				URL location = getClass().getResource("/resources/template/changeWalletPassword.fxml");
+		        FXMLLoader loader = new FXMLLoader(location);
+		        
+				DailogUtil.showDailog(loader, "修改钱包密码");
+			} else {
+				//加密
+				URL location = getClass().getResource("/resources/template/encryptWallet.fxml");
+		        FXMLLoader loader = new FXMLLoader(location);
+		        
+				DailogUtil.showDailog(loader, "加密钱包", new Runnable() {
+					@Override
+					public void run() {
+						AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+						//判断账户是否加密
+						if(accountKit.accountIsEncrypted()) {
+				    		encryptWalletId.setText("修改钱包密码");
+						}
+					}
+				});
+			}
+		} catch (Exception e) {
+			log.error("加密钱包出错" ,e);
+		}
 	}
 }

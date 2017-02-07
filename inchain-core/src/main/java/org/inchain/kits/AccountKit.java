@@ -273,6 +273,10 @@ public class AccountKit {
 		
 		//当前余额
 		Account account = accountList.get(0);
+		if(account.isEncrypted()) {
+			throw new VerificationException("账户已加密");
+		}
+		
 		Address myAddress = account.getAddress();
 		
 		//可用余额
@@ -291,7 +295,7 @@ public class AccountKit {
 		
 		Coin totalInputCoin = Coin.ZERO;
 		
-		ECKey key = ECKey.fromPrivate(new BigInteger(account.getPriSeed()));
+		ECKey key = account.getEcKey();
 		
 		//选择输入
 		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
@@ -314,8 +318,15 @@ public class AccountKit {
 		
 		//签名交易
 		final LocalTransactionSigner signer = new LocalTransactionSigner();
-		signer.signInputs(tx, key);
-
+		try {
+			signer.signInputs(tx, key);
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			BroadcastResult broadcastResult = new BroadcastResult();
+			broadcastResult.setSuccess(false);
+			broadcastResult.setMessage("签名失败");
+			return broadcastResult;
+		}
 		//验证交易是否合法
 		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
 		if(!rs.getResult().isSuccess()) {
@@ -799,6 +810,137 @@ public class AccountKit {
 	}
 	
 	/**
+	 * 加密钱包
+	 * @param password  密码
+	 * @return Result
+	 */
+	public Result encryptWallet(String password) {
+		//密码位数和难度检测
+		if(!validPassword(password)) {
+			return new Result(false, "输入的密码需6位或以上，且包含字母和数字");
+		}
+		
+		int successCount = 0; //成功个数
+		//加密钱包
+		for (Account account : accountList) {
+			//判断是否已经加密了
+			if(account.isEncrypted()) {
+				continue;
+			}
+			ECKey eckey = account.getEcKey();
+			try {
+				ECKey newKey = eckey.encrypt(password);
+				account.setEcKey(newKey);
+				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+				
+				//重新签名
+				account.signAccount(eckey, null);
+				
+				//回写到钱包文件
+				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+				
+				FileOutputStream fos = new FileOutputStream(accountFile);
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+					successCount++;
+				} finally {
+					fos.close();
+				}
+			} catch (Exception e) {
+				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
+				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+			} finally {
+				eckey = null;
+			}
+		}
+		String message = null;
+		if(successCount > 0) {
+			message = "成功加密"+successCount+"个账户";
+		} else {
+			message = "账户已加密，无需重复加密";
+		}
+		return new Result(true, message);
+	}
+	
+	/**
+	 * 解密钱包
+	 * @param password  密码
+	 * @return Result
+	 */
+	public Result decryptWallet(String password) {
+		//密码位数和难度检测
+		if(!validPassword(password)) {
+			return new Result(false, "密码错误");
+		}
+		for (Account account : accountList) {
+			account.resetKey(password);
+			ECKey eckey = account.getEcKey();
+			try {
+				account.setEcKey(eckey.decrypt(password));
+			} catch (Exception e) {
+				log.error("解密失败, "+e.getMessage(), e);
+				account.setEcKey(eckey);
+				return new Result(false, "密码错误");
+			}
+		}
+		return new Result(true, "解密成功");
+	}
+	
+	/**
+	 * 修改钱包密码
+	 * 如果没有加密的账户，会被新密码加密
+	 * @param oldPassword   原密码
+	 * @param newPassword 	新密码
+	 * @return Result
+	 */
+	public Result changeWalletPassword(String oldPassword, String newPassword) {
+		//密码位数和难度检测
+		if(!validPassword(oldPassword) || !validPassword(newPassword)) {
+			return new Result(false, "密码需6位或以上，且包含字母和数字");
+		}
+		
+		//先解密
+		Result res = decryptWallet(oldPassword);
+		if(!res.isSuccess()) {
+			return res;
+		}
+		
+		int successCount = 0; //成功个数
+		//加密钱包
+		for (Account account : accountList) {
+			ECKey eckey = account.getEcKey();
+			try {
+				ECKey newKey = eckey.encrypt(newPassword);
+				account.setEcKey(newKey);
+				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+				
+				//重新签名
+				account.signAccount(eckey, null);
+				
+				//回写到钱包文件
+				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+				
+				FileOutputStream fos = new FileOutputStream(accountFile);
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+					successCount++;
+				} finally {
+					fos.close();
+				}
+			} catch (Exception e) {
+				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
+				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+			} finally {
+				eckey = null;
+			}
+		}
+		String message = "成功修改"+successCount+"个账户的密码";
+		return new Result(true, message);
+	}
+	
+	/**
 	 * 加载现有的帐户
 	 * @throws IOException
 	 */
@@ -989,5 +1131,47 @@ public class AccountKit {
 	 */
 	public void setNoticeListener(NoticeListener noticeListener) {
 		transactionStoreProvider.setNoticeListener(noticeListener);
+	}
+	
+	/**
+	 * 校验密码难度
+	 * @param password
+	 * @return boolean
+	 */
+	public static boolean validPassword(String password) {
+		if(StringUtils.isEmpty(password)){  
+            return false;  
+        } 
+		if(password.length() < 6){  
+            return false;  
+        }  
+        if(password.matches("(.*)[a-zA-z](.*)") && password.matches("(.*)\\d+(.*)")){  
+            return true;  
+        } else {
+        	return false;
+        }
+	}
+	
+	/**
+	 * 判断账户实际已加密
+	 * 规则，只要有一个账户已加密，则代表已加密 ，因为不能用多个密码加密不同的账户，这样用户管理起来非常麻烦
+	 * @return boolean
+	 */
+	public boolean accountIsEncrypted() {
+		for (Account account : accountList) {
+			if(account.isEncrypted()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 重新设置账户的私钥
+	 */
+	public void resetKeys() {
+		for (Account account : accountList) {
+			account.resetKey();
+		}
 	}
 }

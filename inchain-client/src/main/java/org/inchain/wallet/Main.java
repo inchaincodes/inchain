@@ -64,7 +64,7 @@ public class Main extends Application implements ActionListener {
 	 */
 	@Override
 	public void start(final Stage stage) throws Exception {
-		Context.stage = stage;
+		Context.addStage("main", stage);
 		this.stage = stage;
     	
 		//设置程序标题

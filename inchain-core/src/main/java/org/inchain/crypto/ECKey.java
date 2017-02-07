@@ -1,10 +1,14 @@
 package org.inchain.crypto;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
+import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
@@ -59,6 +63,8 @@ public class ECKey {
 	
 	protected final BigInteger priv;  	// 私匙
     private final ECPoint pub;			//公匙
+    
+    protected EncryptedData encryptedPrivateKey;
     
     protected long creationTimeSeconds;
     
@@ -143,6 +149,18 @@ public class ECKey {
             privKey = privKey.mod(CURVE.getN());
         }
         return new FixedPointCombMultiplier().multiply(CURVE.getG(), privKey);
+    }
+    
+	/**
+	 * 通过加密的私钥创建ECKey
+	 * @param encryptedPrivateKey
+	 * @param pubKey
+	 * @return ECKey
+	 */
+	public static ECKey fromEncrypted(EncryptedData encryptedPrivateKey, byte[] pubKey) {
+        ECKey key = fromPublicOnly(pubKey);
+        key.encryptedPrivateKey = checkNotNull(encryptedPrivateKey);
+        return key;
     }
     
     public Address toAddress(NetworkParams params) {
@@ -349,7 +367,7 @@ public class ECKey {
 		return sign(hash, null);
 	}
 	
-	public ECDSASignature sign(Sha256Hash hash, KeyParameter aesKey) throws KeyCrypterException {
+	public ECDSASignature sign(Sha256Hash hash, KeyParameter aesKey) {
         return doSign(hash, priv);
     }
 	
@@ -381,4 +399,72 @@ public class ECKey {
 	public boolean hasPrivKey() {
         return priv != null;
     }
+	
+	/**
+	 * 公钥是否压缩
+	 * @return boolean
+	 */
+	public boolean isCompressed() {
+        return pub.isCompressed();
+    }
+	
+	/**
+	 * aes加密
+	 * @param password
+	 * @return ECKey
+	 * @throws KeyCrypterException
+	 */
+	public ECKey encrypt(String password) throws KeyCrypterException {
+        Utils.checkNotNull(password);
+        
+        final byte[] privKeyBytes = getPrivKeyBytes();
+
+        byte[] iv = Arrays.copyOf(AccountTool.genPrivKey1(getPubKey(), password.getBytes()).toByteArray(), 16);
+        EncryptedData encryptedPrivateKey = AESEncrypt.encrypt(privKeyBytes, iv, new KeyParameter(Sha256Hash.hash(password.getBytes())));
+
+        ECKey result = ECKey.fromEncrypted(encryptedPrivateKey, getPubKey());
+        result.setCreationTimeSeconds(Utils.currentTimeSeconds());
+
+        return result;
+    }
+	
+	/**
+	 * 解密
+	 * @param password
+	 * @return ECKey
+	 * @throws KeyCrypterException
+	 */
+	public ECKey decrypt(String password) throws KeyCrypterException {
+
+        Utils.checkNotNull(password);
+        
+        byte[] unencryptedPrivateKey = AESEncrypt.decrypt(encryptedPrivateKey, new KeyParameter(Sha256Hash.hash(password.getBytes())));
+        BigInteger newPriv = new BigInteger(1, unencryptedPrivateKey);
+        ECKey key = ECKey.fromPrivate(newPriv);
+        
+        if (!Arrays.equals(key.getPubKey(), getPubKey()))
+            throw new KeyCrypterException("密码错误");
+        key.setCreationTimeSeconds(Utils.currentTimeSeconds());
+        key.encryptedPrivateKey = encryptedPrivateKey;
+        return key;
+    }
+	
+	/**
+	 * 设置创建时间
+	 * @param creationTimeSeconds
+	 */
+	public void setCreationTimeSeconds(long creationTimeSeconds) {
+		this.creationTimeSeconds = creationTimeSeconds;
+	}
+	
+	public long getCreationTimeSeconds() {
+		return creationTimeSeconds;
+	}
+	
+	public EncryptedData getEncryptedPrivateKey() {
+		return encryptedPrivateKey;
+	}
+	public void setEncryptedPrivateKey(EncryptedData encryptedPrivateKey) {
+		this.encryptedPrivateKey = encryptedPrivateKey;
+	}
 }

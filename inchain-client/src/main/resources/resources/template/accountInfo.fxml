@@ -44,9 +44,9 @@
       </HBox>
       <HBox layoutY="87.0" prefHeight="30.0" spacing="10.0">
          <children>
+            <Button mnemonicParsing="false" text="加密钱包" fx:id="encryptWalletId"/>
             <Button mnemonicParsing="false" text="备份钱包" fx:id="backupWalletId"/>
             <Button mnemonicParsing="false" text="导入钱包" fx:id="importWalletId"/>
-            <Button mnemonicParsing="false" text="加密钱包" fx:id="encryptWalletId"/>
          </children>
          <padding>
             <Insets left="20.0" top="20.0" />

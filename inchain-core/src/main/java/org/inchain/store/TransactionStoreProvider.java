@@ -176,7 +176,7 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 			}
 		} else {
 			//交易状态变化
-			if(noticeListener != null) {
+			if(noticeListener != null && ts.getHeight() != -1l) {
 				noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
 			}
 		}

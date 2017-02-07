@@ -9,6 +9,7 @@ import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.ECKey.ECDSASignature;
+import org.inchain.crypto.EncryptedData;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
@@ -24,6 +25,8 @@ import org.slf4j.LoggerFactory;
 public class Account {
 	
 	private static Logger log = LoggerFactory.getLogger(Account.class);
+	
+	private NetworkParams network;
 	
 	//账户类型
 	private int accountType;
@@ -46,6 +49,9 @@ public class Account {
 	private ECKey[] mgEckeys;
 	//解密后的交易私钥
 	private ECKey[] trEckeys;
+	
+	//eckey，只有系统类型的账户才会有
+	private ECKey ecKey;
 	
 	public Account() {
 	}
@@ -116,7 +122,10 @@ public class Account {
 	 * @return Account
 	 */
 	public static Account parse(byte[] datas, int offset, NetworkParams network) {
+		
 		Account account = new Account();
+		
+		account.network = network;
 		
 		int cursor = offset;
 		//状态
@@ -143,9 +152,9 @@ public class Account {
 			//公匙
 			length = datas[cursor] & 0xff;
 			cursor ++;
-			byte[] mgPubkey1 = readBytes(cursor, length, datas);
+			byte[] pubkey = readBytes(cursor, length, datas);
 			cursor += length;
-			account.setMgPubkeys(new byte[][] {mgPubkey1});
+			account.setMgPubkeys(new byte[][] {pubkey});
 			
 			//主体
 			cursor += 4;
@@ -158,6 +167,8 @@ public class Account {
 			
 			account.setSigns(new byte[][] {sign1});
 			
+			//eckey
+			account.resetKey();
 		} else if(type == network.getCertAccountVersion()) {
 			//私匙种子
 			int length = datas[cursor] & 0xff;
@@ -212,6 +223,36 @@ public class Account {
 		
 		return account;
 	}
+
+	public void resetKey() {
+		resetKey(null);
+	}
+	
+	public void resetKey(String password) {
+		if(accountType != network.getSystemAccountVersion()) {
+			return;
+		}
+		byte[] pubkey = mgPubkeys[0];
+		if(!isEncrypted()) {
+			//未加密的账户
+			setEcKey(ECKey.fromPrivate(new BigInteger(getPriSeed())));
+		} else {
+			byte[] iv = null;
+			if(password == null) {
+				iv = Arrays.copyOf(Sha256Hash.hash(pubkey), 16);
+			} else {
+				iv = Arrays.copyOf(AccountTool.genPrivKey1(pubkey, password.getBytes()).toByteArray(), 16);
+			}
+			//加密账户
+			if(ecKey == null || ecKey.getEncryptedPrivateKey() == null) {
+				setEcKey(ECKey.fromEncrypted(new EncryptedData(iv, getPriSeed()), pubkey));
+			} else {
+				EncryptedData encryptData = ecKey.getEncryptedPrivateKey();
+				encryptData.setInitialisationVector(iv);
+				setEcKey(ECKey.fromEncrypted(encryptData, pubkey));
+			}
+		}
+	}
 	
 	private static byte[] readBytes(int offset, int length, byte[] datas) {
 		byte[] des = new byte[length];
@@ -259,6 +300,7 @@ public class Account {
 
 	//签名帐户
 	public void signAccount(ECKey mgkey1, ECKey mgkey2) throws IOException {
+		signs = null;
 		if(mgkey1 == null && mgkey2 == null) {
 			return;
 		} else if(mgkey1 != null && mgkey2 == null) {
@@ -350,6 +392,34 @@ public class Account {
 			return null;
 		}
 	}
+
+	/**
+	 * 账户是否已加密
+	 * @return boolean
+	 */
+	public boolean isEncrypted() {
+		if(accountType == network.getSystemAccountVersion()) {
+			if(ecKey == null) {
+				return true;
+			}
+			//没有私钥也代表已加密
+			try {
+				ecKey.getPrivKey();
+			} catch (Exception e) {
+				return true;
+			}
+			//公钥
+			byte[] pubkey = mgPubkeys[0];
+			//公钥相同则代表未加密
+			if(Arrays.equals(ecKey.getPubKey(), pubkey)) {
+				return false;
+			} else {
+				return true;
+			}
+		} else {
+			return true;
+		}
+	}
 	
 	public Address getAddress() {
 		return address;
@@ -412,5 +482,13 @@ public class Account {
 
 	public void setAccountType(int accountType) {
 		this.accountType = accountType;
+	}
+	
+	public void setEcKey(ECKey ecKey) {
+		this.ecKey = ecKey;
+	}
+	
+	public ECKey getEcKey() {
+		return ecKey;
 	}
 }
