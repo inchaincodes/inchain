@@ -165,9 +165,12 @@ public class SendAmountController implements SubPageController {
 				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
 					@Override
 					public void run() {
-						if(!accountKit.accountIsEncrypted()) {
-				    		sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp);
-			    			accountKit.resetKeys();
+						if(!accountKit.accountIsEncrypted(2)) {
+							try {
+								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp);
+							} finally {
+								accountKitTemp.resetKeys();
+							}
 						}
 					}
 				});
@@ -181,13 +184,17 @@ public class SendAmountController implements SubPageController {
 	}
 
     public void sendMoney(AccountKit accountKit, String address, Coin money, Coin feeCoin) {
-		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
-		//返回的交易id，则成功
-		if(broadcastResult.isSuccess()) {
-			loadNewestBalance();
-			resetForms();
+    	try {
+			BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
+			//返回的交易id，则成功
+			if(broadcastResult.isSuccess()) {
+				loadNewestBalance();
+				resetForms();
+			}
+			DailogUtil.showTip(broadcastResult.getMessage(), 2000);
+    	} catch (Exception e) {
+    		DailogUtil.showTip(e.getMessage(), 3000);
 		}
-		DailogUtil.showTip(broadcastResult.getMessage(), 2000);
 	}
     
     /**

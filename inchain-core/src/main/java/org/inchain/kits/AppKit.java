@@ -67,7 +67,7 @@ public class AppKit {
 	 * 启动核心
 	 * @throws IOException 
 	 */
-	protected void start() throws IOException {
+	public void start() throws IOException {
 		//初始化节点管理器
 		initPeerKit();
 		//检查区块数据

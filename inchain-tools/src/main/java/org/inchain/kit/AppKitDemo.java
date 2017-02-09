@@ -4,6 +4,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 
 import org.inchain.Configure;
+import org.inchain.account.AccountBody;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.listener.Listener;
@@ -40,7 +41,7 @@ public class AppKitDemo {
 				try {
 					Thread.sleep(1000l);
 					if(accountKit.getAccountList().isEmpty()) {
-						accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
+						accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty());
 					}
 				} catch (Exception e) {
 					e.printStackTrace();

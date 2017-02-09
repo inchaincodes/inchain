@@ -281,6 +281,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				}
 			}
+		} else if(transaction.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+			//账户注册交易
+			CertAccountRegisterTransaction certTx = (CertAccountRegisterTransaction) transaction;
+			if(accountFilter.contains(certTx.getHash160())) {
+				updateMineTx(txs);
+			}
 		}
 	}
 
@@ -520,6 +526,15 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
 						//参与共识交易
 						
+					} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+						//账户注册交易
+						CertAccountRegisterTransaction certTx = (CertAccountRegisterTransaction) tx;
+						for (byte[] hash160 : hash160s) {
+							if(Arrays.equals(certTx.getHash160(), hash160)) {
+								mineTxs.add(new TransactionStore(network, tx, block.getHeight(), new byte[]{}));
+								break;
+							}
+						}
 					}
 				}
 				nextHash = nextBlockStore.getNextHash();

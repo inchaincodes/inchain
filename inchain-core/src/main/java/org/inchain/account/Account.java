@@ -13,6 +13,7 @@ import org.inchain.crypto.EncryptedData;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
+import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class Account {
 	//交易公匙
 	private byte[][] trPubkeys;
 	//帐户主体
-	private byte[] body;
+	private AccountBody body;
 	//帐户信息签名
 	private byte[][] signs;
 	
@@ -53,7 +54,14 @@ public class Account {
 	//eckey，只有系统类型的账户才会有
 	private ECKey ecKey;
 	
+	//认证账户对应最新的交易信息
+	private Transaction accountTransaction;
+	
 	public Account() {
+	}
+	
+	public Account(NetworkParams network) {
+		this.network = network;
 	}
 	
 	/**
@@ -88,8 +96,9 @@ public class Account {
 			}
 			//帐户主体
 			if(body != null) {
-				Utils.uint32ToByteStreamLE(body.length, bos);
-				bos.write(body);
+				byte[] bodyContent = body.serialize();
+				Utils.uint32ToByteStreamLE(bodyContent.length, bos);
+				bos.write(bodyContent);
 			} else {
 				Utils.uint32ToByteStreamLE(0l, bos);
 			}
@@ -205,7 +214,7 @@ public class Account {
 			//主体
 			length = (int) Utils.readUint32(datas, cursor);
 			cursor += 4;
-			account.setBody(readBytes(cursor, length, datas));
+			account.setBody(new AccountBody(readBytes(cursor, length, datas)));
 			cursor += length;
 			
 			//签名
@@ -225,7 +234,12 @@ public class Account {
 	}
 
 	public void resetKey() {
-		resetKey(null);
+		if(isCertAccount()) {
+			mgEckeys = null;
+			trEckeys = null;
+		} else {
+			resetKey(null);
+		}
 	}
 	
 	public void resetKey(String password) {
@@ -279,7 +293,7 @@ public class Account {
 			}
 		}
 		
-		size += body == null? 4:body.length + 4;
+		size += body == null? 4:body.serialize().length + 4;
 		
 		if(signs != null) {
 			for (byte[] sign : signs) {
@@ -297,8 +311,25 @@ public class Account {
 		
 		return null;
 	}
+	
+	/**
+	 * 签名账户
+	 * @throws IOException
+	 */
+	public void signAccount() throws IOException {
+		if(isCertAccount()) {
+			signAccount(mgEckeys[0], mgEckeys[1]);
+		} else {
+			signAccount(ecKey, null);
+		}
+	}
 
-	//签名帐户
+	/**
+	 * 签名账户
+	 * @param mgkey1
+	 * @param mgkey2
+	 * @throws IOException
+	 */
 	public void signAccount(ECKey mgkey1, ECKey mgkey2) throws IOException {
 		signs = null;
 		if(mgkey1 == null && mgkey2 == null) {
@@ -399,8 +430,9 @@ public class Account {
 	 */
 	public boolean isEncrypted() {
 		if(accountType == network.getSystemAccountVersion()) {
+			//普通账户
 			if(ecKey == null) {
-				return true;
+				return false;
 			}
 			//没有私钥也代表已加密
 			try {
@@ -417,8 +449,77 @@ public class Account {
 				return true;
 			}
 		} else {
+			//认证账户，调用isEncryptedOfMg和isEncryptedOfTr判断
 			return true;
 		}
+	}
+	
+	/**
+	 * 认证账户管理私钥是否已加密
+	 * @return boolean
+	 */
+	public boolean isEncryptedOfMg() {
+		Utils.checkState(accountType == network.getCertAccountVersion());
+		//认证账户
+		if(mgEckeys == null) {
+			return true;
+		} else {
+			boolean result = false;
+			for (int i = 0; i < mgEckeys.length; i++) {
+				ECKey key = mgEckeys[i];
+				if(!Arrays.equals(key.getPubKey(), mgPubkeys[i])) {
+					result = true;
+					break;
+				}
+			}
+			return result;
+		}
+	}
+	
+	/**
+	 * 认证账户交易私钥是否已加密
+	 * @return boolean
+	 */
+	public boolean isEncryptedOfTr() {
+		Utils.checkState(accountType == network.getCertAccountVersion());
+		//认证账户
+		if(trEckeys == null) {
+			return true;
+		} else {
+			boolean result = false;
+			for (int i = 0; i < trEckeys.length; i++) {
+				ECKey key = trEckeys[i];
+				if(!Arrays.equals(key.getPubKey(), trPubkeys[i])) {
+					result = true;
+					break;
+				}
+			}
+			return result;
+		}
+	}
+	
+	/**
+	 * 账户是否是认证账户
+	 * @return boolean
+	 */
+	public boolean isCertAccount() {
+		return accountType == network.getCertAccountVersion();
+	}
+	
+	/**
+	 * 认证账户，获取账户信息最新交易
+	 * @return Transaction
+	 */
+	public Transaction getAccountTransaction() {
+		return accountTransaction;
+	}
+	
+	/**
+	 * 设置认证账户信息对应最新交易
+	 * @param accountTransaction
+	 */
+	public void setAccountTransaction(Transaction accountTransaction) {
+		this.accountTransaction = accountTransaction;
 	}
 	
 	public Address getAddress() {
@@ -429,10 +530,12 @@ public class Account {
 		this.address = address;
 	}
 
-	public byte[] getBody() {
+
+	public AccountBody getBody() {
 		return body;
 	}
-	public void setBody(byte[] body) {
+
+	public void setBody(AccountBody body) {
 		this.body = body;
 	}
 
@@ -490,5 +593,28 @@ public class Account {
 	
 	public ECKey getEcKey() {
 		return ecKey;
+	}
+	
+	public NetworkParams getNetwork() {
+		return network;
+	}
+	public void setNetwork(NetworkParams network) {
+		this.network = network;
+	}
+
+	public ECKey[] getMgEckeys() {
+		return mgEckeys;
+	}
+
+	public void setMgEckeys(ECKey[] mgEckeys) {
+		this.mgEckeys = mgEckeys;
+	}
+
+	public ECKey[] getTrEckeys() {
+		return trEckeys;
+	}
+
+	public void setTrEckeys(ECKey[] trEckeys) {
+		this.trEckeys = trEckeys;
 	}
 }

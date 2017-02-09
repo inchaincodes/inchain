@@ -87,7 +87,7 @@ public abstract class CertAccountTransaction extends Transaction {
 		ECDSASignature ecSign2 = key2.sign(hash);
 		byte[] sign2 = ecSign2.encodeToDER();
 		
-		script = ScriptBuilder.createCertAccountSign(ScriptOpCodes.OP_VERMG, txid, network.getCertAccountManagerHash160(), sign1, sign2);
+		script = ScriptBuilder.createCertAccountSign(ScriptOpCodes.OP_VERTR, txid, network.getCertAccountManagerHash160(), sign1, sign2);
 		scriptBytes = script.getProgram();
 	}
 	

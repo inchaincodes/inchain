@@ -51,7 +51,7 @@ public class DecryptWalletController extends DailogController {
 		
 		//解密钱包并判断结果
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-    	Result result = accountKit.decryptWallet(password);
+    	Result result = accountKit.decryptWallet(password, 2);
 		if(result.isSuccess()) {
     		resetAndclose();
 		} else {

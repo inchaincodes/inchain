@@ -170,6 +170,14 @@ public class Address {
     public String getBase58() {
     	return Base58.encode(getHash());
     }
+    
+    /**
+     * 是否是认证账户地址
+     * @return boolean
+     */
+    public boolean isCertAccount() {
+    	return version == network.getCertAccountVersion();
+    }
 
     /**
      * 检查连接的网络是否允许当前地址前缀

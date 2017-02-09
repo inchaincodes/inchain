@@ -6,7 +6,7 @@ import java.io.File;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.Configure;
 import org.inchain.crypto.ECKey;
 import org.inchain.kits.AccountKit;
@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class AccountTest extends BaseTestCase {
+public class AccountTest extends UnitBaseTestCase {
 	
 	private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -63,7 +63,7 @@ public class AccountTest extends BaseTestCase {
 		try {
 			Thread.sleep(2000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
+				accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty());
 			}
 		} finally {
 			accountKit.close();

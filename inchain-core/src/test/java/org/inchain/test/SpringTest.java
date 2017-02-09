@@ -1,9 +1,9 @@
 package org.inchain.test;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.junit.Test;
 
-public class SpringTest extends BaseTestCase {
+public class SpringTest extends UnitBaseTestCase {
 	
 	@Test
 	public void testPrint() {

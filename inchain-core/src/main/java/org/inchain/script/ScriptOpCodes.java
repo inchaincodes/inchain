@@ -163,7 +163,7 @@ public final class ScriptOpCodes {
     public static final int OP_VERMG = 0xc1;
     //交易类型判断，栈顶元素是否是资金交易  Transaction.VERSION_PAY
     public static final int OP_VERTR = 0xc2;
-    //根据栈顶元素的交易hash获取公匙
+    //根据栈顶元素的交易hash获取公匙和hash160
     public static final int OP_PUBKEY = 0xc3;
     
     public static final int OP_INVALIDOPCODE = 0xff;

@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
@@ -23,7 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class BlockStoreProvderTest extends BaseTestCase {
+public class BlockStoreProvderTest extends UnitBaseTestCase {
 
 	@Autowired
 	private NetworkParams network;

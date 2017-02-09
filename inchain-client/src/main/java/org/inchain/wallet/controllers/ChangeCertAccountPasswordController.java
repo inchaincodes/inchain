@@ -7,14 +7,16 @@ import org.inchain.wallet.utils.DailogUtil;
 import org.springframework.util.StringUtils;
 
 import javafx.scene.control.Button;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 
 /**
- * 修改钱包密码
+ * 修改认证账户密码
  * @author ln
  *
  */
-public class ChangeWalletPasswordController extends DailogController {
+public class ChangeCertAccountPasswordController extends DailogController {
 
 	public TextField oldPasswordId;
 	public TextField passwordId;
@@ -22,6 +24,8 @@ public class ChangeWalletPasswordController extends DailogController {
 	
 	public Button okId;
 	public Button cancelId;
+	
+	public ToggleGroup type;
 	
 	public void initialize() {
 		cancelId.setOnAction(e -> resetAndclose());
@@ -44,6 +48,7 @@ public class ChangeWalletPasswordController extends DailogController {
 	private void encryptWallet() {
 		
 		//校验密码
+		
 		String oldPassword = oldPasswordId.getText();
 		String password = passwordId.getText();
 		String passwordRepeat = repeatId.getText();
@@ -68,10 +73,13 @@ public class ChangeWalletPasswordController extends DailogController {
 			DailogUtil.showTip("输入的密码需6位或以上，且包含字母和数字", getThisStage());
 			return;
 		}
+
+		RadioButton radioButton = (RadioButton) type.getSelectedToggle();
+		String type = radioButton.getId();
 		
 		//修改密码并判断结果
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-    	Result result = accountKit.changeWalletPassword(oldPassword, password);
+    	Result result = accountKit.changeWalletPassword(oldPassword, password, "mgpwd".equals(type) ? 1 : 2);
 		if(result.isSuccess()) {
     		DailogUtil.showTip(result.getMessage());
     		resetAndclose();

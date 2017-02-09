@@ -193,9 +193,13 @@ public class AccountInfoController implements SubPageController {
 			//判断账户是否加密
 			if(accountKit.accountIsEncrypted()) {
 				//修改密码
-				URL location = getClass().getResource("/resources/template/changeWalletPassword.fxml");
+				URL location = null;
+				if(accountKit.isCertAccount()) {
+					location = getClass().getResource("/resources/template/changeCertAccountPassword.fxml");
+				} else {
+					location = getClass().getResource("/resources/template/changeWalletPassword.fxml");
+				}
 		        FXMLLoader loader = new FXMLLoader(location);
-		        
 				DailogUtil.showDailog(loader, "修改钱包密码");
 			} else {
 				//加密

@@ -5,6 +5,7 @@ import java.io.File;
 import org.inchain.Configure;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
+import org.inchain.network.NetworkParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -40,10 +41,11 @@ public class RegisterAccount {
 		peerKit.startSyn();
 		
 		AccountKit accountKit = springContext.getBean(AccountKit.class);
+		NetworkParams networkParams = springContext.getBean(NetworkParams.class);
 		try {
 			Thread.sleep(1000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				Account account = accountKit.createNewCertAccount("123456", "0123456", new byte[0]);
+				Account account = accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty());
 				log.info("new address is : "+account.getAddress().getBase58());
 			}
 		} finally {

@@ -43,7 +43,7 @@ public class TransactionOutput implements Output {
     }
 	
 	public TransactionOutput(Transaction parent, Coin value, Address to) {
-		this(parent, value, 0l, ScriptBuilder.createOutputScript(to).getProgram());
+		this(parent, value, 0l, to);
 	}
 	public TransactionOutput(Transaction parent, Coin value, long lockTime, Address to) {
 		this(parent, value, lockTime, ScriptBuilder.createOutputScript(to).getProgram());

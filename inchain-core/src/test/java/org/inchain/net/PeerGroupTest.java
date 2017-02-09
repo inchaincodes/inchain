@@ -1,11 +1,11 @@
 package org.inchain.net;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.kits.PeerKit;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class PeerGroupTest extends BaseTestCase {
+public class PeerGroupTest extends UnitBaseTestCase {
 
 	@Autowired
 	private PeerKit peerKit;

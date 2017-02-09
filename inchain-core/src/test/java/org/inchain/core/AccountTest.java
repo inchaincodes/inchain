@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.math.BigInteger;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class AccountTest extends BaseTestCase {
+public class AccountTest extends UnitBaseTestCase {
 	
 	private Logger log = LoggerFactory.getLogger(getClass());
 	

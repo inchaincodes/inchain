@@ -72,7 +72,7 @@ public final class AccountTool {
 			pwPriBytes[index+1] = pwSha256[index];
 		}
 		//生成账户管理的私匙
-		return new BigInteger(Sha256Hash.hash(pwPriBytes));
+		return new BigInteger(1, Sha256Hash.hash(pwPriBytes));
 	}
 	
 	/**
@@ -90,6 +90,6 @@ public final class AccountTool {
 			pwPriBytes[index+1] = privSeedSha256[index];
 		}
 		//生成账户管理的私匙
-		return new BigInteger(Sha256Hash.hash(pwPriBytes));
+		return new BigInteger(1, Sha256Hash.hash(pwPriBytes));
 	}
 }

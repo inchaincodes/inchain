@@ -189,16 +189,25 @@ public class Transaction extends Message {
         input.setScriptBytes(readBytes(signLength));
         input.setSequence(readUint32());
 
-        //通过公匙生成赎回脚本
-        ECKey key = ECKey.fromPublicOnly(input.getScriptSig().getPubKey());
-
-        //TODO 根据交易类型，生成对应的赎回脚本
-        
-		Script script = ScriptBuilder.createOutputScript(
-				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
-		
-        pre.setScript(script);
-        
+        //通过输入签名生成对应的赎回脚本
+        Script sc = input.getScriptSig();
+        if(sc.getChunks().size() == 2) {
+        	//普通账户
+        	ECKey key = ECKey.fromPublicOnly(sc.getPubKey());
+        	Script script = ScriptBuilder.createOutputScript(
+    				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
+    		
+            pre.setScript(script);
+        } else if(sc.getChunks().size() == 5) {
+        	//认证账户
+        	byte[] hash160 = sc.getChunks().get(4).data;
+        	Script script = ScriptBuilder.createOutputScript(
+    				new Address(network, network.getCertAccountVersion(), hash160));
+    		
+            pre.setScript(script);
+        } else {
+        	new VerificationException("错误的输入脚本");
+        }
         return input;
 	}
 
@@ -274,7 +283,6 @@ public class Transaction extends Message {
             for (int i = 0; i < tx.inputs.size(); i++) {
                 tx.getInputs().get(i).clearScriptBytes();
             }
-
             //清除上次交易脚本里的操作码
             redeemScript = Script.removeAllInstancesOfOp(redeemScript, ScriptOpCodes.OP_CODESEPARATOR);
 
@@ -389,7 +397,7 @@ public class Transaction extends Message {
     
     @Override
     public String toString() {
-    	return "tx: " +getHash();
+    	return "tx: " +getHash() + " inputSize:" + (inputs == null ? 0:inputs.size()) + " outputSize:" + (outputs == null ? 0:outputs.size());
     }
     
     public Input getInput(int index) {

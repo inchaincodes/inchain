@@ -26,19 +26,6 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 	private static final Map<Class<? extends Message>, String> FACTORYS = new HashMap<Class<? extends Message>, String>();
 
     static {
-//    	FACTORYS.put(PingMessage.class, PingMessageProcess");
-//    	FACTORYS.put(PongMessage.class, PongMessageProcess");
-//    	FACTORYS.put(VersionMessage.class, VersionMessageProcess");
-//    	FACTORYS.put(VerackMessage.class, VerackMessageProcess");
-////    	FACTORYS.put(RegisterTransaction.class, RegisterTransaction);
-//    	FACTORYS.put(BlockMessage.class, BlockMessageProcess");
-//    	FACTORYS.put(GetBlocksMessage.class, GetBlocksMessageProcess");
-//    	FACTORYS.put(NewBlockMessage.class, NewBlockMessageProcess");
-//    	FACTORYS.put(RegConsensusTransaction.class, RegConsensusMessageProcess");
-//    	FACTORYS.put(ConsensusMessage.class, ConsensusMessageProcess");
-//    	FACTORYS.put(InventoryMessage.class, InventoryMessageProcess");
-//    	FACTORYS.put(GetDatasMessage.class, GetDatasMessageProcess");
-    	
     	FACTORYS.put(PingMessage.class, "pingMessageProcess");
     	FACTORYS.put(PongMessage.class, "pongMessageProcess");
     	FACTORYS.put(VersionMessage.class, "versionMessageProcess");

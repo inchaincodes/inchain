@@ -74,6 +74,7 @@ public class GetDatasMessageProcess implements MessageProcess {
 			if(ts == null || ts.getTransaction() == null) {
 				//数据没找到，回应notfound
 				//TODO
+				return;
 			} else {
 				tx = ts.getTransaction();
 			}

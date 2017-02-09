@@ -2,12 +2,12 @@ package org.inchain.db;
 
 import java.io.IOException;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.db.Db;
 import org.inchain.db.LevelDB;
 import org.junit.Test;
 
-public class LevelDBTest extends BaseTestCase {
+public class LevelDBTest extends UnitBaseTestCase {
 
 	private static final String filepath = "./data/db/inchain";
 	

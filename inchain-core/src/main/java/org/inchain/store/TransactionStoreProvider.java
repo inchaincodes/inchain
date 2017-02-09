@@ -17,6 +17,7 @@ import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.script.Script;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -330,6 +331,9 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 		for (TransactionStore transactionStore : mineTxList) {
 			//获取转入交易转入的多少钱
 			Transaction tx = transactionStore.getTransaction();
+			if(!(tx.getType() == TransactionDefinition.TYPE_PAY || tx.getType() == TransactionDefinition.TYPE_COINBASE)) {
+				continue;
+			}
 			
 			byte[] key = tx.getHash().getBytes();
 			byte[] status = transactionStore.getStatus();
@@ -447,6 +451,26 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 			}
 		}
 		return txs;
+	}
+
+	/**
+	 * 获取认证账户信息对应的最新的交易记录
+	 * @param hash160
+	 * @return Transaction
+	 */
+	public Transaction getAccountInfosNewestTransaction(byte[] hash160) {
+		for (TransactionStore transactionStore : mineTxList) {
+			
+			Transaction tx = transactionStore.getTransaction();
+			if(tx instanceof CertAccountRegisterTransaction) {
+				//交易状态
+				byte[] status = chainstateStoreProvider.getBytes(hash160);
+				if(status != null) {
+					return tx;
+				}
+			}
+		}
+		return null;
 	}
 
 	public List<byte[]> getAddresses() {

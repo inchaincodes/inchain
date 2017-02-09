@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.List;
 
 import org.inchain.account.Account;
+import org.inchain.account.AccountBody.ContentType;
+import org.inchain.account.AccountBody.KeyValuePair;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeHelper;
@@ -16,6 +18,7 @@ import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.TransactionStore;
+import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -78,7 +81,12 @@ public class TransactionRecordController implements SubPageController {
     	datas.sort(new Comparator<TransactionEntity>() {
 			@Override
 			public int compare(TransactionEntity o1, TransactionEntity o2) {
-				return o2.getTime().compareTo(o1.getTime());
+				if(o1.getTime() == null || o2.getTime() == null) {
+					log.warn("交易时间为空");
+					return 0;
+				} else {
+					return o2.getTime().compareTo(o1.getTime());
+				}
 			}
 		});
     	
@@ -101,14 +109,12 @@ public class TransactionRecordController implements SubPageController {
 				
 				Transaction tx = txs.getTransaction();
 				
-				String type = null, detail = null, amount = null, time = null;
+				String type = null, detail = "", amount = null, time = null;
 				
 				if(tx.getType() == TransactionDefinition.TYPE_COINBASE || 
 						tx.getType() == TransactionDefinition.TYPE_PAY) {
 					
 					type = "转入";
-					
-					detail = "";
 					
 					//是否是转出
 					boolean isSendout = false;
@@ -140,7 +146,7 @@ public class TransactionRecordController implements SubPageController {
 							}
 							
 							if(script.isSentToAddress()) {
-								detail += "\r\n" + new Address(network, script.getChunks().get(2).data).getBase58()+"(-"+Coin.valueOf(fromOutput.getValue()).toText()+")";
+								detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(-"+Coin.valueOf(fromOutput.getValue()).toText()+")";
 							}
 						}
 					}
@@ -156,7 +162,7 @@ public class TransactionRecordController implements SubPageController {
 					for (Output output : outputs) {
 						Script script = output.getScript();
 						if(script.isSentToAddress()) {
-							detail += "\r\n" + new Address(network, script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
+							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
 							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
 								detail += "(永久锁定)";
 							} else if(((tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeHelper.currentTimeMillis()) ||
@@ -182,9 +188,27 @@ public class TransactionRecordController implements SubPageController {
 						type = "转出";
 					}
 					amount = fee.toText();
-					time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
+				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+					//认证账户注册
+					CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
+					type = "账户注册";
+					
+					List<KeyValuePair> bodyContents = crt.getBody().getContents();
+					for (KeyValuePair keyValuePair : bodyContents) {
+						if(ContentType.from(keyValuePair.getKey()) == ContentType.LOGO) {
+							//图标
+							
+						} else {
+							if(!"".equals(detail)) {
+								detail += "\r\n";
+							}
+							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+						}
+					}
+					amount = "-";
 				}
 				
+				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
 				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detail, amount, time));
 			}
 		}

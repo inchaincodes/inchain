@@ -1,9 +1,16 @@
 package org.inchain.transaction;
 
 import org.inchain.account.Account;
+import org.inchain.account.AccountBody;
+import org.inchain.account.AccountBody.ContentType;
+import org.inchain.account.AccountBody.KeyValuePair;
+import org.inchain.core.BroadcastResult;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
+import org.inchain.kits.AppKit;
+import org.inchain.kits.PeerKit;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -19,21 +26,33 @@ public class MakeCertAccountRegisterTransaction {
 		springContext.start();
 		
 		NetworkParams network = springContext.getBean(NetworkParams.class);
+		
+		AppKit appKit = springContext.getBean(AppKit.class);
+		appKit.start();
+		
 		AccountKit accountKit = springContext.getBean(AccountKit.class);
 		
 		try {
 			Account managerAccount = accountKit.getAccountList().get(0);
 			
-			byte[] body = "食品测试公司".getBytes();
-			Account account = accountKit.createNewCertAccount("123456", "000000", body);
+			ECKey[] eckeys = managerAccount.decryptionTr("inchain123");
+			
+			if(eckeys == null) {
+				return;
+			}
+			
+			Sha256Hash mgtx = Sha256Hash.wrap(Hex.decode("9c890b3c4a3dd4599b445e3d40034bc5c289df7e37e391f2648124f2c273d608"));
+			
+			KeyValuePair[] values = {
+					new KeyValuePair(ContentType.NAME, "食品测试公司"),
+			};
+			AccountBody body = new AccountBody(values);
+			
+			Account account = accountKit.createNewCertAccount("ssssss0", "ssssss1", body);
 			System.out.println("base58 : " + account.getAddress().getBase58());
 			System.out.println("hash160: " + Hex.encode(account.getAddress().getHash160()));
 			
 			CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
-			
-			ECKey[] eckeys = managerAccount.decryptionMg("123456");
-			
-			Sha256Hash mgtx = Sha256Hash.wrap(Hex.decode("f8841e56f0f499f7c6c809c8224d8bbde4538d75bdef0c6b1bbf170f317fe700"));
 			
 			System.out.println("mgtx is : "+mgtx);
 			
@@ -53,8 +72,14 @@ public class MakeCertAccountRegisterTransaction {
 			
 			System.out.println(Hex.encode(rtx.baseSerialize()));
 			System.out.println("tx id is :" +rtx.getHash());
-			System.out.println(new String(rtx.getBody()));
+			System.out.println(rtx.getBody());
 
+			MempoolContainerMap.getInstace().add(rtx);
+			
+			PeerKit peerKit = springContext.getBean(PeerKit.class);
+			BroadcastResult res = peerKit.broadcast(rtx).get();
+			System.out.println(res);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {

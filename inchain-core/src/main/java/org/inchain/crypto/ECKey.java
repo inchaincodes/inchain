@@ -316,6 +316,7 @@ public class ECKey {
                 // Thus, we always use the positive versions. See: http://r6.ca/blog/20111119T211504Z.html
                 return new ECDSASignature(r.getPositiveValue(), s.getPositiveValue());
             } catch (IOException e) {
+            	e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
                 if (decoder != null)

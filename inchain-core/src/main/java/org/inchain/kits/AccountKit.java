@@ -19,6 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
+import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
@@ -271,15 +272,21 @@ public class AccountKit {
 			throw new VerificationException("没有可用账户");
 		}
 		
-		//当前余额
+		//账户是否已加密
 		Account account = accountList.get(0);
-		if(account.isEncrypted()) {
+		if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+				(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
 			throw new VerificationException("账户已加密");
+		}
+		
+		//如果是认证账户，但是没有被收录进链里，则账户不可用
+		if(account.isCertAccount() && account.getAccountTransaction() == null) {
+			throw new VerificationException("账户不可用");
 		}
 		
 		Address myAddress = account.getAddress();
 		
-		//可用余额
+		//当前余额可用余额
 		Coin balance = myAddress.getBalance();
 		
 		//检查余额是否充足
@@ -295,15 +302,19 @@ public class AccountKit {
 		
 		Coin totalInputCoin = Coin.ZERO;
 		
-		ECKey key = account.getEcKey();
-		
 		//选择输入
 		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
 		
 		for (TransactionOutput output : fromOutputs) {
 			TransactionInput input = new TransactionInput(output);
 			//创建一个输入的空签名
-			input.setScriptSig(ScriptBuilder.createInputScript(null, key));
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的签名
+				input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+			} else {
+				//认证账户的签名
+				input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+			}
 			tx.addInput(input);
 			
 			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
@@ -319,7 +330,13 @@ public class AccountKit {
 		//签名交易
 		final LocalTransactionSigner signer = new LocalTransactionSigner();
 		try {
-			signer.signInputs(tx, key);
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的签名
+				signer.signInputs(tx, account.getEcKey());
+			} else {
+				//认证账户的签名
+				signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+			}
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
 			BroadcastResult broadcastResult = new BroadcastResult();
@@ -333,6 +350,12 @@ public class AccountKit {
 			throw new MoneyNotEnoughException(rs.getResult().getMessage());
 		}
 
+		Transaction txtemp = new Transaction(tx.getNetwork(), tx.baseSerialize());
+		rs = transactionValidator.valDo(txtemp, null);
+		if(!rs.getResult().isSuccess()) {
+			throw new MoneyNotEnoughException(rs.getResult().getMessage());
+		}
+		
 		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 		boolean success = MempoolContainerMap.getInstace().add(tx);
 		
@@ -530,30 +553,6 @@ public class AccountKit {
 			}
 		}
 	}
-
-	/**
-	 * 初始化一个认证帐户
-	 * @param mgPw	帐户管理密码
-	 * @param trPw  帐户交易密码
-	 * @return Address
-	 * @throws Exception 
-	 */
-	public Account createNewCertAccount(String mgPw, String trPw, byte[] body) throws Exception {
-		
-		Utils.checkNotNull(mgPw);
-		Utils.checkNotNull(trPw);
-		//强制交易密码和帐户管理密码不一样
-		Utils.checkState(!mgPw.equals(trPw), "admin password and transaction password can not be the same");
-		
-		locker.lock();
-		try {
-			Account account = genAccountInfos(mgPw, trPw, body);
-//			loadAccount();
-			return account;
-		} finally {
-			locker.unlock();
-		}
-	}
 	
 	/**
 	 * 初始化一个普通帐户
@@ -573,10 +572,10 @@ public class AccountKit {
 			address.setBalance(Coin.ZERO);
 			address.setUnconfirmedBalance(Coin.ZERO);
 			
-			Account account = new Account();
+			Account account = new Account(network);
 			
 			account.setPriSeed(key.getPrivKeyBytes());
-			
+			account.setAccountType(address.getVersion());
 			account.setAddress(address);
 			account.setMgPubkeys(new byte[][] {key.getPubKey(true)});
 			account.signAccount(key, null);
@@ -600,9 +599,36 @@ public class AccountKit {
 	}
 
 	/**
+	 * 初始化一个认证帐户
+	 * @param mgPw			帐户管理密码
+	 * @param trPw  		帐户交易密码
+	 * @param accountBody   帐户信息
+	 * @return Address
+	 * @throws Exception 
+	 */
+	public Account createNewCertAccount(String mgPw, String trPw, AccountBody accountBody) throws Exception {
+		
+		//密码位数和难度检测
+		if(!validPassword(mgPw) || !validPassword(trPw)) {
+			throw new VerificationException("密码需6位或以上，且包含字母和数字");
+		}
+		
+		//强制交易密码和帐户管理密码不一样
+		Utils.checkState(!mgPw.equals(trPw), "账户管理密码和交易密码不能一样");
+		
+		locker.lock();
+		try {
+			Account account = genAccountInfos(mgPw, trPw, accountBody);
+			return account;
+		} finally {
+			locker.unlock();
+		}
+	}
+
+	/**
 	 * 生成帐户信息
 	 */
-	public Account genAccountInfos(String mgPw, String trPw, byte[] body) throws FileNotFoundException, IOException {
+	public Account genAccountInfos(String mgPw, String trPw, AccountBody accountBody) throws FileNotFoundException, IOException {
 		//生成新的帐户信息
 		//生成私匙公匙对
 		ECKey key = new ECKey();
@@ -639,16 +665,16 @@ public class AccountKit {
 		account.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
 		account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
 		
-		if(body == null) {
-			account.setBody(new byte[0]);
+		if(accountBody == null) {
+			account.setBody(AccountBody.empty());
 		} else {
-			account.setBody(body);
+			account.setBody(accountBody);
 		}
 		
 		//签名帐户
 		account.signAccount(mgkey1, mgkey2);
 		
-		File accountFile = new File(accountDir + File.separator + "gen", address.getBase58()+".dat");
+		File accountFile = new File(accountDir + File.separator + "gen",  address.getBase58()+".dat");
 		if(!accountFile.getParentFile().exists()) {
 			accountFile.getParentFile().mkdir();
 		}
@@ -869,19 +895,43 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result decryptWallet(String password) {
+		return decryptWallet(password, 1);
+	}
+	
+	/**
+	 * 解密钱包
+	 * @param password  密码
+	 * @param type  1账户管理私钥 ，2交易私钥
+	 * @return Result
+	 */
+	public Result decryptWallet(String password, int type) {
 		//密码位数和难度检测
 		if(!validPassword(password)) {
 			return new Result(false, "密码错误");
 		}
 		for (Account account : accountList) {
-			account.resetKey(password);
-			ECKey eckey = account.getEcKey();
-			try {
-				account.setEcKey(eckey.decrypt(password));
-			} catch (Exception e) {
-				log.error("解密失败, "+e.getMessage(), e);
-				account.setEcKey(eckey);
-				return new Result(false, "密码错误");
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的解密
+				account.resetKey(password);
+				ECKey eckey = account.getEcKey();
+				try {
+					account.setEcKey(eckey.decrypt(password));
+				} catch (Exception e) {
+					log.error("解密失败, "+e.getMessage(), e);
+					account.setEcKey(eckey);
+					return new Result(false, "密码错误");
+				}
+			} else if(account.getAccountType() == network.getCertAccountVersion()) {
+				//认证账户的解密
+				ECKey[] keys = null;
+				if(type == 1) {
+					keys = account.decryptionMg(password);
+				} else {
+					keys = account.decryptionTr(password);
+				}
+				if(keys == null) {
+					return new Result(false, "密码错误");
+				}
 			}
 		}
 		return new Result(true, "解密成功");
@@ -895,12 +945,24 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result changeWalletPassword(String oldPassword, String newPassword) {
+		return changeWalletPassword(oldPassword, newPassword, 1);
+	}
+	
+	/**
+	 * 修改认证账户的密码
+	 * @param oldPassword	旧密码
+	 * @param newPassword	新密码
+	 * @param type  1账户管理私钥 ，2交易私钥
+	 * @return Result
+	 */
+	public Result changeWalletPassword(String oldPassword, String newPassword, int type) {
 		//密码位数和难度检测
 		if(!validPassword(oldPassword) || !validPassword(newPassword)) {
 			return new Result(false, "密码需6位或以上，且包含字母和数字");
 		}
 		
 		//先解密
+		//如果修改认证账户，如果修改的是账户管理密码，这里的原密码就是账户管理密码 ，如果修改的是交易密码，这里的原密码也是账户管理密码，因为必须要账户管理密码才能修改
 		Result res = decryptWallet(oldPassword);
 		if(!res.isSuccess()) {
 			return res;
@@ -909,31 +971,70 @@ public class AccountKit {
 		int successCount = 0; //成功个数
 		//加密钱包
 		for (Account account : accountList) {
-			ECKey eckey = account.getEcKey();
 			try {
-				ECKey newKey = eckey.encrypt(newPassword);
-				account.setEcKey(newKey);
-				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
-				
-				//重新签名
-				account.signAccount(eckey, null);
-				
-				//回写到钱包文件
-				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
-				
-				FileOutputStream fos = new FileOutputStream(accountFile);
-				try {
-					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-					fos.write(account.serialize());
-					successCount++;
-				} finally {
-					fos.close();
+				if(account.isCertAccount()) {
+					//认证账户
+					//生成私匙
+					ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
+					byte[] seedPribs = seedPri.getPubKey(false);
+					
+					BigInteger pri1 = AccountTool.genPrivKey1(seedPribs, newPassword.getBytes());
+					BigInteger pri2 = AccountTool.genPrivKey2(seedPribs, newPassword.getBytes());
+					
+					ECKey key1 = ECKey.fromPrivate(pri1);
+					ECKey key2 = ECKey.fromPrivate(pri2);
+					
+					//重新设置账户的公钥
+					if(type == 1) {
+						account.setMgPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
+					} else {
+						account.setTrPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
+					}
+					//重新签名
+					account.signAccount();
+					
+					//回写到钱包文件
+					File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+					
+					FileOutputStream fos = new FileOutputStream(accountFile);
+					try {
+						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+						fos.write(account.serialize());
+						successCount++;
+						
+						//广播
+						//TODO
+						
+					} finally {
+						fos.close();
+					}
+				} else {
+					//普通账户，也就无所谓管理或者交易密码了
+					ECKey eckey = account.getEcKey();
+					ECKey newKey = eckey.encrypt(newPassword);
+					account.setEcKey(newKey);
+					account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+					
+					//重新签名
+					account.signAccount(eckey, null);
+					
+					//回写到钱包文件
+					File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+					
+					FileOutputStream fos = new FileOutputStream(accountFile);
+					try {
+						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+						fos.write(account.serialize());
+						successCount++;
+					} finally {
+						fos.close();
+					}
+					eckey = null;
 				}
+				account.resetKey();
 			} catch (Exception e) {
 				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
 				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
-			} finally {
-				eckey = null;
 			}
 		}
 		String message = "成功修改"+successCount+"个账户的密码";
@@ -1011,6 +1112,18 @@ public class AccountKit {
 		
 		//加载各地址的余额
 		loadBalanceFromChainstateAndUnconfirmedTransaction(hash160s);
+		
+		//加载认证账户信息对应的最新的交易记录
+		loadAccountInfosNewestTransaction();
+	}
+
+	//加载认证账户信息对应的最新的交易记录
+	private void loadAccountInfosNewestTransaction() {
+		for (Account account : accountList) {
+			if(account.isCertAccount()) {
+				account.setAccountTransaction(transactionStoreProvider.getAccountInfosNewestTransaction(account.getAddress().getHash160()));
+			}
+		}
 	}
 
 	//是否重新加载账户交易
@@ -1158,9 +1271,26 @@ public class AccountKit {
 	 * @return boolean
 	 */
 	public boolean accountIsEncrypted() {
+		return accountIsEncrypted(1);
+	}
+
+	
+	/**
+	 * 判断账户实际已加密
+	 * 规则，只要有一个账户已加密，则代表已加密 ，因为不能用多个密码加密不同的账户，这样用户管理起来非常麻烦
+	 * @param type  1账户管理私钥 ，2交易私钥
+	 * @return boolean
+	 */
+	public boolean accountIsEncrypted(int type) {
 		for (Account account : accountList) {
-			if(account.isEncrypted()) {
+			if(!account.isCertAccount() && account.isEncrypted()) {
 				return true;
+			} else if(account.isCertAccount()) {
+				if(type == 1 && account.isEncryptedOfMg()) {
+					return true;
+				} else if(type == 2 && account.isEncryptedOfTr()) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -1173,5 +1303,18 @@ public class AccountKit {
 		for (Account account : accountList) {
 			account.resetKey();
 		}
+	}
+
+	/**
+	 * 账户是否是认证账户
+	 * @return
+	 */
+	public boolean isCertAccount() {
+		for (Account account : accountList) {
+			if(account.isCertAccount()) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

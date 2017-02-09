@@ -4,7 +4,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author ln
  *
  */
-public class MakeUnitGengsisBlock extends BaseTestCase {
+public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 
 	@Autowired
 	private NetworkParams network;

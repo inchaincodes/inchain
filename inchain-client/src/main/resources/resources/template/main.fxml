@@ -93,7 +93,7 @@
                         <Insets left="6.0" right="3.0" />
                      </padding></Label>
                   <Label fx:id="blockHeightSeparator" prefWidth="10.0" text="/" visible="false" />
-                  <Label fx:id="netNewestHeightId" alignment="CENTER" prefWidth="42.0" visible="false" />
+                  <Label fx:id="netNewestHeightId" alignment="CENTER" visible="false" />
                </children>
                <HBox.margin>
                   <Insets left="10.0" />

@@ -2,7 +2,7 @@ package org.inchain.transaction;
 
 import java.math.BigInteger;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -12,7 +12,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class RegConsensusTranslationTest extends BaseTestCase {
+public class RegConsensusTranslationTest extends UnitBaseTestCase {
 	
 	@Autowired
 	private NetworkParams network;

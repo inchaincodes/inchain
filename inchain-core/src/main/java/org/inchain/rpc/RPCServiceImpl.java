@@ -1,6 +1,7 @@
 package org.inchain.rpc;
 
 import org.inchain.account.Account;
+import org.inchain.account.AccountBody;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.MainNetworkParams;
@@ -57,7 +58,7 @@ public class RPCServiceImpl implements RPCService {
 	@Override
 	public String newaccount(String mgpw, String trpw) {
 		try {
-			Account account = accountKit.createNewCertAccount(mgpw, trpw, new byte[0]);
+			Account account = accountKit.createNewCertAccount(mgpw, trpw, AccountBody.empty());
 			return account.getAddress().getBase58();
 		} catch (Exception e) {
 			e.printStackTrace();

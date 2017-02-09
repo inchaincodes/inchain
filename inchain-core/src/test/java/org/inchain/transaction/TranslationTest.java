@@ -2,7 +2,7 @@ package org.inchain.transaction;
 
 import java.math.BigInteger;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -16,7 +16,7 @@ import org.inchain.utils.Hex;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class TranslationTest extends BaseTestCase {
+public class TranslationTest extends UnitBaseTestCase {
 	
 	@Autowired
 	private NetworkParams network;

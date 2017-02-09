@@ -6,7 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.io.IOException;
 import java.math.BigInteger;
 
-import org.inchain.BaseTestCase;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class ChainstateStoreProviderTest extends BaseTestCase {
+public class ChainstateStoreProviderTest extends UnitBaseTestCase {
 
 	@Autowired
 	private NetworkParams network;

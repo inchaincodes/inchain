@@ -512,18 +512,30 @@ public class ScriptBuilder {
 	}
 	
 	/**
-	 * 普通交易的输出
+	 * 交易输出脚本
 	 * @param to
 	 * @return Script
 	 */
 	public static Script createOutputScript(Address to) {
-        return new ScriptBuilder()
-            .op(OP_DUP)
-            .op(OP_HASH160)
-            .data(to.getHash160())
-            .op(OP_EQUALVERIFY)
-            .op(OP_CHECKSIG)
-            .build();
+		if(to.isCertAccount()) {
+			//输出到认证账户的交易输出脚本
+	        return new ScriptBuilder()
+        		.op(OP_DROP)
+	            .op(OP_PUBKEY)
+	            .data(to.getHash160())
+	            .op(OP_EQUALVERIFY)
+	            .op(OP_CHECKSIG)
+	            .build();
+		} else {
+			//输出到普通账户的交易输出脚本
+			return new ScriptBuilder()
+					.op(OP_DUP)
+					.op(OP_HASH160)
+					.data(to.getHash160())
+					.op(OP_EQUALVERIFY)
+					.op(OP_CHECKSIG)
+					.build();
+		}
     }
 	
 	/**
@@ -560,5 +572,33 @@ public class ScriptBuilder {
 	    		.data(sign2)
 	            .op(OP_CHECKSIG)
 	            .build();
+	}
+
+	/**
+	 * 认证账户的交易输入签名脚本
+	 * @param signs
+	 * @param txid
+	 * @param hash160
+	 * @return Script
+	 */
+	public static Script createCertAccountInputScript(byte[][] signs, byte[] txid, byte[] hash160) {
+		if(signs == null) {
+			return new ScriptBuilder()
+					.data(new byte[]{})
+					.data(new byte[]{})
+					.op(OP_VERTR)
+					.data(txid)
+					.data(hash160)
+					.build();
+		} else {
+			Utils.checkState(signs.length == 2, "签名不正确");
+			return new ScriptBuilder()
+					.data(signs[0])
+					.data(signs[1])
+					.op(OP_VERTR)
+					.data(txid)
+					.data(hash160)
+					.build();
+		}
 	}
 }
