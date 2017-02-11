@@ -476,11 +476,11 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	 * @return Transaction
 	 */
 	public Transaction getAccountInfosNewestTransaction(byte[] hash160) {
-		byte[] cerTxid = chainstateStoreProvider.getBytes(hash160);
-		if(cerTxid == null) {
+		AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+		if(accountInfo == null) {
 			return null;
 		} else {
-			return blockStoreProvider.getTransaction(cerTxid).getTransaction();
+			return blockStoreProvider.getTransaction(accountInfo.getInfoTxid().getBytes()).getTransaction();
 		}
 	}
 

@@ -3,6 +3,7 @@ package org.inchain.transaction;
 import java.math.BigInteger;
 
 import org.inchain.UnitBaseTestCase;
+import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -24,11 +25,13 @@ public class RegConsensusTranslationTest extends UnitBaseTestCase {
 		
 		//共识账户
 		ECKey key = ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"));
+		RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, 1l, 1478070769l);
 		Address address = AccountTool.newAddress(network, key);
 		
-		byte[] hash160 = address.getHash160();
-		RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, 1l, hash160, 1478070769l);
-		regConsensusTransaction.sign(key);
+		Account account = new Account(network);
+		account.setAddress(address);
+		account.setEcKey(key);
+		regConsensusTransaction.sign(account);
 		
 		regConsensusTransaction.verfify();
 		regConsensusTransaction.verfifyScript();

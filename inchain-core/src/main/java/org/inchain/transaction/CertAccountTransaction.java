@@ -15,7 +15,7 @@ import org.inchain.script.ScriptBuilder;
  * @author ln
  *
  */
-public abstract class CertAccountTransaction extends Transaction {
+public abstract class CertAccountTransaction extends CommonlyTransaction {
 
 	//主体信息最大长度 10k
 	protected static final int MAX_BODY_LENGTH = 10 * 1024;
@@ -26,9 +26,6 @@ public abstract class CertAccountTransaction extends Transaction {
 	protected byte[][] mgPubkeys;
 	//交易公匙
 	protected byte[][] trPubkeys;
-	//签名脚本
-	protected byte[] scriptBytes;
-	protected Script script;
 	
 	public CertAccountTransaction(NetworkParams params) throws ProtocolException {
 		super(params);
@@ -68,7 +65,7 @@ public abstract class CertAccountTransaction extends Transaction {
 	 */
 	@Override
 	public void verfifyScript() {
-		script.runCertAccountSign(this);
+		super.verfifyScript();
 	}
 	
 	
@@ -102,15 +99,15 @@ public abstract class CertAccountTransaction extends Transaction {
 		ECDSASignature ecSign2 = key2.sign(hash);
 		byte[] sign2 = ecSign2.encodeToDER();
 		
-		script = ScriptBuilder.createCertAccountSign(type, txid, hash160, sign1, sign2);
-		scriptBytes = script.getProgram();
+		scriptSig = ScriptBuilder.createCertAccountScript(type, txid, hash160, sign1, sign2);
+		scriptBytes = scriptSig.getProgram();
 	}
 	
 	/**
 	 * 清楚交易验证脚本
 	 */
 	public void cleanScripts() {
-		this.script = null;
+		this.scriptSig = null;
 		this.scriptBytes = null;
 	}
 
@@ -147,11 +144,11 @@ public abstract class CertAccountTransaction extends Transaction {
 	}
 
 	public Script getScript() {
-		return script;
+		return scriptSig;
 	}
 
 	public void setScript(Script script) {
-		this.script = script;
+		this.scriptSig = script;
 	}
 	
 }

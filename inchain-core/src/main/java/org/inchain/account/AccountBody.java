@@ -195,6 +195,9 @@ public class AccountBody {
 	
 
 	public void parse(byte[] content) {
+		if(content == null || content.length == 0) {
+			return;
+		}
 		int cursor = 0;
 		contents = new ArrayList<KeyValuePair>();
 		while(true) {

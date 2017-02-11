@@ -372,11 +372,11 @@ public class MainController {
 			break;
 		case "consensusRecordId":
 			//点击共识列表按钮
-			
+			fxml = "/resources/template/consensusRecord.fxml";
 			break;
 		case "sellerRecordId":
 			//点击商家列表按钮
-			
+			fxml = "/resources/template/businessRecord.fxml";
 			break;
 		default:
 			break;

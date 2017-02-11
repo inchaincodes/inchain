@@ -12,8 +12,9 @@ import javax.annotation.PostConstruct;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
+import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.store.ChainstateStoreProvider;
+import org.inchain.store.AccountStore;
 import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +37,15 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	@Autowired
 	private NetworkParams network;
 	@Autowired
-	private ChainstateStoreProvider chainstateStoreProvider;
+	private AccountKit accountKit;
 	
 	@PostConstruct
 	public void init() {
-		container.putAll(chainstateStoreProvider.loadAllConsensusAccount());
+		List<AccountStore> list = accountKit.getConsensusAccounts();
+		
+		for (AccountStore account : list) {
+			container.put(account.getHash160(), account.getPubkeys()[0]);
+		}
 		
 		if(log.isDebugEnabled()) {
 			log.debug("====================");

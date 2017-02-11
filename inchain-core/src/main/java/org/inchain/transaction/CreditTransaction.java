@@ -13,7 +13,7 @@ import org.inchain.utils.Utils;
  * @author ln
  *
  */
-public class CreditTransaction extends Transaction {
+public class CreditTransaction extends CommonlyTransaction {
 
 	private byte[] hash160;
 	private long credit;

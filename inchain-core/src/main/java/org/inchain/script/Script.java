@@ -74,8 +74,6 @@ import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
-import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -998,12 +996,14 @@ public class Script {
                     if (!Arrays.equals(b1, b2))
                         throw new ScriptException("OP_EQUALVERIFY: non-equal data");
                     break;
-                case OP_VERMG:	//判断栈顶元素（应该为交易类型）是否是账户管理交易
+                case OP_VERMG:
+                	//配合OP_PUBKEY使用，在OP_PUBKEY之前告知需要获取管理账户的公钥，还是交易的公钥
                 	if (stack.size() < 1)
                         throw new ScriptException("Attempted OP_VERMG on a stack with size < 1");
             		stack.add(new byte[] {0});
                 	break;
-                case OP_VERTR:	//判断栈顶元素（应该为交易类型）是否是支付交易
+                case OP_VERTR:
+                	//配合OP_PUBKEY使用，在OP_PUBKEY之前告知需要获取管理账户的公钥，还是交易的公钥
                 	if (stack.size() < 1)
                 		throw new ScriptException("Attempted OP_VERTR on a stack with size < 1");
             		stack.add(new byte[] {1});
@@ -1267,6 +1267,11 @@ public class Script {
                         throw new ScriptException("Attempted OP_DUP on an empty stack");
                     stack.add(stack.getLast());
                     break;
+                case OP_DROP:
+                    if (stack.size() < 1)
+                        throw new ScriptException("Attempted OP_DUP on an empty stack");
+                    stack.pollLast();
+                    break;
                 case OP_IFDUP:
                     if (stack.size() < 1)
                         throw new ScriptException("Attempted OP_IFDUP on an empty stack");
@@ -1282,36 +1287,55 @@ public class Script {
                     if (!Arrays.equals(b1, b2))
                         throw new ScriptException("OP_EQUALVERIFY: non-equal data");
                     break;
-                case OP_VERMG:	//判断栈顶元素（应该为交易类型）是否是账户管理交易
+                case OP_VERMG:
+                	//配合OP_PUBKEY使用，在OP_PUBKEY之前告知需要获取管理账户的公钥，还是交易的公钥
                 	if (stack.size() < 1)
                         throw new ScriptException("Attempted OP_VERMG on a stack with size < 1");
-                	byte[] mgtypes = stack.pollLast();
-                	if(mgtypes.length != 1) {
-                		throw new ScriptException("Attempted OP_VERMG on a stack with not a transaction type");
-                	}
-                	int mgType = mgtypes[0];
-                	if(mgType == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || mgType == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
-                		stack.add(new byte[] {1});
-                	} else {
-                		stack.add(new byte[] {0});
-                	}
+            		stack.add(new byte[] {0});
                 	break;
-                case OP_VERTR:	//判断栈顶元素（应该为交易类型）是否是支付交易
+                case OP_VERTR:
+                	//配合OP_PUBKEY使用，在OP_PUBKEY之前告知需要获取管理账户的公钥，还是交易的公钥
                 	if (stack.size() < 1)
                 		throw new ScriptException("Attempted OP_VERTR on a stack with size < 1");
-                	byte[] trtypes = stack.pollLast();
-                	if(trtypes.length != 1) {
-                		throw new ScriptException("Attempted OP_VERTR on a stack with not a transaction type");
-                	}
-                	int trType = trtypes[0];
-                	if(trType == TransactionDefinition.TYPE_PAY) {
-                		stack.add(new byte[] {1});
-                	} else {
-                		stack.add(new byte[] {0});
-                	}
+            		stack.add(new byte[] {1});
                 	break;
-                case OP_PUBKEY:	//根据栈顶元素的交易hash获取公匙
-                	//TODO
+                case OP_PUBKEY:
+                	//根据栈顶元素的交易hash获取公匙
+                	//至少要有2个元素，栈顶是hash160，第二个是公钥类型
+                    if (stack.size() < 2)
+                        throw new ScriptException("获取公钥时，栈里元素少于所需个数2");
+                	
+                	BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+                	
+                	byte[] certTxid = stack.pollLast();
+                	
+                	TransactionStore txs = blockStoreProvider.getTransaction(certTxid);
+                	if(txs == null || txs.getTransaction() == null) {
+                		throw new ScriptException("引用了错误的账户");
+                	}
+                	Transaction certTx = txs.getTransaction();
+                	if(!(certTx instanceof CertAccountTransaction)) {
+                		throw new ScriptException("引用了错误的交易");
+                	} else {
+                		CertAccountTransaction certAccountTx = (CertAccountTransaction) certTx;
+                		byte[] type = stack.pollLast();
+                		if(Arrays.equals(type, new byte[]{0})) {
+                			//账户管理公钥
+                			byte[][] mgPugkeys = certAccountTx.getMgPubkeys();
+                			for (byte[] bs : mgPugkeys) {
+                				stack.add(bs);
+							}
+                		} else if(Arrays.equals(type, new byte[]{1})) {
+                			//交易管理公钥
+                			byte[][] mgPugkeys = certAccountTx.getTrPubkeys();
+                			for (byte[] bs : mgPugkeys) {
+                				stack.add(bs);
+							}
+                		} else {
+                    		throw new ScriptException("错误的公钥类型");
+                		}
+                		stack.add(certAccountTx.getHash160());
+                	}
                 	break;
                 case OP_RIPEMD160:
                     if (stack.size() < 1)
@@ -1354,22 +1378,40 @@ public class Script {
                 case OP_CHECKSIG:
                 case OP_CHECKSIGVERIFY:  {
                 	
-                	if(stack.size() < 3) {
-            			throw new ScriptException("Check sign of the stack size < 3");
-            		}
-                	
-                	byte[] sign = stack.pollLast();
-                	byte[] pubkey = stack.pollLast();
-                	byte[] hash = stack.pollLast();
-                	
-            		if(!ECKey.fromPublicOnly(pubkey).verify(hash, sign)) {
-            			throw new ScriptException("Check sign fail");
-            		}
-            		
-            		if (opcode == OP_CHECKSIG)
-                        stack.add(new byte[] {1});
-	                }
+                	if(script.isSystemAccount()) {
+                		byte[] sign = stack.pollLast();
+                    	byte[] pubkey = stack.pollLast();
+                    	byte[] hash = stack.pollLast();
+                    	
+                		if(!ECKey.fromPublicOnly(pubkey).verify(hash, sign)) {
+                			throw new ScriptException("Check sign fail");
+                		}
+                		
+                		if (opcode == OP_CHECKSIG)
+                            stack.add(new byte[] {1});
+                	} else {
+                		if(stack.size() < 5) {
+                			throw new ScriptException("验证签名，栈里元素少于4");
+                		}
+
+                    	byte[] sign2 = stack.pollLast();
+                    	byte[] sign1 = stack.pollLast();
+            			byte[] pubkey2 = stack.pollLast();
+            			byte[] pubkey1 = stack.pollLast();
+                    	byte[] hash = stack.pollLast();
+                    	
+             	        boolean sigValid = ECKey.verify(hash, sign2, pubkey2);
+             	        
+             	        if(sigValid) {
+             	 	        sigValid = ECKey.verify(hash, sign1, pubkey1);
+             	        }
+             	        
+             			if (opcode == OP_CHECKSIG) {
+             				stack.add(sigValid ? new byte[] {1} : new byte[] {});
+             			}
+                	}
                     break;
+                }
                 default:
                     throw new ScriptException("Script used a reserved opcode " + opcode);
                 }
@@ -1382,114 +1424,114 @@ public class Script {
         if (!ifStack.isEmpty())
             throw new ScriptException("OP_IF/OP_NOTIF without OP_ENDIF");
     }
-
-    /**
-     * 认证账户类签名脚本运行验证
-     * @param transaction
-     */
-	public void runCertAccountSign(CertAccountTransaction transaction) {
-		//复制一个交易
-		CertAccountTransaction tx = (CertAccountTransaction) transaction.getNetwork().getDefaultSerializer().makeTransaction(transaction.baseSerialize(), 0);
-		//清除验证脚本
-		tx.cleanScripts();
-		//签名内容
-		Sha256Hash hash = Sha256Hash.of(tx.baseSerialize());
-		
-		//运行脚本
-		LinkedList<byte[]> stack = new LinkedList<byte[]>();
-		//操作码数量，最多允许101个
-    	int opCount = 0;
-    	
-		for (ScriptChunk chunk : chunks) {
-        	//压入空值
-            if (chunk.opcode == OP_0) {
-                stack.add(new byte[] {});
-            } else if (!chunk.isOpCode()) {
-                if (chunk.data.length > MAX_SCRIPT_ELEMENT_SIZE)
-                    throw new ScriptException("需要压入的数据超过最大限制，最大限制为 520 bytes");
-                stack.add(chunk.data);
-            } else {
-                int opcode = chunk.opcode;
-                if (opcode > OP_16) {
-                    opCount++;
-                    if (opCount > 101)
-                        throw new ScriptException("超过允许运行的opcode个数");
-                }
-                switch (opcode) {
-                case OP_EQUAL:	//判断栈顶2元素是否相等
-                    if (stack.size() < 2)
-                        throw new ScriptException("判断是否相等时栈顶小于2个元素");
-                    byte[] b1 = stack.pollLast();
-                    byte[] b2 = stack.pollLast();
-                    
-                    if (!Arrays.equals(b1, b2))
-                        throw new ScriptException("OP_EQUAL: 数据不相等");
-                    break;
-                case OP_VERMG:	//获取账户管理的公钥
-            		stack.add(new byte[] {0});
-                	break;
-                case OP_VERTR:	//获取交易的公钥
-            		stack.add(new byte[] {1});
-                	break;
-                case OP_PUBKEY: {
-                	//根据栈顶元素的交易hash获取公匙
-                	//至少要有2个元素，栈顶是hash160，第二个是公钥类型
-                    if (stack.size() < 2)
-                        throw new ScriptException("获取公钥时，栈里元素少于所需个数2");
-                	
-                	BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
-                	TransactionStore txs = blockStoreProvider.getTransaction(stack.pollLast());
-                	if(txs == null || txs.getTransaction() == null) {
-                		throw new ScriptException("引用了错误的账户");
-                	}
-                	Transaction certTx = txs.getTransaction();
-                	if(!(certTx instanceof CertAccountTransaction)) {
-                		throw new ScriptException("引用了错误的交易");
-                	} else {
-                		CertAccountTransaction certAccountTx = (CertAccountTransaction) certTx;
-                		byte[] type = stack.pollLast();
-                		if(Arrays.equals(type, new byte[]{0})) {
-                			//账户管理公钥
-                			byte[][] mgPugkeys = certAccountTx.getMgPubkeys();
-                			for (byte[] bs : mgPugkeys) {
-                				stack.add(bs);
-							}
-                		} else if(Arrays.equals(type, new byte[]{1})) {
-                			//交易管理公钥
-                			byte[][] mgPugkeys = certAccountTx.getTrPubkeys();
-                			for (byte[] bs : mgPugkeys) {
-                				stack.add(bs);
-							}
-                		} else {
-                    		throw new ScriptException("错误的公钥类型");
-                		}
-                		stack.add(certAccountTx.getHash160());
-                	}
-                	break;
-                }
-                case OP_CHECKSIG:
-                case OP_CHECKSIGVERIFY:  {
-                	//判断签名是否正确，认证类账户都有2个公私钥对，所有每次需要验证2个签名，应该有4个元素才对
-                	if(stack.size() < 4) {
-            			throw new ScriptException("验证签名，栈里元素少于4");
-            		}
-                	
-                	byte[] sign2 = stack.pollLast();
-                	byte[] sign1 = stack.pollLast();
-                	byte[] pubkey2 = stack.pollLast();
-                	byte[] pubkey1 = stack.pollLast();
-                	
-            		if(!ECKey.fromPublicOnly(pubkey1).verify(hash.getBytes(), sign1) || !ECKey.fromPublicOnly(pubkey2).verify(hash.getBytes(), sign2)) {
-            			throw new ScriptException("签名错误");
-            		}
-                    break;
-                }
-                default:
-                    throw new ScriptException("Script used a reserved opcode " + opcode);
-                }
-            }
-        }
-	}
+//
+//    /**
+//     * 认证账户类签名脚本运行验证
+//     * @param transaction
+//     */
+//	public void runCertAccountSign(CertAccountTransaction transaction) {
+//		//复制一个交易
+//		CertAccountTransaction tx = (CertAccountTransaction) transaction.getNetwork().getDefaultSerializer().makeTransaction(transaction.baseSerialize(), 0);
+//		//清除验证脚本
+//		tx.cleanScripts();
+//		//签名内容
+//		Sha256Hash hash = Sha256Hash.of(tx.baseSerialize());
+//		
+//		//运行脚本
+//		LinkedList<byte[]> stack = new LinkedList<byte[]>();
+//		//操作码数量，最多允许101个
+//    	int opCount = 0;
+//    	
+//		for (ScriptChunk chunk : chunks) {
+//        	//压入空值
+//            if (chunk.opcode == OP_0) {
+//                stack.add(new byte[] {});
+//            } else if (!chunk.isOpCode()) {
+//                if (chunk.data.length > MAX_SCRIPT_ELEMENT_SIZE)
+//                    throw new ScriptException("需要压入的数据超过最大限制，最大限制为 520 bytes");
+//                stack.add(chunk.data);
+//            } else {
+//                int opcode = chunk.opcode;
+//                if (opcode > OP_16) {
+//                    opCount++;
+//                    if (opCount > 101)
+//                        throw new ScriptException("超过允许运行的opcode个数");
+//                }
+//                switch (opcode) {
+//                case OP_EQUAL:	//判断栈顶2元素是否相等
+//                    if (stack.size() < 2)
+//                        throw new ScriptException("判断是否相等时栈顶小于2个元素");
+//                    byte[] b1 = stack.pollLast();
+//                    byte[] b2 = stack.pollLast();
+//                    
+//                    if (!Arrays.equals(b1, b2))
+//                        throw new ScriptException("OP_EQUAL: 数据不相等");
+//                    break;
+//                case OP_VERMG:	//获取账户管理的公钥
+//            		stack.add(new byte[] {0});
+//                	break;
+//                case OP_VERTR:	//获取交易的公钥
+//            		stack.add(new byte[] {1});
+//                	break;
+//                case OP_PUBKEY: {
+//                	//根据栈顶元素的交易hash获取公匙
+//                	//至少要有2个元素，栈顶是hash160，第二个是公钥类型
+//                    if (stack.size() < 2)
+//                        throw new ScriptException("获取公钥时，栈里元素少于所需个数2");
+//                	
+//                	BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+//                	TransactionStore txs = blockStoreProvider.getTransaction(stack.pollLast());
+//                	if(txs == null || txs.getTransaction() == null) {
+//                		throw new ScriptException("引用了错误的账户");
+//                	}
+//                	Transaction certTx = txs.getTransaction();
+//                	if(!(certTx instanceof CertAccountTransaction)) {
+//                		throw new ScriptException("引用了错误的交易");
+//                	} else {
+//                		CertAccountTransaction certAccountTx = (CertAccountTransaction) certTx;
+//                		byte[] type = stack.pollLast();
+//                		if(Arrays.equals(type, new byte[]{0})) {
+//                			//账户管理公钥
+//                			byte[][] mgPugkeys = certAccountTx.getMgPubkeys();
+//                			for (byte[] bs : mgPugkeys) {
+//                				stack.add(bs);
+//							}
+//                		} else if(Arrays.equals(type, new byte[]{1})) {
+//                			//交易管理公钥
+//                			byte[][] mgPugkeys = certAccountTx.getTrPubkeys();
+//                			for (byte[] bs : mgPugkeys) {
+//                				stack.add(bs);
+//							}
+//                		} else {
+//                    		throw new ScriptException("错误的公钥类型");
+//                		}
+//                		stack.add(certAccountTx.getHash160());
+//                	}
+//                	break;
+//                }
+//                case OP_CHECKSIG:
+//                case OP_CHECKSIGVERIFY:  {
+//                	//判断签名是否正确，认证类账户都有2个公私钥对，所有每次需要验证2个签名，应该有4个元素才对
+//                	if(stack.size() < 4) {
+//            			throw new ScriptException("验证签名，栈里元素少于4");
+//            		}
+//                	
+//                	byte[] sign2 = stack.pollLast();
+//                	byte[] sign1 = stack.pollLast();
+//                	byte[] pubkey2 = stack.pollLast();
+//                	byte[] pubkey1 = stack.pollLast();
+//                	
+//            		if(!ECKey.fromPublicOnly(pubkey1).verify(hash.getBytes(), sign1) || !ECKey.fromPublicOnly(pubkey2).verify(hash.getBytes(), sign2)) {
+//            			throw new ScriptException("签名错误");
+//            		}
+//                    break;
+//                }
+//                default:
+//                    throw new ScriptException("Script used a reserved opcode " + opcode);
+//                }
+//            }
+//        }
+//	}
 
 	public int getAccountType(NetworkParams network) {
 		if(chunks.size() == 5 &&
@@ -1508,5 +1550,59 @@ public class Script {
 			return network.getCertAccountVersion();
 		}
 		return 0;
+	}
+
+	/**
+	 * 根据签名脚本，获取账户的hash160
+	 * @return byte[]
+	 */
+	public byte[] getAccountHash160() {
+		if(isSystemAccount()) {
+			return chunks.get(3).data;
+		} else if(isCertAccount()) {
+			return chunks.get(3).data;
+		} else {
+			throw new VerificationException("不适用的脚本");
+		}
+	}
+	
+	/**
+	 * 根据签名脚本，获取普通系统账户的公钥
+	 * @return byte[]
+	 */
+	public byte[] getAccountPubkey() {
+		if(isSystemAccount()) {
+			return chunks.get(0).data;
+		} else {
+			throw new VerificationException("不适用的脚本");
+		}
+	}
+	
+	/**
+	 * 判断是否是系统账户的签名
+	 * @return boolean
+	 */
+	public boolean isSystemAccount() {
+		return chunks.size() == 7 &&
+        		chunks.get(1).equalsOpCode(OP_DUP) &&
+        		chunks.get(2).equalsOpCode(OP_HASH160) &&
+        		chunks.get(3).data.length == Address.LENGTH &&
+        		chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
+        		chunks.get(6).equalsOpCode(OP_CHECKSIG);
+	}
+	
+	/**
+	 * 判断是否是认证账户的签名
+	 * @return boolean
+	 */
+	public boolean isCertAccount() {
+		return chunks.size() == 8 &&
+				(chunks.get(0).equalsOpCode(OP_VERMG) ||
+						chunks.get(0).equalsOpCode(OP_VERTR)) &&
+				chunks.get(1).data.length == Sha256Hash.LENGTH &&
+        		chunks.get(2).equalsOpCode(OP_PUBKEY) &&
+        		chunks.get(3).data.length == Address.LENGTH &&
+        		chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
+        		chunks.get(7).equalsOpCode(OP_CHECKSIG);
 	}
 }

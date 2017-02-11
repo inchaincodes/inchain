@@ -70,7 +70,7 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 
 		//签名
 		scriptBytes = readBytes((int) readVarInt());
-		script = new Script(scriptBytes);
+		scriptSig = new Script(scriptBytes);
 		
 		length = cursor - offset;
 	}

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.inchain.crypto.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,6 +118,20 @@ public final class Configure {
 	
 	/*************  交易相关配置   end  *****************/
 	
+	/*************  系统级配置   begin  *****************/
+	
+	/**
+	 * 认证账户列表存储键
+	 */
+	public final static byte[] CERT_ACCOUNT_KEYS = Sha256Hash.hashTwice("cert_account_keys".getBytes());
+	
+	/**
+	 * 共识账户列表存储键
+	 */
+	public final static byte[] CONSENSUS_ACCOUNT_KEYS = Sha256Hash.hashTwice("consensus_account_keys".getBytes());
+	
+	
+	/*************  系统级配置   begin  *****************/
 	
     /**
      * 获取配置信息

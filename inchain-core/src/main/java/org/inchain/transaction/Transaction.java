@@ -39,7 +39,6 @@ public class Transaction extends Message {
     //允许的交易最大值
     public static final int MAX_STANDARD_TX_SIZE = 100000;
     
-    
     //tx hash
     protected Sha256Hash hash;
 	//交易输入
@@ -394,7 +393,7 @@ public class Transaction extends Message {
     public TransactionOutput addOutput(Coin value, Script script) {
         return addOutput(new TransactionOutput(this, value, 0l, script.getProgram()));
     }
-    
+	
     @Override
     public String toString() {
     	return "tx: " +getHash() + " inputSize:" + (inputs == null ? 0:inputs.size()) + " outputSize:" + (outputs == null ? 0:outputs.size());

@@ -8,7 +8,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.account.AccountBody;
+import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusPool;
+import org.inchain.core.Coin;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -26,7 +29,6 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.utils.Hex;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	//当新增时也要检查要保存的块是否和最新的块能衔接上
 	private final static Lock blockLock = new ReentrantLock();
 	//最新区块标识
-	private final static byte[] bestBlockKey = Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")).getBytes();
+	private final static byte[] bestBlockKey = Sha256Hash.ZERO_HASH.getBytes();
 	//账户过滤器，用于判断交易是否与我有关
 	private BloomFilter accountFilter = new BloomFilter(100000, 0.0001, RandomUtil.randomLong());;
 	//区块状态提供器
@@ -116,20 +118,34 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				if(tx instanceof RegConsensusTransaction) {
 					RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
 					
-					byte[] uinfos = chainstateStoreProvider.getBytes(regTransaction.getHash160());
-					
-					if(uinfos == null) {
-						throw new VerificationException("没有信用数据，不允许注册共识");
+					//注册共识，加入到共识账户列表中
+					byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+					if(consensusAccountHash160s == null) {
+						consensusAccountHash160s = new byte[0];
 					}
-					//4信用，4余额，33公钥，1共识状态
-					byte[] values = new byte[42];
-					System.arraycopy(uinfos, 0, values, 0, uinfos.length);
-					values[41] = 1;
+					byte[] hash160 = regTransaction.getHash160();
+					byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + Address.LENGTH];
+					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, consensusAccountHash160s.length);
+					System.arraycopy(hash160, 0, newConsensusHash160s, consensusAccountHash160s.length, Address.LENGTH);
+					chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+
+					//添加账户信息，如果不存在的话
+					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+					if(accountInfo == null) {
+						accountInfo = new AccountStore(network);
+						accountInfo.setHash160(hash160);
+						accountInfo.setType(regTransaction.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+						accountInfo.setCert(0);
+						accountInfo.setAccountBody(AccountBody.empty());
+						accountInfo.setBalance(Coin.ZERO.value);
+						accountInfo.setCreateTime(regTransaction.getTime());
+						accountInfo.setLastModifyTime(regTransaction.getTime());
+						accountInfo.setInfoTxid(Sha256Hash.ZERO_HASH);
+						accountInfo.setPubkeys(new byte[][] {regTransaction.getPubkey()});
+						chainstateStoreProvider.saveAccountInfo(accountInfo);
+					}
 					//公钥
-					byte[] pubkey = regTransaction.getScriptSig().getChunks().get(0).data;
-					System.arraycopy(pubkey, 0, values, 8, pubkey.length);
-					
-					chainstateStoreProvider.put(regTransaction.getHash160(), values);
+					byte[] pubkey = accountInfo.getPubkeys()[0];
 					//添加到共识缓存器里
 					consensusPool.add(regTransaction.getHash160(), pubkey);
 				} else if(tx instanceof CreditTransaction) {
@@ -142,7 +158,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							//不存在时，直接写入信用
 							byte[] value = new byte[4];
 							Utils.uint32ToByteArrayBE(creditTransaction.getCredit(), value, 0);
-							chainstateStoreProvider.put(creditTransaction.getHash160(), value);
+//							chainstateStoreProvider.put(creditTransaction.getHash160(), value);
 						} else {
 							//存在时，增加信用
 							if(uinfos.length < 4) {
@@ -152,7 +168,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							credit += creditTransaction.getCredit();
 							Utils.uint32ToByteArrayBE(credit, uinfos, 0);
 
-							chainstateStoreProvider.put(creditTransaction.getHash160(), uinfos);
+//							chainstateStoreProvider.put(creditTransaction.getHash160(), uinfos);
 						}
 					} else {
 						throw new VerificationException("出现不支持的交易，保存失败");
@@ -204,9 +220,43 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						//删除之前的信息
 						byte[] oldTxid = chainstateStoreProvider.getBytes(rtx.getHash160());
 						chainstateStoreProvider.delete(oldTxid);
+					} else {
+						//账户注册，加入到认证账户列表中
+						byte[] certAccountHash160s = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
+						if(certAccountHash160s == null) {
+							certAccountHash160s = new byte[0];
+						}
+						byte[] newBusinessHash160s = new byte[certAccountHash160s.length + Address.LENGTH];
+						System.arraycopy(certAccountHash160s, 0, newBusinessHash160s, 0, certAccountHash160s.length);
+						System.arraycopy(rtx.getHash160(), 0, newBusinessHash160s, certAccountHash160s.length, Address.LENGTH);
+						chainstateStoreProvider.put(Configure.CERT_ACCOUNT_KEYS, newBusinessHash160s);
 					}
 					chainstateStoreProvider.put(rtx.getHash().getBytes(), rtx.baseSerialize());
-					chainstateStoreProvider.put(rtx.getHash160(), rtx.getHash().getBytes());
+					
+					//添加账户信息，如果不存在的话
+					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
+					if(accountInfo == null) {
+						accountInfo = new AccountStore(network);
+						accountInfo.setHash160(rtx.getHash160());
+						accountInfo.setType(rtx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+						accountInfo.setCert(0);
+						accountInfo.setAccountBody(rtx.getBody());
+						accountInfo.setBalance(Coin.ZERO.value);
+						accountInfo.setCreateTime(rtx.getTime());
+						accountInfo.setLastModifyTime(rtx.getTime());
+						accountInfo.setInfoTxid(rtx.getHash());
+						
+						accountInfo.setPubkeys(new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]});
+						
+						chainstateStoreProvider.saveAccountInfo(accountInfo);
+					} else {
+						accountInfo.setAccountBody(rtx.getBody());
+						accountInfo.setLastModifyTime(rtx.getTime());
+						accountInfo.setInfoTxid(rtx.getHash());
+						accountInfo.setPubkeys(new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]});
+
+						chainstateStoreProvider.saveAccountInfo(accountInfo);
+					}
 				}
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);

@@ -36,6 +36,7 @@ import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
+import org.inchain.store.AccountStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
@@ -1330,5 +1331,54 @@ public class AccountKit {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * 获取认证账户列表
+	 * @return List<AccountStore>
+	 */
+	public List<AccountStore> getCertAccounts() {
+		return getCertAccounts(null);
+	}
+	
+	/**
+	 * 获取认证账户列表
+	 * @param certAccountList   //是否重新获取
+	 * @return List<AccountStore>
+	 */
+	public List<AccountStore> getCertAccounts(List<AccountStore> certAccountList) {
+		byte[] certAccounts = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
+		if(certAccountList != null && certAccountList.size() == certAccounts.length / Address.LENGTH) {
+			//没有变化，则直接返回
+			return certAccountList;
+		}
+		certAccountList = new ArrayList<AccountStore>();
+		if(certAccounts == null) {
+			return certAccountList;
+		}
+		for (int i = 0; i < certAccounts.length; i+=Address.LENGTH) {
+			byte[] hash160 = Arrays.copyOfRange(certAccounts, i, i + Address.LENGTH);
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			certAccountList.add(accountStore);
+		}
+		return certAccountList;
+	}
+	
+	/**
+	 * 获取共识账户列表
+	 * @return List<AccountStore>
+	 */
+	public List<AccountStore> getConsensusAccounts() {
+		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+		List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
+		if(consensusAccounts == null) {
+			return consensusAccountList;
+		}
+		for (int i = 0; i < consensusAccounts.length; i+=Address.LENGTH) {
+			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			consensusAccountList.add(accountStore);
+		}
+		return consensusAccountList;
 	}
 }

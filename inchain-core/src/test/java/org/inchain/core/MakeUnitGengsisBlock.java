@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.UnitBaseTestCase;
+import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
@@ -99,9 +100,11 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 			txs.add(creditTx);
 			
 			//注册共识账户到区块里
-			byte[] hash160 = address.getHash160();
-			RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, hash160, System.currentTimeMillis());
-			regConsensusTransaction.sign(key);
+			RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, System.currentTimeMillis());
+			Account account = new Account(network);
+			account.setAddress(address);
+			account.setEcKey(key);
+			regConsensusTransaction.sign(account);
 			
 			regConsensusTransaction.verfify();
 			regConsensusTransaction.verfifyScript();

@@ -538,42 +538,6 @@ public class ScriptBuilder {
 					.build();
 		}
     }
-	
-	/**
-	 * 创建通用的验证脚本
-	 * @param pubkey	公钥
-	 * @param sign		签名
-	 * @return Script
-	 */
-	public static Script createVerifyScript(byte[] pubkey, byte[] sign) {
-        return new ScriptBuilder()
-    		.data(pubkey)
-    		.data(sign)
-            .op(OP_CHECKSIG)
-            .build();
-    }
-
-	/**
-	 * 创建认证账户签名脚本
-	 * @param type  1账户管理，2交易
-	 * @param txid	认证账户信息的交易Id
-	 * @param hash160	认证账户的hash160
-	 * @param sign1		签名1
-	 * @param sign2		签名2
-	 * @return Script
-	 */
-	public static Script createCertAccountSign(int type, Sha256Hash txid, byte[] hash160, byte[] sign1, byte[] sign2) {
-		return new ScriptBuilder()
-				.op(type == TransactionDefinition.TX_VERIFY_MG ? ScriptOpCodes.OP_VERMG : ScriptOpCodes.OP_VERTR)
-				.data(txid.getBytes())
-				.op(OP_PUBKEY)
-				.data(hash160)
-				.op(OP_EQUAL)
-	    		.data(sign1)
-	    		.data(sign2)
-	            .op(OP_CHECKSIG)
-	            .build();
-	}
 
 	/**
 	 * 认证账户的交易输入签名脚本
@@ -601,5 +565,59 @@ public class ScriptBuilder {
 					.data(hash160)
 					.build();
 		}
+	}
+
+//	/**
+//	 * 创建通用的验证脚本
+//	 * @param pubkey	公钥
+//	 * @param sign		签名
+//	 * @return Script
+//	 */
+//	public static Script createVerifyScript(byte[] pubkey, byte[] sign) {
+//        return new ScriptBuilder()
+//    		.data(pubkey)
+//    		.data(sign)
+//            .op(OP_CHECKSIG)
+//            .build();
+//    }
+	
+	/**
+	 * 创建通用的普通账户验证脚本
+	 * @param pubkey	公钥
+	 * @param sign		签名
+	 * @return Script
+	 */
+	public static Script createSystemAccountScript(byte[] hash160, byte[] pubkey, byte[] sign) {
+        return new ScriptBuilder()
+    		.data(pubkey)
+    		.op(OP_DUP)
+    		.op(OP_HASH160)
+    		.data(hash160)
+    		.op(OP_EQUALVERIFY)
+    		.data(sign)
+            .op(OP_CHECKSIG)
+            .build();
+    }
+
+	/**
+	 * 创建认证账户签名脚本
+	 * @param type  1账户管理，2交易
+	 * @param txid	认证账户信息的交易Id
+	 * @param hash160	认证账户的hash160
+	 * @param sign1		签名1
+	 * @param sign2		签名2
+	 * @return Script
+	 */
+	public static Script createCertAccountScript(int type, Sha256Hash txid, byte[] hash160, byte[] sign1, byte[] sign2) {
+		return new ScriptBuilder()
+				.op(type == TransactionDefinition.TX_VERIFY_MG ? ScriptOpCodes.OP_VERMG : ScriptOpCodes.OP_VERTR)
+				.data(txid.getBytes())
+				.op(OP_PUBKEY)
+				.data(hash160)
+				.op(OP_EQUALVERIFY)
+	    		.data(sign1)
+	    		.data(sign2)
+	            .op(OP_CHECKSIG)
+	            .build();
 	}
 }
