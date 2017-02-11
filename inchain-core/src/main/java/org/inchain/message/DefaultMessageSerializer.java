@@ -15,6 +15,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.utils.Hex;
@@ -35,7 +36,6 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(PongMessage.class, "pong");
     	COMMANDS.put(VersionMessage.class, "version");
     	COMMANDS.put(VerackMessage.class, "verack");
-    	COMMANDS.put(CertAccountRegisterTransaction.class, "accreg");
     	COMMANDS.put(Block.class, "block");
     	COMMANDS.put(GetBlocksMessage.class, "getblock");
     	COMMANDS.put(NewBlockMessage.class, "newblock");
@@ -44,6 +44,8 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(InventoryMessage.class, "inv");
     	COMMANDS.put(GetDatasMessage.class, "getdatas");
     	COMMANDS.put(Transaction.class, "tx");
+    	COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
+    	COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {
@@ -137,23 +139,28 @@ public class DefaultMessageSerializer extends MessageSerializer {
 
 	private Message makeMessage(String command, int size, byte[] payloadBytes, byte[] hash, byte[] checksum) {
 		Message message = null;
-        //根据交易类型来创建交易
-        for (Entry<Class<? extends Message>, String> entry : COMMANDS.entrySet()) {
-			if(entry.getValue().equals(command)) {
-		  		try {
-		  			Class<?> clazz = entry.getKey();
-		  			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class);
-		  			if(constructor == null) {
-		  				constructor = clazz.getDeclaredConstructor(NetworkParams.class, String.class, byte[].class);
-		  	        	log.warn("No support for deserializing message with name {}", command);
-		  	        	message = (Message) constructor.newInstance(network, command, payloadBytes);
-		  			} else {
-		  				message = (Message) constructor.newInstance(network, payloadBytes);
-		  			}
-		  		} catch (Exception e) {
-		  			log.error("反序列化消息通用方法出错：{}", e);
-		  		}
-		  		break;
+		if("tx".equals(command)) {
+			//根据交易类型来创建交易
+			return makeTransaction(payloadBytes, 0);
+		} else {
+			//创建消息
+	        for (Entry<Class<? extends Message>, String> entry : COMMANDS.entrySet()) {
+				if(entry.getValue().equals(command)) {
+			  		try {
+			  			Class<?> clazz = entry.getKey();
+			  			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class);
+			  			if(constructor == null) {
+			  				constructor = clazz.getDeclaredConstructor(NetworkParams.class, String.class, byte[].class);
+			  	        	log.warn("No support for deserializing message with name {}", command);
+			  	        	message = (Message) constructor.newInstance(network, command, payloadBytes);
+			  			} else {
+			  				message = (Message) constructor.newInstance(network, payloadBytes);
+			  			}
+			  		} catch (Exception e) {
+			  			log.error("反序列化消息通用方法出错：{}", e);
+			  		}
+			  		break;
+				}
 			}
 		}
 		return message;
@@ -216,7 +223,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
 		String classFullName = TransactionDefinition.TRANSACTION_RELATION.get(type);
 
 		if(classFullName == null || "".equals(classFullName)) {
-			log.warn("没有配置的消息序列化");
+			log.error("没有配置的消息序列化");
 			return null;
 		}
 		

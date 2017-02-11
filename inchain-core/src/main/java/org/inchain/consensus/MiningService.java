@@ -20,9 +20,8 @@ import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.InventoryItem;
-import org.inchain.message.InventoryMessage;
-import org.inchain.message.NewBlockMessage;
 import org.inchain.message.InventoryItem.Type;
+import org.inchain.message.InventoryMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.ScriptBuilder;
@@ -103,7 +102,10 @@ public final class MiningService implements Mining {
 				boolean res = verifyTx(transactionList, tx);
 				if(res) {
 					//交易费
-					fee = fee.add(getTransactionFee(tx));
+					//只有pay交易才有交易费
+					if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+						fee = fee.add(getTransactionFee(tx));
+					}
 					transactionList.add(tx);
 				} else {
 					//验证失败
@@ -301,13 +303,20 @@ public final class MiningService implements Mining {
 				
 				byte[] txid = chainstateStoreProvider.getBytes(hash160);
 				if(txid != null) {
-					throw new VerificationException("the register txid hash160 hash exists");
+					throw new VerificationException("注册的账户重复");
 				}
 				
-				//如果是普通帐户，任何人都可以注册，认证帐户，就需要判断是否经过认证的
-				if(network.getCertAccountVersion() == network.getCertAccountVersion()) {
-					//TODO
-					throw new VerificationException("the register has not cert");
+				//验证账户注册，必须是超级账号签名的才能注册
+				byte[] verTxid = regTx.getScript().getChunks().get(1).data;
+				byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
+				if(verTxBytes == null) {
+					throw new VerificationException("签名错误");
+				}
+				CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
+				
+				//认证帐户，就需要判断是否经过认证的
+				if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
+					throw new VerificationException("账户没有经过认证");
 				}
 			}
 			return true;

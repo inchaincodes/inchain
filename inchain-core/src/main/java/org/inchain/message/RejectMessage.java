@@ -1,6 +1,10 @@
 package org.inchain.message;
 
+import java.io.IOException;
+import java.io.OutputStream;
+
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 
 /**
@@ -9,9 +13,12 @@ import org.inchain.network.NetworkParams;
  *
  */
 public class RejectMessage extends Message {
-
-	public RejectMessage(NetworkParams network) {
+	
+	private Sha256Hash hash;
+	
+	public RejectMessage(NetworkParams network, Sha256Hash hash) {
         super();
+        this.hash = hash;
     }
     
 	public RejectMessage(NetworkParams network, byte[] payload) throws ProtocolException {
@@ -24,6 +31,11 @@ public class RejectMessage extends Message {
 	
 	@Override
 	protected void parse() throws ProtocolException {
-		//TODO
+		hash = readHash();
+	}
+	
+	@Override
+	protected void serializeToStream(OutputStream stream) throws IOException {
+		stream.write(hash.getReversedBytes());
 	}
 }

@@ -120,7 +120,7 @@ public class InventoryMessageProcess implements MessageProcess {
 				//下载交易
 				Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 				
-				//获取下载结果，60s超时
+				//获取下载结果，10s超时
 				GetDataResult result = resultFuture.get(10, TimeUnit.SECONDS);
 				
 				if(result.isSuccess()) {

@@ -19,10 +19,7 @@ import org.inchain.utils.Utils;
  *
  */
 public class CertAccountRegisterTransaction extends CertAccountTransaction {
-	
-	//主体信息最大长度 10k
-	private static final int MAX_BODY_LENGTH = 10 * 1024;
-	
+
 	//帐户主体
 	private AccountBody body;
 	

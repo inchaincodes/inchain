@@ -17,7 +17,7 @@ import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.script.Script;
-import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Repository;
  *
  */
 @Repository
-public class TransactionStoreProvider extends ChainstateStoreProvider {
+public class TransactionStoreProvider extends BaseStoreProvider {
 	
 	//存放交易记录账号的key
 	private final static byte[] ADDRESSES_KEY = Sha256Hash.ZERO_HASH.getBytes();
@@ -124,61 +124,78 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 			//如果不存在，则新增
 			mineTxList.add(ts);
 			
-			//更新交易状态
-			List<Output> outputs = tx.getOutputs();
-			
-			//交易状态
-			byte[] status = new byte[outputs.size()];
-			
-			for (int i = 0; i < outputs.size(); i++) {
-				Output output = outputs.get(i);
-				Script script = output.getScript();
+			if(tx.isPaymentTransaction()) {
+				//更新交易状态
+				List<Output> outputs = tx.getOutputs();
 				
-				for (byte[] hash160 : addresses) {
-					if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-						status[i] = TransactionStore.STATUS_UNUSE;
-						break;
-					}
-				}
-			}
-			List<Input> inputs = tx.getInputs();
-			if(inputs != null) {
-				for (Input input : inputs) {
-					TransactionInput txInput = (TransactionInput) input;
-					if(txInput.getFrom() == null) {
-						continue;
-					}
-					Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
+				//交易状态
+				byte[] status = new byte[outputs.size()];
+				
+				for (int i = 0; i < outputs.size(); i++) {
+					Output output = outputs.get(i);
+					Script script = output.getScript();
 					
-					for (TransactionStore transactionStore : mineTxList) {
-						if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-							//更新内存
-							byte[] ftxStatus = transactionStore.getStatus();
-							ftxStatus[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
-							transactionStore.setStatus(ftxStatus);
-							//更新存储
-							put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
+					for (byte[] hash160 : addresses) {
+						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+							status[i] = TransactionStore.STATUS_UNUSE;
 							break;
 						}
 					}
 				}
+				List<Input> inputs = tx.getInputs();
+				if(inputs != null) {
+					for (Input input : inputs) {
+						TransactionInput txInput = (TransactionInput) input;
+						if(txInput.getFrom() == null) {
+							continue;
+						}
+						Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
+						
+						for (TransactionStore transactionStore : mineTxList) {
+							if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+								//更新内存
+								byte[] ftxStatus = transactionStore.getStatus();
+								ftxStatus[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
+								transactionStore.setStatus(ftxStatus);
+								//更新存储
+								put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
+								break;
+							}
+						}
+					}
+				}
+				//设置交易存储状态
+				ts.setStatus(status);
 			}
-			//设置交易存储状态
-			ts.setStatus(status);
 			
 			if(noticeListener != null) {
-				//转入给我，则提醒
-				TransactionOutput output = (TransactionOutput) tx.getOutputs().get(0);
-				
-				Script script = output.getScript();
-				if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
-					noticeReceiveAmount(tx, output);
+				// 我的交易，则提醒
+				if(tx.isPaymentTransaction()) {
+					//转入给我，则提醒
+					TransactionOutput output = (TransactionOutput) tx.getOutputs().get(0);
+					
+					Script script = output.getScript();
+					if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
+						noticeReceiveAmount(tx, output);
+					}
+				} else {
+					CertAccountTransaction cat = (CertAccountTransaction) tx;
+					if(blockStoreProvider.getAccountFilter().contains(cat.getHash160())) {
+						noticeListener.onNotice("修改密码请求已提交", String.format("您的修改密码请求已被网络接受"));
+					}
 				}
 			}
 		} else {
 			//交易状态变化
 			if(noticeListener != null && ts.getHeight() != -1l) {
-				noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
+				if(tx.isPaymentTransaction()) {
+					noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
+				} else {
+					CertAccountTransaction cat = (CertAccountTransaction) tx;
+					if(blockStoreProvider.getAccountFilter().contains(cat.getHash160())) {
+						noticeListener.onNotice("密码已成功修改", String.format("您的修改密码请求已成功收录进高度为 %d 的块", ts.getHeight()));
+					}
+				}
 			}
 		}
 		
@@ -459,18 +476,12 @@ public class TransactionStoreProvider extends ChainstateStoreProvider {
 	 * @return Transaction
 	 */
 	public Transaction getAccountInfosNewestTransaction(byte[] hash160) {
-		for (TransactionStore transactionStore : mineTxList) {
-			
-			Transaction tx = transactionStore.getTransaction();
-			if(tx instanceof CertAccountRegisterTransaction) {
-				//交易状态
-				byte[] status = chainstateStoreProvider.getBytes(hash160);
-				if(status != null) {
-					return tx;
-				}
-			}
+		byte[] cerTxid = chainstateStoreProvider.getBytes(hash160);
+		if(cerTxid == null) {
+			return null;
+		} else {
+			return blockStoreProvider.getTransaction(cerTxid).getTransaction();
 		}
-		return null;
 	}
 
 	public List<byte[]> getAddresses() {

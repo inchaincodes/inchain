@@ -15,6 +15,8 @@ import org.inchain.message.PingMessage;
 import org.inchain.message.PongMessage;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
+import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
 
@@ -22,7 +24,6 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 
 	private static final MessageProcessFactory INSTANCE = new DefaultMessageProcessFactory();
 	
-//	private static final Map<Class<? extends Message>, Class<? extends MessageProcess>> FACTORYS = new HashMap<Class<? extends Message>, Class<? extends MessageProcess>>();
 	private static final Map<Class<? extends Message>, String> FACTORYS = new HashMap<Class<? extends Message>, String>();
 
     static {
@@ -30,7 +31,6 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
     	FACTORYS.put(PongMessage.class, "pongMessageProcess");
     	FACTORYS.put(VersionMessage.class, "versionMessageProcess");
     	FACTORYS.put(VerackMessage.class, "verackMessageProcess");
-//    	FACTORYS.put(RegisterTransaction.class, RegisterTransaction);
     	FACTORYS.put(Block.class, "blockMessageProcess");
     	FACTORYS.put(GetBlocksMessage.class, "getBlocksMessageProcess");
     	FACTORYS.put(NewBlockMessage.class, "newBlockMessageProcess");
@@ -39,6 +39,8 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
     	FACTORYS.put(InventoryMessage.class, "inventoryMessageProcess");
     	FACTORYS.put(GetDatasMessage.class, "getDatasMessageProcess");
     	FACTORYS.put(Transaction.class, "transactionMessageProcess");
+    	FACTORYS.put(CertAccountRegisterTransaction.class, "transactionMessageProcess");
+    	FACTORYS.put(CertAccountUpdateTransaction.class, "transactionMessageProcess");
     }
 
 	private DefaultMessageProcessFactory() {
@@ -57,34 +59,5 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
 			messageProcess = SpringContextUtils.getBean(UnknownMessageProcess.class);
 		}
 		return messageProcess;
-		
-//		if(message instanceof PingMessage) {
-//			return new PingMessageProcess();
-//		} else if(message instanceof PongMessage) {
-//			return new PongMessageProcess();
-//		} else if(message instanceof VerackMessage) {
-//			return new VerackMessageProcess();
-//		} else if(message instanceof VersionMessage) {
-//			return new VersionMessageProcess();
-//		} else if(message instanceof RegConsensusTransaction) {
-//			//注册成为共识节点消息
-//			return new RegConsensusMessageProcess();
-//		}  else if(message instanceof Transaction) {
-//			return new TransactionMessageProcess();
-//		} else if(message instanceof NewBlockMessage) {
-//			return new NewBlockMessageProcess();
-//		} else if(message instanceof BlockMessage) {
-//			return new BlockMessageProcess();
-//		} else if(message instanceof GetBlocksMessage) {
-//			return new GetBlocksMessageProcess();
-//		} else if(message instanceof ConsensusMessage) {
-//			return new ConsensusMessageProcess();
-//		} else if(message instanceof GetDatasMessage) {
-//			return new GetDatasMessageProcess();
-//		} else if(message instanceof InventoryMessage) {
-//			return new InventoryMessageProcess();
-//		} else {
-//			return new UnknownMessageProcess();
-//		}
 	}
 }

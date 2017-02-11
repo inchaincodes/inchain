@@ -452,4 +452,8 @@ public class Transaction extends Message {
 	public void setType(int type) {
 		this.type = type;
 	}
+
+	public boolean isPaymentTransaction() {
+		return type == TransactionDefinition.TYPE_COINBASE || type == TransactionDefinition.TYPE_PAY;
+	}
 }

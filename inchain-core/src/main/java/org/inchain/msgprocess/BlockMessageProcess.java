@@ -157,7 +157,9 @@ public class BlockMessageProcess implements MessageProcess {
 			} else if(tx.getType() == TransactionDefinition.TYPE_COINBASE) {
 				throw new VerificationException("the block too much coinbase tx");
 			}
-			fee = fee.add(rs.getResult().getFee());
+			if(rs.getResult().getFee() != null) {
+				fee = fee.add(rs.getResult().getFee());
+			}
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		if(!coinbaseFee.equals(fee)) {
@@ -173,8 +175,7 @@ public class BlockMessageProcess implements MessageProcess {
 	 * @return MessageProcessResult
 	 */
 	protected MessageProcessResult replyRejectMessage(Block block) {
-		RejectMessage replyMessage = new RejectMessage(network);
-		//TODO
+		RejectMessage replyMessage = new RejectMessage(network, block.getHash());
 		return new MessageProcessResult(block.getHash(), false, replyMessage);
 	}
 }

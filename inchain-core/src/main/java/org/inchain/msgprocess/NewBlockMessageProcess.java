@@ -3,11 +3,13 @@ package org.inchain.msgprocess;
 import org.inchain.core.Peer;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Block;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
+import org.inchain.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +55,11 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		
 		if(!result.isSuccess()) {
 			return result;
+		}
+		
+		for (Transaction tx : block.getTxs()) {
+			//移除內存中的交易
+			MempoolContainerMap.getInstace().remove(tx.getHash());
 		}
 		
 		Sha256Hash hash = block.getHash();

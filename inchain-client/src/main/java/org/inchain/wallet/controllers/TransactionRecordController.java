@@ -25,15 +25,19 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.DateUtil;
+import org.inchain.wallet.entity.DetailValue;
+import org.inchain.wallet.entity.DetailValueCell;
 import org.inchain.wallet.entity.TransactionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.Callback;
 
 /**
  * 交易记录页面控制器
@@ -47,7 +51,7 @@ public class TransactionRecordController implements SubPageController {
 	public TableView<TransactionEntity> table;
 	public TableColumn<TransactionEntity, Long> status;
 	public TableColumn<TransactionEntity, String> type;
-	public TableColumn<TransactionEntity, String> detail;
+	public TableColumn<TransactionEntity, DetailValue> detail;
 	public TableColumn<TransactionEntity, String> amount;
 	public TableColumn<TransactionEntity, String> time;
 	
@@ -57,7 +61,12 @@ public class TransactionRecordController implements SubPageController {
     public void initialize() {
     	status.setCellValueFactory(new PropertyValueFactory<TransactionEntity, Long>("status"));
     	type.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("type"));
-    	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("detail"));
+    	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, DetailValue>("detail"));
+    	detail.setCellFactory(new Callback<TableColumn<TransactionEntity, DetailValue>, TableCell<TransactionEntity, DetailValue>>() {
+	    	@Override public TableCell<TransactionEntity, DetailValue> call(TableColumn<TransactionEntity, DetailValue> tableColumn) {
+	    		return new DetailValueCell();
+	    	}
+	    });
     	amount.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("amount"));
     	time.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("time"));
     }
@@ -82,7 +91,6 @@ public class TransactionRecordController implements SubPageController {
 			@Override
 			public int compare(TransactionEntity o1, TransactionEntity o2) {
 				if(o1.getTime() == null || o2.getTime() == null) {
-					log.warn("交易时间为空");
 					return 0;
 				} else {
 					return o2.getTime().compareTo(o1.getTime());
@@ -110,6 +118,7 @@ public class TransactionRecordController implements SubPageController {
 				Transaction tx = txs.getTransaction();
 				
 				String type = null, detail = "", amount = null, time = null;
+				DetailValue detailValue = new DetailValue();
 				
 				if(tx.getType() == TransactionDefinition.TYPE_COINBASE || 
 						tx.getType() == TransactionDefinition.TYPE_PAY) {
@@ -188,16 +197,17 @@ public class TransactionRecordController implements SubPageController {
 						type = "转出";
 					}
 					amount = fee.toText();
-				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
+						tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//认证账户注册
 					CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
-					type = "账户注册";
+					type = tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER ? "账户注册" : "修改信息";
 					
 					List<KeyValuePair> bodyContents = crt.getBody().getContents();
 					for (KeyValuePair keyValuePair : bodyContents) {
 						if(ContentType.from(keyValuePair.getKey()) == ContentType.LOGO) {
 							//图标
-							
+							detailValue.setImg(keyValuePair.getValue());
 						} else {
 							if(!"".equals(detail)) {
 								detail += "\r\n";
@@ -209,7 +219,9 @@ public class TransactionRecordController implements SubPageController {
 				}
 				
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
-				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detail, amount, time));
+				
+				detailValue.setValue(detail);
+				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detailValue, amount, time));
 			}
 		}
 	}

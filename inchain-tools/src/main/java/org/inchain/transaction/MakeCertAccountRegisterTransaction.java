@@ -12,7 +12,13 @@ import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
+import org.inchain.store.ChainstateStoreProvider;
+import org.inchain.store.Store;
+import org.inchain.store.TransactionStoreProvider;
 import org.inchain.utils.Hex;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class MakeCertAccountRegisterTransaction {
@@ -70,6 +76,10 @@ public class MakeCertAccountRegisterTransaction {
 			rtx.verfify();
 			rtx.verfifyScript();
 			
+			TransactionValidator transactionValidator = springContext.getBean(TransactionValidator.class);
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(rtx, null);
+			System.out.println(rs.getResult());
+			
 			System.out.println(Hex.encode(rtx.baseSerialize()));
 			System.out.println("tx id is :" +rtx.getHash());
 			System.out.println(rtx.getBody());
@@ -77,8 +87,11 @@ public class MakeCertAccountRegisterTransaction {
 			MempoolContainerMap.getInstace().add(rtx);
 			
 			PeerKit peerKit = springContext.getBean(PeerKit.class);
+			
 			BroadcastResult res = peerKit.broadcast(rtx).get();
 			System.out.println(res);
+			
+			Thread.sleep(20000l);
 			
 		} catch (Exception e) {
 			e.printStackTrace();

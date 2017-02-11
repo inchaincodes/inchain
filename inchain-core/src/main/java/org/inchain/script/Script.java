@@ -292,7 +292,7 @@ public class Script {
 
     /**
      * 是否输出到系统账户（也就是普通账户）
-     * @return
+     * @return boolean
      */
     public boolean isSentToSystemAddress() {
         return 	chunks.size() == 5 &&
@@ -305,7 +305,7 @@ public class Script {
 
     /**
      * 是否输出到认证账户
-     * @return
+     * @return boolean
      */
     public boolean isSentToCertAccountAddress() {
         return 	chunks.size() == 5 &&
@@ -1290,7 +1290,7 @@ public class Script {
                 		throw new ScriptException("Attempted OP_VERMG on a stack with not a transaction type");
                 	}
                 	int mgType = mgtypes[0];
-                	if(mgType == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || mgType == TransactionDefinition.TYPE_CHANGEPWD) {
+                	if(mgType == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || mgType == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
                 		stack.add(new byte[] {1});
                 	} else {
                 		stack.add(new byte[] {0});
@@ -1390,7 +1390,7 @@ public class Script {
 	public void runCertAccountSign(CertAccountTransaction transaction) {
 		//复制一个交易
 		CertAccountTransaction tx = (CertAccountTransaction) transaction.getNetwork().getDefaultSerializer().makeTransaction(transaction.baseSerialize(), 0);
-		//清楚验证脚本
+		//清除验证脚本
 		tx.cleanScripts();
 		//签名内容
 		Sha256Hash hash = Sha256Hash.of(tx.baseSerialize());

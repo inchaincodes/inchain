@@ -368,7 +368,6 @@ public class Account {
 			byte[] sign = tempSigns[i];
 			ECKey key1 = ECKey.fromPublicOnly(mgPubkeys[i]);
 			byte[] hash = Sha256Hash.of(serialize()).getBytes();
-			
 			if(!key1.verify(hash, sign)) {
 				throw new VerificationException("account verify fail");
 			}

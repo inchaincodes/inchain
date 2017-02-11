@@ -74,7 +74,7 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 			//通过一半的对等体广播出去，如果收到一半以上的inv消息，则代表成功
 			int numConnected = peers.size();
             int numToBroadcastTo = (int) Math.max(1, Math.round(Math.ceil(peers.size() / 2.0)));
-            int numWaitingFor = (int) Math.ceil((numConnected - numToBroadcastTo) / 2.0);
+            int numWaitingFor = (int) Math.max(1, Math.ceil((numConnected - numToBroadcastTo) / 2.0));
             Collections.shuffle(peers, random);
             peers = peers.subList(0, numToBroadcastTo);
 			

@@ -4,11 +4,11 @@ public class TransactionEntity {
 
 	private long status;
 	private String type;  
-    private String detail;
+    private DetailValue detail;
     private String amount;
     private String time;
     
-	public TransactionEntity(long status, String type, String detail, String amount, String time) {
+	public TransactionEntity(long status, String type, DetailValue detail, String amount, String time) {
 		this.status = status;
 		this.type = type;
 		this.detail = detail;
@@ -30,10 +30,10 @@ public class TransactionEntity {
 	public void setType(String type) {
 		this.type = type;
 	}
-	public String getDetail() {
+	public DetailValue getDetail() {
 		return detail;
 	}
-	public void setDetail(String detail) {
+	public void setDetail(DetailValue detail) {
 		this.detail = detail;
 	}
 	public String getAmount() {
@@ -47,6 +47,12 @@ public class TransactionEntity {
 	}
 	public void setTime(String time) {
 		this.time = time;
+	}
+
+	@Override
+	public String toString() {
+		return "TransactionEntity [status=" + status + ", type=" + type + ", detail=" + detail + ", amount=" + amount
+				+ ", time=" + time + "]";
 	}
 
 }

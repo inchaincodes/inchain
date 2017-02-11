@@ -13,11 +13,11 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
 import org.inchain.listener.TransactionListener;
-import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.script.Script;
 import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
@@ -197,15 +197,17 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						chainstateStoreProvider.put(key, new byte[]{1});
 					}
 				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
-						tx.getType() == TransactionDefinition.TYPE_CHANGEPWD) {
+						tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//帐户注册和修改密码
 					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
-					
+					if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
+						//删除之前的信息
+						byte[] oldTxid = chainstateStoreProvider.getBytes(rtx.getHash160());
+						chainstateStoreProvider.delete(oldTxid);
+					}
+					chainstateStoreProvider.put(rtx.getHash().getBytes(), rtx.baseSerialize());
 					chainstateStoreProvider.put(rtx.getHash160(), rtx.getHash().getBytes());
 				}
-				
-				//移除內存中的交易
-				MempoolContainerMap.getInstace().remove(tx.getHash());
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);
 			}
@@ -281,9 +283,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				}
 			}
-		} else if(transaction.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+		} else if(transaction instanceof CertAccountTransaction) {
 			//账户注册交易
-			CertAccountRegisterTransaction certTx = (CertAccountRegisterTransaction) transaction;
+			CertAccountTransaction certTx = (CertAccountTransaction) transaction;
 			if(accountFilter.contains(certTx.getHash160())) {
 				updateMineTx(txs);
 			}
@@ -526,9 +528,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
 						//参与共识交易
 						
-					} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
-						//账户注册交易
-						CertAccountRegisterTransaction certTx = (CertAccountRegisterTransaction) tx;
+					} else if(tx instanceof CertAccountTransaction) {
+						//认证账户类交易
+						CertAccountTransaction certTx = (CertAccountTransaction) tx;
 						for (byte[] hash160 : hash160s) {
 							if(Arrays.equals(certTx.getHash160(), hash160)) {
 								mineTxs.add(new TransactionStore(network, tx, block.getHeight(), new byte[]{}));

@@ -37,10 +37,11 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
 import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.StoreProvider;
+import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.CertAccountRegisterTransaction;
+import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -76,7 +77,7 @@ public class AccountKit {
 	private List<Account> accountList = new ArrayList<Account>();
 	//状态连存储服务
 	@Autowired
-	private StoreProvider chainstateStoreProvider;
+	private ChainstateStoreProvider chainstateStoreProvider;
 	//交易存储服务
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
@@ -347,15 +348,9 @@ public class AccountKit {
 		//验证交易是否合法
 		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
 		if(!rs.getResult().isSuccess()) {
-			throw new MoneyNotEnoughException(rs.getResult().getMessage());
+			throw new VerificationException(rs.getResult().getMessage());
 		}
 
-		Transaction txtemp = new Transaction(tx.getNetwork(), tx.baseSerialize());
-		rs = transactionValidator.valDo(txtemp, null);
-		if(!rs.getResult().isSuccess()) {
-			throw new MoneyNotEnoughException(rs.getResult().getMessage());
-		}
-		
 		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 		boolean success = MempoolContainerMap.getInstace().add(tx);
 		
@@ -590,6 +585,7 @@ public class AccountKit {
 				fos.close();
 			}
 			
+			account.setEcKey(key);
 			accountList.add(account);
 			
 			return address;
@@ -895,7 +891,7 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result decryptWallet(String password) {
-		return decryptWallet(password, 1);
+		return decryptWallet(password, TransactionDefinition.TX_VERIFY_MG);
 	}
 	
 	/**
@@ -924,7 +920,7 @@ public class AccountKit {
 			} else if(account.getAccountType() == network.getCertAccountVersion()) {
 				//认证账户的解密
 				ECKey[] keys = null;
-				if(type == 1) {
+				if(type == TransactionDefinition.TX_VERIFY_MG) {
 					keys = account.decryptionMg(password);
 				} else {
 					keys = account.decryptionTr(password);
@@ -973,6 +969,7 @@ public class AccountKit {
 		for (Account account : accountList) {
 			try {
 				if(account.isCertAccount()) {
+					
 					//认证账户
 					//生成私匙
 					ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
@@ -985,28 +982,42 @@ public class AccountKit {
 					ECKey key2 = ECKey.fromPrivate(pri2);
 					
 					//重新设置账户的公钥
+					ECKey[] oldMgEckeys = account.getMgEckeys();
 					if(type == 1) {
+						account.setMgEckeys(new ECKey[] {key1, key2});
 						account.setMgPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
 					} else {
 						account.setTrPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
 					}
 					//重新签名
 					account.signAccount();
+					account.verify();
 					
-					//回写到钱包文件
-					File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+					//广播
+					CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), 
+							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
 					
-					FileOutputStream fos = new FileOutputStream(accountFile);
-					try {
-						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-						fos.write(account.serialize());
-						successCount++;
-						
-						//广播
-						//TODO
-						
-					} finally {
-						fos.close();
+					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), TransactionDefinition.TX_VERIFY_MG);
+					rtx.verfify();
+					rtx.verfifyScript();
+
+					MempoolContainerMap.getInstace().add(rtx);
+					
+					BroadcastResult broadcastResult = peerKit.broadcast(rtx).get();
+					if(broadcastResult.isSuccess()) {
+						account.setAccountTransaction(rtx);
+						//回写到钱包文件
+						File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+						FileOutputStream fos = new FileOutputStream(accountFile);
+						try {
+							//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+							fos.write(account.serialize());
+							successCount++;
+						} finally {
+							fos.close();
+						}
+					} else {
+						log.error(broadcastResult.getMessage());
 					}
 				} else {
 					//普通账户，也就无所谓管理或者交易密码了
@@ -1017,6 +1028,8 @@ public class AccountKit {
 					
 					//重新签名
 					account.signAccount(eckey, null);
+					
+					account.verify();
 					
 					//回写到钱包文件
 					File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
@@ -1031,10 +1044,11 @@ public class AccountKit {
 					}
 					eckey = null;
 				}
-				account.resetKey();
 			} catch (Exception e) {
 				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
 				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+			} finally {
+				account.resetKey();
 			}
 		}
 		String message = "成功修改"+successCount+"个账户的密码";
@@ -1307,7 +1321,7 @@ public class AccountKit {
 
 	/**
 	 * 账户是否是认证账户
-	 * @return
+	 * @return boolean
 	 */
 	public boolean isCertAccount() {
 		for (Account account : accountList) {

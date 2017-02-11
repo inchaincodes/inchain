@@ -155,16 +155,21 @@ public class TransactionValidator {
 			byte[] txid = chainstateStoreProvider.getBytes(hash160);
 			if(txid != null) {
 				result.setSuccess(false);
-				result.setMessage("the register txid hash160 hash exists");
+				result.setMessage("注册的账户重复");
 				return validatorResult;
 			}
 			
-			//如果是普通帐户，任何人都可以注册，认证帐户，就需要判断是否经过认证的
-			if(network.getCertAccountVersion() == network.getCertAccountVersion()) {
-				//TODO
-				result.setSuccess(false);
-				result.setMessage("the register has not cert");
-				return validatorResult;
+			//验证账户注册，必须是超级账号签名的才能注册
+			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
+			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
+			if(verTxBytes == null) {
+				throw new VerificationException("签名错误");
+			}
+			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
+			
+			//认证帐户，就需要判断是否经过认证的
+			if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
+				throw new VerificationException("账户没有经过认证");
 			}
 		}
 

@@ -1,7 +1,5 @@
 package org.inchain.msgprocess;
 
-import java.util.List;
-
 import org.inchain.core.Peer;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -18,13 +16,15 @@ import org.inchain.script.Script;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
-import org.inchain.transaction.Input;
+import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
-import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.utils.Hex;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +50,8 @@ public class TransactionMessageProcess implements MessageProcess {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
+	@Autowired
+	private TransactionValidator transactionValidator;
 	
 	public TransactionMessageProcess() {
 	}
@@ -63,6 +65,7 @@ public class TransactionMessageProcess implements MessageProcess {
 			log.debug("transaction message {}", Hex.encode(tx.baseSerialize()));
 		}
 		try {
+
 			//验证交易的合法性
 			tx.verfifyScript();
 			
@@ -92,35 +95,18 @@ public class TransactionMessageProcess implements MessageProcess {
 			return new MessageProcessResult(tx.getHash(), true);
 		} catch (Exception e) {
 			log.error("tx error ", e);
-			RejectMessage replyMessage = new RejectMessage(network);
+			RejectMessage replyMessage = new RejectMessage(network, tx.getHash());
 			//TODO
 			return new MessageProcessResult(tx.getHash(), false, replyMessage);
 		}
 	}
 
 	//交易逻辑验证，验证不通过抛出VerificationException
-	private void verifyTx(Transaction tx) {
-		int type = tx.getType();
-		//帐户注册，hash160不能重复
-		if(type == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
-			
-		} else if(type == TransactionDefinition.TYPE_CHANGEPWD) {
-			
-		} else if(type == TransactionDefinition.TYPE_PAY) {
-			//普通交易，验证交易来源和交易金额是否正确
-			List<Input> inputs = tx.getInputs();
-			for (Input input : inputs) {
-				TransactionInput tInput = (TransactionInput) input;
-				TransactionOutput output = tInput.getFrom();
-				if(output == null) {
-					throw new VerificationException("error input");
-				}
-				Sha256Hash fromId = output.getParent().getHash();
-//				trans
-			}
-			
-		} else {
-			throw new VerificationException("error transaction");
+	private void verifyTx(Transaction tx) throws VerificationException {
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
+		
+		if(!rs.getResult().isSuccess()) {
+			throw new VerificationException(rs.getResult().getMessage());
 		}
 	}
 
@@ -128,12 +114,20 @@ public class TransactionMessageProcess implements MessageProcess {
 	 * 是否转入到我的账上的交易，如果是，则通知
 	 */
 	private void checkIsMine(Transaction tx) {
-		Output output = tx.getOutputs().get(0);
-		TransactionOutput tOutput = (TransactionOutput) output;
-		
-		Script script = tOutput.getScript();
-		if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
-			blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
+		if(tx.getType() == TransactionDefinition.TYPE_COINBASE || tx.getType() == TransactionDefinition.TYPE_PAY) {
+			Output output = tx.getOutputs().get(0);
+			TransactionOutput tOutput = (TransactionOutput) output;
+			
+			Script script = tOutput.getScript();
+			if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
+				blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
+			}
+		} else {
+			CertAccountTransaction cat = (CertAccountTransaction) tx;
+			byte[] hash160 = cat.getHash160();
+			if(blockStoreProvider.getAccountFilter().contains(hash160)) {
+				blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
+			}
 		}
 	}
 }
