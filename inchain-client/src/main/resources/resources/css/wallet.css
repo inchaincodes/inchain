@@ -1,7 +1,4 @@
 .root-pane {
-	-fx-background-image: url("/images/default_bg.png");
-	-fx-background-repeat: repeat;
-	-fx-background-size: cover;
 }
 .mnemonic-area *.text {
     -fx-text-alignment: center;

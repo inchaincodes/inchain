@@ -17,6 +17,7 @@ import org.inchain.kit.InchainInstance;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
+import org.mistfx.decoration.Decoration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +29,7 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
@@ -40,6 +42,10 @@ import javafx.stage.WindowEvent;
 public class Main extends Application implements ActionListener {
 	
 	private static final Logger log = LoggerFactory.getLogger(Main.class);
+	
+	private static final int DEFAULT_WIDTH = 640;
+	private static final int DEFAULT_HEIGHT = 480;
+	
 	
 	//如果系统支持托盘， 在第一次点击关闭按钮时，最小化到托盘，弹出提示
 	private boolean hideTip;
@@ -160,12 +166,21 @@ public class Main extends Application implements ActionListener {
         mainController.setStage(stage);
  
         StackPane uiStack = new StackPane(mainUI);
-		Scene scene = new Scene(uiStack);
+//		Scene scene = new Scene(uiStack);
+//        scene.getStylesheets().add(getClass().getResource("/resources/css/wallet.css").toString());
+//        stage.setScene(scene);
+        
+        stage.setMinHeight(DEFAULT_HEIGHT);
+        stage.setMinWidth(DEFAULT_WIDTH);
+        stage.setWidth(DEFAULT_WIDTH);
+        stage.setHeight(DEFAULT_HEIGHT);
+        
+        Decoration decoration = new Decoration(uiStack);
+        
+        Scene scene = new Scene(decoration, Color.TRANSPARENT);
         scene.getStylesheets().add(getClass().getResource("/resources/css/wallet.css").toString());
         stage.setScene(scene);
-        
-        stage.setMinHeight(480);
-        stage.setMinWidth(680);
+        stage.initStyle(StageStyle.TRANSPARENT);
 	}
 
 	/*
