@@ -156,7 +156,7 @@ public class InventoryMessageProcess implements MessageProcess {
 				
 				filter.insert(inventoryItem.getHash().getBytes());
 				if(log.isDebugEnabled()) {
-					log.debug("新区快 高度:{} hash:{} 同步成功", block.getHeight(), inventoryItem.getHash());
+					log.debug("新区块:高度 {} hash{} 同步成功", block.getHeight(), inventoryItem.getHash());
 				}
 				//区块变化监听器
 				if(peerKit.getBlockChangedListener() != null) {
@@ -165,7 +165,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			}
 			
 		} catch (Exception e) {
-			log.error("新区快inv消息处理失败 {}", inventoryItem, e);
+			log.error("新区块inv消息处理失败 {}", inventoryItem, e);
 		} finally {
 			blockLocker.unlock();
 		}
