@@ -21,6 +21,7 @@ import org.inchain.message.BlockHeader;
 import org.inchain.script.Script;
 import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CertAccountTransaction;
+import org.inchain.transaction.CommonlyTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
@@ -132,17 +133,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					//添加账户信息，如果不存在的话
 					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 					if(accountInfo == null) {
-						accountInfo = new AccountStore(network);
-						accountInfo.setHash160(hash160);
-						accountInfo.setType(regTransaction.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
-						accountInfo.setCert(0);
-						accountInfo.setAccountBody(AccountBody.empty());
-						accountInfo.setBalance(Coin.ZERO.value);
-						accountInfo.setCreateTime(regTransaction.getTime());
-						accountInfo.setLastModifyTime(regTransaction.getTime());
-						accountInfo.setInfoTxid(Sha256Hash.ZERO_HASH);
-						accountInfo.setPubkeys(new byte[][] {regTransaction.getPubkey()});
-						chainstateStoreProvider.saveAccountInfo(accountInfo);
+						accountInfo = createNewAccountInfo(regTransaction, AccountBody.empty(), new byte[][] {regTransaction.getPubkey()});
 					}
 					//公钥
 					byte[] pubkey = accountInfo.getPubkeys()[0];
@@ -153,23 +144,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
 						CreditTransaction creditTransaction = (CreditTransaction)tx;
 						
-						byte[] uinfos = chainstateStoreProvider.getBytes(creditTransaction.getHash160());
-						if(uinfos == null) {
+						AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(creditTransaction.getHash160());
+						if(accountInfo == null) {
 							//不存在时，直接写入信用
-							byte[] value = new byte[4];
-							Utils.uint32ToByteArrayBE(creditTransaction.getCredit(), value, 0);
-//							chainstateStoreProvider.put(creditTransaction.getHash160(), value);
+							accountInfo = createNewAccountInfo(creditTransaction, AccountBody.empty(), new byte[][] {creditTransaction.getPubkey()});
+							accountInfo.setCert(creditTransaction.getCredit());
 						} else {
 							//存在时，增加信用
-							if(uinfos.length < 4) {
-								throw new VerificationException("错误的信用数据");
-							}
-							long credit = Utils.readUint32BE(uinfos, 0);
-							credit += creditTransaction.getCredit();
-							Utils.uint32ToByteArrayBE(credit, uinfos, 0);
-
-//							chainstateStoreProvider.put(creditTransaction.getHash160(), uinfos);
+							accountInfo.setCert(accountInfo.getCert() + creditTransaction.getCredit());
 						}
+						chainstateStoreProvider.saveAccountInfo(accountInfo);
 					} else {
 						throw new VerificationException("出现不支持的交易，保存失败");
 					}
@@ -235,28 +219,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					
 					//添加账户信息，如果不存在的话
 					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
+					byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
 					if(accountInfo == null) {
-						accountInfo = new AccountStore(network);
-						accountInfo.setHash160(rtx.getHash160());
-						accountInfo.setType(rtx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
-						accountInfo.setCert(0);
-						accountInfo.setAccountBody(rtx.getBody());
-						accountInfo.setBalance(Coin.ZERO.value);
-						accountInfo.setCreateTime(rtx.getTime());
-						accountInfo.setLastModifyTime(rtx.getTime());
-						accountInfo.setInfoTxid(rtx.getHash());
-						
-						accountInfo.setPubkeys(new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]});
-						
-						chainstateStoreProvider.saveAccountInfo(accountInfo);
+						accountInfo = createNewAccountInfo(rtx, rtx.getBody(), pubkeys);
 					} else {
 						accountInfo.setAccountBody(rtx.getBody());
 						accountInfo.setLastModifyTime(rtx.getTime());
 						accountInfo.setInfoTxid(rtx.getHash());
-						accountInfo.setPubkeys(new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]});
-
-						chainstateStoreProvider.saveAccountInfo(accountInfo);
+						accountInfo.setPubkeys(pubkeys);
 					}
+					chainstateStoreProvider.saveAccountInfo(accountInfo);
 				}
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);
@@ -279,6 +251,28 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		} finally {
 			blockLock.unlock();
 		}
+	}
+
+	/**
+	 * 创建一个新的账户存储信息
+	 * @param tx
+	 * @param accountBody
+	 * @param pubkeys
+	 * @return AccountStore
+	 */
+	public AccountStore createNewAccountInfo(CommonlyTransaction tx, AccountBody accountBody, byte[][] pubkeys) {
+		AccountStore accountInfo;
+		accountInfo = new AccountStore(network);
+		accountInfo.setHash160(tx.getHash160());
+		accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+		accountInfo.setCert(0);
+		accountInfo.setAccountBody(accountBody);
+		accountInfo.setBalance(Coin.ZERO.value);
+		accountInfo.setCreateTime(tx.getTime());
+		accountInfo.setLastModifyTime(tx.getTime());
+		accountInfo.setInfoTxid(tx.getHash());
+		accountInfo.setPubkeys(pubkeys);
+		return accountInfo;
 	}
 
 	/**

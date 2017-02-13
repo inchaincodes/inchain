@@ -94,7 +94,6 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 			
 			//注册账户授予信用积分
 			CreditTransaction creditTx = new CreditTransaction(network);
-			creditTx.setHash160(address.getHash160());
 			creditTx.setCredit(999999l);
 			
 			txs.add(creditTx);

@@ -80,7 +80,7 @@ public class Decoration extends Control {
         });
     }
 
-	public void close() {
+    public void close() {
         Utils.applyToStage(this, stage ->
                 stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST)));
     }
@@ -177,7 +177,7 @@ public class Decoration extends Control {
     public StringProperty titleProperty() {
         return title;
     }
-    
+
     /** shadowVisible */
     private BooleanProperty shadowVisible = new SimpleBooleanProperty(this, "shadowVisible", true);
 
@@ -454,5 +454,4 @@ public class Decoration extends Control {
                     }
                 };
     }
-    
 }

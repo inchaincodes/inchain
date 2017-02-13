@@ -221,8 +221,6 @@ public class MainController {
 	 */
 	private void initPages() {
 
-		stage.getScene().getStylesheets().add("/resources/css/tableView.css");
-		
 		for (Button button : buttons) {
 			String id = button.getId();
 			pageMaps.put(id, getPage(id));

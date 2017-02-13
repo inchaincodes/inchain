@@ -1,22 +1,13 @@
 package org.mistfx.decoration.skin;
 
-import static java.util.Objects.nonNull;
-
-import java.io.IOException;
-import java.util.List;
-
-import org.mistfx.decoration.Decoration;
-import org.mistfx.decoration.Utils;
-import org.mistfx.decoration.behavior.DecorationBehavior;
-
 import com.sun.javafx.scene.control.skin.BehaviorSkinBase;
-
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
+import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -25,6 +16,15 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
+import javafx.stage.Screen;
+import org.mistfx.decoration.Decoration;
+import org.mistfx.decoration.Utils;
+import org.mistfx.decoration.behavior.DecorationBehavior;
+
+import java.io.IOException;
+import java.util.List;
+
+import static java.util.Objects.nonNull;
 
 /**
  * Created on 2015/6/10.
@@ -50,10 +50,68 @@ public class DecorationSkin extends BehaviorSkinBase<Decoration, DecorationBehav
 
     public DecorationSkin(Decoration decoration) {
         super(decoration, new DecorationBehavior(decoration));
+        registerChangeListener(decoration.utilityModeProperty(), Ref.UTILITY_MODE.name());
+        registerChangeListener(decoration.backgroundOpacityProperty(), Ref.BACKGROUND_OPACITY.name());
+        registerChangeListener(decoration.backgroundFillProperty(), Ref.FILL.name());
+        registerChangeListener(decoration.titleProperty(), Ref.TITLE.name());
+        registerChangeListener(decoration.focusedProperty(), Ref.FOCUSED.name());
+        registerChangeListener(decoration.maximizedProperty(), Ref.MAXIMIZED.name());
+        registerChangeListener(decoration.fullScreenProperty(), Ref.FULLSCREEN.name());
+        registerChangeListener(decoration.shadowVisibleProperty(), Ref.SHADOW_VISIBLE.name());
 
         decoration.setBackground(null);
         _initUI(decoration);
         getChildren().addAll(mRoot);
+    }
+
+    @Override
+    protected void handleControlPropertyChanged(String ref) {
+        Ref r = Ref.valueOf(ref);
+        switch (r) {
+            case UTILITY_MODE:
+                mRoot.toggleDecoration();
+                break;
+            case BACKGROUND_OPACITY:
+                mBackground.toggleOpacity();
+                break;
+            case FILL:
+                mBackground.toggleFill();
+                break;
+            case TITLE:
+                break;
+            case FOCUSED:
+                mShadow.toggleEffect();
+                break;
+            case SHADOW_VISIBLE:
+                mShadow.toggleVisible();
+                mRoot.togglePadding();
+                break;
+            case MAXIMIZED:
+                mRoot.togglePadding();
+                break;
+            case FULLSCREEN:
+                mRoot.togglePadding();
+                break;
+        }
+    }
+
+    @Override
+    protected void layoutChildren(double contentX, double contentY, double contentWidth, double contentHeight) {
+        double w, h;
+        if (getSkinnable().isMaximized() && !getSkinnable().isFullScreen()) {
+            Screen screen = Screen.getPrimary();
+            Rectangle2D rect = screen.getVisualBounds();
+            w = rect.getWidth();
+            h = rect.getHeight();
+        } else {
+            w = getSkinnable().getWidth();
+            h = getSkinnable().getHeight();
+        }
+        final double areaWidth = w;
+        final double areaHeight = h;
+        getChildren().stream().filter(Node::isManaged).forEach(child ->
+                        layoutInArea(child, 0, 0, areaWidth, areaHeight, -1, HPos.CENTER, VPos.CENTER)
+        );
     }
 
     private void _initUI(Decoration decoration) {
@@ -179,7 +237,7 @@ public class DecorationSkin extends BehaviorSkinBase<Decoration, DecorationBehav
                 managed.stream().forEach(child -> {
                     if (child == getSkinnable().getRoot()) { // decoration padding
                         Insets padding = getSkinnable().getPadding();
-                        final double border = 5;
+                        final double border = 7;
                         final double header = 30;
                         final double w = contentWidth - padding.getLeft() - padding.getRight()  /**/ - border * 2;
                         final double h = contentHeight - padding.getTop() - padding.getBottom() /**/ - border - header;

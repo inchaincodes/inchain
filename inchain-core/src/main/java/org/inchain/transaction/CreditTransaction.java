@@ -3,7 +3,6 @@ package org.inchain.transaction;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.inchain.account.Address;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
@@ -15,7 +14,6 @@ import org.inchain.utils.Utils;
  */
 public class CreditTransaction extends CommonlyTransaction {
 
-	private byte[] hash160;
 	private long credit;
 	
 	public CreditTransaction(NetworkParams params) throws ProtocolException {
@@ -34,8 +32,7 @@ public class CreditTransaction extends CommonlyTransaction {
 	
 	@Override
 	protected void parse() throws ProtocolException {
-		type = readBytes(1)[0];
-		hash160 = readBytes(Address.LENGTH);
+		super.parse();
 		credit = readUint32();
 		
 		length = cursor - offset;
@@ -45,18 +42,9 @@ public class CreditTransaction extends CommonlyTransaction {
 	 * 序列化
 	 */
 	protected void serializeToStream(OutputStream stream) throws IOException {
-		stream.write(type);
-		stream.write(hash160);
+		super.serializeToStream(stream);
 		Utils.uint32ToByteStreamLE(credit, stream);
     }
-
-	public byte[] getHash160() {
-		return hash160;
-	}
-
-	public void setHash160(byte[] hash160) {
-		this.hash160 = hash160;
-	}
 
 	public long getCredit() {
 		return credit;

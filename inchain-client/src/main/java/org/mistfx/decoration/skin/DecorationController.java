@@ -1,13 +1,7 @@
 package org.mistfx.decoration.skin;
 
 import javafx.animation.TranslateTransition;
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.DoubleBinding;
-import javafx.beans.binding.NumberBinding;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.beans.value.WeakChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -33,8 +27,6 @@ import org.mistfx.decoration.Decoration;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import static org.mistfx.decoration.skin.DecorationController.FullscreenStyleClass.FULLSCREEN;
@@ -151,8 +143,8 @@ public class DecorationController implements Initializable {
     /** edge */
     private Point2D dragPoint;
     private Bounds stageInfo;
-    static Lock lock = new ReentrantLock();
-
+    static boolean changeing;
+    
     private void _initEdge() {
         EventHandler<MouseEvent> pressed = event -> {
             if (event.isPrimaryButtonDown() && isResizable()) {
@@ -163,31 +155,24 @@ public class DecorationController implements Initializable {
             }
         };
         Callback<Cursors, EventHandler<MouseEvent>> entered = cursor ->
-            event -> {
-                Node source = (Node) event.getSource();
-                if (!isResizable()) {
-                    source.setCursor(Cursor.DEFAULT);
-                } else {
-                    source.setCursor(cursor.cursor);
-                }
-            };
-                
+                event -> {
+                    Node source = (Node) event.getSource();
+                    if (!isResizable()) {
+                        source.setCursor(Cursor.DEFAULT);
+                    } else {
+                        source.setCursor(cursor.cursor);
+                    }
+                };
         Callback<Cursors, EventHandler<MouseEvent>> dragged = cursor ->
                 event -> {
-            		if (!isEventResizable(event)) {
-            			return;
-            		}
-                	if(lock.tryLock()) {
-                		try {
-	                		cursor.resize(event, dragPoint, stageInfo, control.getStage());
-	                		event.consume();
-                		} catch(Exception e) {
-                		} finally {
-                			lock.unlock();
-                		}
-                	}
+                    if (changeing || !isEventResizable(event)) {
+                        return;
+                    }
+                    changeing = true;
+                    cursor.resize(event, dragPoint, stageInfo, control.getStage());
+                    event.consume();
+                    changeing = false;
                 };
-                
         /** North */
         if (nEdge != null) {
             nEdge.addEventHandler(MouseEvent.MOUSE_ENTERED, entered.call(Cursors.N_RESIZE));
@@ -360,33 +345,37 @@ public class DecorationController implements Initializable {
         }
     }
 
-    public static enum Cursors {
+    public enum Cursors {
         N_RESIZE(Cursor.N_RESIZE) {
             @Override
             void resize(MouseEvent event, Point2D dragPoint, Bounds stageInfo, Stage stage) {
                 double dy = event.getScreenY() - dragPoint.getY();
-                setStageHeight(stage, stageInfo.getHeight() - dy);
-                setStageY(stage, stageInfo.getMinY() + dy);
+                if (setStageHeight(stage, stageInfo.getHeight() - dy)) {
+                    setStageY(stage, stageInfo.getMinY() + dy);
+                }
             }
         },
         S_RESIZE(Cursor.S_RESIZE) {
             @Override
             void resize(MouseEvent event, Point2D dragPoint, Bounds stageInfo, Stage stage) {
-                setStageHeight(stage, stageInfo.getHeight() + event.getScreenY() - dragPoint.getY());
+                double dy = event.getScreenY() - dragPoint.getY();
+                setStageHeight(stage, stageInfo.getHeight() + dy);
             }
         },
         W_RESIZE(Cursor.W_RESIZE) {
             @Override
             void resize(MouseEvent event, Point2D dragPoint, Bounds stageInfo, Stage stage) {
                 double dx = event.getScreenX() - dragPoint.getX();
-                setStageWidth(stage, stageInfo.getWidth() - dx);
-                setStageX(stage, stageInfo.getMinX() + dx);
+                if (setStageWidth(stage, stageInfo.getWidth() - dx)) {
+                    setStageX(stage, stageInfo.getMinX() + dx);
+                }
             }
         },
         E_RESIZE(Cursor.E_RESIZE) {
             @Override
             void resize(MouseEvent event, Point2D dragPoint, Bounds stageInfo, Stage stage) {
-                setStageWidth(stage, stageInfo.getWidth() + event.getScreenX() - dragPoint.getX());
+                double dx = event.getScreenX() - dragPoint.getX();
+                setStageWidth(stage, stageInfo.getWidth() + dx);
             }
         },
         SW_RESIZE(Cursor.SW_RESIZE) {

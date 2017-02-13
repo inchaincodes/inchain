@@ -126,18 +126,19 @@ public class MakeTestNetGengsisBlock {
 				System.out.println(address.getBase58());
 				System.out.println("==========================");
 				
+				Account account = new Account(network);
+				account.setAddress(address);
+				account.setEcKey(key);
+				
 				//注册账户授予信用积分
 				CreditTransaction creditTx = new CreditTransaction(network);
-				creditTx.setHash160(address.getHash160());
 				creditTx.setCredit(999999l);
+				creditTx.sign(account);
 				
 				txs.add(creditTx);
 				
 				//注册共识账户到区块里
 				RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, System.currentTimeMillis());
-				Account account = new Account(network);
-				account.setAddress(address);
-				account.setEcKey(key);
 				regConsensusTransaction.sign(account);
 				
 				regConsensusTransaction.verfify();

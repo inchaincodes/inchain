@@ -166,9 +166,6 @@ public class Main extends Application implements ActionListener {
         mainController.setStage(stage);
  
         StackPane uiStack = new StackPane(mainUI);
-//		Scene scene = new Scene(uiStack);
-//        scene.getStylesheets().add(getClass().getResource("/resources/css/wallet.css").toString());
-//        stage.setScene(scene);
         
         stage.setMinHeight(DEFAULT_HEIGHT);
         stage.setMinWidth(DEFAULT_WIDTH);
@@ -178,7 +175,8 @@ public class Main extends Application implements ActionListener {
         Decoration decoration = new Decoration(uiStack);
         
         Scene scene = new Scene(decoration, Color.TRANSPARENT);
-        scene.getStylesheets().add(getClass().getResource("/resources/css/wallet.css").toString());
+        scene.getStylesheets().add("/resources/css/wallet.css");
+        scene.getStylesheets().add("/resources/css/tableView.css");
         stage.setScene(scene);
         stage.initStyle(StageStyle.TRANSPARENT);
 	}
