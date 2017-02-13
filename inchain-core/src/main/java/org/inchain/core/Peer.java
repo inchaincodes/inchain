@@ -121,9 +121,9 @@ public class Peer extends PeerSocketHandler {
 	public Future<GetDataResult> sendGetDataMessage(GetDatasMessage getdata) {
 		//获取数据 ，仅一条
         Preconditions.checkArgument(getdata.getInvs().size() == 1);
-        sendMessage(getdata);
         SettableListenableFuture<GetDataResult> future = new SettableListenableFuture<GetDataResult>();
         downDataFutures.put(getdata.getInvs().get(0).getHash(), future);
+        sendMessage(getdata);
         return future;
     }
 
