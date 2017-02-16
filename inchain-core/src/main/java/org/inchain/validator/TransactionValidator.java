@@ -3,17 +3,22 @@ package org.inchain.validator;
 import java.util.Arrays;
 import java.util.List;
 
+import org.inchain.Configure;
+import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
+import org.inchain.store.AccountStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
+import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
@@ -31,6 +36,8 @@ public class TransactionValidator {
 	
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private ConsensusPool consensusPool;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
@@ -58,8 +65,7 @@ public class TransactionValidator {
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 		if(verifyTX != null) {
-			result.setSuccess(false);
-			result.setMessage("交易hash与区块里的重复");
+			result.setResult(false, "交易hash与区块里的重复");
 			return validatorResult;
 		}
 		//如果是转帐交易
@@ -106,8 +112,7 @@ public class TransactionValidator {
 							}
 						}
 						if(!exist) {
-							result.setSuccess(false);
-							result.setMessage("引用了不可用的交易");
+							result.setResult(false, "引用了不可用的交易");
 							return validatorResult;
 						}
 					}
@@ -115,8 +120,7 @@ public class TransactionValidator {
 					//查询上次的交易
 					preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
 					if(preTransaction == null) {
-						result.setSuccess(false);
-						result.setMessage("引用了不存在的交易");
+						result.setResult(false, "引用了不存在的交易");
 						return validatorResult;
 					}
 				}
@@ -131,8 +135,7 @@ public class TransactionValidator {
 				Coin outputCoin = Coin.valueOf(tOutput.getValue());
 				//输出金额不能为负数
 				if(outputCoin.isLessThan(Coin.ZERO)) {
-					result.setSuccess(false);
-					result.setMessage("输出金额不能为负数");
+					result.setResult(false, "输出金额不能为负数");
 					return validatorResult;
 				}
 				txOutputFee = txOutputFee.add(outputCoin);
@@ -140,8 +143,7 @@ public class TransactionValidator {
 			}
 			//输出金额不能大于输入金额
 			if(txOutputFee.isGreaterThan(txInputFee)) {
-				result.setSuccess(false);
-				result.setMessage("输出金额不能大于输入金额");
+				result.setResult(false, "输出金额不能大于输入金额");
 				return validatorResult;
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
@@ -154,8 +156,7 @@ public class TransactionValidator {
 			
 			byte[] txid = chainstateStoreProvider.getBytes(hash160);
 			if(txid != null) {
-				result.setSuccess(false);
-				result.setMessage("注册的账户重复");
+				result.setResult(false, "注册的账户重复");
 				return validatorResult;
 			}
 			
@@ -163,13 +164,52 @@ public class TransactionValidator {
 			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
 			if(verTxBytes == null) {
-				throw new VerificationException("签名错误");
+				result.setResult(false, "签名错误");
+				return validatorResult;
 			}
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
 			
 			//认证帐户，就需要判断是否经过认证的
 			if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
-				throw new VerificationException("账户没有经过认证");
+				result.setResult(false, "账户没有经过认证");
+				return validatorResult;
+			}
+		} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
+			//申请成为共识节点
+			RegConsensusTransaction regConsensusTx = (RegConsensusTransaction) tx;
+			byte[] hash160 = regConsensusTx.getHash160();
+			//获取申请人信息，包括信用和可用余额
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountStore == null && regConsensusTx.isCertAccount()) {
+				//TODO 需要信用才能注册的，这里不应该做任何处理
+				//加入内存池  临时的处理方案
+				result.setResult(false, "账户不存在");
+				return validatorResult;
+			}
+			
+			//判断是否达到共识条件
+			long credit = accountStore.getCert();
+			if(credit < Configure.CONSENSUS_CREDIT) {
+				//信用不够
+				result.setResult(false, "信用值过低");
+				return validatorResult;
+			}
+			
+			//判断是否已经是共识节点
+			if(consensusPool.contains(hash160)) {
+				//已经是共识节点了
+				result.setResult(false, "已经是共识节点了,勿重复申请");
+				return validatorResult;
+			}
+		} else if(tx.getType() == TransactionDefinition.TYPE_REM_CONSENSUS) {
+			//退出共识交易
+			RemConsensusTransaction remConsensusTx = (RemConsensusTransaction) tx;
+			byte[] hash160 = remConsensusTx.getHash160();
+			//判断是否已经是共识节点
+			if(!consensusPool.contains(hash160)) {
+				//不是共识节点，该交易不合法
+				result.setResult(false, "不是共识节点了，该交易不合法");
+				return validatorResult;
 			}
 		}
 

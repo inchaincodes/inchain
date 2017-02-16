@@ -15,6 +15,7 @@ import org.inchain.crypto.ECKey;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
+import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,25 +33,27 @@ public class ConsensusPoolCacher implements ConsensusPool {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 	
-	private final Map<byte[], byte[]> container = new HashMap<byte[], byte[]>();
+	private final Map<byte[], byte[][]> container = new HashMap<byte[], byte[][]>();
 	
 	@Autowired
 	private NetworkParams network;
 	@Autowired
 	private AccountKit accountKit;
+	@Autowired
+	private ChainstateStoreProvider chainstateStoreProvider;
 	
 	@PostConstruct
 	public void init() {
 		List<AccountStore> list = accountKit.getConsensusAccounts();
 		
 		for (AccountStore account : list) {
-			container.put(account.getHash160(), account.getPubkeys()[0]);
+			container.put(account.getHash160(), account.getPubkeys());
 		}
 		
 		if(log.isDebugEnabled()) {
 			log.debug("====================");
 			log.debug("加载已有的{}个共识", container.size());
-			for (Entry<byte[], byte[]> entry : container.entrySet()) {
+			for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 				log.debug(Hex.encode(entry.getKey()));
 			}
 			log.debug("====================");
@@ -61,7 +64,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	
 	private void verify() {
 		List<byte[]> errors = new ArrayList<byte[]>();
-		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			if(!verifyOne(entry.getKey(), entry.getValue())) {
 				errors.add(entry.getKey());
 			}
@@ -75,7 +78,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * 新增共识结点
 	 * @param hash160
 	 */
-	public void add(byte[] hash160, byte[] pubkey) {
+	public void add(byte[] hash160, byte[][] pubkey) {
 		if(!verifyOne(hash160, pubkey)) {
 			log.warn("公钥不匹配的共识");
 			return;
@@ -89,10 +92,27 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @param pubkey  公钥
 	 * @return boolean
 	 */
-	public boolean verifyOne(byte[] hash160, byte[] pubkey) {
-		Address address = AccountTool.newAddress(network, ECKey.fromPublicOnly(pubkey));
-		if(!Arrays.equals(hash160, address.getHash160())) {
-			return false;
+	public boolean verifyOne(byte[] hash160, byte[][] pubkey) {
+		//如果在链上查不到账户信息，那么就当普通账户处理
+		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+		
+		if(accountStore == null || accountStore.getType() == network.getSystemAccountVersion()) {
+			//普通账户
+			Address address = AccountTool.newAddress(network, ECKey.fromPublicOnly(pubkey[0]));
+			if(!Arrays.equals(hash160, address.getHash160())) {
+				return false;
+			}
+		} else {
+			//认证账户
+			byte[][] realPubkeys = accountStore.getPubkeys();
+			if(realPubkeys.length != pubkey.length) {
+				return false;
+			}
+			for (int i = 0; i < pubkey.length; i++) {
+				if(!Arrays.equals(pubkey[i], realPubkeys[i])) {
+					return false;
+				}
+			}
 		}
 		return true;
 	}
@@ -102,7 +122,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 */
 	public void delete(byte[] hash160) {
 		byte[] hash160Temp = null;
-		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			if(Arrays.equals(hash160, entry.getKey())) {
 				hash160Temp = entry.getKey();
 				break;
@@ -119,7 +139,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @return boolean
 	 */
 	public boolean contains(byte[] hash160) {
-		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			if(Arrays.equals(hash160, entry.getKey())) {
 				return true;
 			}
@@ -133,15 +153,16 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @return byte[]
 	 */
 	public byte[] getPubkey(byte[] hash160) {
-		for (Entry<byte[], byte[]> entry : container.entrySet()) {
+		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			if(Arrays.equals(hash160, entry.getKey())) {
-				return entry.getValue();
+				//TODO
+				return entry.getValue()[0];
 			}
 		}
 		return null;
 	}
 	
-	public Map<byte[], byte[]> getContainer() {
+	public Map<byte[], byte[][]> getContainer() {
 		return container;
 	}
 }

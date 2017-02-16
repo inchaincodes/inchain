@@ -18,6 +18,7 @@ import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.script.Script;
 import org.inchain.transaction.CertAccountTransaction;
+import org.inchain.transaction.CommonlyTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -179,9 +180,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 						noticeReceiveAmount(tx, output);
 					}
 				} else {
-					CertAccountTransaction cat = (CertAccountTransaction) tx;
-					if(blockStoreProvider.getAccountFilter().contains(cat.getHash160())) {
-						noticeListener.onNotice("修改密码请求已提交", String.format("您的修改密码请求已被网络接受"));
+					CommonlyTransaction commonlyTx = (CommonlyTransaction) tx;
+					if(blockStoreProvider.getAccountFilter().contains(commonlyTx.getHash160())) {
+						noticeListener.onNotice("交易已提交", String.format("您的交易 %s 已被网络接受", commonlyTx.getHash()));
 					}
 				}
 			}
@@ -191,9 +192,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				if(tx.isPaymentTransaction()) {
 					noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
 				} else {
-					CertAccountTransaction cat = (CertAccountTransaction) tx;
-					if(blockStoreProvider.getAccountFilter().contains(cat.getHash160())) {
-						noticeListener.onNotice("密码已成功修改", String.format("您的修改密码请求已成功收录进高度为 %d 的块", ts.getHeight()));
+					CommonlyTransaction commonlyTx = (CommonlyTransaction) tx;
+					if(blockStoreProvider.getAccountFilter().contains(commonlyTx.getHash160())) {
+						noticeListener.onNotice("交易已确认", String.format("您的交易 %s 已成功收录进高度为 %d 的块", commonlyTx.getHash(), ts.getHeight()));
 					}
 				}
 			}

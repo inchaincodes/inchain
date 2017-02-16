@@ -14,6 +14,7 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.Transaction;
@@ -39,13 +40,15 @@ public class DefaultMessageSerializer extends MessageSerializer {
     	COMMANDS.put(Block.class, "block");
     	COMMANDS.put(GetBlocksMessage.class, "getblock");
     	COMMANDS.put(NewBlockMessage.class, "newblock");
-    	COMMANDS.put(RegConsensusTransaction.class, "regconsensus");
     	COMMANDS.put(ConsensusMessage.class, "consensus");
     	COMMANDS.put(InventoryMessage.class, "inv");
     	COMMANDS.put(GetDatasMessage.class, "getdatas");
+    	
     	COMMANDS.put(Transaction.class, "tx");
     	COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
     	COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
+    	COMMANDS.put(RegConsensusTransaction.class, "tx");
+    	COMMANDS.put(RemConsensusTransaction.class, "tx");
     }
 
 	public DefaultMessageSerializer(NetworkParams network) {

@@ -13,6 +13,11 @@ public class TransactionValidatorResult {
 	private String message;				//验证结果信息
 	private Coin fee;					//交易手续费
 	
+	public void setResult(boolean success, String message) {
+		this.success = success;
+		this.message = message;
+	}
+	
 	public boolean isSuccess() {
 		return success;
 	}

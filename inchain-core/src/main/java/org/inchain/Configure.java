@@ -52,7 +52,8 @@ public final class Configure {
 	/**
 	 * 参与共识所需的信用点
 	 */
-	public static final long CONSENSUS_CREDIT = 100;
+	//TODO 临时设置为0
+	public static final long CONSENSUS_CREDIT = 0;
 	
 	/**
 	 * 最大允许节点连接数

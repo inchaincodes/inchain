@@ -16,8 +16,19 @@ public class BloomFilter {
 	private byte[] data;
     private long hashFuncs;
     private long nTweak;
+    
+    private int elements;
+    private double falsePositiveRate;
+    private long randomNonce;
 
     public BloomFilter(int elements, double falsePositiveRate, long randomNonce) {
+    	this.elements = elements;
+    	this.falsePositiveRate = falsePositiveRate;
+    	this.randomNonce = randomNonce;
+    	init();
+    }
+    
+    public void init() {
         int size = (int)(-1  / (pow(log(2), 2)) * elements * log(falsePositiveRate));
         size = max(1, min(size, (int) MAX_FILTER_SIZE * 8) / 8);
         data = new byte[size];

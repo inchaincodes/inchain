@@ -20,12 +20,12 @@ import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.script.Script;
 import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.CommonlyTransaction;
 import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
@@ -133,12 +133,34 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					//添加账户信息，如果不存在的话
 					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 					if(accountInfo == null) {
+						//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 						accountInfo = createNewAccountInfo(regTransaction, AccountBody.empty(), new byte[][] {regTransaction.getPubkey()});
 					}
 					//公钥
-					byte[] pubkey = accountInfo.getPubkeys()[0];
+					byte[][] pubkeys = accountInfo.getPubkeys();
 					//添加到共识缓存器里
-					consensusPool.add(regTransaction.getHash160(), pubkey);
+					consensusPool.add(regTransaction.getHash160(), pubkeys);
+				} else if(tx instanceof RemConsensusTransaction) {
+					//退出共识
+					RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+					
+					//从共识账户列表中删除
+					byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+					byte[] hash160 = remTransaction.getHash160();
+					
+					byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - Address.LENGTH];
+					
+					//找出位置在哪里
+					for (int j = 0; j < consensusAccountHash160s.length; j += Address.LENGTH) {
+						byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
+						if(Arrays.equals(addressHash160, hash160)) {
+							System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
+							System.arraycopy(consensusAccountHash160s, j + Address.LENGTH, newConsensusHash160s, j, consensusAccountHash160s.length - j - Address.LENGTH);
+						}
+					}
+					chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+					//从共识缓存器里中移除
+					consensusPool.delete(hash160);
 				} else if(tx instanceof CreditTransaction) {
 					//只有创世块支持该类型交易
 					if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
@@ -198,7 +220,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
-					//帐户注册和修改密码
+					//帐户注册和修改账户信息
 					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
 					if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
 						//删除之前的信息
@@ -282,6 +304,18 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	public void checkIsMineAndUpdate(TransactionStore txs) {
 		Transaction transaction = txs.getTransaction();
 		
+		boolean isMine = checkTxIsMine(transaction);
+		if(isMine) {
+			updateMineTx(txs);
+		}
+	}
+
+	/**
+	 * 检查交易是否跟我有关
+	 * @param transaction
+	 * @return boolean
+	 */
+	public boolean checkTxIsMine(Transaction transaction) {
 		//是否是跟自己有关的交易
 		if(transaction.getType() == TransactionDefinition.TYPE_PAY || 
 				transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
@@ -303,8 +337,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					Script script = output.getScript();
 					if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
 						//
-						updateMineTx(txs);
-						return;
+						return true;
 					}
 				}
 			}
@@ -318,22 +351,20 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					//如果是coinbase交易，那么交易费大于0的才显示出来
 					if(transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
 						if(tOutput.getValue() > 0) {
-							updateMineTx(txs);
-							return;
+							return true;
 						}
 					} else {
-						updateMineTx(txs);
-						return;
+						return true;
 					}
 				}
 			}
-		} else if(transaction instanceof CertAccountTransaction) {
-			//账户注册交易
-			CertAccountTransaction certTx = (CertAccountTransaction) transaction;
-			if(accountFilter.contains(certTx.getHash160())) {
-				updateMineTx(txs);
+		} else if(transaction instanceof CommonlyTransaction) {
+			CommonlyTransaction commonlytx = (CommonlyTransaction) transaction;
+			if(accountFilter.contains(commonlytx.getHash160())) {
+				return true;
 			}
 		}
+		return false;
 	}
 
 	//更新与自己相关的交易
@@ -509,6 +540,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	public List<TransactionStore> loadRelatedTransactions(List<byte[]> hash160s) {
 		blockLock.lock();
 		try {
+			accountFilter.init();
+			for (byte[] hash160 : hash160s) {
+				accountFilter.insert(hash160);
+			}
+			
 			//从创始快开始遍历所有区块
 			BlockStore blockStore = network.getGengsisBlock();
 			Sha256Hash nextHash = blockStore.getBlock().getHash();
@@ -521,6 +557,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				
 				List<Transaction> txs = block.getTxs();
 				for (Transaction tx : txs) {
+					
 					//普通交易
 					if(tx.getType() == TransactionDefinition.TYPE_COINBASE ||
 							tx.getType() == TransactionDefinition.TYPE_PAY) {
@@ -530,6 +567,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						if(outputs == null) {
 							continue;
 						}
+						//过滤掉coinbase里的0交易
+						if(tx.getType() == TransactionDefinition.TYPE_COINBASE && outputs.get(0).getValue() == 0l) {
+							continue;
+						}
+						
 						//交易状态
 						byte[] status = new byte[outputs.size()];
 						//交易是否跟我有关
@@ -539,12 +581,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							Output output = outputs.get(i);
 							Script script = output.getScript();
 							
-							for (byte[] hash160 : hash160s) {
-								if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-									status[i] = TransactionStore.STATUS_UNUSE;
-									isMineTx = true;
-									break;
-								}
+							if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
+								status[i] = TransactionStore.STATUS_UNUSE;
+								isMineTx = true;
+								break;
 							}
 						}
 						List<Input> inputs = tx.getInputs();
@@ -554,13 +594,20 @@ public class BlockStoreProvider extends BaseStoreProvider {
 								if(txInput.getFrom() == null) {
 									continue;
 								}
+								TransactionOutput out = txInput.getFrom();
 								Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
 								
 								for (TransactionStore transactionStore : mineTxs) {
-									if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-										transactionStore.getStatus()[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
-										isMineTx = true;
-										break;
+									Transaction mineTx = transactionStore.getTransaction();
+									if(mineTx.getHash().equals(fromTxHash)) {
+										//对上一交易的引用以及索引值
+										TransactionOutput output = (TransactionOutput) mineTx.getOutput(out.getIndex());
+										Script script = output.getScript();
+										if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
+											transactionStore.getStatus()[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
+											isMineTx = true;
+											break;
+										}
 									}
 								}
 							}
@@ -569,17 +616,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						if(isMineTx) {
 							mineTxs.add(new TransactionStore(network, tx, block.getHeight(), status));
 						}
-					} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
-						//参与共识交易
-						
-					} else if(tx instanceof CertAccountTransaction) {
-						//认证账户类交易
-						CertAccountTransaction certTx = (CertAccountTransaction) tx;
-						for (byte[] hash160 : hash160s) {
-							if(Arrays.equals(certTx.getHash160(), hash160)) {
-								mineTxs.add(new TransactionStore(network, tx, block.getHeight(), new byte[]{}));
-								break;
-							}
+					} else {
+						boolean isMine = checkTxIsMine(tx);
+						if(isMine) {
+							mineTxs.add(new TransactionStore(network, tx, block.getHeight(), new byte[]{}));
 						}
 					}
 				}

@@ -18,8 +18,14 @@ import org.inchain.message.VersionMessage;
 import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
 
+/**
+ * 消息处理器工厂
+ * @author ln
+ *
+ */
 public class DefaultMessageProcessFactory implements MessageProcessFactory {
 
 	private static final MessageProcessFactory INSTANCE = new DefaultMessageProcessFactory();
@@ -34,13 +40,15 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
     	FACTORYS.put(Block.class, "blockMessageProcess");
     	FACTORYS.put(GetBlocksMessage.class, "getBlocksMessageProcess");
     	FACTORYS.put(NewBlockMessage.class, "newBlockMessageProcess");
-    	FACTORYS.put(RegConsensusTransaction.class, "regConsensusMessageProcess");
     	FACTORYS.put(ConsensusMessage.class, "consensusMessageProcess");
     	FACTORYS.put(InventoryMessage.class, "inventoryMessageProcess");
     	FACTORYS.put(GetDatasMessage.class, "getDatasMessageProcess");
+    	
     	FACTORYS.put(Transaction.class, "transactionMessageProcess");
     	FACTORYS.put(CertAccountRegisterTransaction.class, "transactionMessageProcess");
     	FACTORYS.put(CertAccountUpdateTransaction.class, "transactionMessageProcess");
+    	FACTORYS.put(RegConsensusTransaction.class, "transactionMessageProcess");
+    	FACTORYS.put(RemConsensusTransaction.class, "transactionMessageProcess");
     }
 
 	private DefaultMessageProcessFactory() {

@@ -216,6 +216,12 @@ public class TransactionRecordController implements SubPageController {
 						}
 					}
 					amount = "-";
+				} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS || 
+						tx.getType() == TransactionDefinition.TYPE_REM_CONSENSUS) {
+					type = tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS ? "注册共识" : "退出共识";
+
+					detail = "-";
+					amount = "-";
 				}
 				
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");

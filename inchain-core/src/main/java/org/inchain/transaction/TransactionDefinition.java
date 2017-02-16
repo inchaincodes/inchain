@@ -42,7 +42,7 @@ public class TransactionDefinition {
 		TRANSACTION_RELATION.put(TYPE_COINBASE, "org.inchain.transaction.Transaction");
 		TRANSACTION_RELATION.put(TYPE_PAY, "org.inchain.transaction.Transaction");
 		TRANSACTION_RELATION.put(TYPE_REG_CONSENSUS, "org.inchain.transaction.RegConsensusTransaction");
-		TRANSACTION_RELATION.put(TYPE_REM_CONSENSUS, "");
+		TRANSACTION_RELATION.put(TYPE_REM_CONSENSUS, "org.inchain.transaction.RemConsensusTransaction");
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_REGISTER, "org.inchain.transaction.CertAccountRegisterTransaction");
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_UPDATE, "org.inchain.transaction.CertAccountUpdateTransaction");
 		TRANSACTION_RELATION.put(TYPE_INIT_CREDIT, "org.inchain.transaction.CreditTransaction");

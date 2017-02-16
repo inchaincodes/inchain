@@ -11,7 +11,7 @@ public interface ConsensusPool {
 	 * 新增共识结点
 	 * @param hash160
 	 */
-	public void add(byte[] hash160, byte[] pubkey);
+	public void add(byte[] hash160, byte[][] pubkey);
 	
 	/**
 	 * 移除共识节点

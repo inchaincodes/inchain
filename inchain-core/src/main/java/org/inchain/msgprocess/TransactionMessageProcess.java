@@ -15,7 +15,6 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
-import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -48,8 +47,6 @@ public class TransactionMessageProcess implements MessageProcess {
 	private PeerKit peerKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
-	@Autowired
-	private TransactionStoreProvider transactionStoreProvider;
 	@Autowired
 	private TransactionValidator transactionValidator;
 	
@@ -122,7 +119,7 @@ public class TransactionMessageProcess implements MessageProcess {
 			if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
 				blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
 			}
-		} else {
+		} else if(tx instanceof CertAccountTransaction) {
 			CertAccountTransaction cat = (CertAccountTransaction) tx;
 			byte[] hash160 = cat.getHash160();
 			if(blockStoreProvider.getAccountFilter().contains(hash160)) {

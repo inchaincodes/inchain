@@ -22,6 +22,7 @@ import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusPoolCacher;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Result;
@@ -45,6 +46,8 @@ import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
+import org.inchain.transaction.RegConsensusTransaction;
+import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
@@ -86,6 +89,8 @@ public class AccountKit {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private TransactionValidator transactionValidator;
+	@Autowired
+	private ConsensusPoolCacher consensusPoolCacher;
 	//网络
 	@Autowired
 	private NetworkParams network;
@@ -1128,7 +1133,7 @@ public class AccountKit {
 		//加载各地址的余额
 		loadBalanceFromChainstateAndUnconfirmedTransaction(hash160s);
 		
-		//加载认证账户信息对应的最新的交易记录
+		//加载认证账户信息对应的最新的账户信息交易
 		loadAccountInfosNewestTransaction();
 	}
 
@@ -1301,9 +1306,9 @@ public class AccountKit {
 			if(!account.isCertAccount() && account.isEncrypted()) {
 				return true;
 			} else if(account.isCertAccount()) {
-				if(type == 1 && account.isEncryptedOfMg()) {
+				if(type == TransactionDefinition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
 					return true;
-				} else if(type == 2 && account.isEncryptedOfTr()) {
+				} else if(type == TransactionDefinition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
 					return true;
 				}
 			}
@@ -1380,5 +1385,108 @@ public class AccountKit {
 			consensusAccountList.add(accountStore);
 		}
 		return consensusAccountList;
+	}
+
+	/**
+	 * 获取自己的账户信息
+	 * @return AccountStore
+	 */
+	public AccountStore getAccountInfo() {
+		List<byte[]> hash160s = getAccountHash160s();
+		if(hash160s == null || hash160s.size() == 0) {
+			return null;
+		}
+		byte[] hash160 = hash160s.get(0);
+		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+		if(accountStore == null) {
+			accountStore = new AccountStore(network);
+			accountStore.setAccountBody(AccountBody.empty());
+			accountStore.setCert(0);
+			accountStore.setHash160(hash160);
+			accountStore.setType(network.getSystemAccountVersion());
+			accountStore.setBalance(getBalance().value);
+		}
+		return accountStore;
+	}
+
+	/**
+	 * 检查当前账户是否在共识中状态
+	 * @return boolean
+	 */
+	public boolean checkConsensusing() {
+		if(accountList == null || accountList.size() == 0) {
+			return false;
+		}
+		for (Account account : accountList) {
+			if(consensusPoolCacher.contains(account.getAddress().getHash160())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 注册成为共识节点
+	 * @return
+	 */
+	public Result registerConsensus() {
+		//选取第一个可注册共识的账户进行广播
+		try {
+			for (Account account : accountList) {
+				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
+				if(accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
+					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, TransactionDefinition.VERSION, TimeHelper.currentTimeMillis());
+					regConsensus.sign(account);
+					
+					regConsensus.verfify();
+					regConsensus.verfifyScript();
+					
+					//加入内存池
+					MempoolContainerMap.getInstace().add(regConsensus);
+					
+					BroadcastResult broadcastResult = peerKit.broadcast(regConsensus).get();
+					if(broadcastResult.isSuccess()) {
+						return new Result(true, "注册为共识节点请求已成功发送到网络");
+					} else {
+						MempoolContainerMap.getInstace().remove(regConsensus.getHash());
+					}
+				}
+			}
+		} catch (Exception e) {
+			return new Result(false, e.getMessage());
+		}
+		return new Result(false, "没有可参与共识的账户");
+	}
+
+	/**
+	 * 退出共识
+	 * @return
+	 */
+	public Result quitConsensus() {
+		//选取共识中的账户进行广播
+		try {
+			for (Account account : accountList) {
+				if(consensusPoolCacher.contains(account.getAddress().getHash160())) {
+					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, TransactionDefinition.VERSION, TimeHelper.currentTimeMillis());
+					remConsensus.sign(account);
+					
+					remConsensus.verfify();
+					remConsensus.verfifyScript();
+					
+					//加入内存池
+					MempoolContainerMap.getInstace().add(remConsensus);
+					
+					BroadcastResult broadcastResult = peerKit.broadcast(remConsensus).get();
+					if(broadcastResult.isSuccess()) {
+						return new Result(true, "退出共识请求已成功发送到网络");
+					} else {
+						MempoolContainerMap.getInstace().remove(remConsensus.getHash());
+					}
+				}
+			}
+		} catch (Exception e) {
+			return new Result(false, e.getMessage());
+		}
+		return new Result(false, "没有共识中的账户");
 	}
 }
