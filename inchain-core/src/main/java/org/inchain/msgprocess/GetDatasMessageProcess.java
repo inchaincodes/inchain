@@ -52,8 +52,9 @@ public class GetDatasMessageProcess implements MessageProcess {
 			} else if(inventoryItem.getType() == InventoryItem.Type.Transaction) {
 				//交易数据获取
 				txInventory(inventoryItem, peer);
-			} else {
-				//TODO
+			} else if(inventoryItem.getType() == InventoryItem.Type.Block){
+				BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
+				peer.sendMessage(blockStore.getBlock());
 			}
 		}
 		

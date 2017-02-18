@@ -102,7 +102,6 @@ public class TransactionRecordController implements SubPageController {
     }
 
 	private void tx2Entity(List<TransactionStore> txsList, List<TransactionEntity> list) {
-		
 		if(txsList != null && txsList.size() > 0) {
 			//翻转数组
 			Collections.reverse(txsList);

@@ -113,7 +113,7 @@ public class NioClientManager implements ClientConnectionManager {
                 // If e is a CancelledKeyException, there is a race to get to interestOps after finishConnect() which
                 // may cause this. Otherwise it may be any arbitrary kind of connection failure.
                 // Calling sc.socket().getRemoteSocketAddress() here throws an exception, so we can only log the error itself
-                log.warn("Failed connect to {} with exception: {}", data.seed.getAddress(), e.getMessage(), e.fillInStackTrace());
+                log.warn("Failed connect to {} with exception: {}", data.seed.getAddress(), e.getMessage());
                 handler.closeConnection();
                 data.seed.setStaus(Seed.SEED_CONNECT_FAIL);
             }

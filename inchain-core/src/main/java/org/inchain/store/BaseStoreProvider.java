@@ -6,6 +6,8 @@ import org.inchain.db.Db;
 import org.inchain.db.LevelDB;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -14,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public abstract class BaseStoreProvider implements StoreProvider {
+	
+	protected final Logger log = LoggerFactory.getLogger(getClass());
 	
 	//所有存储提供器都使用单例，这里定义一个用于实例化的单例锁
 	protected static Object locker = new Object();

@@ -4,28 +4,28 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
-import org.inchain.utils.Utils;
 
 /**
- * 获取区块信息消息，收到该消息的节点必须应答，返回相应的区块数据
+ * 获取区块信息消息，收到该消息的节点必须应答，返回相应的区块inv消息
  * @author ln
  *
  */
 public class GetBlocksMessage extends Message {
 
-	//开始区块高度
-	private long startBlockHeight;
-	//需要下载的区块数量
-	private long count;
+	//开始区块的hash
+	private Sha256Hash startHash;
+	//结束区块的hash
+	private Sha256Hash stopHash;
 	
 	public GetBlocksMessage(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
 	
-	public GetBlocksMessage(NetworkParams network, long startBlockHeight, long count) {
-		this.startBlockHeight = startBlockHeight;
-		this.count = count;
+	public GetBlocksMessage(NetworkParams network, Sha256Hash startHash, Sha256Hash stopHash) {
+		this.startHash = startHash;
+		this.stopHash = stopHash;
 	}
 
 	/**
@@ -33,8 +33,8 @@ public class GetBlocksMessage extends Message {
 	 */
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
-		Utils.uint32ToByteStreamLE(startBlockHeight, stream);
-		Utils.uint32ToByteStreamLE(count, stream);
+		stream.write(startHash.getReversedBytes());
+		stream.write(stopHash.getReversedBytes());
 	}
 	
 	/**
@@ -42,30 +42,29 @@ public class GetBlocksMessage extends Message {
 	 */
 	@Override
 	protected void parse() throws ProtocolException {
-		this.startBlockHeight = readUint32();
-		this.count = readUint32();
+		this.startHash = readHash();
+		this.stopHash = readHash();
 		length = cursor;
 	}
 
 	@Override
 	public String toString() {
-		return "GetBlockMessage [startBlockHeight=" + startBlockHeight + ", count=" + count + "]";
+		return "GetBlockMessage [startHash=" + startHash + ", stopHash=" + stopHash + "]";
 	}
 
-	public long getStartBlockHeight() {
-		return startBlockHeight;
+	public Sha256Hash getStartHash() {
+		return startHash;
 	}
 
-	public void setStartBlockHeight(long startBlockHeight) {
-		this.startBlockHeight = startBlockHeight;
+	public void setStartHash(Sha256Hash startHash) {
+		this.startHash = startHash;
 	}
 
-	public long getCount() {
-		return count;
+	public Sha256Hash getStopHash() {
+		return stopHash;
 	}
 
-	public void setCount(long count) {
-		this.count = count;
+	public void setStopHash(Sha256Hash stopHash) {
+		this.stopHash = stopHash;
 	}
-	
 }

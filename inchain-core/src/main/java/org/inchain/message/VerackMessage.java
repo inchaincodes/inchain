@@ -1,7 +1,9 @@
 package org.inchain.message;
 
 import org.inchain.core.PeerAddress;
+import org.inchain.core.TimeHelper;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 
 public class VerackMessage extends VersionMessage {
@@ -10,8 +12,10 @@ public class VerackMessage extends VersionMessage {
         super(params, payload);
     }
 	
-	public VerackMessage(NetworkParams params, long newBestHeight, PeerAddress remoteAddress) {
-		super(params, newBestHeight, remoteAddress);
+	public VerackMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress remoteAddress) {
+		super(params, bestHeight, bestBlockHash, remoteAddress);
+		//给对方最新的网络时间
+		time = TimeHelper.currentTimeMillis();
 	}
 	
 }

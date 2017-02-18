@@ -2,16 +2,13 @@ package org.inchain.msgprocess;
 
 import java.util.Locale;
 
-import org.inchain.SpringContextUtils;
-import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.kits.PeerKit;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,9 +21,6 @@ public class VersionMessageProcess implements MessageProcess {
 
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VersionMessageProcess.class);
 	
-	@Autowired
-	private PeerKit peerKit;
-	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
 		VersionMessage versionMessage = (VersionMessage) message;
@@ -36,14 +30,15 @@ public class VersionMessageProcess implements MessageProcess {
 		peer.setPeerVersionMessage(versionMessage);
 		
         // Switch to the new protocol version.
-        long peerTime = versionMessage.time * 1000;
-        log.info("Got host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}",
+        long peerTime = versionMessage.time;
+        log.info("Got host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}, bestBlockHash={}",
         		peer.getAddress(),
                 versionMessage.clientVersion,
                 versionMessage.subVer,
                 versionMessage.localServices,
                 String.format(Locale.getDefault(), "%tF %tT", peerTime, peerTime),
-                versionMessage.bestHeight);
+                versionMessage.bestHeight,
+                versionMessage.bestBlockHash);
         
         if (versionMessage.bestHeight < 0) {
             // In this case, it's a protocol violation.
@@ -51,12 +46,8 @@ public class VersionMessageProcess implements MessageProcess {
         }
         
         //回应自己的版本信息
-		peer.sendMessage(new VerackMessage(peer.getNetwork(), peer.getNetwork().getBestBlockHeight(), 
-				peer.getPeerAddress()));
-		
-		//区块下载同步器
-		DownloadHandler downloadHandler = SpringContextUtils.getBean(DownloadHandler.class);
-		downloadHandler.newPeer(peer);
+        BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
+		peer.sendMessage(new VerackMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress()));
 		
 		return null;
 	}

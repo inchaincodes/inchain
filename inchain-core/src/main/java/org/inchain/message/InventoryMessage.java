@@ -27,6 +27,11 @@ public class InventoryMessage extends Message {
 		invs.add(item);
 	}
 	
+	public InventoryMessage(NetworkParams network, List<InventoryItem> items) {
+		super(network);
+		invs = items;
+	}
+	
 	public InventoryMessage(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
@@ -50,6 +55,7 @@ public class InventoryMessage extends Message {
                     break;
                 case 1:
                     type = InventoryItem.Type.Block;
+                    break;
                 case 2:
                     type = InventoryItem.Type.NewBlock;
                     break;

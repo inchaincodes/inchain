@@ -1,14 +1,19 @@
 package org.inchain.msgprocess;
 
-import org.inchain.SpringContextUtils;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.inchain.core.Peer;
-import org.inchain.message.Block;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.GetBlocksMessage;
+import org.inchain.message.InventoryItem;
+import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
-import org.inchain.store.BlockStore;
+import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,15 +23,20 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class GetBlocksMessageProcess implements MessageProcess {
+	
+	private final static int MAX_COUNT = 1000;
 
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
+	//区块提供器
+	@Autowired
+	private BlockStoreProvider blockStoreProvider;
+	
 	public GetBlocksMessageProcess() {
-		
 	}
 	
 	/**
-	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
+	 * 接收到区块拉取消息
 	 */
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -37,23 +47,39 @@ public class GetBlocksMessageProcess implements MessageProcess {
 		
 		GetBlocksMessage getBlockMessage = (GetBlocksMessage) message;
 		//要获取的区块，从哪里开始
-		long startBlockHeight = getBlockMessage.getStartBlockHeight();
-		//要获取的数量
-		long count = getBlockMessage.getCount();
+		Sha256Hash startHash = getBlockMessage.getStartHash();
+		Sha256Hash stopHash = getBlockMessage.getStopHash();
 		
-		//得到区块提供器
-		BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+		//验证
+		BlockHeaderStore startBlockHeader = blockStoreProvider.getHeader(startHash.getBytes());
+		BlockHeaderStore stopBlockHeader = null;
 		
-		for (int i = 1; i <= count; i++) {
-			//查询
-			BlockStore blockStore = blockStoreProvider.getBlockByHeight(startBlockHeight + i);
-			
-			
-			Block block = blockStore.getBlock();
-			
-			peer.sendMessage(block);
-			
+		if(!Sha256Hash.ZERO_HASH.equals(stopHash)) {
+			stopBlockHeader = blockStoreProvider.getHeader(stopHash.getBytes());
 		}
+		
+		//每次最大不能超过1000个
+		if(stopBlockHeader == null || stopBlockHeader.getBlockHeader().getHeight() - startBlockHeader.getBlockHeader().getHeight() > MAX_COUNT) {
+			BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+			if(bestBlockHeader.getBlockHeader().getHeight() - startBlockHeader.getBlockHeader().getHeight() <= MAX_COUNT) {
+				stopBlockHeader = bestBlockHeader;
+			}
+		}
+		
+		List<InventoryItem> list = new ArrayList<InventoryItem>();
+		int count = 0;
+		while (count < MAX_COUNT) {
+
+			if(Sha256Hash.ZERO_HASH.equals(startBlockHeader.getNextHash()) || 
+					(stopBlockHeader != null && startBlockHeader.getBlockHeader().getHash().equals(stopBlockHeader.getBlockHeader().getHash()))) {
+				break;
+			}
+			
+			list.add(new InventoryItem(InventoryItem.Type.Block, startBlockHeader.getNextHash()));
+			count ++;
+			startBlockHeader = blockStoreProvider.getHeader(startBlockHeader.getNextHash().getBytes());
+		}
+		peer.sendMessage(new InventoryMessage(peer.getNetwork(), list));
 		
 		return null;
 	}

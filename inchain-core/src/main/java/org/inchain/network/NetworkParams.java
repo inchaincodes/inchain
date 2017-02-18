@@ -150,7 +150,20 @@ public abstract class NetworkParams {
 	 * @return int
 	 */
 	public abstract int getCertAccountVersion();
-    
+
+	/**
+	 * 当前服务运行在哪个网络上面
+	 * @return long
+	 */
+	public int getLocalServices() {
+		if(ID_MAINNET.equals(id)){
+			return 1;
+		} else if(ID_TESTNET.equals(id)) {
+			return 2;
+		}
+		return 0;
+	}
+	
 	public int getPort() {
 		return port;
 	}

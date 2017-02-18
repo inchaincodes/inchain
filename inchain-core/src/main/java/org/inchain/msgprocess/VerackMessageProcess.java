@@ -2,8 +2,6 @@ package org.inchain.msgprocess;
 
 import java.util.Locale;
 
-import org.inchain.SpringContextUtils;
-import org.inchain.core.DownloadHandler;
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.message.Message;
@@ -34,20 +32,17 @@ public class VerackMessageProcess implements MessageProcess {
             throw new ProtocolException("got more than one version ack");
         }
 
-        long peerTime = versionMessage.time * 1000;
-        log.info("Connect success host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}",
+        long peerTime = versionMessage.time;
+        log.info("Got host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}, bestBlockHash={}",
         		peer.getAddress(),
                 versionMessage.clientVersion,
                 versionMessage.subVer,
                 versionMessage.localServices,
                 String.format(Locale.getDefault(), "%tF %tT", peerTime, peerTime),
-                versionMessage.bestHeight);
+                versionMessage.bestHeight,
+                versionMessage.bestBlockHash);
         
         peer.setHandshake(true);
-        
-        //区块下载同步器
-        DownloadHandler downloadHandler = SpringContextUtils.getBean(DownloadHandler.class);
-        downloadHandler.newPeer(peer);
       		
 		return null;
 	}

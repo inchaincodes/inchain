@@ -6,58 +6,70 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.inchain.core.PeerAddress;
+import org.inchain.core.TimeHelper;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 
 
 public class VersionMessage extends Message {
 
-	/** The version of this library release, as a string. */
-    public static final String BITCOINJ_VERSION = "0.1";
-    /** The value that is prepended to the subVer field of this application. */
-    public static final String LIBRARY_SUBVER = "/truechain:" + BITCOINJ_VERSION + "/";
-
-    /** A services flag that denotes whether the peer has a copy of the block chain or not. */
-    public static final int NODE_NETWORK = 1;
-    /** A flag that denotes whether the peer supports the getutxos message or not. */
-    public static final int NODE_GETUTXOS = 2;
+	 /**
+     * Inchain 核心程序版本
+     */
+    public static final String INCHAIN_VERSION = "0.1";
 
     /**
-     * The version number of the protocol spoken.
+     * 版本完整信息
+     */
+    public static final String LIBRARY_SUBVER = "/inchain core v" + INCHAIN_VERSION + "/";
+    
+    /**
+     * 哪个网络服务
+     */
+    public int localServices;
+    
+    /**
+     * 协议版本
      */
     public int clientVersion;
+    
     /**
-     * Flags defining what optional services are supported.
-     */
-    public long localServices;
-    /**
-     * What the other side believes the current time to be, in seconds.
+     * 对等体的时间
      */
     public long time;
+   
     /**
-     * What the other side believes the address of this program is. Not used.
+     * 我的网络地址
      */
     public PeerAddress myAddr;
+    
     /**
-     * What the other side believes their own address is. Not used.
+     * 对等体的网络时间
      */
     public PeerAddress theirAddr;
+    
     /**
-     * User-Agent as defined in <a href="https://github.com/bitcoin/bips/blob/master/bip-0014.mediawiki">BIP 14</a>.
-     * Bitcoin Core sets it to something like "/Satoshi:0.9.1/".
+     * 版本信息
      */
     public String subVer;
+    
     /**
-     * How many blocks are in the chain, according to the other side.
+     * 对等体的区块数量
      */
     public long bestHeight;
+    
     /**
-     * Whether or not to relay tx invs before a filter is received.
-     * See <a href="https://github.com/bitcoin/bips/blob/master/bip-0037.mediawiki#extensions-to-existing-messages">BIP 37</a>.
+     * 对等体最新区块的hash
      */
-    public boolean relayTxesBeforeFilter;
+    public Sha256Hash bestBlockHash;
+    
+    /**
+     * 随机数
+     */
+    private long nonce;
     
 	public VersionMessage(NetworkParams params) throws ProtocolException {
         super(params);
@@ -67,16 +79,12 @@ public class VersionMessage extends Message {
         super(params, payload, 0);
     }
 	
-	public VersionMessage(NetworkParams params, long newBestHeight, PeerAddress remoteAddress) {
+	public VersionMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress remoteAddress) {
 	    super(params);
         clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
-        localServices = NODE_NETWORK;
-        time = System.currentTimeMillis() / 1000;
-        // Note that the Bitcoin Core doesn't do anything with these, and finding out your own external IP address
-        // is kind of tricky anyway, so we just put nonsense here for now.
+        localServices = params.getLocalServices();
+        time = TimeHelper.currentTimeMillis();
         try {
-            // We hard-code the IPv4 localhost address here rather than use InetAddress.getLocalHost() because some
-            // mobile phones have broken localhost DNS entries, also, this is faster.
             final byte[] localhost = { 127, 0, 0, 1 };
             myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);
             if(remoteAddress == null) {
@@ -85,59 +93,36 @@ public class VersionMessage extends Message {
             	theirAddr = remoteAddress;
             }
         } catch (UnknownHostException e) {
-            throw new RuntimeException(e);  // Cannot happen (illegal IP length).
+            throw new RuntimeException(e);
         }
         subVer = LIBRARY_SUBVER;
-        bestHeight = newBestHeight;
-        relayTxesBeforeFilter = true;
-
-        length = 85;
-        if (protocolVersion > 31402)
-            length += 8;
-        length += VarInt.sizeOf(subVer.length()) + subVer.length();
+        this.bestHeight = bestHeight;
+        this.bestBlockHash = bestBlockHash;
 	}
 	
 	@Override
 	protected void parse() throws ProtocolException {
+		localServices = readBytes(1)[0] & 0xFF;
 		clientVersion = (int) readUint32();
-        localServices = readUint64().longValue();
-        time = readUint64().longValue();
+        time = readInt64();
+        
         myAddr = new PeerAddress(network, payload, cursor, 0);
         cursor += myAddr.getMessageSize();
         theirAddr = new PeerAddress(network, payload, cursor, 0);
         cursor += theirAddr.getMessageSize();
-        // uint64 localHostNonce  (random data)
-        // We don't care about the localhost nonce. It's used to detect connecting back to yourself in cases where
-        // there are NATs and proxies in the way. However we don't listen for inbound connections so it's irrelevant.
-        readUint64();
-        try {
-            // Initialize default values for flags which may not be sent by old nodes
-            subVer = "";
-            bestHeight = 0;
-            relayTxesBeforeFilter = true;
-            if (!hasMoreBytes())
-                return;
-            //   string subVer  (currently "")
-            subVer = readStr();
-            if (!hasMoreBytes())
-                return;
-            //   int bestHeight (size of known block chain).
-            bestHeight = readUint32();
-            if (!hasMoreBytes())
-                return;
-            relayTxesBeforeFilter = readBytes(1)[0] != 0;
-        } finally {
-            length = cursor - offset;
-        }
+        
+        subVer = readStr();
+        bestHeight = readUint32();
+        bestBlockHash = readHash();
+        nonce = readInt64();
+        length = cursor - offset;
 	}
 	
 	@Override
     public void serializeToStream(OutputStream buf) throws IOException {
+		buf.write(localServices);
         Utils.uint32ToByteStreamLE(clientVersion, buf);
-        Utils.uint32ToByteStreamLE(localServices, buf);
-        Utils.uint32ToByteStreamLE(localServices >> 32, buf);
-        Utils.uint32ToByteStreamLE(time, buf);
-        Utils.uint32ToByteStreamLE(time >> 32, buf);
+        Utils.int64ToByteStreamLE(time, buf);
         try {
             // My address.
             myAddr.serializeToStream(buf);
@@ -148,32 +133,29 @@ public class VersionMessage extends Message {
         } catch (IOException e) {
             throw new RuntimeException(e);  // Can't happen.
         }
-        // Next up is the "local host nonce", this is to detect the case of connecting
-        // back to yourself. We don't care about this as we won't be accepting inbound 
-        // connections.
-        Utils.uint32ToByteStreamLE(0, buf);
-        Utils.uint32ToByteStreamLE(0, buf);
         // Now comes subVer.
         byte[] subVerBytes = subVer.getBytes("UTF-8");
         buf.write(new VarInt(subVerBytes.length).encode());
         buf.write(subVerBytes);
         // Size of known block chain.
         Utils.uint32ToByteStreamLE(bestHeight, buf);
-        buf.write(relayTxesBeforeFilter ? 1 : 0);
+        buf.write(bestBlockHash.getReversedBytes());
+        Utils.int64ToByteStreamLE(nonce, buf);
     }
 	
 	@Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("\n");
-        stringBuilder.append("client version: ").append(clientVersion).append("\n");
         stringBuilder.append("local services: ").append(localServices).append("\n");
+        stringBuilder.append("client version: ").append(clientVersion).append("\n");
         stringBuilder.append("time:           ").append(time).append("\n");
         stringBuilder.append("my addr:        ").append(myAddr).append("\n");
         stringBuilder.append("their addr:     ").append(theirAddr).append("\n");
         stringBuilder.append("sub version:    ").append(subVer).append("\n");
-        stringBuilder.append("best height:    ").append(bestHeight).append("\n");
-        stringBuilder.append("delay tx relay: ").append(!relayTxesBeforeFilter).append("\n");
+        stringBuilder.append("best block height:    ").append(bestHeight).append("\n");
+        stringBuilder.append("best block hash:    ").append(bestBlockHash).append("\n");
+        stringBuilder.append("nonce:    ").append(nonce).append("\n");
         return stringBuilder.toString();
     }
 }

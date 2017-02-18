@@ -8,10 +8,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.PreDestroy;
+
 import org.inchain.core.BroadcastContext;
 import org.inchain.core.BroadcastResult;
+import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.GetDataResult;
 import org.inchain.core.Peer;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
@@ -36,18 +40,24 @@ public class InventoryMessageProcess implements MessageProcess {
 	
 	//由于新区块的同步，需要线程阻塞，等待同步完成通知，避免重复下载，所以加入一个固定的线程池，异步执行，以免阻塞影响其它消息的接收执行
 	private static final ExecutorService blockExecutorService = Executors.newSingleThreadExecutor();
+	private static final ExecutorService newBlockExecutorService = Executors.newSingleThreadExecutor();
 	private static final ExecutorService txExecutorService = Executors.newSingleThreadExecutor();
 
+	//新区块同步锁
+	private static Lock newBlockLocker = new ReentrantLock();
 	//区块下载锁
 	private static Lock blockLocker = new ReentrantLock();
 	//交易下载锁
 	private static Lock txLocker = new ReentrantLock();
 
 	@Autowired
+	private PeerKit peerKit;
+	@Autowired
 	private InventoryFilter filter;
 	@Autowired
-	private PeerKit peerKit;
+	private DataSynchronizeHandler dataSynchronizeHandler;
 	
+	private Sha256Hash monitorBlockDownload;
 	
 	@Override
 	public MessageProcessResult process(final Message message, final Peer peer) {
@@ -56,17 +66,27 @@ public class InventoryMessageProcess implements MessageProcess {
 			log.debug("receive inv message: {}", message);
 		}
 		
+		
 		InventoryMessage invMessage = (InventoryMessage) message;
 		
 		List<InventoryItem> invList = invMessage.getInvs();
-		if(invList == null) {
+		if(invList == null || invList.isEmpty()) {
+			//通知下载完成
+			peer.notifyDownloadComplete();
 			return null;
 		}
 		
+		//是否是区块下载消息
+		boolean isBlockDownload = true;
 		for (final InventoryItem inventoryItem : invList) {
 			processInventoryItem(peer, inventoryItem);
+			if(inventoryItem.getType() != InventoryItem.Type.Block) {
+				isBlockDownload = false;
+			}
 		}
-		
+		if(isBlockDownload) {
+			monitorBlockDownload = invList.get(invList.size() - 1).getHash();
+		}
 		return null;
 	}
 
@@ -77,10 +97,18 @@ public class InventoryMessageProcess implements MessageProcess {
 			return;
 		} else if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
 			//新区块诞生
-			blockExecutorService.submit(new Runnable() {
+			newBlockExecutorService.submit(new Runnable() {
 				@Override
 				public void run() {
 					newBlockInventory(inventoryItem, peer);
+				}
+			});
+		} else if(inventoryItem.getType() == InventoryItem.Type.Block) {
+			//区块下载
+			blockExecutorService.submit(new Runnable() {
+				@Override
+				public void run() {
+					blockInventory(inventoryItem, peer);
 				}
 			});
 		} else if(inventoryItem.getType() == InventoryItem.Type.Transaction) {
@@ -138,12 +166,19 @@ public class InventoryMessageProcess implements MessageProcess {
 	}
 
 	/*
-	 * 新区块诞生，下载
+	 * 新区块同步
 	 */
 	private void newBlockInventory(final InventoryItem inventoryItem, Peer peer) {
-		blockLocker.lock();
+		newBlockLocker.lock();
 		try {
-			if(filter.contains(inventoryItem.getHash().getBytes())) {
+			peer.addAndGetBestBlockHeight();
+			if(!dataSynchronizeHandler.hasComplete() || filter.contains(inventoryItem.getHash().getBytes())) {
+				if(!dataSynchronizeHandler.hasComplete()) {
+					//没下载完的情况下，下载过程中也更新显示最新的区块高度
+					if(peerKit.getBlockChangedListener() != null) {
+						peerKit.getBlockChangedListener().onChanged(-1l, peer.getBestBlockHeight(), null, inventoryItem.getHash());
+					}
+				}
 				return;
 			}
 			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
@@ -167,13 +202,62 @@ public class InventoryMessageProcess implements MessageProcess {
 		} catch (Exception e) {
 			log.error("新区块inv消息处理失败 {}", inventoryItem, e);
 		} finally {
+			newBlockLocker.unlock();
+		}
+	}
+	
+	/*
+	 * 区块下载
+	 */
+	private void blockInventory(final InventoryItem inventoryItem, Peer peer) {
+		blockLocker.lock();
+		try {
+			if(filter.contains(inventoryItem.getHash().getBytes())) {
+				return;
+			}
+//			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
+//			
+//			//获取下载结果，有超时时间
+//			GetDataResult result = resultFuture.get(30, TimeUnit.SECONDS);
+//			
+//			if(result.isSuccess()) {
+//				Block block = (Block) result.getData();
+//				
+//				filter.insert(inventoryItem.getHash().getBytes());
+//				if(log.isDebugEnabled()) {
+//					log.debug("区块:高度 {} hash{} 同步成功", block.getHeight(), inventoryItem.getHash());
+//				}
+//				if(monitorBlockDownload != null && block.getHash().equals(monitorBlockDownload)) {
+//					monitorBlockDownload = null;
+//					//通知下载完成
+//					peer.notifyDownloadComplete();
+//				}
+//			}
+			
+			peer.sendMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
+			if(monitorBlockDownload != null && inventoryItem.getHash().equals(monitorBlockDownload)) {
+				monitorBlockDownload = null;
+				//通知下载完成
+				peer.notifyDownloadComplete();
+			}
+		} catch (Exception e) {
+			log.error("区块下载inv消息处理失败 {}", inventoryItem, e);
+		} finally {
 			blockLocker.unlock();
 		}
 	}
 
 	private void doProcessInventoryItem(InventoryItem inventoryItem) {
-		// TODO Auto-generated method stub
 		
 	}
 
+	/**
+	 * 程序关闭
+	 */
+	@PreDestroy
+	public void shutdown() {
+		newBlockExecutorService.shutdown();
+		blockExecutorService.shutdown();
+		txExecutorService.shutdown();
+	}
 }

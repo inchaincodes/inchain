@@ -9,6 +9,7 @@ import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
+import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,11 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		
 		if(!result.isSuccess()) {
 			return result;
+		}
+
+		VersionMessage peerVersion = peer.getPeerVersionMessage();
+		if(peerVersion != null) {
+			peerVersion.bestHeight = block.getHeight();
 		}
 		
 		for (Transaction tx : block.getTxs()) {

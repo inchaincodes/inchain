@@ -6,9 +6,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
@@ -41,13 +44,18 @@ public class Peer extends PeerSocketHandler {
 
 	//监听器 bengin
 	//监听器 end
-	
 	private NetworkParams network;
 
 	//节点版本信息
 	private VersionMessage peerVersionMessage;
 	//节点握手完成
 	private boolean handshake = false;
+	//节点最新高度
+	private AtomicLong bestBlockHeight;
+	
+	private Sha256Hash startBlockDownloadHash;
+	private Sha256Hash stopBlockDownloadHash;
+	private SettableListenableFuture<Boolean> downloadFuture;
 	
 	public Peer(NetworkParams network, InetSocketAddress address) {
 		this(network, new PeerAddress(address));
@@ -126,7 +134,38 @@ public class Peer extends PeerSocketHandler {
         sendMessage(getdata);
         return future;
     }
+	
+	/**
+	 * 监听区块下载
+	 * @param startHash
+	 * @param stopHash
+	 */
+	public void setListenerGetBlocks(Sha256Hash startHash, Sha256Hash stopHash) {
+		this.startBlockDownloadHash = startHash;
+		this.stopBlockDownloadHash = stopHash;
+	}
 
+	/**
+	 * 等待区块下载完成
+	 */
+	public void waitBlockDownComplete() {
+		 downloadFuture = new SettableListenableFuture<Boolean>();
+		 try {
+			downloadFuture.get(60, TimeUnit.SECONDS);
+		} catch (Exception e) {
+			log.warn("下载区块等待超时 {}", e.getMessage());
+		}
+	}
+	
+	/**
+	 * 通知区块下载完成
+	 */
+	public void notifyDownloadComplete() {
+		if(downloadFuture != null) {
+			downloadFuture.set(true);
+		}
+	}
+	
 	@Override
 	public int getMaxMessageSize() {
 		return Message.MAX_SIZE;
@@ -141,7 +180,24 @@ public class Peer extends PeerSocketHandler {
 	public void connectionOpened() {
 		log.info("connectionOpened {}", this);
 		//发送版本信息
-		sendMessage(new VersionMessage(network, network.getBestBlockHeight(), getPeerAddress()));
+		BlockHeader bestBlock = network.getBestBlockHeader().getBlockHeader();
+		sendMessage(new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress()));
+	}
+	
+	/**
+	 * 节点最新高度加1并返回最新高度
+	 * @return long
+	 */
+	public long addAndGetBestBlockHeight() {
+		return bestBlockHeight.incrementAndGet();
+	}
+	
+	/**
+	 * 获取节点最新高度
+	 * @return long
+	 */
+	public long getBestBlockHeight() {
+		return bestBlockHeight.get();
 	}
 	
 	@Override
@@ -166,6 +222,7 @@ public class Peer extends PeerSocketHandler {
 	}
 	public void setPeerVersionMessage(VersionMessage peerVersionMessage) {
 		this.peerVersionMessage = peerVersionMessage;
+		bestBlockHeight = new AtomicLong(peerVersionMessage.bestHeight);
 	}
 
 	public boolean isHandshake() {

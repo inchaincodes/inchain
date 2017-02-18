@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.PostConstruct;
+
 import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
@@ -635,4 +637,26 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	public void addTransactionListener(TransactionListener transactionListener) {
 		this.transactionListener = transactionListener;
 	}
+
+//	@PostConstruct
+//	public void test() {
+//		try {
+//			Thread.sleep(1000);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//		//从创始快开始遍历所有区块
+//		BlockStore blockStore = network.getGengsisBlock();
+//		Sha256Hash nextHash = blockStore.getBlock().getHash();
+//		
+//		while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
+//			BlockStore nextBlockStore = getBlock(nextHash.getBytes());
+//			
+//			List<Transaction> txs = nextBlockStore.getBlock().getTxs();
+//			if(txs.size() > 2) {
+//				log.info("============== block tx count is {}, size is {} bytes", txs.size(), nextBlockStore.getBlock().baseSerialize().length);
+//			}
+//			nextHash = nextBlockStore.getNextHash();
+//		}
+//	}
 }

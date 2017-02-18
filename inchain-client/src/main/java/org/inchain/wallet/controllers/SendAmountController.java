@@ -186,7 +186,12 @@ public class SendAmountController implements SubPageController {
 
     public void sendMoney(AccountKit accountKit, String address, Coin money, Coin feeCoin) {
     	try {
-			BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
+    		BroadcastResult broadcastResult = null;
+    		
+    		for (int i = 0; i < 1000; i++) {
+				
+    			broadcastResult = accountKit.sendMoney(address, money, feeCoin);
+			}
 			//返回的交易id，则成功
 			if(broadcastResult.isSuccess()) {
 				loadNewestBalance();

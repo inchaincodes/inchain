@@ -12,7 +12,6 @@ import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.Message;
 import org.inchain.message.RejectMessage;
-import org.inchain.message.VersionMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
@@ -73,11 +72,6 @@ public class BlockMessageProcess implements MessageProcess {
 		
 		Block block = (Block) message;
 		try {
-			VersionMessage peerVersion = peer.getPeerVersionMessage();
-			if(peerVersion != null) {
-				peerVersion.bestHeight = block.getHeight();
-			}
-			
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(header != null) {
 				//已经存在
