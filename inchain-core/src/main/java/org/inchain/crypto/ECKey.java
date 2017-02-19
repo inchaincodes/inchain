@@ -10,6 +10,7 @@ import java.util.Arrays;
 
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
+import org.inchain.core.TimeService;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
@@ -81,7 +82,7 @@ public class ECKey {
         ECPublicKeyParameters pubParams = (ECPublicKeyParameters) keypair.getPublic();
         priv = privParams.getD();
         pub = pubParams.getQ();
-        creationTimeSeconds = Utils.currentTimeSeconds();
+        creationTimeSeconds = TimeService.currentTimeMillis();
     }
     
     /**
@@ -97,7 +98,7 @@ public class ECKey {
         }
         this.priv = priv;
         this.pub = Utils.checkNotNull(pub);
-        creationTimeSeconds = Utils.currentTimeSeconds();
+        creationTimeSeconds = TimeService.currentTimeMillis();
     }
     
     /**
@@ -424,7 +425,7 @@ public class ECKey {
         EncryptedData encryptedPrivateKey = AESEncrypt.encrypt(privKeyBytes, iv, new KeyParameter(Sha256Hash.hash(password.getBytes())));
 
         ECKey result = ECKey.fromEncrypted(encryptedPrivateKey, getPubKey());
-        result.setCreationTimeSeconds(Utils.currentTimeSeconds());
+        result.setCreationTimeSeconds(TimeService.currentTimeMillis());
 
         return result;
     }
@@ -445,7 +446,7 @@ public class ECKey {
         
         if (!Arrays.equals(key.getPubKey(), getPubKey()))
             throw new KeyCrypterException("密码错误");
-        key.setCreationTimeSeconds(Utils.currentTimeSeconds());
+        key.setCreationTimeSeconds(TimeService.currentTimeMillis());
         key.encryptedPrivateKey = encryptedPrivateKey;
         return key;
     }

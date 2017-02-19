@@ -16,7 +16,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.Peer;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AppKit;
@@ -370,7 +370,7 @@ public class MainController {
 			break;
 		case "consensusRecordId":
 			//点击共识列表按钮
-			fxml = "/resources/template/consensusRecord.fxml";
+			fxml = "/resources/template/consensus.fxml";
 			break;
 		case "sellerRecordId":
 			//点击商家列表按钮
@@ -407,7 +407,7 @@ public class MainController {
     					Platform.runLater(new Runnable() {
     					    @Override
     					    public void run() {
-    					    	nowNetTimeId.setText(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis())));
+    					    	nowNetTimeId.setText(DateUtil.convertDate(new Date(TimeService.currentTimeMillis())));
     					    }
     					});
     					Thread.sleep(1000l);

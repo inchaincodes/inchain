@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.PostConstruct;
-
 import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;

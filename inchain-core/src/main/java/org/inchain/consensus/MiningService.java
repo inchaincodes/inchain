@@ -9,7 +9,7 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
@@ -86,7 +86,7 @@ public final class MiningService implements Mining {
 		Utils.checkNotNull(bestBlockHeader);
 		
 		//上一区块的时间戳
-		long time = TimeHelper.currentTimeMillis();
+		long time = TimeService.currentTimeMillis();
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -112,13 +112,13 @@ public final class MiningService implements Mining {
 					debug("交易验证失败：" + tx.getHash());
 				}
 				//如果时间到了，那么退出打包，然后广区块
-				if(TimeHelper.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
+				if(TimeService.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
 					break;
 				}
 				tx = mempool.get();
 			}
 			//如果时间到了，那么退出打包，然后广区块
-			if(TimeHelper.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
+			if(TimeService.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
 				break;
 			}
 
@@ -153,7 +153,7 @@ public final class MiningService implements Mining {
 
 		block.setHeight(bestBlockHeader.getBlockHeader().getHeight()+1);
 		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
-		block.setTime(TimeHelper.currentTimeMillis());
+		block.setTime(TimeService.currentTimeMillis());
 		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
 		block.setTxCount(transactionList.size());
 		block.setTxs(transactionList);

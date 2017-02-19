@@ -12,7 +12,7 @@ import org.inchain.account.AccountBody.ContentType;
 import org.inchain.account.AccountBody.KeyValuePair;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
@@ -173,9 +173,9 @@ public class TransactionRecordController implements SubPageController {
 							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
 							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
 								detail += "(永久锁定)";
-							} else if(((tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeHelper.currentTimeMillis()) ||
+							} else if(((tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis()) ||
 									(tx.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) ||
-									((output.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeHelper.currentTimeMillis()) ||
+									((output.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeService.currentTimeMillis()) ||
 											(output.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && output.getLockTime() > bestBlockHeight))) {
 								long lockTime;
 								if(tx.getLockTime() > output.getLockTime()) {

@@ -188,7 +188,7 @@ public class TransactionValidator {
 			}
 			
 			//判断是否达到共识条件
-			long credit = accountStore.getCert();
+			long credit = (accountStore == null ? 0 : accountStore.getCert());
 			if(credit < Configure.CONSENSUS_CREDIT) {
 				//信用不够
 				result.setResult(false, "信用值过低");

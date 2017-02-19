@@ -20,9 +20,11 @@ public class MainNetworkParams extends NetworkParams {
     }
     
     public MainNetworkParams() {
-    	
-    	
+
     	this.seedManager = new RemoteSeedManager();
+    	
+    	seedManager.addDnsSeed("seed1.inchain.org");
+    	seedManager.addDnsSeed("seed2.inchain.org");
     	
     	init();
 	}

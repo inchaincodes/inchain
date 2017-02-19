@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.inchain.Configure;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.utils.IpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,18 +26,9 @@ public class RemoteSeedManager implements SeedManager {
 	
 	private final List<Seed> list = new ArrayList<Seed>();
 	
-
 	public RemoteSeedManager() {
-		SEED_DOMAINS.add("test1.seed.inchain.org");
-		SEED_DOMAINS.add("test2.seed.inchain.org");
-		
-		new Thread() {
-			public void run() {
-				startInit();
-			};
-		}.start();
 	}
-
+	
 	@Override
 	public List<Seed> getSeedList(int maxConnectionCount) {
 		List<Seed> newList = new ArrayList<Seed>();
@@ -46,7 +37,7 @@ public class RemoteSeedManager implements SeedManager {
 		for (Seed seed : list) {
 			if(seed.getStaus() == Seed.SEED_CONNECT_WAIT ||
 				(seed.getStaus() == Seed.SEED_CONNECT_FAIL && seed.isRetry() &&
-					(TimeHelper.currentTimeMillis() > seed.getLastTime() + seed.getRetryInterval()))) {
+					(TimeService.currentTimeMillis() > seed.getLastTime() + seed.getRetryInterval()))) {
 				newList.add(seed);
 				seed.setStaus(Seed.SEED_CONNECT_ING);
 			} else if(seed.getStaus() == Seed.SEED_CONNECT_FAIL && !seed.isRetry()) {
@@ -59,10 +50,14 @@ public class RemoteSeedManager implements SeedManager {
 
 	@Override
 	public boolean hasMore() {
+		//如果没有初始化，则先初始化
+		if(list.isEmpty() && !SEED_DOMAINS.isEmpty()) {
+			init();
+		}
 		for (Seed seed : list) {
 			if(seed.getStaus() == Seed.SEED_CONNECT_WAIT ||
 				(seed.getStaus() == Seed.SEED_CONNECT_FAIL && seed.isRetry() &&
-					(System.currentTimeMillis() > seed.getLastTime() + seed.getRetryInterval()))) {
+					(TimeService.currentTimeMillis() > seed.getLastTime() + seed.getRetryInterval()))) {
 				return true;
 			}
 		}
@@ -76,10 +71,8 @@ public class RemoteSeedManager implements SeedManager {
 	/**
 	 * 初始化种子节点
 	 */
-	protected void startInit() {
+	private void init() {
 		try {
-			Thread.sleep(1000);
-			
 			if(log.isDebugEnabled()) {
 				log.debug("初始化种子节点");
 			}
@@ -92,12 +85,12 @@ public class RemoteSeedManager implements SeedManager {
 						if(myIps.contains(inetAddress.getHostAddress())) {
 							continue;
 						}
-						//若连接失败，5分钟后重试
-						Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.PORT), false, 5 * 60000);
+						//若连接失败，则重试，暂定1分钟
+						Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.PORT), true, 1 * 60000);
 						add(seed);
 					}
 				} catch (Exception e) {
-					log.error("种子域名{}获取出错", seedDomain, e);
+					log.error("种子域名{}获取出错 {}", seedDomain, e.getMessage());
 				}
 			}
 			
@@ -105,7 +98,17 @@ public class RemoteSeedManager implements SeedManager {
 				log.debug("种子节点初始化完成");
 			}
 		} catch (Exception e) {
-			log.error("种子节点获取出错", e);
+			log.error("种子节点获取出错 {}", e.getMessage());
 		}
+	}
+
+	/**
+	 * 添加一个dns种子
+	 * @param domain
+	 * @return boolean
+	 */
+	@Override
+	public boolean addDnsSeed(String domain) {
+		return SEED_DOMAINS.add(domain);
 	}
 }

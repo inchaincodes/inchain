@@ -11,7 +11,7 @@ import org.inchain.Configure;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.EnoughAvailablePeersListener;
@@ -149,7 +149,12 @@ public class PeerKit {
 	 */
 	public void connectionOnChange(boolean isOpen) {
 		for (ConnectionChangedListener connectionChangedListener : connectionChangedListeners) {
-			connectionChangedListener.onChanged(inPeers.size(), outPeers.size(), inPeers, outPeers);
+			executor.execute(new Thread(){
+				@Override
+				public void run() {
+					connectionChangedListener.onChanged(inPeers.size(), outPeers.size(), inPeers, outPeers);
+				}
+			});
 		}
 	}
 	
@@ -182,7 +187,7 @@ public class PeerKit {
 								connectionOnChange(false);
 							}
 						};
-						seed.setLastTime(TimeHelper.currentTimeMillis());
+						seed.setLastTime(TimeService.currentTimeMillis());
 						connectionManager.openConnection(seed, peer);
 					}
 				}

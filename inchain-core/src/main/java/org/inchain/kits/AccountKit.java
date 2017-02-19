@@ -26,7 +26,7 @@ import org.inchain.consensus.ConsensusPoolCacher;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Result;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -302,8 +302,8 @@ public class AccountKit {
 		}
 		
 		Transaction tx = new Transaction(network);
-		tx.setTime(TimeHelper.currentTimeMillis());
-		tx.setLockTime(TimeHelper.currentTimeMillis());
+		tx.setTime(TimeService.currentTimeMillis());
+		tx.setLockTime(TimeService.currentTimeMillis());
 		tx.setType(TransactionDefinition.TYPE_PAY);
 		tx.setVersion(TransactionDefinition.VERSION);
 		
@@ -749,7 +749,7 @@ public class AccountKit {
 			if(!backupFile.exists() && !backupFile.mkdir()) {
 				return new Result(false, "创建目录失败");
 			}
-			backupFile = new File(backupFile, "wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")).concat(".dat"));
+			backupFile = new File(backupFile, "wallet_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmm")).concat(".dat"));
 		}
 		//创建备份文件
 		if(!backupFile.exists() && !backupFile.createNewFile()) {
@@ -810,7 +810,7 @@ public class AccountKit {
 			//备份原账户
 			for (Account account : accountList) {
 				String base58 = account.getAddress().getBase58();
-				String newBackupFile = base58 + "_auto_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
+				String newBackupFile = base58 + "_auto_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
 				new File(accountDir, base58 + ".dat")
 					.renameTo(new File(accountDir, newBackupFile));
 			}
@@ -1427,15 +1427,16 @@ public class AccountKit {
 
 	/**
 	 * 注册成为共识节点
-	 * @return
+	 * @return Result
 	 */
 	public Result registerConsensus() {
 		//选取第一个可注册共识的账户进行广播
 		try {
 			for (Account account : accountList) {
 				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
-				if(accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
-					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, TransactionDefinition.VERSION, TimeHelper.currentTimeMillis());
+				if((accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT)
+						|| (Configure.CONSENSUS_CREDIT == 0l && accountStore == null)) {
+					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, TransactionDefinition.VERSION, TimeService.currentTimeMillis());
 					regConsensus.sign(account);
 					
 					regConsensus.verfify();
@@ -1453,21 +1454,21 @@ public class AccountKit {
 				}
 			}
 		} catch (Exception e) {
-			return new Result(false, e.getMessage());
+			return new Result(false, "共识请求出错");
 		}
 		return new Result(false, "没有可参与共识的账户");
 	}
 
 	/**
 	 * 退出共识
-	 * @return
+	 * @return Result
 	 */
 	public Result quitConsensus() {
 		//选取共识中的账户进行广播
 		try {
 			for (Account account : accountList) {
 				if(consensusPoolCacher.contains(account.getAddress().getHash160())) {
-					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, TransactionDefinition.VERSION, TimeHelper.currentTimeMillis());
+					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, TransactionDefinition.VERSION, TimeService.currentTimeMillis());
 					remConsensus.sign(account);
 					
 					remConsensus.verfify();

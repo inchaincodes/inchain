@@ -6,7 +6,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import org.inchain.core.PeerAddress;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
@@ -83,7 +83,7 @@ public class VersionMessage extends Message {
 	    super(params);
         clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         localServices = params.getLocalServices();
-        time = TimeHelper.currentTimeMillis();
+        time = TimeService.currentTimeMillis();
         try {
             final byte[] localhost = { 127, 0, 0, 1 };
             myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);

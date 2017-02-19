@@ -5,7 +5,7 @@ import java.io.OutputStream;
 
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
@@ -31,7 +31,7 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 		this.mgPubkeys = mgPubkeys;
 		this.trPubkeys = trPubkeys;
 		this.body = body;
-		this.time = TimeHelper.currentTimeMillis();
+		this.time = TimeService.currentTimeMillis();
 	}
 	
 	public CertAccountRegisterTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {

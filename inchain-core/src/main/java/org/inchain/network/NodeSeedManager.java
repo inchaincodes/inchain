@@ -45,4 +45,13 @@ public class NodeSeedManager implements SeedManager {
 		}
 		return false;
 	}
+	
+	/**
+	 * 添加一个dns种子
+	 * @param domain
+	 * @return boolean
+	 */
+	public boolean addDnsSeed(String domain) {
+		return false;
+	}
 }

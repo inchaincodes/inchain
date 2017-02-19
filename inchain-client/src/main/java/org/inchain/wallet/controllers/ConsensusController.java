@@ -41,9 +41,9 @@ import javafx.scene.control.cell.PropertyValueFactory;
  * @author ln
  *
  */
-public class ConsensusRecordController implements SubPageController {
+public class ConsensusController implements SubPageController {
 	
-	private static final Logger log = LoggerFactory.getLogger(ConsensusRecordController.class);
+	private static final Logger log = LoggerFactory.getLogger(ConsensusController.class);
 	
 	public TableView<ConensusEntity> table;
 	

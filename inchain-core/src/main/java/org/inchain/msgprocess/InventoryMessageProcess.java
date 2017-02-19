@@ -15,7 +15,6 @@ import org.inchain.core.BroadcastResult;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.GetDataResult;
 import org.inchain.core.Peer;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
@@ -56,8 +55,8 @@ public class InventoryMessageProcess implements MessageProcess {
 	private InventoryFilter filter;
 	@Autowired
 	private DataSynchronizeHandler dataSynchronizeHandler;
-	
-	private Sha256Hash monitorBlockDownload;
+
+//	private Sha256Hash monitorBlockDownload;
 	
 	@Override
 	public MessageProcessResult process(final Message message, final Peer peer) {
@@ -85,7 +84,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			}
 		}
 		if(isBlockDownload) {
-			monitorBlockDownload = invList.get(invList.size() - 1).getHash();
+			peer.setMonitorBlockDownload(invList.get(invList.size() - 1).getHash());
 		}
 		return null;
 	}
@@ -235,11 +234,6 @@ public class InventoryMessageProcess implements MessageProcess {
 //			}
 			
 			peer.sendMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
-			if(monitorBlockDownload != null && inventoryItem.getHash().equals(monitorBlockDownload)) {
-				monitorBlockDownload = null;
-				//通知下载完成
-				peer.notifyDownloadComplete();
-			}
 		} catch (Exception e) {
 			log.error("区块下载inv消息处理失败 {}", inventoryItem, e);
 		} finally {

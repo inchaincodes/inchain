@@ -15,7 +15,11 @@ import org.inchain.utils.Utils;
 public class TestNetworkParams extends NetworkParams {
 	
     public TestNetworkParams() {
-    	this.seedManager = new RemoteSeedManager();
+    	seedManager = new RemoteSeedManager();
+
+    	seedManager.addDnsSeed("test1.seed.inchain.org");
+    	seedManager.addDnsSeed("test2.seed.inchain.org");
+		
     	init();
 	}
     

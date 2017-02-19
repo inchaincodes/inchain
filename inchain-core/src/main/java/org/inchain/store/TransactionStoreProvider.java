@@ -11,7 +11,7 @@ import javax.annotation.PostConstruct;
 import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
@@ -379,7 +379,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					//本笔输出是否可用
 					long lockTime = output.getLockTime();
 					if(lockTime == -1l || (lockTime < TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
-							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeHelper.currentTimeMillis())
+							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())
 							|| (i == 0 && transactionStore.getHeight() == -1l)) {
 						unconfirmedBalance = unconfirmedBalance.add(Coin.valueOf(output.getValue()));
 					} else {
@@ -430,7 +430,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			
 			//如果交易不可用，则跳过
 			if(tx.getLockTime() == -1l || (tx.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight) ||
-					(tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeHelper.currentTimeMillis())) {
+					(tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis())) {
 				continue;
 			}
 			
@@ -460,7 +460,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					//本笔输出是否可用
 					long lockTime = output.getLockTime();
 					if(lockTime == -1l || (lockTime < TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
-							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeHelper.currentTimeMillis())) {
+							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())) {
 						continue;
 					} else {
 						txs.add((TransactionOutput) output);

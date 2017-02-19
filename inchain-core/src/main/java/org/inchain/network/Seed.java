@@ -15,7 +15,7 @@ public class Seed {
 	public static final int SEED_CONNECT_FAIL = 3;
 	
 	private InetSocketAddress address;
-	private int staus;			//状态，0待连接，1连接成功，2连接失败
+	private int staus;			//状态，0待连接，1连接中，2连接成功，3连接失败
 	private long lastTime;		//最后连接时间
 	private boolean retry;		//连接失败是否重试
 	private int retryInterval;	//失败的节点，默认60秒重试
@@ -60,5 +60,11 @@ public class Seed {
 	}
 	public void setRetryInterval(int retryInterval) {
 		this.retryInterval = retryInterval;
+	}
+
+	@Override
+	public String toString() {
+		return "Seed [address=" + address + ", staus=" + staus + ", lastTime=" + lastTime + ", retry=" + retry
+				+ ", retryInterval=" + retryInterval + "]";
 	}
 }

@@ -3,6 +3,7 @@ package org.inchain.core;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -53,8 +54,9 @@ public class Peer extends PeerSocketHandler {
 	//节点最新高度
 	private AtomicLong bestBlockHeight;
 	
-	private Sha256Hash startBlockDownloadHash;
-	private Sha256Hash stopBlockDownloadHash;
+	//监控下载完成的区块
+	private Sha256Hash monitorBlockDownload;
+	
 	private SettableListenableFuture<Boolean> downloadFuture;
 	
 	public Peer(NetworkParams network, InetSocketAddress address) {
@@ -118,6 +120,10 @@ public class Peer extends PeerSocketHandler {
 				GetDataResult getDataResult = new GetDataResult(message, result.isSuccess());
 				future.set(getDataResult);
 			}
+			//监控同步完成
+			if(monitorBlockDownload != null && monitorBlockDownload.equals(hash)) {
+				notifyDownloadComplete();
+			}
 		}
 	}
 
@@ -135,25 +141,20 @@ public class Peer extends PeerSocketHandler {
         return future;
     }
 	
-	/**
-	 * 监听区块下载
-	 * @param startHash
-	 * @param stopHash
-	 */
-	public void setListenerGetBlocks(Sha256Hash startHash, Sha256Hash stopHash) {
-		this.startBlockDownloadHash = startHash;
-		this.stopBlockDownloadHash = stopHash;
+	public void setMonitorBlockDownload(Sha256Hash monitorBlockDownload) {
+		this.monitorBlockDownload = monitorBlockDownload;
 	}
 
 	/**
 	 * 等待区块下载完成
+	 * @throws Exception 
 	 */
-	public void waitBlockDownComplete() {
+	public void waitBlockDownComplete() throws Exception {
 		 downloadFuture = new SettableListenableFuture<Boolean>();
 		 try {
-			downloadFuture.get(60, TimeUnit.SECONDS);
-		} catch (Exception e) {
-			log.warn("下载区块等待超时 {}", e.getMessage());
+			downloadFuture.get(120, TimeUnit.SECONDS);
+		} catch (InterruptedException | ExecutionException e) {
+			throw e;
 		}
 	}
 	
@@ -173,12 +174,17 @@ public class Peer extends PeerSocketHandler {
 	
 	@Override
 	public void connectionClosed() {
-		log.info("connectionClosed");
+		if(log.isDebugEnabled()) {
+			log.debug("peer {} connectionClosed ", this);
+		}
 	}
 
 	@Override
 	public void connectionOpened() {
-		log.info("connectionOpened {}", this);
+		if(log.isDebugEnabled()) {
+			log.debug("peer {} connectionOpened ", this);
+		}
+		
 		//发送版本信息
 		BlockHeader bestBlock = network.getBestBlockHeader().getBlockHeader();
 		sendMessage(new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress()));

@@ -84,8 +84,7 @@ public class DataSynchronizeHandler implements Runnable {
 	}
 	
 	/**
-	 * 新节点连接，如果高度比当前节点高，那么下载区块数据
-	 * @param peer
+	 * 执行下同步监听
 	 */
 	public void run() {
 		locker.lock();
@@ -133,7 +132,6 @@ public class DataSynchronizeHandler implements Runnable {
 	 */
 	private void startDownload(long bestHeight) {
 		try {
-			
 			//开始下载区块
 			if(log.isDebugEnabled()) {
 				log.debug("开始同步区块...........");
@@ -166,7 +164,6 @@ public class DataSynchronizeHandler implements Runnable {
 						Sha256Hash startHash = blockHeader.getHash();
 						Sha256Hash stopHash = Sha256Hash.ZERO_HASH;
 						peer.sendMessage(new GetBlocksMessage(network, startHash, stopHash));
-						peer.setListenerGetBlocks(startHash, stopHash);
 						peer.waitBlockDownComplete();
 					}
 				} catch (Exception e) {

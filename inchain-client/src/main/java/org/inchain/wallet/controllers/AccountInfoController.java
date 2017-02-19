@@ -8,7 +8,7 @@ import java.util.List;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.Result;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.utils.DateUtil;
@@ -120,7 +120,7 @@ public class AccountInfoController implements SubPageController {
 		//创建一个文件选择器
 		fileChooser.setTitle("设置钱包备份路径");
         //默认备份文件名
-        fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
+        fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmm")));
 		File file = fileChooser.showSaveDialog(Context.getMainStage());
 		if(file==null) {
 			return;
@@ -154,7 +154,7 @@ public class AccountInfoController implements SubPageController {
 		//创建一个文件选择器
 		fileChooser.setTitle("选择需要导入的钱包文件");
         //默认备份文件名
-        fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeHelper.currentTimeMillis()), "yyyyMMddHHmm")));
+        fileChooser.setInitialFileName("wallet_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmm")));
 		File file = fileChooser.showOpenDialog(Context.getMainStage());
 		if(file==null) {
 			return;

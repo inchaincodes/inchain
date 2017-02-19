@@ -171,7 +171,7 @@ public class PeerAddress extends Message {
 
     @Override
 	public void serializeToStream(OutputStream stream) throws IOException {
-        int secs = (int) (Utils.currentTimeSeconds());
+        int secs = (int) (TimeService.currentTimeSeconds());
         Utils.uint32ToByteStreamLE(secs, stream);
         
         Utils.uint64ToByteStreamLE(services, stream);  // nServices.

@@ -17,7 +17,7 @@ import javax.annotation.PostConstruct;
 
 import org.inchain.account.Account;
 import org.inchain.account.Address;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
@@ -386,10 +386,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		//大于多少个共识节点后开始共识产块
 		if(meetingStatus == 0) {
 			if(waitTime == 0l) {
-				waitTime = TimeHelper.currentTimeMillis();
+				waitTime = TimeService.currentTimeMillis();
 			}
 			//等待10秒还没就绪，就强制就绪
-			if(TimeHelper.currentTimeMillis() - waitedTime > 10000l) {
+			if(TimeService.currentTimeMillis() - waitedTime > 10000l) {
 				sendReadyMessage();
 				meetingStatus = 1;
 			}
@@ -397,25 +397,25 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			List<ConsensusMessage> list = readys.get(currentMeetingHeight);
 			
 			if(waitedTime == 0l) {
-				waitedTime = TimeHelper.currentTimeMillis();
+				waitedTime = TimeService.currentTimeMillis();
 			}
 			
 			if(list == null || list.size() < 3) {
-				waitTime = TimeHelper.currentTimeMillis();
+				waitTime = TimeService.currentTimeMillis();
 				
-				if(TimeHelper.currentTimeMillis() - waitedTime > 5000l) {
+				if(TimeService.currentTimeMillis() - waitedTime > 5000l) {
 					sendReadyMessage();
 				}
 				return;
 			}
-			if(TimeHelper.currentTimeMillis() - waitTime < 3000l) {
+			if(TimeService.currentTimeMillis() - waitTime < 3000l) {
 				return;
 			}
 			meetingStatus = 2;
 			//顺序共识主动上报顺序
 			sequenceConsensus(list);
 			
-			currentScanningReceiveSequenceTime = TimeHelper.currentTimeMillis();
+			currentScanningReceiveSequenceTime = TimeService.currentTimeMillis();
 		} else if(meetingStatus == 2) {
 			//顺序共识
 			sequenceMeeting();
@@ -507,11 +507,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			//数量有变化，则更新变化时间和最新数量
 			if(currentReceiveSequenceCount != newestSequenceCount) {
 				currentReceiveSequenceCount = newestSequenceCount;
-				currentScanningReceiveSequenceTime = TimeHelper.currentTimeMillis();
+				currentScanningReceiveSequenceTime = TimeService.currentTimeMillis();
 			}
 
 			//如果10s没有变化，那么排除没有发送的节点，重新进行顺序共识
-			if(currentReceiveSequenceCount == newestSequenceCount && TimeHelper.currentTimeMillis() - currentScanningReceiveSequenceTime >= 10000l) {
+			if(currentReceiveSequenceCount == newestSequenceCount && TimeService.currentTimeMillis() - currentScanningReceiveSequenceTime >= 10000l) {
 				//先找出来是哪些节点没有发送消息
 				//把readylist和sequencelist对比就能发现异常节点
 				List<ConsensusMessage> diffList = new ArrayList<ConsensusMessage>();
@@ -658,7 +658,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		//如果5s没有变化，那么排除没有发送的节点，重新进行顺序共识
 		if(countLessList.size() > 0) {
-			if(TimeHelper.currentTimeMillis() - currentScanningReceiveSequenceTime >= 5000l) {
+			if(TimeService.currentTimeMillis() - currentScanningReceiveSequenceTime >= 5000l) {
 				refreshSequenceConsensus(readylist, sequenceList, countLessList);
 				return;
 			}

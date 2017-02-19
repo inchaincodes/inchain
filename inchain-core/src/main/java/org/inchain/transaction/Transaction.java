@@ -11,7 +11,7 @@ import java.util.List;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
@@ -82,7 +82,7 @@ public class Transaction extends Message {
 		super(network);
 		inputs = new ArrayList<Input>();
         outputs = new ArrayList<Output>();
-        time = TimeHelper.currentTimeMillis();
+        time = TimeService.currentTimeMillis();
 	}
 
 	public Transaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {

@@ -63,6 +63,7 @@ import java.util.List;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
+import org.inchain.core.TimeService;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.exception.ScriptException;
 import org.inchain.core.exception.VerificationException;
@@ -138,7 +139,7 @@ public class Script {
     // Used from ScriptBuilder.
     Script(List<ScriptChunk> chunks) {
         this.chunks = Collections.unmodifiableList(new ArrayList<ScriptChunk>(chunks));
-        creationTimeSeconds = Utils.currentTimeSeconds();
+        creationTimeSeconds = TimeService.currentTimeMillis();
     }
 
     /**

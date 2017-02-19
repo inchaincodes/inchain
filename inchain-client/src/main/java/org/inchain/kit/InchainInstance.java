@@ -16,7 +16,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * @author ln
  *
  */
-public final class InchainInstance {
+public class InchainInstance {
 	
 	private static final Logger log = LoggerFactory.getLogger(InchainInstance.class);
 

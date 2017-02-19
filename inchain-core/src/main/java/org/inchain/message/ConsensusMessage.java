@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.core.Peer;
-import org.inchain.core.TimeHelper;
+import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
@@ -67,7 +67,7 @@ public class ConsensusMessage extends Message {
         this.hash160 = hash160;
         this.height = height;
         this.content = content;
-        this.time = TimeHelper.currentTimeMillis();
+        this.time = TimeService.currentTimeMillis();
         this.nonce = RandomUtil.randomLong();
     }
 	
