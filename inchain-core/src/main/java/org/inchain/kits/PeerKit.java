@@ -120,13 +120,7 @@ public class PeerKit {
 	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
-			public boolean allowConnection(InetSocketAddress socketAddress) {
-				//判断是否已经进行过连接，和一个ip只保持一个连接
-				for (Peer peer : outPeers) {
-					if(peer.getAddress().getAddr().equals(socketAddress.getAddress())) {
-						return false;
-					}
-				}
+			public boolean allowConnection() {
 				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
 			}
 			@Override
@@ -263,6 +257,19 @@ public class PeerKit {
 				List<Seed> seeList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - outPeers.size());
 				if(seeList != null && seeList.size() > 0) {
 					for (final Seed seed : seeList) {
+						//判断是否已经进行过连接，和一个ip只保持一个连接
+						boolean hasConnected = false;
+						for (Peer peer : outPeers) {
+							if(peer.getAddress().getAddr().equals(seed.getAddress())) {
+								hasConnected = true;
+								break;
+							}
+						}
+						if(hasConnected) {
+							seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
+							continue;
+						}
+
 						Peer peer = new Peer(network, seed.getAddress()) {
 							@Override
 							public void connectionOpened() {
