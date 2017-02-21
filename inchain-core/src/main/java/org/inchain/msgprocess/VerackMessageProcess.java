@@ -1,10 +1,12 @@
 package org.inchain.msgprocess;
 
-import java.util.Locale;
+import java.net.UnknownHostException;
 
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
+import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,29 +24,36 @@ public class VerackMessageProcess implements MessageProcess {
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
+
+		VerackMessage verackMessage = (VerackMessage) message;
 		
-		if (peer.getPeerVersionMessage() != null) {
-            throw new ProtocolException("got a version ack before version");
-        }
-		
-		VersionMessage versionMessage = (VersionMessage) message;
-		
-		peer.setPeerVersionMessage(versionMessage);
         if (peer.isHandshake()) {
             throw new ProtocolException("got more than one version ack");
         }
 
-        long peerTime = versionMessage.time;
-        log.info("Got host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}, bestBlockHash={}",
-        		peer.getAddress(),
-                versionMessage.clientVersion,
-                versionMessage.subVer,
-                versionMessage.localServices,
-                String.format(Locale.getDefault(), "%tF %tT", peerTime, peerTime),
-                versionMessage.bestHeight,
-                versionMessage.bestBlockHash);
+        if(log.isDebugEnabled()) {
+	        log.debug("Got verack host={}, time={}, nonce={}",
+	        		peer.getAddress(),
+	                verackMessage.getTime(),
+	                verackMessage.getNonce());
+        }
         
-        peer.setHandshake(true);
+        //没有握手完成，则发送自己的版本信息，代表同意握手
+        if(!peer.isHandshake()) {
+        	//回应自己的版本信息
+            BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
+            
+        	VersionMessage replyMessage;
+			try {
+				replyMessage = new VersionMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress());
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+				return null;
+			}
+        	peer.setHandshake(true);
+        	
+        	return new MessageProcessResult(null, true, replyMessage);
+        }
       		
 		return null;
 	}

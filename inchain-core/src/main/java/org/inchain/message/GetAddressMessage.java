@@ -37,6 +37,7 @@ public class GetAddressMessage extends Message {
 	@Override
 	protected void parse() throws ProtocolException {
 		time = readInt64();
+		length = cursor;
 	}
 
 	public long getTime() {
@@ -46,5 +47,9 @@ public class GetAddressMessage extends Message {
 	public void setTime(long time) {
 		this.time = time;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "GetAddressMessage [time=" + time + "]";
+	}
 }

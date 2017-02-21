@@ -49,15 +49,15 @@ public class AddressMessageProcess implements MessageProcess {
 			if(list.size() > 1) {
 				peerDiscovery.addBath(addressMessage.getAddresses());
 			} else {
-				//单个时，验证之后加入，并且转播
-				boolean success = peerKit.verifyPeer(list.get(0));
+				//单个时，验证之后加入，并且转播，如果这里验证，会对目标节点造成不小的并发压力，所以不验证了，直接转播 ，交由各节点异步验证
+//				boolean success = peerKit.verifyPeer(list.get(0));
 				//验证不通过，就被丢弃
-				if(success) {
-					success = peerDiscovery.add(list.get(0));
+//				if(success) {
+					boolean success = peerDiscovery.add(list.get(0), false);
 					if(success) {
 						peerKit.broadcastMessage(addressMessage);
 					}
-				}
+//				}
 			}
 		} else if(message instanceof GetAddressMessage){
 

@@ -26,11 +26,18 @@ public class RemoteSeedManager implements SeedManager {
 	
 	private final List<Seed> list = new ArrayList<Seed>();
 	
+	private volatile boolean hasInit;
+	
 	public RemoteSeedManager() {
 	}
 	
 	@Override
 	public List<Seed> getSeedList(int maxConnectionCount) {
+		//如果没有初始化，则先初始化
+		if(!hasInit) {
+			init();
+		}
+				
 		List<Seed> newList = new ArrayList<Seed>();
 		List<Seed> removeList = new ArrayList<Seed>();
 		//排除连接失败且不重试的
@@ -51,7 +58,7 @@ public class RemoteSeedManager implements SeedManager {
 	@Override
 	public boolean hasMore() {
 		//如果没有初始化，则先初始化
-		if(list.isEmpty() && !SEED_DOMAINS.isEmpty()) {
+		if(!hasInit) {
 			init();
 		}
 		for (Seed seed : list) {
@@ -71,8 +78,11 @@ public class RemoteSeedManager implements SeedManager {
 	/**
 	 * 初始化种子节点
 	 */
-	private void init() {
+	private synchronized void init() {
 		try {
+			if(hasInit) {
+				return;
+			}
 			if(log.isDebugEnabled()) {
 				log.debug("初始化种子节点");
 			}
@@ -97,6 +107,8 @@ public class RemoteSeedManager implements SeedManager {
 			if(log.isDebugEnabled()) {
 				log.debug("种子节点初始化完成");
 			}
+			
+			hasInit = true;
 		} catch (Exception e) {
 			log.error("种子节点获取出错 {}", e.getMessage());
 		}
@@ -110,5 +122,13 @@ public class RemoteSeedManager implements SeedManager {
 	@Override
 	public boolean addDnsSeed(String domain) {
 		return SEED_DOMAINS.add(domain);
+	}
+	
+	public static void main(String[] args) {
+		RemoteSeedManager manager = new RemoteSeedManager();
+		manager.addDnsSeed("test1.seed.inchain.org");
+		manager.addDnsSeed("test2.seed.inchain.org");
+		manager.hasMore();
+		manager.getSeedList(10);
 	}
 }

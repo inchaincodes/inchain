@@ -4,7 +4,6 @@ import java.util.Locale;
 
 import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
@@ -32,26 +31,23 @@ public class VersionMessageProcess implements MessageProcess {
 		peer.setPeerVersionMessage(versionMessage);
 		
         // Switch to the new protocol version.
-        long peerTime = versionMessage.time;
+        long peerTime = versionMessage.getTime();
         log.info("Got host={}, version={}, subVer='{}', services=0x{}, time={}, blocks={}, bestBlockHash={}",
         		peer.getAddress(),
-                versionMessage.clientVersion,
-                versionMessage.subVer,
-                versionMessage.localServices,
+                versionMessage.getClientVersion(),
+                versionMessage.getSubVer(),
+                versionMessage.getLocalServices(),
                 String.format(Locale.getDefault(), "%tF %tT", peerTime, peerTime),
-                versionMessage.bestHeight,
-                versionMessage.bestBlockHash);
+                versionMessage.getBestHeight(),
+                versionMessage.getBestBlockHash());
         
-        if (versionMessage.bestHeight < 0) {
+        if (versionMessage.getBestHeight() < 0) {
             // In this case, it's a protocol violation.
-            throw new ProtocolException("Peer reports invalid best height: " + versionMessage.bestHeight);
+            throw new ProtocolException("Peer reports invalid best height: " + versionMessage.getBestHeight());
         }
         
-        //回应自己的版本信息
-        BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
-        
         try {
-        	peer.sendMessage(new VerackMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress(), versionMessage.theirAddr));
+        	peer.sendMessage(new VerackMessage(peer.getNetwork(), versionMessage.getTime(), versionMessage.getNonce()));
         } catch (Exception e) {
         	peer.close();
 		}

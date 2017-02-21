@@ -1,13 +1,15 @@
 package org.inchain.net;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
 
 import org.inchain.listener.NewInConnectionListener;
 import org.inchain.network.Seed;
 
 public interface ClientConnectionManager {
-    Future<Seed> openConnection(Seed seed, StreamConnection connection);
+	
+    Future<Seed> openConnection(InetSocketAddress address, StreamConnection connection);
 
     int getConnectedClientCount();
 

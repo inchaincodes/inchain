@@ -18,6 +18,7 @@ import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
 import org.inchain.message.PingMessage;
 import org.inchain.message.PongMessage;
+import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.msgprocess.DefaultMessageProcessFactory;
 import org.inchain.msgprocess.MessageProcess;
@@ -57,8 +58,6 @@ public class Peer extends PeerSocketHandler {
 
 	//节点版本信息
 	private VersionMessage peerVersionMessage;
-	//节点握手完成
-	private boolean handshake = false;
 	//节点最新高度
 	private AtomicLong bestBlockHeight;
 	
@@ -78,6 +77,12 @@ public class Peer extends PeerSocketHandler {
 
 	@Override
 	protected void processMessage(final Message message) throws Exception {
+		if(!handshake && !(message instanceof VersionMessage || message instanceof
+				VerackMessage|| message instanceof PingMessage || message instanceof PongMessage)) {
+    		log.warn("{} 节点还没有握手完成，不能通讯", peerAddress);
+    		return;
+    	}
+		
 		final MessageProcess messageProcess = messageProcessFactory.getFactory(message);
 		executorService.submit(new Thread(){
 			public void run() {
@@ -96,13 +101,14 @@ public class Peer extends PeerSocketHandler {
 		if(result == null) {
 			return;
 		}
+		//处理完成之后的一些动作
 		handleAfterProcess(message, result);
+		//如果需要回应，那么这里发送回复消息
+		if(result.getReplyMessage() != null) {
+			sendMessage(result.getReplyMessage());
+		}
 		//是否成功
 		if(!result.isSuccess()) {
-			//如果需要回应，那么这里发送消息，一般是在消息被拒绝之后
-			if(result.getReplyMessage() != null) {
-				sendMessage(result.getReplyMessage());
-			}
 		}
 	}
 
@@ -189,6 +195,7 @@ public class Peer extends PeerSocketHandler {
 	
 	@Override
 	public void connectionClosed() {
+		log.info("peer {} connectionClosed ", peerAddress);
 		if(log.isDebugEnabled()) {
 			log.debug("peer {} connectionClosed ", this);
 		}
@@ -196,10 +203,10 @@ public class Peer extends PeerSocketHandler {
 
 	@Override
 	public void connectionOpened() {
+		log.info("peer {} connectionOpened ", peerAddress);
 		if(log.isDebugEnabled()) {
 			log.debug("peer {} connectionOpened ", this);
 		}
-		
 		//发送版本信息
 		BlockHeader bestBlock = network.getBestBlockHeader().getBlockHeader();
 		try {
@@ -257,7 +264,7 @@ public class Peer extends PeerSocketHandler {
 	}
 	public void setPeerVersionMessage(VersionMessage peerVersionMessage) {
 		this.peerVersionMessage = peerVersionMessage;
-		bestBlockHeight = new AtomicLong(peerVersionMessage.bestHeight);
+		bestBlockHeight = new AtomicLong(peerVersionMessage.getBestHeight());
 	}
 
 	public boolean isHandshake() {

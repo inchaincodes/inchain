@@ -147,7 +147,7 @@ public class DataSynchronizeHandler implements Runnable {
 			Set<Peer> newestPeers = new HashSet<Peer>();
 			
 			for (Peer peer : peers) {
-				if((initSynchronous && peer.getPeerVersionMessage().bestHeight == bestHeight) ||
+				if((initSynchronous && peer.getPeerVersionMessage().getBestHeight() == bestHeight) ||
 						(!initSynchronous && peer.getBestBlockHeight() == bestHeight)) {
 					newestPeers.add(peer);
 				}
@@ -157,7 +157,7 @@ public class DataSynchronizeHandler implements Runnable {
 				try {
 					while(true) {
 						blockHeader = network.getBestBlockHeader().getBlockHeader();
-						if((initSynchronous && peer.getPeerVersionMessage().bestHeight <= blockHeader.getHeight()) ||
+						if((initSynchronous && peer.getPeerVersionMessage().getBestHeight() <= blockHeader.getHeight()) ||
 								(!initSynchronous && peer.getBestBlockHeight() <= blockHeader.getHeight())) {
 							break;
 						}
@@ -206,8 +206,8 @@ public class DataSynchronizeHandler implements Runnable {
 			}
 			//根据hash判断，则获取初始连接时的版本信息里面的高度和hash
 			if(equalAsHash) {
-				long height = peer.getPeerVersionMessage().bestHeight;
-				Sha256Hash hash = peer.getPeerVersionMessage().bestBlockHash;
+				long height = peer.getPeerVersionMessage().getBestHeight();
+				Sha256Hash hash = peer.getPeerVersionMessage().getBestBlockHash();
 				boolean exist = false;
 				for (Item item : list) {
 					if(item.getHeight() == height && item.getHash().equals(hash)) {

@@ -12,6 +12,16 @@ import org.inchain.core.PeerAddress;
 public interface PeerDiscovery {
 	
 	/**
+	 * 启动
+	 */
+	public void startSync();
+	
+	/**
+	 * 程序关闭时，持久化内存里面的节点信息到文件
+	 */
+	public void shutdown();
+	
+	/**
 	 * 添加一个节点
 	 * @param peerAddress
 	 */
@@ -45,17 +55,16 @@ public interface PeerDiscovery {
 	
 	/**
 	 * 获取可连接的节点列表
-	 * @return List<PeerAddress>
+	 * @return List<Seed>
 	 */
-	public List<PeerAddress> getCanConnectPeerAddress();
+	public List<Seed> getCanConnectPeerSeeds();
 
 	/**
 	 * 获取可连接的节点列表
-	 * @return List<PeerAddress>
+	 * @return List<Seed>
 	 */
-	public List<PeerAddress> getCanConnectPeerAddress(int maxCount);
+	public List<Seed> getCanConnectPeerSeeds(int maxCount);
 	
-
 	/**
 	 * 节点是否已经存在（已被发现）
 	 * @param peerAddress
@@ -64,10 +73,14 @@ public interface PeerDiscovery {
 	public boolean hasExist(PeerAddress peerAddress);
 
 	/**
-	 * 是否已经连接过了
-	 * @param peerAddress
-	 * @return boolean
+	 * 刷新节点的连接状态
+	 * @param seed
 	 */
-	public boolean hasConnected(PeerAddress peerAddress);
+	public void refreshSeedStatus(Seed seed);
+
+	/**
+	 * 检查本机服务是否对外提供，如果提供则上传
+	 */
+	public void checkMyserviceAndReport();
 
 }

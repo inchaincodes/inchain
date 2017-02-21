@@ -25,7 +25,7 @@
     </appender>
     
 	<logger name="org.inchain">
-		<level value="info" />
+		<level value="debug" />
 	</logger>
 
  	<!-- Root Logger -->

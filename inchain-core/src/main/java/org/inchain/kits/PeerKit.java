@@ -1,13 +1,9 @@
 package org.inchain.kits;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -22,14 +18,11 @@ import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.EnoughAvailablePeersListener;
 import org.inchain.listener.NewInConnectionListener;
-import org.inchain.message.AddressMessage;
 import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.PeerDiscovery;
 import org.inchain.network.Seed;
-import org.inchain.network.SeedManager;
-import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +39,10 @@ public class PeerKit {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
 
-	//默认最大节点连接数，这里指单向连接
-	private static final int DEFAULT_MAX_CONNECTION = 10;
+	//默认最大节点连接数，这里指单向连接，主动连接的数量
+	private static final int DEFAULT_MAX_OUT_CONNECTION = 10;
+	//默认最大节点连接数，这里指单向连接，被动连接的数量
+	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
 	
 	//任务调度器
 	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
@@ -55,7 +50,7 @@ public class PeerKit {
 	//最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	private int minConnectionCount = Configure.MIN_CONNECT_COUNT;
 	//最大连接数
-	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
+	private int maxConnectionCount = Math.max(DEFAULT_MAX_OUT_CONNECTION, Configure.MAX_CONNECT_COUNT);
 	//连接变化监听器
 	private CopyOnWriteArrayList<ConnectionChangedListener> connectionChangedListeners = new CopyOnWriteArrayList<ConnectionChangedListener>();
 	
@@ -94,6 +89,8 @@ public class PeerKit {
 		//初始化连接器
 		connectionManager.start();
 		
+		peerDiscovery.startSync();
+		
 		//初始化节点
 		initPeers();
 		
@@ -116,13 +113,15 @@ public class PeerKit {
 		executor.shutdown();
 		//关闭连接器
 		connectionManager.stop();
+		//启动节点发现
+		peerDiscovery.shutdown();
 	}
 	
 	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
 			public boolean allowConnection() {
-				return inPeers.size() < PeerKit.this.maxConnectionCount;
+				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
 			}
 			@Override
 			public void connectionOpened(Peer peer) {
@@ -148,9 +147,10 @@ public class PeerKit {
 			public void run() {
 				for (Peer peer : outPeers) {
 					try {
-						peer.ping().get();
+						peer.ping().get(5, TimeUnit.SECONDS);
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
+						log.info("节点{}无法Ping通，先将关闭连接", peer.getAddress());
 						peer.close();
 					}
 				}
@@ -181,73 +181,11 @@ public class PeerKit {
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					checkMyserviceAndReport();
+					peerDiscovery.checkMyserviceAndReport();
 				}
 			}.start();
 		}
 	};
-	
-	/*
-	 * 检查本机服务是否对外提供，如果提供则上传
-	 */
-	private void checkMyserviceAndReport() {
-		//获取本机的外网ip地址
-		List<byte[]> ips = new ArrayList<byte[]>(); 
-		for (Peer peer : findAvailablePeers()) {
-			PeerAddress addr = peer.getPeerVersionMessage().theirAddr;
-			ips.add(addr.getAddr().getAddress());
-		}
-		//次数最多的外网ip
-		//避免ip地址欺骗
-		Map<String, Integer> maps = new HashMap<String, Integer>();
-		for (byte[] ipTemp : ips) {
-//			if(!IpUtil.internalIp(ipTemp)) {
-				String str = Hex.encode(ipTemp);
-				Integer count = maps.get(str);
-				if(count == null) {
-					maps.put(str, 1);
-				} else {
-					maps.put(str, count+1);
-				}
-//			}
-		}
-		
-		if(maps.size() == 0) {
-			//没有获取到外网ip，不对外提供服务
-			return;
-		}
-		
-		String ipStr = null;
-		int count = 0;
-		for (Entry<String, Integer> entry : maps.entrySet()) {
-			Integer v = entry.getValue();
-			if(v != null && v.intValue() > count) {
-				count = v;
-				ipStr = entry.getKey();
-			}
-		}
-		InetAddress myIp = null;
-		try {
-			myIp = InetAddress.getByAddress(Hex.decode(ipStr));
-		} catch (Exception e) {
-			log.error("地址上报出错，无法解析本机外网ip");
-			return;
-		}
-		//探测本机是否能为外网提供服务
-		if(log.isDebugEnabled()) {
-			log.debug("本机ip {} 开始探测是否能对外提供服务···", myIp);
-		}
-		PeerAddress peerAddress = new PeerAddress(network, myIp);
-		if(!peerDiscovery.hasExist(peerAddress) && verifyPeer(peerAddress)) {
-			AddressMessage addressMessage = new AddressMessage(network);
-			addressMessage.addAddress(peerAddress);
-			int broadcastCount = broadcastMessage(addressMessage);
-
-			if(log.isDebugEnabled()) {
-				log.debug("本机能对外提供服务, 已通过{}个节点广播到p2p网络中", broadcastCount);
-			}
-		}
-	}
 	
 	/**
 	 * 验证节点是否可用
@@ -272,7 +210,6 @@ public class PeerKit {
 						close();
 					}
 				}
-				
 				@Override
 				public void connectionClosed() {
 					if(!result.isDone()) {
@@ -280,7 +217,7 @@ public class PeerKit {
 					}
 				}
 			};
-			connectionManager.openConnection(new Seed(new InetSocketAddress(peerAddress.getAddr(), peerAddress.getPort())), peer);
+			connectionManager.openConnection(new InetSocketAddress(peerAddress.getAddr(), peerAddress.getPort()), peer);
 			
 			return result.get();
 		} catch (Exception e) {
@@ -316,56 +253,41 @@ public class PeerKit {
 				if(outPeers.size() >= maxConnectionCount) {
 					return;
 				}
-				List<PeerAddress> peerAddressList = peerDiscovery.getCanConnectPeerAddress(maxConnectionCount);
-				if(peerAddressList != null && peerAddressList.size() > 0) {
-					for (PeerAddress peerAddress : peerAddressList) {
-						Peer peer = new Peer(network, peerAddress) {
+				
+				List<Seed> seeList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - outPeers.size());
+				if(seeList != null && seeList.size() > 0) {
+					for (final Seed seed : seeList) {
+						Peer peer = new Peer(network, seed.getAddress()) {
 							@Override
 							public void connectionOpened() {
 								super.connectionOpened();
+								//连接状态设置为成功
+								seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
+								peerDiscovery.refreshSeedStatus(seed);
+								
+								//加入主动连接列表
 								outPeers.add(this);
 								connectionOnChange(true);
 							}
 							@Override
 							public void connectionClosed() {
 								super.connectionClosed();
+								//连接状态设置为成功
+								if(seed.getStaus() == Seed.SEED_CONNECT_SUCCESS) {
+									//连接成功过，那么断开连接
+									seed.setStaus(Seed.SEED_CONNECT_CLOSE);
+								} else {
+									//连接失败
+									seed.setStaus(Seed.SEED_CONNECT_FAIL);
+								}
+								peerDiscovery.refreshSeedStatus(seed);
+								//从主动连接列表中移除
 								outPeers.remove(this);
 								connectionOnChange(false);
 							}
 						};
-						Seed seed = new Seed(peerAddress.getSocketAddress());
 						seed.setLastTime(TimeService.currentTimeMillis());
-						connectionManager.openConnection(seed, peer);
-					}
-				} else {
-					//是否有更多的种子
-					SeedManager seedManager = network.getSeedManager();
-					Utils.checkNotNull(seedManager);
-					
-					if(seedManager.hasMore()) {
-						List<Seed> seeds = network.getSeedManager().getSeedList(maxConnectionCount);
-						for (Seed seed : seeds) {
-							//如果已连接，则跳过
-//							if(peerDiscovery.hasConnected(new PeerAddress(seed.getAddress()))) {
-//								continue;
-//							}
-							Peer peer = new Peer(network, seed.getAddress()) {
-								@Override
-								public void connectionOpened() {
-									super.connectionOpened();
-									outPeers.add(this);
-									connectionOnChange(true);
-								}
-								@Override
-								public void connectionClosed() {
-									super.connectionClosed();
-									outPeers.remove(this);
-									connectionOnChange(false);
-								}
-							};
-							seed.setLastTime(TimeService.currentTimeMillis());
-							connectionManager.openConnection(seed, peer);
-						}
+						connectionManager.openConnection(seed.getAddress(), peer);
 					}
 				}
 			} catch (Exception e) {
@@ -458,10 +380,14 @@ public class PeerKit {
 	public List<Peer> findAvailablePeers() {
 		List<Peer> results = new ArrayList<Peer>();
 		for (Peer peer : inPeers) {
-			results.add(peer);
+			if(peer.isHandshake()) {
+				results.add(peer);
+			}
 		}
 		for (Peer peer : outPeers) {
-			results.add(peer);
+			if(peer.isHandshake()) {
+				results.add(peer);
+			}
 		}
         return results;
 	}

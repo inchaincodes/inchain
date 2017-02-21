@@ -86,7 +86,7 @@ public class InchainInstance {
 
 	
 	public void shutdown() throws BeansException, IOException {
-		springContext.getBean(AppKit.class).stop();
+//		springContext.getBean(AppKit.class).stop();
 		springContext.stop();
 		springContext.close();
 		

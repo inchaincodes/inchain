@@ -16,7 +16,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.message.Message;
 import org.inchain.message.MessageSerializer;
+import org.inchain.message.VerackMessage;
+import org.inchain.message.VersionMessage;
 import org.inchain.message.MessageSerializer.MessagePacketHeader;
+import org.inchain.message.PingMessage;
+import org.inchain.message.PongMessage;
 import org.inchain.net.AbstractTimeoutHandler;
 import org.inchain.net.MessageWriteTarget;
 import org.inchain.net.StreamConnection;
@@ -37,6 +41,8 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
     
     private boolean closePending = false;
  	protected MessageWriteTarget writeTarget = null;
+	//节点握手完成
+ 	protected boolean handshake = false;
  	
  	private Lock lock = new ReentrantLock();
 
@@ -59,6 +65,11 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
     }
 
     public void sendMessage(Message message) throws NotYetConnectedException {
+    	if(!handshake && !(message instanceof VersionMessage || message instanceof
+				VerackMessage|| message instanceof PingMessage || message instanceof PongMessage)) {
+    		log.warn("handshake {} {} 节点还没有握手完成，不能通讯 {}", handshake, peerAddress, message);
+    		return;
+    	}
         lock.lock();
         try {
             if (writeTarget == null)

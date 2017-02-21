@@ -67,7 +67,7 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 		}
 
 		public void run() {
-			List<Peer> peers = peerKit.getConnectedPeers();
+			List<Peer> peers = peerKit.findAvailablePeers();
 			
 			Message sendMessage = converMessage(message, result);
 			
@@ -136,7 +136,7 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 	public int broadcastMessage(T message, Peer excludePeer) {
 		int successCount = 0;
 		if(peerKit.canBroadcast()) {
-			for (Peer peer : peerKit.getConnectedPeers()) {
+			for (Peer peer : peerKit.findAvailablePeers()) {
 				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
 					peer.sendMessage(message);
 					successCount ++;

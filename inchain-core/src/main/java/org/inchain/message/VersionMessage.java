@@ -11,6 +11,7 @@ import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
+import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 
 
@@ -29,42 +30,42 @@ public class VersionMessage extends Message {
     /**
      * 哪个网络服务
      */
-    public int localServices;
+    private int localServices;
     
     /**
      * 协议版本
      */
-    public int clientVersion;
+    private int clientVersion;
     
     /**
      * 对等体的时间
      */
-    public long time;
+    private long time;
    
     /**
      * 我的网络地址
      */
-    public PeerAddress myAddr;
+    private PeerAddress myAddr;
     
     /**
      * 对等体的网络时间
      */
-    public PeerAddress theirAddr;
+    private PeerAddress theirAddr;
     
     /**
      * 版本信息
      */
-    public String subVer;
+    private String subVer;
     
     /**
      * 对等体的区块数量
      */
-    public long bestHeight;
+    private long bestHeight;
     
     /**
      * 对等体最新区块的hash
      */
-    public Sha256Hash bestBlockHash;
+    private Sha256Hash bestBlockHash;
     
     /**
      * 随机数
@@ -88,6 +89,7 @@ public class VersionMessage extends Message {
         clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         localServices = params.getLocalServices();
         time = TimeService.currentTimeMillis();
+        nonce = RandomUtil.randomLong();
         try {
         	if(myAddress == null) {
         		try {
@@ -175,4 +177,76 @@ public class VersionMessage extends Message {
         stringBuilder.append("nonce:    ").append(nonce).append("\n");
         return stringBuilder.toString();
     }
+
+	public int getLocalServices() {
+		return localServices;
+	}
+
+	public void setLocalServices(int localServices) {
+		this.localServices = localServices;
+	}
+
+	public int getClientVersion() {
+		return clientVersion;
+	}
+
+	public void setClientVersion(int clientVersion) {
+		this.clientVersion = clientVersion;
+	}
+
+	public long getTime() {
+		return time;
+	}
+
+	public void setTime(long time) {
+		this.time = time;
+	}
+
+	public PeerAddress getMyAddr() {
+		return myAddr;
+	}
+
+	public void setMyAddr(PeerAddress myAddr) {
+		this.myAddr = myAddr;
+	}
+
+	public PeerAddress getTheirAddr() {
+		return theirAddr;
+	}
+
+	public void setTheirAddr(PeerAddress theirAddr) {
+		this.theirAddr = theirAddr;
+	}
+
+	public String getSubVer() {
+		return subVer;
+	}
+
+	public void setSubVer(String subVer) {
+		this.subVer = subVer;
+	}
+
+	public long getBestHeight() {
+		return bestHeight;
+	}
+
+	public void setBestHeight(long bestHeight) {
+		this.bestHeight = bestHeight;
+	}
+
+	public Sha256Hash getBestBlockHash() {
+		return bestBlockHash;
+	}
+
+	public void setBestBlockHash(Sha256Hash bestBlockHash) {
+		this.bestBlockHash = bestBlockHash;
+	}
+
+	public long getNonce() {
+		return nonce;
+	}
+
+	public void setNonce(long nonce) {
+		this.nonce = nonce;
+	}
 }

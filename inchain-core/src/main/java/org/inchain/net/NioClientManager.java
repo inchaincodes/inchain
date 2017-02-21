@@ -79,10 +79,9 @@ public class NioClientManager implements ClientConnectionManager {
     class PendingConnect {
         SocketChannel sc;
         StreamConnection connection;
-        Seed seed;
         Future<Seed> future = new CompletableFuture<Seed>();
 
-        PendingConnect(SocketChannel sc, StreamConnection connection, Seed seed) { this.sc = sc; this.connection = connection; this.seed = seed; }
+        PendingConnect(SocketChannel sc, StreamConnection connection) { this.sc = sc; this.connection = connection;}
     }
     final Queue<PendingConnect> newConnectionChannels = new LinkedBlockingQueue<PendingConnect>();
 
@@ -100,23 +99,21 @@ public class NioClientManager implements ClientConnectionManager {
             ConnectionHandler handler = new ConnectionHandler(connection, key, connectedHandlers);
             try {
                 if (sc.finishConnect()) {
-                    log.info("Connected to {}", sc.socket().getRemoteSocketAddress());
+                	if(log.isDebugEnabled()) {
+                		log.debug("Connected to {}", sc.socket().getRemoteSocketAddress());
+                	}
                     key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_CONNECT).attach(handler);
                     connection.connectionOpened();
-                    data.seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
-                    handler.setSeed(data.seed);
                 } else {
                     log.warn("Failed to connect to {}", sc.socket().getRemoteSocketAddress());
                     handler.closeConnection(); // Failed to connect for some reason
-                    data.seed.setStaus(Seed.SEED_CONNECT_FAIL);
                 }
             } catch (Exception e) {
                 // If e is a CancelledKeyException, there is a race to get to interestOps after finishConnect() which
                 // may cause this. Otherwise it may be any arbitrary kind of connection failure.
                 // Calling sc.socket().getRemoteSocketAddress() here throws an exception, so we can only log the error itself
-                log.warn("Failed connect to {} with exception: {}", data.seed.getAddress(), e.getMessage());
+                log.warn("Failed connect to {} with exception: {}", connection, e.getMessage());
                 handler.closeConnection();
-                data.seed.setStaus(Seed.SEED_CONNECT_FAIL);
             }
         } else {
         	ConnectionHandler handler = ((ConnectionHandler)key.attachment());
@@ -236,17 +233,16 @@ public class NioClientManager implements ClientConnectionManager {
     }
 
 	@Override
-    public Future<Seed> openConnection(Seed seed, StreamConnection connection) {
+    public Future<Seed> openConnection(InetSocketAddress address, StreamConnection connection) {
         if (executor.isShutdown())
             throw new IllegalStateException();
-        // seed and address not null
-        Utils.checkNotNull(seed);
-        Utils.checkNotNull(seed.getAddress());
+        // address not null
+        Utils.checkNotNull(address);
         try {
             SocketChannel sc = SocketChannel.open();
             sc.configureBlocking(false);
-            sc.connect(seed.getAddress());
-            PendingConnect data = new PendingConnect(sc, connection, seed);
+            sc.connect(address);
+            PendingConnect data = new PendingConnect(sc, connection);
             newConnectionChannels.offer(data);
             selector.wakeup();
             return data.future;

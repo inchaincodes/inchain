@@ -13,12 +13,14 @@ public class Seed {
 	public static final int SEED_CONNECT_ING = 1;
 	public static final int SEED_CONNECT_SUCCESS = 2;
 	public static final int SEED_CONNECT_FAIL = 3;
+	public static final int SEED_CONNECT_CLOSE = 4;
 	
 	private InetSocketAddress address;
-	private int staus;			//状态，0待连接，1连接中，2连接成功，3连接失败
+	private int staus;			//状态，0待连接，1连接中，2连接成功，3连接失败，4断开连接
 	private long lastTime;		//最后连接时间
 	private boolean retry;		//连接失败是否重试
 	private int retryInterval;	//失败的节点，默认60秒重试
+	private int failCount;		//失败了多少次
 	
 	public Seed(InetSocketAddress address) {
 		this(address, false, 60);
@@ -60,6 +62,12 @@ public class Seed {
 	}
 	public void setRetryInterval(int retryInterval) {
 		this.retryInterval = retryInterval;
+	}
+	public int getFailCount() {
+		return failCount;
+	}
+	public void setFailCount(int failCount) {
+		this.failCount = failCount;
 	}
 
 	@Override
