@@ -122,7 +122,7 @@ public class NioClientManager implements ClientConnectionManager {
 	            	ServerSocketChannel sc = (ServerSocketChannel) key.channel();
 	            	SocketChannel socketChannel = sc.accept();
 	            	
-	            	if(newInConnectionListener == null || !newInConnectionListener.allowConnection()) {
+	            	if(newInConnectionListener == null || !newInConnectionListener.allowConnection((InetSocketAddress)socketChannel.getRemoteAddress())) {
 	            		log.info("refush connection on " + socketChannel.getRemoteAddress());
 	            		socketChannel.close();
 	            		return;

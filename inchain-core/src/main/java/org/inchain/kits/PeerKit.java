@@ -120,7 +120,13 @@ public class PeerKit {
 	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
-			public boolean allowConnection() {
+			public boolean allowConnection(InetSocketAddress socketAddress) {
+				//判断是否已经进行过连接，和一个ip只保持一个连接
+				for (Peer peer : outPeers) {
+					if(peer.getAddress().getAddr().equals(socketAddress.getAddress())) {
+						return false;
+					}
+				}
 				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
 			}
 			@Override

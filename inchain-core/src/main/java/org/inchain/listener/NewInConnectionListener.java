@@ -1,5 +1,7 @@
 package org.inchain.listener;
 
+import java.net.InetSocketAddress;
+
 import org.inchain.core.Peer;
 
 /**
@@ -9,7 +11,7 @@ import org.inchain.core.Peer;
  */
 public interface NewInConnectionListener {
 
-	boolean allowConnection();
+	boolean allowConnection(InetSocketAddress socketAddress);
 	
 	void connectionOpened(Peer peer);
 	
