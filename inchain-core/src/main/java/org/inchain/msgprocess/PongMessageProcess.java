@@ -12,8 +12,11 @@ public class PongMessageProcess implements MessageProcess {
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
-		log.info("{} {}", peer.getAddress(), message);
-        
-		return null;
+		
+		if(log.isDebugEnabled()) {
+			log.debug("{} {}", peer.getAddress(), message);
+		}
+		
+		return new MessageProcessResult(null, true);
 	}
 }

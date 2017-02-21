@@ -1,12 +1,12 @@
 package org.inchain.crypto;
 
+import java.math.BigInteger;
+import java.util.Arrays;
+
 import org.inchain.utils.Utils;
 import org.spongycastle.math.ec.ECCurve;
 import org.spongycastle.math.ec.ECFieldElement;
 import org.spongycastle.math.ec.ECPoint;
-
-import java.math.BigInteger;
-import java.util.Arrays;
 
 /**
  * A wrapper around ECPoint that delays decoding of the point for as long as possible. This is useful because point

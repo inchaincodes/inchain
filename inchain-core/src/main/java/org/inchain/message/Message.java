@@ -17,6 +17,11 @@ import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 消息顶层基类，所有协议的实现都是继承该类
+ * @author ln
+ *
+ */
 public abstract class Message {
 	
 	private static final Logger log = LoggerFactory.getLogger(Message.class);

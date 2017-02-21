@@ -118,7 +118,7 @@ public final class TimeService {
 	
 	/**
 	 * 获取系统运行时长（返回毫秒数）
-	 * @return
+	 * @return long
 	 */
 	public static long getSystemRuningTimeMillis() {
 		return new Date().getTime() - systemStartTime.getTime();
@@ -126,7 +126,7 @@ public final class TimeService {
 	
 	/**
 	 * 获取系统运行时长（返回秒数）
-	 * @return
+	 * @return long
 	 */
 	public static long getSystemRuningTimeSeconds() {
 		return getSystemRuningTimeMillis() / 1000;

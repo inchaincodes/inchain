@@ -17,7 +17,6 @@ import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.script.Script;
-import org.inchain.transaction.CertAccountTransaction;
 import org.inchain.transaction.CommonlyTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;

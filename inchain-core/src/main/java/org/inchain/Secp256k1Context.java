@@ -16,10 +16,10 @@
 
 package org.inchain;
 
+import java.security.AccessControlException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.security.AccessControlException;
 
 /**
  * This class holds the context reference used in native methods to handle ECDSA operations.

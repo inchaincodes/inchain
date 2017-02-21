@@ -6,6 +6,7 @@ import org.inchain.core.Peer;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class VerackMessageProcess implements MessageProcess {
 
-	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VerackMessageProcess.class);
+	private static final Logger log = LoggerFactory.getLogger(VerackMessageProcess.class);
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -25,6 +26,7 @@ public class VerackMessageProcess implements MessageProcess {
 		if (peer.getPeerVersionMessage() != null) {
             throw new ProtocolException("got a version ack before version");
         }
+		
 		VersionMessage versionMessage = (VersionMessage) message;
 		
 		peer.setPeerVersionMessage(versionMessage);

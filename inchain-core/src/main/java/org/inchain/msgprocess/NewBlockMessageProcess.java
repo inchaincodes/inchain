@@ -45,6 +45,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		Block block = (Block) message;
 		
 		log.info("new block : {}", block);
+		log.info("peer count is "+peerKit.findAvailablePeers().size());
 		
 		peer.getNetwork().setBestHeight(block.getHeight());
 		

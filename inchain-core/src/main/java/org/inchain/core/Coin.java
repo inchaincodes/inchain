@@ -10,7 +10,7 @@ import org.inchain.utils.Utils;
  * @author ln
  *
  */
-public final class Coin implements Monetary, Comparable<Coin>, Serializable {
+public final class Coin implements Comparable<Coin>, Serializable {
 
 	private static final long serialVersionUID = 6978149202334427537L;
 
@@ -61,12 +61,10 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
         return new Coin(coin);
     }
 
-    @Override
     public int smallestUnitExponent() {
         return SMALLEST_UNIT_EXPONENT;
     }
 
-    @Override
     public long getValue() {
         return value;
     }
@@ -190,7 +188,6 @@ public final class Coin implements Monetary, Comparable<Coin>, Serializable {
         return new Coin(this.value >> n);
     }
 
-    @Override
     public int signum() {
         if (this.value == 0)
             return 0;

@@ -14,8 +14,9 @@ public class PingMessageProcess implements MessageProcess {
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
-		log.info("{} {}", peer.getAddress(), message);
-		peer.sendMessage(new PongMessage(((PingMessage)message).getNonce()));
-		return null;
+		if(log.isDebugEnabled()) {
+			log.debug("{} {}", peer.getAddress(), message);
+		}
+		return new MessageProcessResult(null, true, new PongMessage(((PingMessage)message).getNonce()));
 	}
 }

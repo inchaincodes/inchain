@@ -1,6 +1,14 @@
 package org.inchain.script;
 
-import static org.inchain.script.ScriptOpCodes.*;
+import static org.inchain.script.ScriptOpCodes.OP_0;
+import static org.inchain.script.ScriptOpCodes.OP_1;
+import static org.inchain.script.ScriptOpCodes.OP_16;
+import static org.inchain.script.ScriptOpCodes.OP_1NEGATE;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA1;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA2;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA4;
+import static org.inchain.script.ScriptOpCodes.getOpCodeName;
+import static org.inchain.script.ScriptOpCodes.getPushDataName;
 
 import java.io.IOException;
 import java.io.OutputStream;

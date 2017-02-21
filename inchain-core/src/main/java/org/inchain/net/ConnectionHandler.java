@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.message.Message;
+import org.inchain.network.Seed;
 import org.slf4j.LoggerFactory;
 
 class ConnectionHandler implements MessageWriteTarget {
@@ -38,6 +39,7 @@ class ConnectionHandler implements MessageWriteTarget {
     private final LinkedList<ByteBuffer> bytesToWrite = new LinkedList<ByteBuffer>();
 
     private Set<ConnectionHandler> connectedHandlers;
+    private Seed seed;
 
     public ConnectionHandler(StreamConnectionFactory connectionFactory, SelectionKey key) throws IOException {
         this(connectionFactory.getNewConnection(((SocketChannel) key.channel()).socket().getInetAddress(), ((SocketChannel) key.channel()).socket().getPort()), key);
@@ -171,6 +173,9 @@ class ConnectionHandler implements MessageWriteTarget {
         checkState(!lock.isHeldByCurrentThread());
         try {
             channel.close();
+            if(seed != null) {
+            	seed.setStaus(Seed.SEED_CONNECT_WAIT);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -231,4 +236,13 @@ class ConnectionHandler implements MessageWriteTarget {
         	handler.closeConnection();
         }
     }
+
+	public Seed getSeed() {
+		return seed;
+	}
+
+	public void setSeed(Seed seed) {
+		this.seed = seed;
+	}
+    
 }

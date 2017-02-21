@@ -3,8 +3,6 @@ package org.inchain.db;
 import java.io.IOException;
 
 import org.inchain.UnitBaseTestCase;
-import org.inchain.db.Db;
-import org.inchain.db.LevelDB;
 import org.junit.Test;
 
 public class LevelDBTest extends UnitBaseTestCase {

@@ -17,6 +17,7 @@ import org.inchain.message.GetDatasMessage;
 import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
 import org.inchain.message.PingMessage;
+import org.inchain.message.PongMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.msgprocess.DefaultMessageProcessFactory;
 import org.inchain.msgprocess.MessageProcess;
@@ -30,13 +31,20 @@ import org.springframework.util.concurrent.SettableListenableFuture;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * 节点（对等体）
+ * @author ln
+ *
+ */
 public class Peer extends PeerSocketHandler {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(Peer.class);
 	
 	//数据下载等待列表
 	private static volatile Map<Sha256Hash, SettableListenableFuture<GetDataResult>> downDataFutures = new ConcurrentHashMap<Sha256Hash, SettableListenableFuture<GetDataResult>>();
-			
+	//ping futures
+	private Map<Long, SettableListenableFuture<Boolean>> pingFutures = new ConcurrentHashMap<Long, SettableListenableFuture<Boolean>>();
+	
 	//异步顺序执行所有接收到的消息，以免有处理时间较长的线程阻塞，影响性能
 	private ExecutorService executorService = Executors.newSingleThreadExecutor();
 	
@@ -66,7 +74,6 @@ public class Peer extends PeerSocketHandler {
 	public Peer(NetworkParams network, PeerAddress peerAddress) {
 		super(network, peerAddress);
 		this.network = network;
-		this.peerAddress = peerAddress;
 	}
 
 	@Override
@@ -111,6 +118,14 @@ public class Peer extends PeerSocketHandler {
 		} else if(message instanceof Transaction) {
 			//交易下载完成
 			hash = ((Transaction) message).getHash();
+		} else if(message instanceof PongMessage) {
+			//ping 的响应
+			long nonce = ((PongMessage)message).getNonce();
+			SettableListenableFuture<Boolean> futures = pingFutures.get(nonce);
+			if(futures != null) {
+				pingFutures.remove(nonce);
+				futures.set(true);
+			}
 		}
 		//判断是否在下载列表中
 		if(hash != null) {
@@ -187,7 +202,13 @@ public class Peer extends PeerSocketHandler {
 		
 		//发送版本信息
 		BlockHeader bestBlock = network.getBestBlockHeader().getBlockHeader();
-		sendMessage(new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress()));
+		try {
+			VersionMessage versionMessage = new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress());
+			sendMessage(versionMessage);
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.error("发送版本信息出错：{}" , e.getMessage());
+		}
 	}
 	
 	/**
@@ -211,8 +232,16 @@ public class Peer extends PeerSocketHandler {
 		return (peerAddress == null ? "":peerAddress.toString()) + (peerVersionMessage == null ? "":peerVersionMessage.toString());
 	}
 
-	public void ping() {
-		sendMessage(new PingMessage(RandomUtil.randomLong()));
+	/**
+	 * ping 对等体
+	 * @return Future<Boolean>
+	 */
+	public Future<Boolean> ping() {
+		SettableListenableFuture<Boolean> pingFuture = new SettableListenableFuture<Boolean>();
+		long nonce = RandomUtil.randomLong();
+		pingFutures.put(nonce, pingFuture);
+		sendMessage(new PingMessage(nonce));
+		return pingFuture;
 	}
 	
 	public PeerAddress getPeerAddress() {

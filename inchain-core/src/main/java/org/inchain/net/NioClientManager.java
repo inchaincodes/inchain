@@ -104,6 +104,7 @@ public class NioClientManager implements ClientConnectionManager {
                     key.interestOps((key.interestOps() | SelectionKey.OP_READ) & ~SelectionKey.OP_CONNECT).attach(handler);
                     connection.connectionOpened();
                     data.seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
+                    handler.setSeed(data.seed);
                 } else {
                     log.warn("Failed to connect to {}", sc.socket().getRemoteSocketAddress());
                     handler.closeConnection(); // Failed to connect for some reason

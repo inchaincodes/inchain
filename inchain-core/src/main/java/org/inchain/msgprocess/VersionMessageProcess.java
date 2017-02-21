@@ -8,6 +8,7 @@ import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class VersionMessageProcess implements MessageProcess {
 
-	private static final org.slf4j.Logger log = LoggerFactory.getLogger(VersionMessageProcess.class);
+	private static final Logger log = LoggerFactory.getLogger(VersionMessageProcess.class);
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -27,6 +28,7 @@ public class VersionMessageProcess implements MessageProcess {
 		
 		if (peer.getPeerVersionMessage() != null)
             throw new ProtocolException("Got two version messages from peer");
+		
 		peer.setPeerVersionMessage(versionMessage);
 		
         // Switch to the new protocol version.
@@ -47,8 +49,12 @@ public class VersionMessageProcess implements MessageProcess {
         
         //回应自己的版本信息
         BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
-		peer.sendMessage(new VerackMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress()));
-		
+        
+        try {
+        	peer.sendMessage(new VerackMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress(), versionMessage.theirAddr));
+        } catch (Exception e) {
+        	peer.close();
+		}
 		return null;
 	}
 }

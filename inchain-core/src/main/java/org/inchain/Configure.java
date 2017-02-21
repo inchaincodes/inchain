@@ -45,6 +45,11 @@ public final class Configure {
 	public static int PORT = getProperty("port", 8631);
 	
 	/**
+	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
+	 */
+	public static int DEFAULT_PORT = 6888;
+	
+	/**
 	 * 是否挖矿
 	 */
 	public static boolean MINING = getProperty("mining", false);
@@ -54,6 +59,11 @@ public final class Configure {
 	 */
 	//TODO 临时设置为0
 	public static final long CONSENSUS_CREDIT = 0;
+	
+	/**
+	 * 最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
+	 */
+	public static int MIN_CONNECT_COUNT = getProperty("min.connect.count", 1);
 	
 	/**
 	 * 最大允许节点连接数

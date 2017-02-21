@@ -31,11 +31,8 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
 	private byte[] largeReadBuffer;
     private int largeReadBufferPos;
     
-    
-    
     private MessageSerializer.MessagePacketHeader header;
 	private final MessageSerializer serializer;
-    protected PeerAddress myAddress;
     protected PeerAddress peerAddress;
     
     private boolean closePending = false;

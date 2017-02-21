@@ -6,8 +6,8 @@ import java.io.File;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
 
-import org.inchain.UnitBaseTestCase;
 import org.inchain.Configure;
+import org.inchain.UnitBaseTestCase;
 import org.inchain.crypto.ECKey;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;

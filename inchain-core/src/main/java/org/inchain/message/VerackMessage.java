@@ -1,5 +1,7 @@
 package org.inchain.message;
 
+import java.net.UnknownHostException;
+
 import org.inchain.core.PeerAddress;
 import org.inchain.core.TimeService;
 import org.inchain.core.exception.ProtocolException;
@@ -12,8 +14,8 @@ public class VerackMessage extends VersionMessage {
         super(params, payload);
     }
 	
-	public VerackMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress remoteAddress) {
-		super(params, bestHeight, bestBlockHash, remoteAddress);
+	public VerackMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress myAddress, PeerAddress remoteAddress) throws UnknownHostException {
+		super(params, bestHeight, bestBlockHash, myAddress, remoteAddress);
 		//给对方最新的网络时间
 		time = TimeService.currentTimeMillis();
 	}

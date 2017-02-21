@@ -1,7 +1,25 @@
 
 package org.inchain.script;
 
-import static org.inchain.script.ScriptOpCodes.*;
+import static org.inchain.script.ScriptOpCodes.OP_0;
+import static org.inchain.script.ScriptOpCodes.OP_CHECKLOCKTIMEVERIFY;
+import static org.inchain.script.ScriptOpCodes.OP_CHECKMULTISIG;
+import static org.inchain.script.ScriptOpCodes.OP_CHECKSIG;
+import static org.inchain.script.ScriptOpCodes.OP_CHECKSIGVERIFY;
+import static org.inchain.script.ScriptOpCodes.OP_DROP;
+import static org.inchain.script.ScriptOpCodes.OP_DUP;
+import static org.inchain.script.ScriptOpCodes.OP_ELSE;
+import static org.inchain.script.ScriptOpCodes.OP_ENDIF;
+import static org.inchain.script.ScriptOpCodes.OP_EQUAL;
+import static org.inchain.script.ScriptOpCodes.OP_EQUALVERIFY;
+import static org.inchain.script.ScriptOpCodes.OP_HASH160;
+import static org.inchain.script.ScriptOpCodes.OP_IF;
+import static org.inchain.script.ScriptOpCodes.OP_PUBKEY;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA1;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA2;
+import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA4;
+import static org.inchain.script.ScriptOpCodes.OP_RETURN;
+import static org.inchain.script.ScriptOpCodes.OP_VERTR;
 
 import java.math.BigInteger;
 import java.util.ArrayList;

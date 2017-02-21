@@ -66,8 +66,8 @@ public class AppKitMain {
 					appKit.startSyn();
 					
 //					//链接测试节点
-					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
-					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.100", 6881)));
+//					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
+//					network.getSeedManager().add(new Seed(new InetSocketAddress("192.168.1.100", 6881)));
 					
 					log.info("Server启动成功。");
 

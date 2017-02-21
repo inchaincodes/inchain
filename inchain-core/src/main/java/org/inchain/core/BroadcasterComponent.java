@@ -30,8 +30,6 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
     
     private static Random random = new Random();
     
-    private int minConnections = 1;
-    
     @Autowired
     private PeerKit peerKit;
     @Autowired
@@ -41,6 +39,8 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 	public BroadcastResult broadcast(final T message) {
 		//广播结果
 		final BroadcastResult result = new BroadcastResult();
+		
+		int minConnections = peerKit.getBroadcasterMinConnectionCount();
 		
 		if(log.isDebugEnabled()) {
 			log.debug("minConnections is {}, wait ···", minConnections);

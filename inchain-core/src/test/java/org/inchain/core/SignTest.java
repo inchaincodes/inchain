@@ -6,8 +6,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 import org.inchain.crypto.ECKey;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.utils.Base58;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;

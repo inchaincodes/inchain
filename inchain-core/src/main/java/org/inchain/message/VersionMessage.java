@@ -79,16 +79,33 @@ public class VersionMessage extends Message {
         super(params, payload, 0);
     }
 	
-	public VersionMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress remoteAddress) {
+	public VersionMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress remoteAddress) throws UnknownHostException {
+		this(params, bestHeight, bestBlockHash, null, remoteAddress);
+	}
+	
+	public VersionMessage(NetworkParams params, long bestHeight, Sha256Hash bestBlockHash, PeerAddress myAddress, PeerAddress remoteAddress) throws UnknownHostException {
 	    super(params);
         clientVersion = params.getProtocolVersionNum(NetworkParams.ProtocolVersion.CURRENT);
         localServices = params.getLocalServices();
         time = TimeService.currentTimeMillis();
         try {
-            final byte[] localhost = { 127, 0, 0, 1 };
-            myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);
+        	if(myAddress == null) {
+        		try {
+        			myAddr = new PeerAddress(InetAddress.getLocalHost(), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
+        		} catch (Exception e) {
+        			final byte[] localhost = { 127, 0, 0, 1 };
+                    myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
+				}
+        	} else {
+        		myAddr = myAddress;
+        	}
             if(remoteAddress == null) {
-            	theirAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), 0);
+            	try {
+            		theirAddr = new PeerAddress(InetAddress.getLocalHost(), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
+        		} catch (Exception e) {
+        			final byte[] localhost = { 127, 0, 0, 1 };
+        			theirAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
+				}
             } else {
             	theirAddr = remoteAddress;
             }

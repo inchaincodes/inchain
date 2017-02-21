@@ -4,8 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.inchain.SpringContextUtils;
+import org.inchain.message.AddressMessage;
 import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
+import org.inchain.message.GetAddressMessage;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.InventoryMessage;
@@ -43,6 +45,9 @@ public class DefaultMessageProcessFactory implements MessageProcessFactory {
     	FACTORYS.put(ConsensusMessage.class, "consensusMessageProcess");
     	FACTORYS.put(InventoryMessage.class, "inventoryMessageProcess");
     	FACTORYS.put(GetDatasMessage.class, "getDatasMessageProcess");
+
+    	FACTORYS.put(AddressMessage.class, "addressMessageProcess");
+    	FACTORYS.put(GetAddressMessage.class, "addressMessageProcess");
     	
     	FACTORYS.put(Transaction.class, "transactionMessageProcess");
     	FACTORYS.put(CertAccountRegisterTransaction.class, "transactionMessageProcess");
