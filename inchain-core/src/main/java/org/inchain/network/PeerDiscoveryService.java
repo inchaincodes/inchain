@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -58,6 +59,10 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	 * 广播getaddr消息获取对等节点拥有的地址间隔时间
 	 */
 	private static final long GET_ADDR_INTERVAL_TIME = 10 * 60 * 1000l; //10分钟
+	/*
+	 * 保存节点信息到磁盘的间隔时间
+	 */
+	private static final long STORAGE_INTERVAL_TIME = 10 * 60 * 1000l; //10分钟
 	
 	/*
 	 * 节点状态，待验证
@@ -89,6 +94,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	private boolean hasLoadDns;
 	//最后获取地址的时间
 	private long lastGetAddrTime;
+	//最后一次存储时间，节点信息会在启动时加载到内存里面，然后更新维护都是在内存里面，定期进行持久化
+	private long lastStorageTime;
 	
 	@Autowired
 	private PeerKit peerKit;
@@ -136,7 +143,12 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 						canuseMaps.add(peerAddressStore);
 					}
 				}
+				//打乱顺序
+				Collections.shuffle(canuseMaps);
 			}
+			
+			//启动时标记最后存储时间为当前时间
+			lastStorageTime = TimeService.currentTimeMillis();
 		} finally {
 			locker.unlock();
 		}
@@ -237,8 +249,12 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			if(removePeerAddresses != null) {
 				netaddressMaps.removeAll(removePeerAddresses);
 			}
-
 			try {
+				//定期把节点信息刷新到磁盘
+				if(TimeService.currentTimeMillis() - lastStorageTime > STORAGE_INTERVAL_TIME) {
+					lastStorageTime = TimeService.currentTimeMillis();
+					writeObjectToFile(netaddressMaps);
+				}
 				Thread.sleep(1000l);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -354,8 +370,9 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			if(canuseMaps.isEmpty() && !hasLoadDns) {
 				return getDnsSeeds(maxCount);
 			} else {
-				for (int i = 0; i < Math.min(maxCount, canuseMaps.size()); i++) {
-					PeerAddressStore peerAddress = canuseMaps.remove(i);
+				int count = Math.min(maxCount, canuseMaps.size());
+				for (int i = 0; i < count; i++) {
+					PeerAddressStore peerAddress = canuseMaps.remove(0);
 					Seed seed = new Seed(new InetSocketAddress(peerAddress.getAddr(), peerAddress.getPort()));
 					list.add(seed);
 					connectedStatusMaps.put(peerAddress, seed);
@@ -581,6 +598,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
             return (List<PeerAddressStore>) temp;
         } catch (Exception e) {
         	log.warn("read peer file failed! {}", e.getMessage());
+        	file.delete();
         }
         return null;
     }

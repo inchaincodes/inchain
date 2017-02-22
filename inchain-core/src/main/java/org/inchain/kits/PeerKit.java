@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +24,7 @@ import org.inchain.net.ClientConnectionManager;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.PeerDiscovery;
 import org.inchain.network.Seed;
+import org.inchain.utils.IpUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +46,10 @@ public class PeerKit {
 	//默认最大节点连接数，这里指单向连接，被动连接的数量
 	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
 	
+	private static final Set<String> LOCAL_ADDRESS = IpUtil.getIps();
+	
 	//任务调度器
-	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
+	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(10);
 	
 	//最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	private int minConnectionCount = Configure.MIN_CONNECT_COUNT;
@@ -120,7 +124,13 @@ public class PeerKit {
 	private void init() {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
-			public boolean allowConnection() {
+			public boolean allowConnection(InetSocketAddress inetSocketAddress) {
+				//如果已经主动连接了，就不接收该节点的被动连接
+				for (Peer peer : outPeers) {
+					if(peer.getAddress().getAddr().getHostAddress().equals(inetSocketAddress.getAddress().getHostAddress())) {
+						return false;
+					}
+				}
 				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
 			}
 			@Override
@@ -254,13 +264,20 @@ public class PeerKit {
 					return;
 				}
 				
-				List<Seed> seeList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - outPeers.size());
-				if(seeList != null && seeList.size() > 0) {
-					for (final Seed seed : seeList) {
+				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - outPeers.size());
+				if(seedList != null && seedList.size() > 0) {
+					for (final Seed seed : seedList) {
+						//排除与自己的连接
+						if(LOCAL_ADDRESS.contains(seed.getAddress().getAddress().getHostAddress())) {
+							seed.setStaus(Seed.SEED_CONNECT_FAIL);
+							seed.setRetry(false);
+							continue;
+						}
+						
 						//判断是否已经进行过连接，和一个ip只保持一个连接
 						boolean hasConnected = false;
-						for (Peer peer : outPeers) {
-							if(peer.getAddress().getAddr().equals(seed.getAddress())) {
+						for (Peer peer : inPeers) {
+							if(peer.getAddress().getAddr().getHostAddress().equals(seed.getAddress().getAddress().getHostAddress())) {
 								hasConnected = true;
 								break;
 							}
