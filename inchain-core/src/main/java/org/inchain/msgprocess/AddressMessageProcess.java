@@ -35,7 +35,6 @@ public class AddressMessageProcess implements MessageProcess {
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
 		
-		log.info("receive message {}", message);
 		if(log.isDebugEnabled()) {
 			log.debug("receive addr or getaddr message : {}", message);
 		}
