@@ -185,14 +185,14 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				if(!runing) {
 					return;
 				}
-				//该节点是否需要验证
+				//该节点是否需要验证，如果已经连接的节点，则不去验证
 				boolean needVerify = false;
 				if((peerAddressStore.getStatus() == PEER_STATUS_NEED_VERIFY || peerAddressStore.getStatus() == PEER_STATUS_VERIFY_FAIL) && 
-						(TimeService.currentTimeMillis() - peerAddressStore.getLastVerifyTime() > VERIFY_FAIL_RETRY_TIME)) {
+						(TimeService.currentTimeMillis() - peerAddressStore.getLastVerifyTime() > VERIFY_FAIL_RETRY_TIME) && !peerKit.hasConnected(peerAddressStore.getAddr())) {
 					//没有验证过的节点，或者验证失败的节点，每10分钟验证一次
 					needVerify = true;
 				} else if(peerAddressStore.getStatus() == PEER_STATUS_VERIFY_SUCCESS && 
-						(TimeService.currentTimeMillis() - peerAddressStore.getLastVerifyTime() > VERIFY_SUCCESS_RETRY_TIME)) {
+						(TimeService.currentTimeMillis() - peerAddressStore.getLastVerifyTime() > VERIFY_SUCCESS_RETRY_TIME) && !peerKit.hasConnected(peerAddressStore.getAddr())) {
 					//验证成功的节点，每3小时验证一次
 					needVerify = true;
 				}
@@ -249,6 +249,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			if(removePeerAddresses != null) {
 				netaddressMaps.removeAll(removePeerAddresses);
 			}
+			
 			try {
 				//定期把节点信息刷新到磁盘
 				if(TimeService.currentTimeMillis() - lastStorageTime > STORAGE_INTERVAL_TIME) {
@@ -540,7 +541,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			log.debug("本机ip {} 开始探测是否能对外提供服务···", myIp);
 		}
 		PeerAddress peerAddress = new PeerAddress(network, myIp);
-		if(!hasExist(peerAddress) && peerKit.verifyPeer(peerAddress)) {
+		//每次启动都上报一次，有助于恢复提供服务的能力 //!hasExist(peerAddress) && 
+		if(peerKit.verifyPeer(peerAddress)) {
 			AddressMessage addressMessage = new AddressMessage(network);
 			addressMessage.addAddress(peerAddress);
 			int broadcastCount = peerKit.broadcastMessage(addressMessage);
