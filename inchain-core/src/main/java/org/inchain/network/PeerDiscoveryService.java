@@ -28,6 +28,7 @@ import org.inchain.kits.PeerKit;
 import org.inchain.message.AddressMessage;
 import org.inchain.message.GetAddressMessage;
 import org.inchain.utils.Hex;
+import org.inchain.utils.IpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -504,7 +505,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 		//避免ip地址欺骗
 		Map<String, Integer> maps = new HashMap<String, Integer>();
 		for (byte[] ipTemp : ips) {
-//			if(!IpUtil.internalIp(ipTemp)) {
+			if(!IpUtil.internalIp(ipTemp)) {
 				String str = Hex.encode(ipTemp);
 				Integer count = maps.get(str);
 				if(count == null) {
@@ -512,7 +513,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				} else {
 					maps.put(str, count+1);
 				}
-//			}
+			}
 		}
 		
 		if(maps.size() == 0) {

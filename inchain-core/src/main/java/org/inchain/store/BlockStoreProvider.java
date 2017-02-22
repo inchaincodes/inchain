@@ -135,6 +135,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					if(accountInfo == null) {
 						//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 						accountInfo = createNewAccountInfo(regTransaction, AccountBody.empty(), new byte[][] {regTransaction.getPubkey()});
+						chainstateStoreProvider.put(hash160, accountInfo.baseSerialize());
 					}
 					//公钥
 					byte[][] pubkeys = accountInfo.getPubkeys();

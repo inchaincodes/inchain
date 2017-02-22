@@ -42,8 +42,6 @@ public class PeerKit {
 	
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
 
-	//默认最大节点连接数，这里指单向连接，主动连接的数量
-	private static final int DEFAULT_MAX_OUT_CONNECTION = 10;
 	//默认最大节点连接数，这里指单向连接，被动连接的数量
 	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
 	
@@ -54,8 +52,8 @@ public class PeerKit {
 	
 	//最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	private int minConnectionCount = Configure.MIN_CONNECT_COUNT;
-	//最大连接数
-	private int maxConnectionCount = Math.max(DEFAULT_MAX_OUT_CONNECTION, Configure.MAX_CONNECT_COUNT);
+	//最大连接数，主动连接的数量
+	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
 	//连接变化监听器
 	private CopyOnWriteArrayList<ConnectionChangedListener> connectionChangedListeners = new CopyOnWriteArrayList<ConnectionChangedListener>();
 	
@@ -161,8 +159,10 @@ public class PeerKit {
 						peer.ping().get(5, TimeUnit.SECONDS);
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
-						log.info("节点{}无法Ping通，先将关闭连接", peer.getAddress());
-						peer.close();
+						log.info("节点{}无法Ping通，{}", peer.getAddress(), TimeService.currentTimeMillis());
+						if(network.blockIsNewestStatus()) {
+							peer.close();
+						}
 					}
 				}
 			}

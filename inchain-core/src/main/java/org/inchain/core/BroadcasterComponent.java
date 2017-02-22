@@ -87,6 +87,8 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
             //如果需要监听响应
             if(result.needWait()) {
             	BroadcastContext.get().add(result.getHash(), result);
+				result.setBroadcastPeers(peers);
+				result.setNumWaitingFor(numWaitingFor);
 			}
             
             //通过随机选择的对等体进行广播
@@ -97,9 +99,6 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 			//不需要等待的消息类型，直接响应
 			if(!result.needWait()) {
 				result.getFuture().set(result);
-			} else {
-				result.setBroadcastPeers(peers);
-				result.setNumWaitingFor(numWaitingFor);
 			}
 		}
 	}
