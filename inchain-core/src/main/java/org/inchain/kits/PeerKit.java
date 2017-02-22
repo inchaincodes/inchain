@@ -1,6 +1,7 @@
 package org.inchain.kits;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -275,14 +276,7 @@ public class PeerKit {
 						}
 						
 						//判断是否已经进行过连接，和一个ip只保持一个连接
-						boolean hasConnected = false;
-						for (Peer peer : inPeers) {
-							if(peer.getAddress().getAddr().getHostAddress().equals(seed.getAddress().getAddress().getHostAddress())) {
-								hasConnected = true;
-								break;
-							}
-						}
-						if(hasConnected) {
+						if(hasConnected(seed.getAddress().getAddress())) {
 							seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
 							continue;
 						}
@@ -324,6 +318,30 @@ public class PeerKit {
 				log.error("error init peer", e);
 			}
 		}
+	}
+	
+	/**
+	 * 节点是否已经建立对等连接
+	 * @param seed
+	 * @return boolean
+	 */
+	public boolean hasConnected(InetAddress inetAddress) {
+		boolean hasConnected = false;
+		for (Peer peer : inPeers) {
+			if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
+				hasConnected = true;
+				break;
+			}
+		}
+		if(!hasConnected) {
+			for (Peer peer : outPeers) {
+				if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
+					hasConnected = true;
+					break;
+				}
+			}
+		}
+		return hasConnected;
 	}
 
 	/**
