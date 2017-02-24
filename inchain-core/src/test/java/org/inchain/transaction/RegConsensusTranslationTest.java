@@ -9,6 +9,7 @@ import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
 import org.inchain.kits.PeerKit;
 import org.inchain.network.NetworkParams;
+import org.inchain.transaction.business.RegConsensusTransaction;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -12,6 +12,7 @@ import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
@@ -163,7 +164,7 @@ public class Transaction extends Message {
 		TransactionInput input = new TransactionInput();
         input.setParent(this);
         
-        if(getType() == TransactionDefinition.TYPE_COINBASE) {
+        if(getType() == Definition.TYPE_COINBASE) {
         	int signLength = (int) readVarInt();
         	byte[] msg = readBytes(signLength);
         	//TODO
@@ -257,7 +258,7 @@ public class Transaction extends Message {
 	public void verfifyScript() {
 
 		//验证交易的输入脚本是否正确
-		if(type == TransactionDefinition.TYPE_COINBASE) {
+		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
 		if(inputs != null) {
@@ -453,6 +454,6 @@ public class Transaction extends Message {
 	}
 
 	public boolean isPaymentTransaction() {
-		return type == TransactionDefinition.TYPE_COINBASE || type == TransactionDefinition.TYPE_PAY;
+		return type == Definition.TYPE_COINBASE || type == Definition.TYPE_PAY;
 	}
 }

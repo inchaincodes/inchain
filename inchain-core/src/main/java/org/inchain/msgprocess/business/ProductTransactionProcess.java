@@ -1,7 +1,6 @@
-package org.inchain.msgprocess;
+package org.inchain.msgprocess.business;
 
 import org.inchain.core.Peer;
-import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
@@ -12,32 +11,27 @@ import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.inchain.message.RejectMessage;
+import org.inchain.msgprocess.MessageProcess;
+import org.inchain.msgprocess.MessageProcessResult;
 import org.inchain.network.NetworkParams;
-import org.inchain.script.Script;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.Output;
-import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.CertAccountTransaction;
+import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.utils.Hex;
-import org.inchain.validator.TransactionValidator;
-import org.inchain.validator.TransactionValidatorResult;
-import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
- * 交易消息
+ * 创建商品交易处理器
  * @author ln
  *
  */
 @Service
-public class TransactionMessageProcess implements MessageProcess {
+public class ProductTransactionProcess implements MessageProcess {
 	
-	private static final Logger log = LoggerFactory.getLogger(TransactionMessageProcess.class);
+	private static final Logger log = LoggerFactory.getLogger(ProductTransactionProcess.class);
 	
 	private MempoolContainer mempool = MempoolContainerMap.getInstace();
 	
@@ -47,23 +41,22 @@ public class TransactionMessageProcess implements MessageProcess {
 	private PeerKit peerKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
-	@Autowired
-	private TransactionValidator transactionValidator;
 	
-	public TransactionMessageProcess() {
+	public ProductTransactionProcess() {
 	}
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
 		
-		Transaction tx = (Transaction) message;
+		ProductTransaction tx = (ProductTransaction) message;
 
 		if(log.isDebugEnabled()) {
-			log.debug("transaction message {}", Hex.encode(tx.baseSerialize()));
+			log.debug("productTransaction message {}", Hex.encode(tx.baseSerialize()));
 		}
 		try {
 
 			//验证交易的合法性
+			tx.verfify();
 			tx.verfifyScript();
 			
 			Sha256Hash id = tx.getHash();
@@ -72,7 +65,7 @@ public class TransactionMessageProcess implements MessageProcess {
 				log.debug("verify success! tx id : {}", id);
 			}
 			
-			//交易逻辑验证，验证不通过抛出VerificationException
+			//逻辑验证，验证不通过抛出VerificationException
 			verifyTx(tx);
 			
 			//加入内存池
@@ -93,38 +86,26 @@ public class TransactionMessageProcess implements MessageProcess {
 		} catch (Exception e) {
 			log.error("tx error ", e);
 			RejectMessage replyMessage = new RejectMessage(network, tx.getHash());
-			//TODO
 			return new MessageProcessResult(tx.getHash(), false, replyMessage);
 		}
 	}
 
-	//交易逻辑验证，验证不通过抛出VerificationException
-	private void verifyTx(Transaction tx) throws VerificationException {
-		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
-		
-		if(!rs.getResult().isSuccess()) {
-			throw new VerificationException(rs.getResult().getMessage());
+	//逻辑验证，验证不通过抛出VerificationException
+	private void verifyTx(ProductTransaction tx) throws VerificationException {
+		//不能重复创建产品
+		TransactionStore txs = blockStoreProvider.getTransaction(tx.getHash().getBytes());
+		if(txs != null) {
+			new VerificationException("不能重复创建产品");
 		}
 	}
 
 	/*
 	 * 是否转入到我的账上的交易，如果是，则通知
 	 */
-	private void checkIsMine(Transaction tx) {
-		if(tx.getType() == Definition.TYPE_COINBASE || tx.getType() == Definition.TYPE_PAY) {
-			Output output = tx.getOutputs().get(0);
-			TransactionOutput tOutput = (TransactionOutput) output;
-			
-			Script script = tOutput.getScript();
-			if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
-				blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
-			}
-		} else if(tx instanceof CertAccountTransaction) {
-			CertAccountTransaction cat = (CertAccountTransaction) tx;
-			byte[] hash160 = cat.getHash160();
-			if(blockStoreProvider.getAccountFilter().contains(hash160)) {
-				blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
-			}
+	private void checkIsMine(ProductTransaction tx) {
+		byte[] hash160 = tx.getHash160();
+		if(blockStoreProvider.getAccountFilter().contains(hash160)) {
+			blockStoreProvider.updateMineTx(new TransactionStore(network, tx));
 		}
 	}
 }

@@ -1,9 +1,10 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.account.Account;
+import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
@@ -12,6 +13,7 @@ import org.inchain.crypto.ECKey.ECDSASignature;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
+import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 
 /**
@@ -40,12 +42,24 @@ public abstract class CommonlyTransaction extends Transaction {
 	}
 	
 	/**
+	 * 该协议是否新增协议，用于支持旧版本，就版本会解析成为UnkonwTransaction
+	 * 当发布第一个版本之后，后面所以新增的协议，需覆盖该方法，并返回true
+	 * 当需要兼容时，会在type后面带上长度
+	 */
+	protected boolean isCompatible() {
+		return false;
+	}
+	
+	/**
 	 * 序列化
 	 */
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
 		//版本号
 		stream.write(type);
+//		if(isCompatible()) {
+//			stream.write(new VarInt(length).encode());
+//		}
 		Utils.uint32ToByteStreamLE(version, stream);
 		//时间
 		Utils.int64ToByteStreamLE(time, stream);
@@ -62,20 +76,29 @@ public abstract class CommonlyTransaction extends Transaction {
 	@Override
 	protected void parse() throws ProtocolException {
 		
-		this.type = readBytes(1)[0];
+		this.type = readBytes(1)[0] & 0XFF;
+
+//		if(isCompatible()) {
+//			length = (int) readVarInt();
+//		}
+		
 		this.version = readUint32();
 		this.time = readInt64();
 		this.scriptBytes = readBytes((int)readVarInt());
 		this.scriptSig = new Script(this.scriptBytes);
 		
-		length = cursor - offset;
+//		if(isCompatible()) {
+//			Utils.checkState(length == cursor - offset);
+//		} else {
+			length = cursor - offset;
+//		}
 	}
 	
 	/**
 	 * 验证交易的合法性
 	 */
 	public void verfify() throws VerificationException {
-		if(scriptBytes == null || scriptSig == null) {
+		if(scriptBytes == null && scriptSig == null) {
 			throw new VerificationException("验证脚本不存在");
 		}
 		if(scriptSig == null) {
@@ -100,7 +123,7 @@ public abstract class CommonlyTransaction extends Transaction {
      * @param account
      */
 	public void sign(Account account) {
-		sign(account, TransactionDefinition.TX_VERIFY_TR);
+		sign(account, Definition.TX_VERIFY_TR);
 	}
 	
 	/**
@@ -121,7 +144,7 @@ public abstract class CommonlyTransaction extends Transaction {
 			}
 			
 			ECKey[] keys = null;
-			if(type == TransactionDefinition.TX_VERIFY_MG) {
+			if(type == Definition.TX_VERIFY_MG) {
 				keys = account.getMgEckeys();
 			} else {
 				keys = account.getTrEckeys();
@@ -149,6 +172,7 @@ public abstract class CommonlyTransaction extends Transaction {
 		scriptBytes = scriptSig.getProgram();
 		
 		hash = null;
+		length += scriptBytes.length;
 	}
 
 	/**
@@ -156,7 +180,9 @@ public abstract class CommonlyTransaction extends Transaction {
 	 * @return byte[]
 	 */
 	public byte[] getHash160() {
-		verfify();
+		if(scriptSig == null) {
+			throw new VerificationException("交易验证脚本不存在，无法获取账户hash160");
+		}
 		return scriptSig.getAccountHash160();
 	}
 	
@@ -168,7 +194,9 @@ public abstract class CommonlyTransaction extends Transaction {
 	 * @return byte[]
 	 */
 	public byte[] getPubkey() {
-		verfify();
+		if(scriptSig == null) {
+			throw new VerificationException("交易验证脚本不存在，无法获取账户公钥");
+		}
 		if(!isSystemAccount()) {
 			throw new RuntimeException("该方法不能获取认证账户的公钥， 请调用org.inchain.store.ChainstateStoreProvider中的getCertAccountPubkeys获取");
 		}
@@ -181,7 +209,9 @@ public abstract class CommonlyTransaction extends Transaction {
 	 * @return boolean
 	 */
 	public boolean isCertAccount() {
-		verfify();
+		if(scriptSig == null) {
+			throw new VerificationException("交易验证脚本不存在，无法判断其账户类型");
+		}
 		return scriptSig.isCertAccount();
 	}
 	
@@ -191,7 +221,9 @@ public abstract class CommonlyTransaction extends Transaction {
 	 * @return boolean
 	 */
 	public boolean isSystemAccount() {
-		verfify();
+		if(scriptSig == null) {
+			throw new VerificationException("交易验证脚本不存在，无法判断其账户类型");
+		}
 		return scriptSig.isSystemAccount();
 	}
 	

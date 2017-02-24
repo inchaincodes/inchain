@@ -7,6 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.core.Coin;
 import org.inchain.core.Peer;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
@@ -19,7 +20,6 @@ import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
 import org.inchain.validator.ValidatorResult;
@@ -142,13 +142,13 @@ public class BlockMessageProcess implements MessageProcess {
 			
 			//区块的第一个交易必然是coinbase交易，除第一个之外的任何交易都不应是coinbase交易，否则出错
 			if(!coinbase) {
-				if(tx.getType() != TransactionDefinition.TYPE_COINBASE) {
+				if(tx.getType() != Definition.TYPE_COINBASE) {
 					throw new VerificationException("the block first tx is not coinbase tx");
 				}
 				coinbaseFee = Coin.valueOf(tx.getOutput(0).getValue());
 				coinbase = true;
 				continue;
-			} else if(tx.getType() == TransactionDefinition.TYPE_COINBASE) {
+			} else if(tx.getType() == Definition.TYPE_COINBASE) {
 				throw new VerificationException("the block too much coinbase tx");
 			}
 			if(rs.getResult().getFee() != null) {

@@ -7,7 +7,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.inchain.account.AccountBody.ContentType;
-import org.inchain.account.AccountBody.KeyValuePair;
+import org.inchain.core.KeyValuePair;
 import org.inchain.kit.InchainInstance;
 import org.inchain.store.AccountStore;
 import org.inchain.utils.DateUtil;

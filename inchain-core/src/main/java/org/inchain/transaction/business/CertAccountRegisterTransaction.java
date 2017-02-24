@@ -1,4 +1,4 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
@@ -25,8 +26,8 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 	
 	public CertAccountRegisterTransaction(NetworkParams network, byte[] hash160, byte[][] mgPubkeys, byte[][] trPubkeys, AccountBody body) {
 		super(network);
-		this.setVersion(TransactionDefinition.VERSION);
-		this.setType(TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER);
+		this.setVersion(Definition.VERSION);
+		this.setType(Definition.TYPE_CERT_ACCOUNT_REGISTER);
 		this.hash160 = hash160;
 		this.mgPubkeys = mgPubkeys;
 		this.trPubkeys = trPubkeys;

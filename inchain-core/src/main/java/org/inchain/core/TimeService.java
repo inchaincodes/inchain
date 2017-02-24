@@ -1,10 +1,13 @@
 package org.inchain.core;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Date;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.kits.PeerKit;
 import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -130,5 +133,25 @@ public final class TimeService {
 	 */
 	public static long getSystemRuningTimeSeconds() {
 		return getSystemRuningTimeMillis() / 1000;
+	}
+	
+	/**
+	 * 返回当前时间毫秒数的字节数组
+	 * @return
+	 */
+	public static byte[] currentTimeMillisOfBytes() {
+		ByteArrayOutputStream bos = new ByteArrayOutputStream(8);
+		try {
+			Utils.int64ToByteStreamLE(currentTimeMillis(), bos);
+			return bos.toByteArray();
+		} catch (Exception e) {
+			return null;
+		} finally {
+			try {
+				bos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

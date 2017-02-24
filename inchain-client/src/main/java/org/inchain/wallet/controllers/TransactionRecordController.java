@@ -9,22 +9,25 @@ import java.util.List;
 
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody.ContentType;
-import org.inchain.account.AccountBody.KeyValuePair;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.KeyValuePair;
+import org.inchain.core.Product.ProductType;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Utils;
 import org.inchain.wallet.entity.DetailValue;
 import org.inchain.wallet.entity.DetailValueCell;
 import org.inchain.wallet.entity.TransactionEntity;
@@ -119,8 +122,8 @@ public class TransactionRecordController implements SubPageController {
 				String type = null, detail = "", amount = null, time = null;
 				DetailValue detailValue = new DetailValue();
 				
-				if(tx.getType() == TransactionDefinition.TYPE_COINBASE || 
-						tx.getType() == TransactionDefinition.TYPE_PAY) {
+				if(tx.getType() == Definition.TYPE_COINBASE || 
+						tx.getType() == Definition.TYPE_PAY) {
 					
 					type = "转入";
 					
@@ -128,7 +131,7 @@ public class TransactionRecordController implements SubPageController {
 					boolean isSendout = false;
 					
 					List<Input> inputs = tx.getInputs();
-					if(tx.getType() != TransactionDefinition.TYPE_COINBASE && inputs != null && inputs.size() > 0) {
+					if(tx.getType() != Definition.TYPE_COINBASE && inputs != null && inputs.size() > 0) {
 						for (Input input : inputs) {
 							TransactionOutput from = input.getFrom();
 							TransactionStore fromTx = InchainInstance.getInstance().getAccountKit().getTransaction(from.getParent().getHash());
@@ -173,17 +176,17 @@ public class TransactionRecordController implements SubPageController {
 							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
 							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
 								detail += "(永久锁定)";
-							} else if(((tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis()) ||
-									(tx.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) ||
-									((output.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeService.currentTimeMillis()) ||
-											(output.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && output.getLockTime() > bestBlockHeight))) {
+							} else if(((tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis()) ||
+									(tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) ||
+									((output.getLockTime() > Definition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeService.currentTimeMillis()) ||
+											(output.getLockTime() < Definition.LOCKTIME_THRESHOLD && output.getLockTime() > bestBlockHeight))) {
 								long lockTime;
 								if(tx.getLockTime() > output.getLockTime()) {
 									lockTime = tx.getLockTime();
 								} else {
 									lockTime = output.getLockTime();
 								}
-								if(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD) {
+								if(lockTime > Definition.LOCKTIME_THRESHOLD) {
 									detail += "("+DateUtil.convertDate(new Date(lockTime))+"后可用)";
 								} else {
 									detail += "(区块高度达到"+lockTime+"时可用)";
@@ -196,11 +199,11 @@ public class TransactionRecordController implements SubPageController {
 						type = "转出";
 					}
 					amount = fee.toText();
-				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
-						tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
+				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
+						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//认证账户注册
 					CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
-					type = tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER ? "账户注册" : "修改信息";
+					type = tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ? "账户注册" : "修改信息";
 					
 					List<KeyValuePair> bodyContents = crt.getBody().getContents();
 					for (KeyValuePair keyValuePair : bodyContents) {
@@ -215,11 +218,31 @@ public class TransactionRecordController implements SubPageController {
 						}
 					}
 					amount = "-";
-				} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS || 
-						tx.getType() == TransactionDefinition.TYPE_REM_CONSENSUS) {
-					type = tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS ? "注册共识" : "退出共识";
+				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS || 
+						tx.getType() == Definition.TYPE_REM_CONSENSUS) {
+					type = tx.getType() == Definition.TYPE_REG_CONSENSUS ? "注册共识" : "退出共识";
 
 					detail = "-";
+					amount = "-";
+				} else if(tx.getType() == Definition.TYPE_CREATE_PRODUCT) {
+					
+					ProductTransaction ptx = (ProductTransaction) tx;
+					
+					type = "创建商品";
+					
+					List<KeyValuePair> bodyContents = ptx.getProduct().getContents();
+					for (KeyValuePair keyValuePair : bodyContents) {
+						if(!"".equals(detail)) {
+							detail += "\r\n";
+						}
+						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+							//时间
+							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+						} else {
+							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+						}
+					}
+					
 					amount = "-";
 				}
 				

@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Stack;
 
 import org.inchain.account.Address;
+import org.inchain.core.Definition;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.utils.Utils;
 
 public class ScriptBuilder {
@@ -628,7 +628,7 @@ public class ScriptBuilder {
 	 */
 	public static Script createCertAccountScript(int type, Sha256Hash txid, byte[] hash160, byte[] sign1, byte[] sign2) {
 		return new ScriptBuilder()
-				.op(type == TransactionDefinition.TX_VERIFY_MG ? ScriptOpCodes.OP_VERMG : ScriptOpCodes.OP_VERTR)
+				.op(type == Definition.TX_VERIFY_MG ? ScriptOpCodes.OP_VERMG : ScriptOpCodes.OP_VERTR)
 				.data(txid.getBytes())
 				.op(OP_PUBKEY)
 				.data(hash160)

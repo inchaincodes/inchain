@@ -10,12 +10,12 @@ import java.util.List;
 import org.inchain.UnitBaseTestCase;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.junit.After;
@@ -66,8 +66,8 @@ public class BlockStoreProvderTest extends UnitBaseTestCase {
 		
 		//coinbase
 		Transaction coinBaseTx = new Transaction(network);
-		coinBaseTx.setVersion(TransactionDefinition.VERSION);
-		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
+		coinBaseTx.setVersion(Definition.VERSION);
+		coinBaseTx.setType(Definition.TYPE_COINBASE);
 		coinBaseTx.setLockTime(1478164688l);
 		
 		TransactionInput input = new TransactionInput();

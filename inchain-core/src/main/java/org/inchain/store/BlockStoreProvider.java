@@ -12,6 +12,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -19,17 +20,16 @@ import org.inchain.listener.TransactionListener;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.script.Script;
-import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.CommonlyTransaction;
-import org.inchain.transaction.CreditTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
-import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CommonlyTransaction;
+import org.inchain.transaction.business.CreditTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,11 +180,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					} else {
 						throw new VerificationException("出现不支持的交易，保存失败");
 					}
-				} else if(tx.getType() == TransactionDefinition.TYPE_PAY || 
-						tx.getType() == TransactionDefinition.TYPE_COINBASE) {
+				} else if(tx.getType() == Definition.TYPE_PAY || 
+						tx.getType() == Definition.TYPE_COINBASE) {
 					//普通交易
 					//coinbase交易没有输入
-					if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+					if(tx.getType() == Definition.TYPE_PAY) {
 						List<Input> inputs = tx.getInputs();
 						for (Input input : inputs) {
 							TransactionInput tInput = (TransactionInput) input;
@@ -219,11 +219,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						
 						chainstateStoreProvider.put(key, new byte[]{1});
 					}
-				} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER || 
-						tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
+				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
+						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//帐户注册和修改账户信息
 					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
-					if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE) {
+					if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 						//删除之前的信息
 						byte[] oldTxid = chainstateStoreProvider.getBytes(rtx.getHash160());
 						chainstateStoreProvider.delete(oldTxid);
@@ -318,8 +318,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 */
 	public boolean checkTxIsMine(Transaction transaction) {
 		//是否是跟自己有关的交易
-		if(transaction.getType() == TransactionDefinition.TYPE_PAY || 
-				transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
+		if(transaction.getType() == Definition.TYPE_PAY || 
+				transaction.getType() == Definition.TYPE_COINBASE) {
 			//普通交易
 			//输入
 			List<Input> inputs = transaction.getInputs();
@@ -350,7 +350,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				Script script = tOutput.getScript();
 				if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {
 					//如果是coinbase交易，那么交易费大于0的才显示出来
-					if(transaction.getType() == TransactionDefinition.TYPE_COINBASE) {
+					if(transaction.getType() == Definition.TYPE_COINBASE) {
 						if(tOutput.getValue() > 0) {
 							return true;
 						}
@@ -557,11 +557,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				Block block = nextBlockStore.getBlock();
 				
 				List<Transaction> txs = block.getTxs();
+				
 				for (Transaction tx : txs) {
 					
 					//普通交易
-					if(tx.getType() == TransactionDefinition.TYPE_COINBASE ||
-							tx.getType() == TransactionDefinition.TYPE_PAY) {
+					if(tx.getType() == Definition.TYPE_COINBASE ||
+							tx.getType() == Definition.TYPE_PAY) {
 						//获取转入交易转入的多少钱
 						List<Output> outputs = tx.getOutputs();
 						
@@ -569,7 +570,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							continue;
 						}
 						//过滤掉coinbase里的0交易
-						if(tx.getType() == TransactionDefinition.TYPE_COINBASE && outputs.get(0).getValue() == 0l) {
+						if(tx.getType() == Definition.TYPE_COINBASE && outputs.get(0).getValue() == 0l) {
 							continue;
 						}
 						

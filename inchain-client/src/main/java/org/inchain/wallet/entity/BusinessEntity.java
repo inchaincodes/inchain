@@ -3,7 +3,7 @@ package org.inchain.wallet.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.account.AccountBody.KeyValuePair;
+import org.inchain.core.KeyValuePair;
 
 /**
  * 商家（认证账户）

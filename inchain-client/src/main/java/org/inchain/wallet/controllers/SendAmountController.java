@@ -7,10 +7,10 @@ import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,7 +166,7 @@ public class SendAmountController implements SubPageController {
 				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
 					@Override
 					public void run() {
-						if(!accountKit.accountIsEncrypted(TransactionDefinition.TX_VERIFY_TR)) {
+						if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 							try {
 								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp);
 							} finally {

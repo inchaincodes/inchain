@@ -243,7 +243,7 @@ public class DataSynchronizeHandler implements Runnable {
 		list.sort(new Comparator<Item>() {
 			@Override
 			public int compare(Item o1, Item o2) {
-				return o1.getCount() > o2.getCount() ? 1:-1;
+				return o1.getCount() < o2.getCount() ? 1:-1;
 			}
 		});
 		return list.get(0).getHeight();

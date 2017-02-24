@@ -27,6 +27,7 @@ import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Result;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -42,16 +43,15 @@ import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
-import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.CertAccountUpdateTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
-import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CertAccountUpdateTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
@@ -151,13 +151,24 @@ public class AccountKit {
 	}
 	
 	/**
+	 * 获取默认账户
+	 * @return Account
+	 */
+	public Account getDefaultAccount() {
+		if(accountList == null || accountList.size() == 0) {
+			return null;
+		}
+		return accountList.get(0);
+	}
+	
+	/**
 	 * 获取余额
 	 */
 	public Coin getBalance() {
 		if(accountList == null || accountList.size() == 0) {
 			return Coin.ZERO;
 		}
-		return getBalance(accountList.get(0));
+		return getBalance(getDefaultAccount());
 	}
 	
 	/**
@@ -191,7 +202,7 @@ public class AccountKit {
 		if(accountList == null || accountList.size() == 0) {
 			return Coin.ZERO;
 		}
-		return getCanUseBalance(accountList.get(0).getAddress());
+		return getCanUseBalance(getDefaultAccount().getAddress());
 	}
 	
 	/**
@@ -211,7 +222,7 @@ public class AccountKit {
 		if(accountList == null || accountList.size() == 0) {
 			return Coin.ZERO;
 		}
-		return getCanNotUseBalance(accountList.get(0).getAddress());
+		return getCanNotUseBalance(getDefaultAccount().getAddress());
 	}
 	
 	/**
@@ -282,7 +293,7 @@ public class AccountKit {
 			}
 			
 			//账户是否已加密
-			Account account = accountList.get(0);
+			Account account = getDefaultAccount();
 			if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
 					(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
 				throw new VerificationException("账户已加密");
@@ -306,8 +317,8 @@ public class AccountKit {
 			Transaction tx = new Transaction(network);
 			tx.setTime(TimeService.currentTimeMillis());
 			tx.setLockTime(TimeService.currentTimeMillis());
-			tx.setType(TransactionDefinition.TYPE_PAY);
-			tx.setVersion(TransactionDefinition.VERSION);
+			tx.setType(Definition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
 			
 			Coin totalInputCoin = Coin.ZERO;
 			
@@ -902,7 +913,7 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result decryptWallet(String password) {
-		return decryptWallet(password, TransactionDefinition.TX_VERIFY_MG);
+		return decryptWallet(password, Definition.TX_VERIFY_MG);
 	}
 	
 	/**
@@ -931,7 +942,7 @@ public class AccountKit {
 			} else if(account.getAccountType() == network.getCertAccountVersion()) {
 				//认证账户的解密
 				ECKey[] keys = null;
-				if(type == TransactionDefinition.TX_VERIFY_MG) {
+				if(type == Definition.TX_VERIFY_MG) {
 					keys = account.decryptionMg(password);
 				} else {
 					keys = account.decryptionTr(password);
@@ -1008,7 +1019,7 @@ public class AccountKit {
 					CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), 
 							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
 					
-					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), TransactionDefinition.TX_VERIFY_MG);
+					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_MG);
 					rtx.verfify();
 					rtx.verfifyScript();
 
@@ -1311,9 +1322,9 @@ public class AccountKit {
 			if(!account.isCertAccount() && account.isEncrypted()) {
 				return true;
 			} else if(account.isCertAccount()) {
-				if(type == TransactionDefinition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
+				if(type == Definition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
 					return true;
-				} else if(type == TransactionDefinition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
+				} else if(type == Definition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
 					return true;
 				}
 			}
@@ -1441,7 +1452,7 @@ public class AccountKit {
 				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
 				if((accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT)
 						|| (Configure.CONSENSUS_CREDIT == 0l && accountStore == null)) {
-					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, TransactionDefinition.VERSION, TimeService.currentTimeMillis());
+					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, Definition.VERSION, TimeService.currentTimeMillis());
 					regConsensus.sign(account);
 					
 					regConsensus.verfify();
@@ -1473,7 +1484,7 @@ public class AccountKit {
 		try {
 			for (Account account : accountList) {
 				if(consensusPoolCacher.contains(account.getAddress().getHash160())) {
-					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, TransactionDefinition.VERSION, TimeService.currentTimeMillis());
+					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, Definition.VERSION, TimeService.currentTimeMillis());
 					remConsensus.sign(account);
 					
 					remConsensus.verfify();

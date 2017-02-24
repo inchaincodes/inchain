@@ -6,19 +6,13 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
-import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.CertAccountUpdateTransaction;
-import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
+import org.inchain.transaction.business.UnkonwTransaction;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -30,29 +24,6 @@ public class DefaultMessageSerializer extends MessageSerializer {
 	
 	private final NetworkParams network;
 	
-	private static final Map<Class<? extends Message>, String> COMMANDS = new HashMap<Class<? extends Message>, String>();
-
-    static {
-    	COMMANDS.put(PingMessage.class, "ping");
-    	COMMANDS.put(PongMessage.class, "pong");
-    	COMMANDS.put(VersionMessage.class, "version");
-    	COMMANDS.put(VerackMessage.class, "verack");
-    	COMMANDS.put(AddressMessage.class, "addr");
-    	COMMANDS.put(GetAddressMessage.class, "getaddr");
-    	COMMANDS.put(Block.class, "block");
-    	COMMANDS.put(GetBlocksMessage.class, "getblock");
-    	COMMANDS.put(NewBlockMessage.class, "newblock");
-    	COMMANDS.put(ConsensusMessage.class, "consensus");
-    	COMMANDS.put(InventoryMessage.class, "inv");
-    	COMMANDS.put(GetDatasMessage.class, "getdatas");
-    	
-    	COMMANDS.put(Transaction.class, "tx");
-    	COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
-    	COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
-    	COMMANDS.put(RegConsensusTransaction.class, "tx");
-    	COMMANDS.put(RemConsensusTransaction.class, "tx");
-    }
-
 	public DefaultMessageSerializer(NetworkParams network) {
 		this.network = network;
 	}
@@ -81,11 +52,11 @@ public class DefaultMessageSerializer extends MessageSerializer {
 	
 	@Override
     public void serialize(Message message, OutputStream out) throws IOException {
-        String name = COMMANDS.get(message.getClass());
-        if (name == null) {
+        String command = Definition.MESSAGE_COMMANDS.get(message.getClass());
+        if (command == null) {
             throw new Error("DefaultSerializer doesn't currently know how to serialize " + message.getClass());
         }
-        serialize(name, message.baseSerialize(), out);
+        serialize(command, message.baseSerialize(), out);
     }
 	
 	@Override
@@ -149,24 +120,23 @@ public class DefaultMessageSerializer extends MessageSerializer {
 			return makeTransaction(payloadBytes, 0);
 		} else {
 			//创建消息
-	        for (Entry<Class<? extends Message>, String> entry : COMMANDS.entrySet()) {
-				if(entry.getValue().equals(command)) {
-			  		try {
-			  			Class<?> clazz = entry.getKey();
-			  			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class);
-			  			if(constructor == null) {
-			  				constructor = clazz.getDeclaredConstructor(NetworkParams.class, String.class, byte[].class);
-			  	        	log.warn("No support for deserializing message with name {}", command);
-			  	        	message = (Message) constructor.newInstance(network, command, payloadBytes);
-			  			} else {
-			  				message = (Message) constructor.newInstance(network, payloadBytes);
-			  			}
-			  		} catch (Exception e) {
-			  			log.error("反序列化消息通用方法出错：{}", e);
-			  		}
-			  		break;
-				}
-			}
+	  		try {
+	  			Class<?> clazz = Definition.COMMANDS_MESSAGE.get(command);
+	  			if(clazz == null) {
+		  			log.warn("反序列化消息通用方法出错, 未定义的消息 {}", command);
+	  				return message;
+	  			}
+	  			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class);
+	  			if(constructor == null) {
+	  				constructor = clazz.getDeclaredConstructor(NetworkParams.class, String.class, byte[].class);
+	  	        	log.warn("No support for deserializing message with name {}", command);
+	  	        	message = (Message) constructor.newInstance(network, command, payloadBytes);
+	  			} else {
+	  				message = (Message) constructor.newInstance(network, payloadBytes);
+	  			}
+	  		} catch (Exception e) {
+	  			log.error("反序列化消息通用方法出错：{}", e);
+	  		}
 		}
 		return message;
 	}
@@ -223,17 +193,17 @@ public class DefaultMessageSerializer extends MessageSerializer {
 	@Override
 	public Transaction makeTransaction(byte[] payloadBytes, int offset) throws ProtocolException {
 		//根据交易类型来创建交易
-		int type = payloadBytes[offset];
-		
-		String classFullName = TransactionDefinition.TRANSACTION_RELATION.get(type);
-
-		if(classFullName == null || "".equals(classFullName)) {
-			log.error("没有配置的消息序列化");
-			return null;
-		}
+		int type = payloadBytes[offset] & 0XFF;
 		
 		try {
-			Class<?> clazz = Class.forName(classFullName);
+			Class<?> clazz = Definition.TRANSACTION_RELATION.get(type);
+			if(clazz == null) {
+				UnkonwTransaction unkonwTransaction = new UnkonwTransaction(network, payloadBytes, offset);
+				if(log.isDebugEnabled()) {
+					log.debug("没有配置的消息序列化");
+				}
+				return unkonwTransaction;
+			}
 			Constructor<?> constructor = clazz.getDeclaredConstructor(NetworkParams.class, byte[].class, int.class);
 			
 			return (Transaction) constructor.newInstance(network, payloadBytes, offset);

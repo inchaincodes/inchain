@@ -1,9 +1,10 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.account.AccountBody;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
@@ -17,7 +18,7 @@ public class CertAccountUpdateTransaction extends CertAccountRegisterTransaction
 	
 	public CertAccountUpdateTransaction(NetworkParams network, byte[] hash160, byte[][] mgPubkeys, byte[][] trPubkeys, AccountBody body) {
 		super(network, hash160, mgPubkeys, trPubkeys, body);
-		this.setType(TransactionDefinition.TYPE_CERT_ACCOUNT_UPDATE);
+		this.setType(Definition.TYPE_CERT_ACCOUNT_UPDATE);
 	}
 	
 	public CertAccountUpdateTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {

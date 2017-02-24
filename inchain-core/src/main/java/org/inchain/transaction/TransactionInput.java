@@ -3,6 +3,7 @@ package org.inchain.transaction;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
 import org.inchain.script.Script;
 import org.inchain.utils.Utils;
@@ -41,7 +42,7 @@ public class TransactionInput implements Input {
 	 */
 	public void serialize(OutputStream stream) throws IOException {
 		//上一交易的引用
-		if(parent.getType() != TransactionDefinition.TYPE_COINBASE) {
+		if(parent.getType() != Definition.TYPE_COINBASE) {
 			Utils.checkNotNull(from);
 			stream.write(from.getParent().getHash().getBytes());
 			Utils.uint32ToByteStreamLE(from.getIndex(), stream);

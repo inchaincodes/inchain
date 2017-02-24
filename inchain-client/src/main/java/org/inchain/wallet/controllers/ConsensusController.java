@@ -10,12 +10,12 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Result;
+import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.entity.ConensusEntity;
@@ -154,7 +154,7 @@ public class ConsensusController implements SubPageController {
 					DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
 						@Override
 						public void run() {
-							if(!accountKit.accountIsEncrypted(TransactionDefinition.TX_VERIFY_TR)) {
+							if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 								try {
 									doAction(accountKit, consensusStatus);
 								} finally {

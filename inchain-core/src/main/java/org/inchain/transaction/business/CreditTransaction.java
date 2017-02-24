@@ -1,8 +1,9 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
@@ -18,7 +19,7 @@ public class CreditTransaction extends CommonlyTransaction {
 	
 	public CreditTransaction(NetworkParams params) throws ProtocolException {
 		super(params);
-		type = TransactionDefinition.TYPE_INIT_CREDIT;
+		type = Definition.TYPE_INIT_CREDIT;
 	}
 	
 	public CreditTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
@@ -27,7 +28,7 @@ public class CreditTransaction extends CommonlyTransaction {
 
 	public CreditTransaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
 		super(params, payloadBytes, offset);
-		type = TransactionDefinition.TYPE_INIT_CREDIT;
+		type = Definition.TYPE_INIT_CREDIT;
 	}
 	
 	@Override

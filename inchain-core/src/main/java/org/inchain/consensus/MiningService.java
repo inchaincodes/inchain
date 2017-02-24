@@ -10,6 +10,7 @@ import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
@@ -31,13 +32,12 @@ import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,7 +103,7 @@ public final class MiningService implements Mining {
 				if(res) {
 					//交易费
 					//只有pay交易才有交易费
-					if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+					if(tx.getType() == Definition.TYPE_PAY) {
 						fee = fee.add(getTransactionFee(tx));
 					}
 					transactionList.add(tx);
@@ -132,8 +132,8 @@ public final class MiningService implements Mining {
 		//coinbase交易
 		//coinbase交易获取手续费
 		Transaction coinBaseTx = new Transaction(network);
-		coinBaseTx.setVersion(TransactionDefinition.VERSION);
-		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
+		coinBaseTx.setVersion(Definition.VERSION);
+		coinBaseTx.setType(Definition.TYPE_COINBASE);
 		coinBaseTx.setLockTime(bestBlockHeader.getBlockHeader().getHeight() + 1 + Configure.MINING_MATURE_COUNT);	//冻结区块数
 		
 		TransactionInput input = new TransactionInput();
@@ -215,7 +215,7 @@ public final class MiningService implements Mining {
 				throw new VerificationException("交易hash与区块里的重复");
 			}
 			//如果是转帐交易
-			if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+			if(tx.getType() == Definition.TYPE_PAY) {
 				//验证交易的输入来源，是否已花费的交易，同时验证金额
 				Coin txInputFee = Coin.ZERO;
 				Coin txOutputFee = Coin.ZERO;
@@ -295,7 +295,7 @@ public final class MiningService implements Mining {
 				if(txOutputFee.isGreaterThan(txInputFee)) {
 					throw new VerificationException("输出金额不能大于输入金额");
 				}
-			} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+			} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 				//帐户注册
 				CertAccountRegisterTransaction regTx = (CertAccountRegisterTransaction) tx;
 				//注册的hash160地址，不能与现有的地址重复，当然正常情况重复的机率为0，不排除有人恶意广播数据

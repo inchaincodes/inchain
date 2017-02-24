@@ -268,7 +268,38 @@ public class Utils {
                 stream.write(0);
         }
     }
+    
+    public static void doubleToByteStream(double val, OutputStream stream) throws IOException {
+    	stream.write(double2Bytes(val));
+	}
 
+    /**
+     * 把double转为byte
+     * @param d
+     * @return byte[]
+     */
+    public static byte[] double2Bytes(double d) {
+        long value = Double.doubleToRawLongBits(d);
+        byte[] byteRet = new byte[8];
+        for (int i = 0; i < 8; i++) {
+            byteRet[i] = (byte) ((value >> 8 * i) & 0xff);
+        }
+        return byteRet;
+    }
+    
+    /**
+     * 把byte[]转double
+     * @param arr
+     * @return double
+     */
+    public static double bytes2Double(byte[] arr) {
+        long value = 0;
+        for (int i = 0; i < 8; i++) {
+            value |= ((long) (arr[i] & 0xff)) << (8 * i);
+        }
+        return Double.longBitsToDouble(value);
+    }
+    
 	public static <T> T checkNotNull(T t) {
 		if(t == null) {
 			throw new NullPointerException();
@@ -311,4 +342,5 @@ public class Utils {
 		}
 		return sb.toString();
 	}
+
 }

@@ -8,19 +8,19 @@ import org.inchain.account.Account;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.signers.LocalTransactionSigner;
-import org.inchain.transaction.CertAccountRegisterTransaction;
-import org.inchain.transaction.CreditTransaction;
-import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CreditTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.utils.Hex;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -57,8 +57,8 @@ public class MakeTestNetGengsisBlock {
 			
 			//产出货币总量
 			Transaction coinBaseTx = new Transaction(network);
-			coinBaseTx.setVersion(TransactionDefinition.VERSION);
-			coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
+			coinBaseTx.setVersion(Definition.VERSION);
+			coinBaseTx.setType(Definition.TYPE_COINBASE);
 			
 			TransactionInput input = new TransactionInput();
 			coinBaseTx.addInput(input);
@@ -85,8 +85,8 @@ public class MakeTestNetGengsisBlock {
 			
 			//把永久锁定的转入一个账号内
 			Transaction tx = new Transaction(network);
-			tx.setVersion(TransactionDefinition.VERSION);
-			tx.setType(TransactionDefinition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
+			tx.setType(Definition.TYPE_PAY);
 			tx.setLockTime(0l);
 			input = new TransactionInput((TransactionOutput)coinBaseTx.getOutput(0));
 			tx.addInput(input);
@@ -138,7 +138,7 @@ public class MakeTestNetGengsisBlock {
 				txs.add(creditTx);
 				
 				//注册共识账户到区块里
-				RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, System.currentTimeMillis());
+				RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, Definition.VERSION, System.currentTimeMillis());
 				regConsensusTransaction.sign(account);
 				
 				regConsensusTransaction.verfify();

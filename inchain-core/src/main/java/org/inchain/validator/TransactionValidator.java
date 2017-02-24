@@ -6,6 +6,7 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.mempool.MempoolContainerMap;
@@ -14,15 +15,14 @@ import org.inchain.store.AccountStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.CertAccountRegisterTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
-import org.inchain.transaction.RegConsensusTransaction;
-import org.inchain.transaction.RemConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RemConsensusTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -69,7 +69,7 @@ public class TransactionValidator {
 			return validatorResult;
 		}
 		//如果是转帐交易
-		if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+		if(tx.getType() == Definition.TYPE_PAY) {
 			//验证交易的输入来源，是否已花费的交易，同时验证金额
 			Coin txInputFee = Coin.ZERO;
 			Coin txOutputFee = Coin.ZERO;
@@ -148,7 +148,7 @@ public class TransactionValidator {
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
 			}
-		} else if(tx.getType() == TransactionDefinition.TYPE_CERT_ACCOUNT_REGISTER) {
+		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册
 			CertAccountRegisterTransaction regTx = (CertAccountRegisterTransaction) tx;
 			//注册的hash160地址，不能与现有的地址重复，当然正常情况重复的机率为0，不排除有人恶意广播数据
@@ -174,7 +174,7 @@ public class TransactionValidator {
 				result.setResult(false, "账户没有经过认证");
 				return validatorResult;
 			}
-		} else if(tx.getType() == TransactionDefinition.TYPE_REG_CONSENSUS) {
+		} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
 			//申请成为共识节点
 			RegConsensusTransaction regConsensusTx = (RegConsensusTransaction) tx;
 			byte[] hash160 = regConsensusTx.getHash160();
@@ -201,7 +201,7 @@ public class TransactionValidator {
 				result.setResult(false, "已经是共识节点了,勿重复申请");
 				return validatorResult;
 			}
-		} else if(tx.getType() == TransactionDefinition.TYPE_REM_CONSENSUS) {
+		} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
 			//退出共识交易
 			RemConsensusTransaction remConsensusTx = (RemConsensusTransaction) tx;
 			byte[] hash160 = remConsensusTx.getHash160();

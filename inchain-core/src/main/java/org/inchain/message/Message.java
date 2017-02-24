@@ -256,6 +256,13 @@ public abstract class Message {
         }
     }
     
+    protected double readDouble() {
+        byte[] b = new byte[8];
+        System.arraycopy(payload, cursor, b, 0, b.length);
+        cursor += b.length;
+        return Utils.bytes2Double(b);
+    }
+    
     protected Sha256Hash readHash() throws ProtocolException {
         return Sha256Hash.wrapReversed(readBytes(32));
     }

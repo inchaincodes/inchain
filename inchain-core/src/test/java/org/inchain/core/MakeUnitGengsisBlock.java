@@ -15,11 +15,10 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
-import org.inchain.transaction.CreditTransaction;
-import org.inchain.transaction.RegConsensusTransaction;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
+import org.inchain.transaction.business.CreditTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.utils.Hex;
 import org.junit.Assert;
 import org.junit.Test;
@@ -51,8 +50,8 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 		
 		//产出货币总量
 		Transaction coinBaseTx = new Transaction(network);
-		coinBaseTx.setVersion(TransactionDefinition.VERSION);
-		coinBaseTx.setType(TransactionDefinition.TYPE_COINBASE);
+		coinBaseTx.setVersion(Definition.VERSION);
+		coinBaseTx.setType(Definition.TYPE_COINBASE);
 		
 		TransactionInput input = new TransactionInput();
 		coinBaseTx.addInput(input);
@@ -99,7 +98,7 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 			txs.add(creditTx);
 			
 			//注册共识账户到区块里
-			RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, TransactionDefinition.VERSION, System.currentTimeMillis());
+			RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, Definition.VERSION, System.currentTimeMillis());
 			Account account = new Account(network);
 			account.setAddress(address);
 			account.setEcKey(key);

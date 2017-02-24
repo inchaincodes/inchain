@@ -1,6 +1,7 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import org.inchain.account.Address;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -77,7 +78,7 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 	 * @param key2
 	 */
 	public void calculateSignature(Sha256Hash txid, ECKey key1, ECKey key2) {
-		calculateSignature(txid, key1, key2, network.getCertAccountManagerHash160(), TransactionDefinition.TX_VERIFY_TR);
+		calculateSignature(txid, key1, key2, network.getCertAccountManagerHash160(), Definition.TX_VERIFY_TR);
 	}
 	
 	/**

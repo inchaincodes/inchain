@@ -84,12 +84,16 @@ public class Peer extends PeerSocketHandler {
     	}
 		
 		final MessageProcess messageProcess = messageProcessFactory.getFactory(message);
-		executorService.submit(new Thread(){
-			public void run() {
-				MessageProcessResult result = messageProcess.process(message, Peer.this);
-				processMessageResult(message, result);
-			};
-		});
+		if(messageProcess == null) {
+			return;
+		} else{
+			executorService.submit(new Thread(){
+				public void run() {
+					MessageProcessResult result = messageProcess.process(message, Peer.this);
+					processMessageResult(message, result);
+				};
+			});
+		}
 	}
 	
 	/**

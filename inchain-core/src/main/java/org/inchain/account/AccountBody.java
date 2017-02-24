@@ -2,11 +2,11 @@ package org.inchain.account;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.inchain.core.KeyValuePair;
 import org.inchain.core.VarInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,79 +96,6 @@ public class AccountBody {
 		}
 	}
 	
-	public static class KeyValuePair {
-		public int key;
-		public byte[] value;
-		
-		public KeyValuePair(ContentType type, byte[] value) {
-			this.key = type.ordinal();
-			this.value = value;
-		}
-
-		public KeyValuePair(ContentType type, String value) {
-			this.key = type.ordinal();
-			if(value == null) {
-				this.value = new byte[0];
-			} else {
-				this.value = value.getBytes();
-			}
-		}
-		
-		public KeyValuePair(int key, byte[] value) {
-			this.key = key;
-			this.value = value;
-		}
-
-		public byte[] toByte() {
-			if(value == null) {
-				return new byte[0];
-			}
-			byte[] keyValue = new byte[1+value.length];
-			keyValue[0] = (byte) key;
-			System.arraycopy(value, 0, keyValue, 1, value.length);
-			return keyValue;
-		}
-
-		public int getKey() {
-			return key;
-		}
-
-		public void setKey(int key) {
-			this.key = key;
-		}
-
-		public byte[] getValue() {
-			return value;
-		}
-		
-		public String getValueToString() {
-			try {
-				return new String(value, "utf-8");
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-			return "";
-		}
-
-		public void setValue(byte[] value) {
-			this.value = value;
-		}
-		
-		public String getKeyName() {
-			return ContentType.from(key).getName();
-		}
-
-		@Override
-		public String toString() {
-			try {
-				return "KeyValuePair [name=" + getKeyName() + ", value=" + new String(value, "utf-8") + "]";
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			}
-			return "";
-		}
-	}
-	
 	public final byte[] serialize() {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
@@ -204,7 +131,7 @@ public class AccountBody {
 			VarInt varint = new VarInt(content, cursor);
 	        cursor += varint.getOriginalSizeInBytes();
 	        
-	        KeyValuePair keyValuePair = new KeyValuePair(content[cursor] & 0xff, Arrays.copyOfRange(content, cursor + 1, cursor + (int)varint.value));
+	        KeyValuePair keyValuePair = new KeyValuePair(KeyValuePair.TYPE_ACCOUNT, content[cursor] & 0xff, Arrays.copyOfRange(content, cursor + 1, cursor + (int)varint.value));
 	        contents.add(keyValuePair);
 	        
 	        cursor += varint.value;

@@ -1,8 +1,9 @@
-package org.inchain.transaction;
+package org.inchain.transaction.business;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
@@ -10,24 +11,24 @@ import org.inchain.script.Script;
 import org.inchain.utils.Hex;
 
 /**
- * 退出共识交易
+ * 注册成为共识节点交易
  * @author ln
  *
  */
-public class RemConsensusTransaction extends CommonlyTransaction {
+public class RegConsensusTransaction extends CommonlyTransaction {
 
-	public RemConsensusTransaction(NetworkParams network, byte[] payloadBytes) {
+	public RegConsensusTransaction(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
 	
-	public RemConsensusTransaction(NetworkParams network, byte[] payloadBytes, int offset) {
+	public RegConsensusTransaction(NetworkParams network, byte[] payloadBytes, int offset) {
 		super(network, payloadBytes, offset);
 	}
 	
-	public RemConsensusTransaction(NetworkParams network, long version, long time) {
+	public RegConsensusTransaction(NetworkParams network, long version, long time) {
 		super(network);
 		
-		this.type = TransactionDefinition.TYPE_REM_CONSENSUS;
+		this.type = Definition.TYPE_REG_CONSENSUS;
 		this.version = version;
 		this.time = time;
 	}
@@ -39,7 +40,7 @@ public class RemConsensusTransaction extends CommonlyTransaction {
 		
 		super.verfify();
 		
-		if(type != TransactionDefinition.TYPE_REM_CONSENSUS) {
+		if(type != Definition.TYPE_REG_CONSENSUS) {
 			throw new VerificationException("交易类型错误");
 		}
 	}
@@ -94,7 +95,7 @@ public class RemConsensusTransaction extends CommonlyTransaction {
 	
 	@Override
 	public String toString() {
-		return "RemConsensusTransaction [scriptBytes=" + Hex.encode(scriptBytes) + ", scriptSig=" + scriptSig + ", time=" + time + "]";
+		return "RegConsensusTransaction [scriptBytes=" + Hex.encode(scriptBytes) + ", scriptSig=" + scriptSig + ", time=" + time + "]";
 	}
 	
 }

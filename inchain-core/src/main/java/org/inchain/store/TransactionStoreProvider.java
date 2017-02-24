@@ -12,18 +12,18 @@ import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.TimeService;
+import org.inchain.core.Definition;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.script.Script;
-import org.inchain.transaction.CommonlyTransaction;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.TransactionDefinition;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.CommonlyTransaction;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -206,9 +206,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 
 	//提醒接收到付款
 	private void noticeReceiveAmount(Transaction tx, TransactionOutput output) {
-		if(tx.getType() == TransactionDefinition.TYPE_COINBASE) {
+		if(tx.getType() == Definition.TYPE_COINBASE) {
 			noticeListener.onNotice("参与共识产生新的块", String.format("%s参与共识，获得收入 %s INS", new Address(network, tx.getOutput(0).getScript().getChunks().get(2).data).getBase58(), Coin.valueOf(tx.getOutput(0).getValue()).toText()));
-		} else if(tx.getType() == TransactionDefinition.TYPE_PAY) {
+		} else if(tx.getType() == Definition.TYPE_PAY) {
 			//对上一交易的引用以及索引值
 			Sha256Hash fromId = output.getParent().getHash();
 			int index = output.getIndex();
@@ -348,7 +348,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		for (TransactionStore transactionStore : mineTxList) {
 			//获取转入交易转入的多少钱
 			Transaction tx = transactionStore.getTransaction();
-			if(!(tx.getType() == TransactionDefinition.TYPE_PAY || tx.getType() == TransactionDefinition.TYPE_COINBASE)) {
+			if(!(tx.getType() == Definition.TYPE_PAY || tx.getType() == Definition.TYPE_COINBASE)) {
 				continue;
 			}
 			
@@ -377,8 +377,8 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					}
 					//本笔输出是否可用
 					long lockTime = output.getLockTime();
-					if(lockTime == -1l || (lockTime < TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
-							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())
+					if(lockTime == -1l || (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
+							(lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())
 							|| (i == 0 && transactionStore.getHeight() == -1l)) {
 						unconfirmedBalance = unconfirmedBalance.add(Coin.valueOf(output.getValue()));
 					} else {
@@ -423,13 +423,13 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			Transaction tx = transactionStore.getTransaction();
 			
 			//如果不是转账交易，则跳过
-			if(!(tx.getType() == TransactionDefinition.TYPE_PAY || tx.getType() == TransactionDefinition.TYPE_COINBASE)) {
+			if(!(tx.getType() == Definition.TYPE_PAY || tx.getType() == Definition.TYPE_COINBASE)) {
 				continue;
 			}
 			
 			//如果交易不可用，则跳过
-			if(tx.getLockTime() == -1l || (tx.getLockTime() < TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight) ||
-					(tx.getLockTime() > TransactionDefinition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis())) {
+			if(tx.getLockTime() == -1l || (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight) ||
+					(tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis())) {
 				continue;
 			}
 			
@@ -458,8 +458,8 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					
 					//本笔输出是否可用
 					long lockTime = output.getLockTime();
-					if(lockTime == -1l || (lockTime < TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
-							(lockTime > TransactionDefinition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())) {
+					if(lockTime == -1l || (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
+							(lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())) {
 						continue;
 					} else {
 						txs.add((TransactionOutput) output);
