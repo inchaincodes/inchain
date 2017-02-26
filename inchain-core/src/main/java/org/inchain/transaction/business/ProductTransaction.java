@@ -3,8 +3,8 @@ package org.inchain.transaction.business;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.inchain.core.Product;
 import org.inchain.core.Definition;
+import org.inchain.core.Product;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;

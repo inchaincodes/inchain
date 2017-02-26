@@ -1,5 +1,6 @@
 package org.inchain.validator;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,6 +22,8 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.GeneralAntifakeTransaction;
+import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +46,15 @@ public class TransactionValidator {
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 
+	/**
+	 * 交易验证器，验证交易的输入输出是否合法
+	 * @param tx	待验证的交易
+	 * @return ValidatorResult<TransactionValidatorResult>
+	 */
+	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx) {
+		return valDo(tx, null);
+	}
+	
 	/**
 	 * 交易验证器，验证交易的输入输出是否合法
 	 * @param tx	待验证的交易
@@ -209,6 +221,35 @@ public class TransactionValidator {
 			if(!consensusPool.contains(hash160)) {
 				//不是共识节点，该交易不合法
 				result.setResult(false, "不是共识节点了，该交易不合法");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
+			//普通防伪码验证
+			//仅两种情况需要验证
+			//1 当商品是区块里存在的，那么验证商家是否合法
+			GeneralAntifakeTransaction gatx = (GeneralAntifakeTransaction) tx;
+			if(gatx.getProductTx() != null) {
+				TransactionStore ts = blockStoreProvider.getTransaction(gatx.getProductTx().getBytes());
+				if(ts == null) {
+					result.setResult(false, "关联的商品不存在");
+					return validatorResult;
+				}
+				ProductTransaction productTx = (ProductTransaction) ts.getTransaction();
+				if(Arrays.equals(productTx.getHash160(), gatx.getSignVerificationScript().getAccountHash160())) {
+					result.setResult(false, "不合法的商品使用");
+					return validatorResult;
+				}
+			}
+			
+			//2验证防伪码是否被验证过了
+			try {
+				TransactionStore ts = blockStoreProvider.getTransaction(gatx.getAntifakeHash().getBytes());
+				if(ts != null) {
+					result.setResult(false, "重复的验证");
+					return validatorResult;
+				}
+			} catch (IOException e) {
+				result.setResult(false, "验证出错，错误信息："+e.getMessage());
 				return validatorResult;
 			}
 		}

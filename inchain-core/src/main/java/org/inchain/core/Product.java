@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.inchain.account.AccountBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,10 +106,6 @@ public class Product {
 	
 	public Product(KeyValuePair[] contents) {
 		this.contents = Arrays.asList(contents);
-	}
-	
-	public static AccountBody empty() {
-		return new AccountBody(new byte[0]);
 	}
 	
 	//产品信息

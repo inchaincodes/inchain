@@ -241,6 +241,7 @@ public class NioClientManager implements ClientConnectionManager {
         try {
             SocketChannel sc = SocketChannel.open();
             sc.configureBlocking(false);
+            sc.socket().setReuseAddress(true);
             sc.connect(address);
             PendingConnect data = new PendingConnect(sc, connection);
             newConnectionChannels.offer(data);

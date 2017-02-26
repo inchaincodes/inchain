@@ -180,9 +180,10 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			}
 			
 			//需要移除的节点，一般验证失败次数过多，则会被移除
-			List<PeerAddressStore> removePeerAddresses = null;
+			Iterator<PeerAddressStore> paIt = netaddressMaps.iterator();
 			
-			for (PeerAddressStore peerAddressStore : netaddressMaps) {
+			while(paIt.hasNext()) {
+				PeerAddressStore peerAddressStore = paIt.next();
 				if(!runing) {
 					return;
 				}
@@ -231,11 +232,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 							isRemove = true;
 						}
 						if(isRemove) {
-							//加入移除列表
-							if(removePeerAddresses == null) {
-								removePeerAddresses = new ArrayList<PeerAddressStore>();
-							}
-							removePeerAddresses.add(peerAddressStore);
+							//移除
+							paIt.remove();
 						}
 					}
 					try {
@@ -245,10 +243,6 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 						e.printStackTrace();
 					}
 				}
-			}
-			//定期清理验证失败的节点
-			if(removePeerAddresses != null) {
-				netaddressMaps.removeAll(removePeerAddresses);
 			}
 			
 			try {

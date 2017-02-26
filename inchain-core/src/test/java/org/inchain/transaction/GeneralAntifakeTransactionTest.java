@@ -7,18 +7,20 @@ import javax.annotation.PostConstruct;
 
 import org.inchain.TestNetBaseTestCase;
 import org.inchain.account.Account;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.KeyValuePair;
 import org.inchain.core.Product;
 import org.inchain.core.Product.ProductType;
 import org.inchain.core.TimeService;
-import org.inchain.core.Definition;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
+import org.inchain.kits.PeerKit;
+import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.network.NetworkParams;
-import org.inchain.script.Script;
-import org.inchain.script.ScriptBuilder;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
+import org.inchain.utils.RandomUtil;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,10 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 	private AccountKit accountKit;
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private PeerKit peerKit;
+	@Autowired
+	private TransactionValidator transactionValidator;
 	
 	@PostConstruct
 	public void init() {
@@ -65,21 +71,44 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 		Account account = accountKit.getDefaultAccount();
 		account.decryptionTr("inchain123");
 		
-		byte[] sign1 = new byte[0];
-		byte[] sign2 = new byte[0];
+		long nonce = RandomUtil.randomLong();
+		long password = RandomUtil.randomLong();
 		
-		Sha256Hash txid = account.getAccountTransaction().getHash();
+		GeneralAntifakeTransaction tx = new GeneralAntifakeTransaction(network, product, nonce, password);
+		tx.makeSign(account);
 		
-		Script signScript = ScriptBuilder.createCertAccountScript(Definition.TX_VERIFY_TR, txid, 
-				account.getAddress().getHash160(), sign1, sign2);
+		//不能广播
+//		tx.verfify();
+//		tx.verfifyScript();
 		
-		GeneralAntifakeTransaction tx = new GeneralAntifakeTransaction(network, product, 0d, 0d, signScript);
-		
-		tx.sign(account);
-
 		log.info("tx : {}", tx);
 		log.info("========= has {} ========", tx.getHash());
+		log.info("========= antifake has {} ========", tx.getAntifakeHash());
 		log.info("========= size {} ========", tx.baseSerialize().length);
+		
+		tx = new GeneralAntifakeTransaction(network, tx.baseSerialize());
+		log.info("tx : {}", tx);
+		log.info("========= has {} ========", tx.getHash());
+		log.info("========= antifake has {} ========", tx.getAntifakeHash());
+		log.info("========= size {} ========", tx.baseSerialize().length);
+		
+		tx.sign(account);
+		
+		tx.verfify();
+		tx.verfifyScript();
+		
+		TransactionValidatorResult valResult = transactionValidator.valDo(tx).getResult();
+		log.info("val result : {}" , valResult);
+		
+		MempoolContainerMap.getInstace().add(tx);
+		
+		log.info("tx : {}", tx);
+		log.info("========= has {} ========", tx.getHash());
+		log.info("========= antifake has {} ========", tx.getAntifakeHash());
+		log.info("========= size {} ========", tx.baseSerialize().length);
+		
+		BroadcastResult result = peerKit.broadcast(tx).get();
+		log.info("result {}", result);
 	}
 
 	private Product createProduct() {

@@ -84,6 +84,7 @@ public class Transaction extends Message {
 		inputs = new ArrayList<Input>();
         outputs = new ArrayList<Output>();
         time = TimeService.currentTimeMillis();
+        version = Definition.VERSION;
 	}
 
 	public Transaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {

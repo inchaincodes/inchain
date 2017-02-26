@@ -48,7 +48,8 @@ public final class Definition {
 	
 	//业务交易
 	public static final int TYPE_CREATE_PRODUCT = 20;			//创建产品
-	public static final int TYPE_GENERAL_ANTIFAKE = 21;			//普通类型的防伪验证交易
+	/** 普通类型的防伪验证交易 **/
+	public static final int TYPE_GENERAL_ANTIFAKE = 21;
 	
 	public static final int TYPE_INIT_CREDIT = 99;				//初始化信用，只在创世块里有用
 	
@@ -89,7 +90,8 @@ public final class Definition {
     	PROCESS_FACTORYS.put(RemConsensusTransaction.class, "transactionMessageProcess");
     	
     	//业务消息处理器 
-    	PROCESS_FACTORYS.put(ProductTransaction.class, "productTransactionProcess");
+    	PROCESS_FACTORYS.put(ProductTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(GeneralAntifakeTransaction.class, "transactionMessageProcess");
     	
     	//===========================-分割线=============================//
     	
@@ -113,6 +115,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
 
     	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
     	
     	//===========================-分割线=============================//
     	

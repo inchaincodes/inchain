@@ -137,7 +137,7 @@ public final class TimeService {
 	
 	/**
 	 * 返回当前时间毫秒数的字节数组
-	 * @return
+	 * @return byte[]
 	 */
 	public static byte[] currentTimeMillisOfBytes() {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream(8);

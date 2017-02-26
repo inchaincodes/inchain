@@ -322,7 +322,7 @@ public class PeerKit {
 	
 	/**
 	 * 节点是否已经建立对等连接
-	 * @param seed
+	 * @param inetAddress
 	 * @return boolean
 	 */
 	public boolean hasConnected(InetAddress inetAddress) {
