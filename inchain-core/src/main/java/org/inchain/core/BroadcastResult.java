@@ -21,19 +21,27 @@ public class BroadcastResult extends Result {
 
     private final static Logger log = LoggerFactory.getLogger(BroadcastResult.class);
     
-	private final SettableListenableFuture<BroadcastResult> future =  new SettableListenableFuture<BroadcastResult>();
+    protected final SettableListenableFuture<BroadcastResult> future =  new SettableListenableFuture<BroadcastResult>();
 
 	//等待对等体数量
-	private int numWaitingFor;
+	protected int numWaitingFor;
 	//消息的hash
-	private Sha256Hash hash;
+	protected Sha256Hash hash;
 	//广播该消息的对等体
-	private List<Peer> broadcastPeers;
+	protected List<Peer> broadcastPeers;
 	//广播该消息的对等体的响应
-	private Set<Peer> broadcastPeerReplys = new HashSet<Peer>();
+	protected Set<Peer> broadcastPeerReplys = new HashSet<Peer>();
 	//非广播对等体的响应
-	private Set<Peer> peerReplys = new HashSet<Peer>();
+	protected Set<Peer> peerReplys = new HashSet<Peer>();
 	
+	public BroadcastResult() {
+		super();
+	}
+	
+	public BroadcastResult(boolean success, String message) {
+		super(success, message);
+	}
+
 	public BroadcastResult get() throws InterruptedException, ExecutionException, TimeoutException {
 		return future.get(10, TimeUnit.SECONDS);
 	}

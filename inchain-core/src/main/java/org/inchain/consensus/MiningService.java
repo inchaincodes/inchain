@@ -16,8 +16,8 @@ import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
+import org.inchain.mempool.Mempool;
 import org.inchain.mempool.MempoolContainer;
-import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.InventoryItem;
@@ -54,7 +54,7 @@ public final class MiningService implements Mining {
 	
 	private final static Logger log = LoggerFactory.getLogger(MiningService.class);
 	
-	private static MempoolContainer mempool = MempoolContainerMap.getInstace();
+	private static Mempool mempool = MempoolContainer.getInstace();
 	
 	@Autowired
 	private NetworkParams network;
@@ -103,7 +103,8 @@ public final class MiningService implements Mining {
 				if(res) {
 					//交易费
 					//只有pay交易才有交易费
-					if(tx.getType() == Definition.TYPE_PAY) {
+					if(tx.getType() == Definition.TYPE_PAY
+							|| tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 						fee = fee.add(getTransactionFee(tx));
 					}
 					transactionList.add(tx);
@@ -259,12 +260,12 @@ public final class MiningService implements Mining {
 						//已打包就通过
 						if(!hasPackage) {
 							//没打包，判断内存里面是否存在
-							preTransaction = MempoolContainerMap.getInstace().get(fromId);
+							preTransaction = MempoolContainer.getInstace().get(fromId);
 							if(preTransaction == null) {
 								throw new VerificationException("引用了不存在或不可用的交易");
 							} else {
 								//在内存池里面，那么就把本笔交易扔回内存池，等待下次打包
-								MempoolContainerMap.getInstace().add(tx);
+								MempoolContainer.getInstace().add(tx);
 								throw new VerificationException("该交易打包顺序不对");
 							}
 						}

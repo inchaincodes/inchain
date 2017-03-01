@@ -3,7 +3,7 @@ package org.inchain.msgprocess;
 import org.inchain.core.Peer;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
@@ -65,7 +65,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		
 		for (Transaction tx : block.getTxs()) {
 			//移除內存中的交易
-			MempoolContainerMap.getInstace().remove(tx.getHash());
+			MempoolContainer.getInstace().remove(tx.getHash());
 		}
 		
 		Sha256Hash hash = block.getHash();

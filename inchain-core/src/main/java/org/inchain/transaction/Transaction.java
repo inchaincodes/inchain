@@ -8,11 +8,11 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.account.AccountTool;
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeService;
 import org.inchain.core.Definition;
+import org.inchain.core.TimeService;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
@@ -20,11 +20,14 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
+import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.utils.Utils;
 
 /**
@@ -118,7 +121,7 @@ public class Transaction extends Message {
 	protected void parse() throws ProtocolException {
 		cursor = offset;
 		
-		type = readBytes(1)[0];
+		type = readBytes(1)[0] & 0XFF;
 		version = readUint32();
 		
 		//交易输入数量
@@ -178,6 +181,9 @@ public class Transaction extends Message {
         }
         
     	//上笔交易的引用
+        //TODO 这里上笔交易，必须查询？ 
+        //验证脚本的时候再设置
+        
         TransactionOutput pre = new TransactionOutput();
         Transaction t = new Transaction(network);
         pre.setParent(t);
@@ -191,24 +197,27 @@ public class Transaction extends Message {
         input.setSequence(readUint32());
 
         //通过输入签名生成对应的赎回脚本
-        Script sc = input.getScriptSig();
-        if(sc.getChunks().size() == 2) {
-        	//普通账户
-        	ECKey key = ECKey.fromPublicOnly(sc.getPubKey());
-        	Script script = ScriptBuilder.createOutputScript(
-    				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
-    		
-            pre.setScript(script);
-        } else if(sc.getChunks().size() == 5) {
-        	//认证账户
-        	byte[] hash160 = sc.getChunks().get(4).data;
-        	Script script = ScriptBuilder.createOutputScript(
-    				new Address(network, network.getCertAccountVersion(), hash160));
-    		
-            pre.setScript(script);
-        } else {
-        	new VerificationException("错误的输入脚本");
-        }
+//        Script sc = input.getScriptSig();
+//        if(sc.getChunks().size() == 2) {
+//        	//普通账户
+//        	ECKey key = ECKey.fromPublicOnly(sc.getPubKey());
+//        	Script script = ScriptBuilder.createOutputScript(
+//    				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
+//    		
+//            pre.setScript(script);
+//        } else if(sc.getChunks().size() == 5) {
+//        	//认证账户
+//        	byte[] hash160 = sc.getChunks().get(4).data;
+//        	Script script = ScriptBuilder.createOutputScript(
+//    				new Address(network, network.getCertAccountVersion(), hash160));
+//    		
+//            pre.setScript(script);
+//        } else {
+//        	new VerificationException("错误的输入脚本");
+//        }
+        
+        
+        
         return input;
 	}
 
@@ -262,9 +271,41 @@ public class Transaction extends Message {
 		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
+		if(!isPaymentTransaction()) {
+			throw new VerificationException("交易类型不正确");
+		}
 		if(inputs != null) {
 			for (int i = 0; i < inputs.size(); i++) {
 				Input input = inputs.get(i);
+				
+				TransactionInput txInput = (TransactionInput) input;
+				TransactionOutput fromOutput = txInput.getFrom();
+				
+				if(fromOutput.getScript() == null) {
+					BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+					TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
+					Transaction tx = null;
+					if(txs == null) {
+						//区块里没有，则去内存池查看是否存在
+						tx = MempoolContainer.getInstace().get(fromOutput.getParent().getHash());
+						if(tx == null) {
+							throw new VerificationException("引用了不存在的交易");
+						}
+					} else {
+						tx = txs.getTransaction();
+					}
+					if(tx == null) {
+						throw new VerificationException("引用不存在的交易");
+					} else if(tx.getLockTime() == -1) {
+						throw new VerificationException("引用了不可用的交易");
+					}
+					TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
+					if(output.getLockTime() == -1) {
+						throw new VerificationException("引用了不可用的交易");
+					}
+					input.setFrom(output);
+				}
+				
 				Script outputScript = input.getFromScriptSig();
 				if(outputScript == null) {
 					throw new VerificationException("交易脚本验证失败，输入应用脚本不存在");
@@ -395,6 +436,14 @@ public class Transaction extends Message {
     public TransactionOutput addOutput(Coin value, Script script) {
         return addOutput(new TransactionOutput(this, value, 0l, script.getProgram()));
     }
+    
+    /**
+     * 是否有代币相关的交易，比如转账时单纯的代币交易，也可能包含很多业务流程有使用到代币的情况，比如验证奖励
+     * @return boolean
+     */
+	public boolean isPaymentTransaction() {
+		return Definition.isPaymentTransaction(type);
+	}
 	
     @Override
     public String toString() {
@@ -452,9 +501,5 @@ public class Transaction extends Message {
 
 	public void setType(int type) {
 		this.type = type;
-	}
-
-	public boolean isPaymentTransaction() {
-		return type == Definition.TYPE_COINBASE || type == Definition.TYPE_PAY;
 	}
 }

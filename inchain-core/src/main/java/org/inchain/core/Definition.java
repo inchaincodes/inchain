@@ -18,6 +18,8 @@ import org.inchain.message.PongMessage;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
+import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CertAccountUpdateTransaction;
 import org.inchain.transaction.business.CreditTransaction;
@@ -47,15 +49,32 @@ public final class Definition {
 	public static final int TYPE_CERT_ACCOUNT_UPDATE = 12;		//认证账户修改信息
 	
 	//业务交易
-	public static final int TYPE_CREATE_PRODUCT = 20;			//创建产品
+	/** 创建产品 **/
+	public static final int TYPE_CREATE_PRODUCT = 20;
 	/** 普通类型的防伪验证交易 **/
 	public static final int TYPE_GENERAL_ANTIFAKE = 21;
+	/** 防伪码生产交易 **/
+	public static final int TYPE_ANTIFAKE_CODE_MAKE = 22;
+	/** 防伪码流转记录，防伪码状态变动 **/
+	public static final int TYPE_ANTIFAKE_STATE_CHANGE = 23;
+	/** 防伪码验证 **/
+	public static final int TYPE_ANTIFAKE_CODE_VERIFY = 24;
 	
 	public static final int TYPE_INIT_CREDIT = 99;				//初始化信用，只在创世块里有用
 	
 	
 	public static final int TX_VERIFY_MG = 1;				//脚本认证，账户管理类
 	public static final int TX_VERIFY_TR = 2;				//脚本认证，交易类
+	
+	/**
+	 * 判断传入的交易是否跟代币有关
+	 * @param type
+	 * @return boolean
+	 */
+	public static boolean isPaymentTransaction(int type) {
+		return type == TYPE_COINBASE || type == TYPE_PAY || type == TYPE_ANTIFAKE_CODE_MAKE
+				|| type == TYPE_ANTIFAKE_CODE_VERIFY; 
+	}
 	
 	//交易关联
 	public static final Map<Integer, Class<? extends Message>> TRANSACTION_RELATION = new HashMap<Integer, Class<? extends Message>>();
@@ -92,6 +111,8 @@ public final class Definition {
     	//业务消息处理器 
     	PROCESS_FACTORYS.put(ProductTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(GeneralAntifakeTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(AntifakeCodeMakeTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(AntifakeCodeVerifyTransaction.class, "transactionMessageProcess");
     	
     	//===========================-分割线=============================//
     	
@@ -116,6 +137,8 @@ public final class Definition {
 
     	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(AntifakeCodeMakeTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx");
     	
     	//===========================-分割线=============================//
     	
@@ -130,6 +153,8 @@ public final class Definition {
 		//业务交易
 		TRANSACTION_RELATION.put(TYPE_CREATE_PRODUCT, ProductTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_GENERAL_ANTIFAKE, GeneralAntifakeTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_MAKE, AntifakeCodeMakeTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
 		
     	//===========================-分割线=============================//
     	
@@ -137,5 +162,4 @@ public final class Definition {
 			COMMANDS_MESSAGE.put(entry.getValue(), entry.getKey());
 		}
     }
-	
 }

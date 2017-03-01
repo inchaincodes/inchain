@@ -12,10 +12,11 @@ import org.inchain.core.KeyValuePair;
 import org.inchain.core.Product;
 import org.inchain.core.Product.ProductType;
 import org.inchain.core.TimeService;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.utils.RandomUtil;
@@ -65,7 +66,7 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 	
 	@Test
 	public void testMakeTransaction() throws Exception {
-		Product product = createProduct();
+//		Product product = createProduct();
 		
 		//我的账户
 		Account account = accountKit.getDefaultAccount();
@@ -74,7 +75,9 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 		long nonce = RandomUtil.randomLong();
 		long password = RandomUtil.randomLong();
 		
-		GeneralAntifakeTransaction tx = new GeneralAntifakeTransaction(network, product, nonce, password);
+		Sha256Hash productTx = Sha256Hash.wrap("6cb7f57548c98e9c29a698b2cb219c53850b429c448da6999868a0cfc89e2558");
+		
+		GeneralAntifakeTransaction tx = new GeneralAntifakeTransaction(network, productTx, nonce, password);
 		tx.makeSign(account);
 		
 		//不能广播
@@ -86,13 +89,17 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 		log.info("========= antifake has {} ========", tx.getAntifakeHash());
 		log.info("========= size {} ========", tx.baseSerialize().length);
 		
-		tx = new GeneralAntifakeTransaction(network, tx.baseSerialize());
+//		tx = new GeneralAntifakeTransaction(network, tx.baseSerialize());
 		log.info("tx : {}", tx);
 		log.info("========= has {} ========", tx.getHash());
 		log.info("========= antifake has {} ========", tx.getAntifakeHash());
 		log.info("========= size {} ========", tx.baseSerialize().length);
 		
-		tx.sign(account);
+		Account systemAccount = accountKit.getSystemAccount();
+		
+		assert(systemAccount != null);
+		
+		tx.sign(systemAccount);
 		
 		tx.verfify();
 		tx.verfifyScript();
@@ -100,7 +107,7 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 		TransactionValidatorResult valResult = transactionValidator.valDo(tx).getResult();
 		log.info("val result : {}" , valResult);
 		
-		MempoolContainerMap.getInstace().add(tx);
+		MempoolContainer.getInstace().add(tx);
 		
 		log.info("tx : {}", tx);
 		log.info("========= has {} ========", tx.getHash());

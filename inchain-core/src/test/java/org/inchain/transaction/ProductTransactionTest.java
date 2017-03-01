@@ -17,7 +17,7 @@ import org.inchain.core.Product.ProductType;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.business.ProductTransaction;
 import org.junit.Before;
@@ -81,7 +81,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		log.info("tx size is {}", tx.baseSerialize().length);
 		
 		//加入内存池
-		MempoolContainerMap.getInstace().add(tx);
+		MempoolContainer.getInstace().add(tx);
 		
 		//广播
 		BroadcastResult result = peerKit.broadcast(tx).get();
@@ -96,9 +96,9 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 	private Product createProduct() {
 		List<KeyValuePair> contents = new ArrayList<KeyValuePair>();
 		contents.add(new KeyValuePair(ProductType.NAME, "印链-闪迪U盘"));
-		contents.add(new KeyValuePair(ProductType.DESCRIPTION, "32G"));
+		contents.add(new KeyValuePair(ProductType.DESCRIPTION, "64G"));
 		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
-		contents.add(new KeyValuePair(ProductType.PRODUCTION_DATE, "2017-02-23"));
+		contents.add(new KeyValuePair(ProductType.PRODUCTION_DATE, "2017-02-27"));
 		contents.add(new KeyValuePair(ProductType.CREATE_TIME, TimeService.currentTimeMillisOfBytes()));
 		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
 		

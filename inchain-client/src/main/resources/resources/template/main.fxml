@@ -64,6 +64,7 @@
             <Button fx:id="transactionRecordId" mnemonicParsing="false" text="交易记录" />
             <Button fx:id="sellerRecordId" mnemonicParsing="false" text="商家列表" />
             <Button fx:id="consensusRecordId" mnemonicParsing="false" text="共识节点" />
+            <Button fx:id="antifakeId" mnemonicParsing="false" text="防伪测试" />
          </children>
       </HBox>
     <StackPane fx:id="contentId" layoutX="14.0" layoutY="87.0" prefHeight="243.0" prefWidth="570.0" style="-fx-border-color: lightgrey; -fx-border-style: dashed" AnchorPane.bottomAnchor="70.0" AnchorPane.leftAnchor="15.0" AnchorPane.rightAnchor="15.0" AnchorPane.topAnchor="86.0" />

@@ -132,4 +132,11 @@ public class TransactionOutput implements Output {
 	public long getLockTime() {
 		return lockTime;
 	}
+
+	@Override
+	public String toString() {
+		return "TransactionOutput [index=" + index + ", value=" + value + ", lockTime=" + lockTime + ", script="
+				+ script + "]";
+	}
+	
 }

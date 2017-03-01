@@ -1606,4 +1606,19 @@ public class Script {
         		chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
         		chunks.get(7).equalsOpCode(OP_CHECKSIG);
 	}
+	
+
+	
+	/**
+     * 是否是防伪验证输入脚本
+     * @param script
+     * @return boolean
+     */
+	public boolean isAntifakeInputScript() {
+		if(chunks == null || chunks.size() != 4 || 
+				!chunks.get(2).equalsOpCode(ScriptOpCodes.OP_VERTR) || chunks.get(3).data.length != Sha256Hash.LENGTH) {
+			return false;
+		}
+        return true;
+	}
 }

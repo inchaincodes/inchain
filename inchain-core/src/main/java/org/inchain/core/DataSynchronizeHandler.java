@@ -61,22 +61,28 @@ public class DataSynchronizeHandler implements Runnable {
 			@Override
 			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
 					CopyOnWriteArrayList<Peer> outPeers) {
-				locker.lock();
-				try {
-					peers.clear();
-					peers.addAll(inPeers);
-					peers.addAll(outPeers);
-					
-					//当所有节点全部断开时，将重新启动监听，因为自动重新连上后需要同步断开这段时间的新区块
-					if(inCount + outCount == 0) {
-						synchronousStatus = -1;
-						initSynchronous = true;
-					} else if(synchronousStatus == -1) {
-						synchronousStatus = 0;
+				
+				executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						locker.lock();
+						try {
+							peers.clear();
+							peers.addAll(inPeers);
+							peers.addAll(outPeers);
+							
+							//当所有节点全部断开时，将重新启动监听，因为自动重新连上后需要同步断开这段时间的新区块
+							if(inCount + outCount == 0) {
+								synchronousStatus = -1;
+								initSynchronous = true;
+							} else if(synchronousStatus == -1) {
+								synchronousStatus = 0;
+							}
+						} finally {
+							locker.unlock();
+						}
 					}
-				} finally {
-					locker.unlock();
-				}
+				});
 			}
 		});
 		//启动数据同步服务
@@ -147,7 +153,7 @@ public class DataSynchronizeHandler implements Runnable {
 			Set<Peer> newestPeers = new HashSet<Peer>();
 			
 			for (Peer peer : peers) {
-				if((initSynchronous && peer.getPeerVersionMessage().getBestHeight() == bestHeight) ||
+				if((initSynchronous && peer.getPeerVersionMessage() != null && peer.getPeerVersionMessage().getBestHeight() == bestHeight) ||
 						(!initSynchronous && peer.getBestBlockHeight() == bestHeight)) {
 					newestPeers.add(peer);
 				}

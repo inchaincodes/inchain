@@ -163,6 +163,15 @@ public class Product {
 	public void setContents(List<KeyValuePair> contents) {
 		this.contents = contents;
 	}
+	
+	public String getName() {
+		for (KeyValuePair keyValuePair : contents) {
+			if(keyValuePair.getKey() == ProductType.NAME.type) {
+				return keyValuePair.getValueToString();
+			}
+		}
+		return null;
+	}
 
 	@Override
 	public String toString() {

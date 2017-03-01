@@ -110,4 +110,9 @@ public class TransactionInput implements Input {
 		return from.getScript();
 	}
 
+	@Override
+	public String toString() {
+		return "TransactionInput [from=" + from + ", sequence=" + sequence + ", scriptSig=" + scriptSig + "]";
+	}
+
 }

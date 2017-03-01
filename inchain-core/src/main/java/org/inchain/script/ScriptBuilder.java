@@ -556,7 +556,7 @@ public class ScriptBuilder {
 					.build();
 		}
     }
-
+	
 	/**
 	 * 认证账户的交易输入签名脚本
 	 * @param signs
@@ -638,4 +638,41 @@ public class ScriptBuilder {
 	            .op(OP_CHECKSIG)
 	            .build();
 	}
+	
+	/**
+     * 防伪验证输入脚本
+     * @param txid 商家账户信息id
+     * @param signs
+     * @return Script
+     */
+	public static Script createAntifakeInputScript(Sha256Hash txid, byte[][] signs) {
+		ScriptBuilder builder = new ScriptBuilder();
+
+		for (byte[] sign : signs) {
+			builder.data(sign);
+		}
+		builder.op(ScriptOpCodes.OP_VERTR)
+		.data(txid.getBytes());
+        
+        return builder.build();
+	}
+	
+	/**
+	 * 防伪验证输出脚本
+	 * @param hash160		防伪码生产者账户hash160
+	 * @param antifakeCode		防伪码内容
+	 * @return Script
+	 */
+	public static Script createAntifakeOutputScript(byte[] hash160, Sha256Hash antifakeCode) {
+		Utils.checkNotNull(hash160);
+		Utils.checkNotNull(antifakeCode);
+		//输出到认证账户的交易输出脚本
+        return new ScriptBuilder()
+            .op(OP_PUBKEY)
+            .data(hash160)
+            .op(OP_EQUALVERIFY)
+            .data(antifakeCode.getBytes())
+            .op(OP_CHECKSIG)
+            .build();
+    }
 }

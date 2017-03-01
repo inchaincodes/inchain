@@ -17,7 +17,7 @@ import org.inchain.network.NetworkParams;
  */
 public class ProductTransaction extends CommonlyTransaction {
 	
-	//产品信息
+	/** 产品信息 **/
 	protected Product product;
 
 	public ProductTransaction(NetworkParams network) throws ProtocolException {

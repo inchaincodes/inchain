@@ -2,9 +2,14 @@ package org.inchain.signers;
 
 import java.util.List;
 
+import org.inchain.account.Account;
 import org.inchain.account.RedeemData;
+import org.inchain.core.Definition;
+import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
+import org.inchain.crypto.ECKey.ECDSASignature;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptChunk;
@@ -104,4 +109,60 @@ public class LocalTransactionSigner implements TransactionSigner {
 		
 	}
 
+	
+	/**
+     * 账户对指定内容签名
+	 * 如果账户已加密的情况，则需要先解密账户
+     * 如果是认证账户，默认使用交易的签名，如需使用账户管理签名，则调用sign(account, TransactionDefinition.TX_VERIFY_MG)
+     * @param account
+     * @param hash
+     * @return byte[][]
+     */
+	public static byte[][] signHash(Account account, Sha256Hash hash) {
+		return signHash(account, hash, Definition.TX_VERIFY_TR);
+	}
+	
+	/**
+	 * 账户对指定内容签名
+	 * 如果账户已加密的情况，则需要先解密账户
+	 * @param account
+     * @param hash
+	 * @param type TransactionDefinition.TX_VERIFY_MG利用管理私钥签名，TransactionDefinition.TX_VERIFY_TR利用交易私钥签名
+	 */
+	public static byte[][] signHash(Account account, Sha256Hash hash, int type) {
+		
+		if(account.isCertAccount()) {
+			//认证账户
+			if(account.getAccountTransaction() == null) {
+				throw new VerificationException("签名失败，认证账户没有对应的信息交易");
+			}
+			
+			ECKey[] keys = null;
+			if(type == Definition.TX_VERIFY_MG) {
+				keys = account.getMgEckeys();
+			} else {
+				keys = account.getTrEckeys();
+			}
+			
+			if(keys == null) {
+				throw new VerificationException("账户没有解密？");
+			}
+			
+			ECDSASignature ecSign = keys[0].sign(hash);
+			byte[] sign1 = ecSign.encodeToDER();
+			
+			ecSign = keys[1].sign(hash);
+			byte[] sign2 = ecSign.encodeToDER();
+			
+			return new byte[][] {sign1, sign2};
+		} else {
+			//普通账户
+			ECKey key = account.getEcKey();
+			ECDSASignature ecSign = key.sign(hash);
+			byte[] sign = ecSign.encodeToDER();
+
+			return new byte[][] {sign};
+		}
+		
+	}
 }

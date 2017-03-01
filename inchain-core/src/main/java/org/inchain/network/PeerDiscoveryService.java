@@ -180,10 +180,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			}
 			
 			//需要移除的节点，一般验证失败次数过多，则会被移除
-			Iterator<PeerAddressStore> paIt = netaddressMaps.iterator();
-			
-			while(paIt.hasNext()) {
-				PeerAddressStore peerAddressStore = paIt.next();
+			for (PeerAddressStore peerAddressStore : netaddressMaps) {
 				if(!runing) {
 					return;
 				}
@@ -233,7 +230,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 						}
 						if(isRemove) {
 							//移除
-							paIt.remove();
+							netaddressMaps.remove(peerAddressStore);
 						}
 					}
 					try {

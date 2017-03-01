@@ -25,9 +25,11 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
+import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CommonlyTransaction;
 import org.inchain.transaction.business.CreditTransaction;
+import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.utils.RandomUtil;
@@ -105,8 +107,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			if(blockStore.getNextHash() == null) {
 				blockStore.setNextHash(Sha256Hash.ZERO_HASH);
 			}
-			//保存块头
-			db.put(hash.getBytes(), blockStore.serializeHeaderToBytes());
+			//先保存交易，再保存区块，保证区块体不出错
 			//保存交易
 			for (int i = 0; i < block.getTxCount(); i++) {
 				TransactionStore txs = new TransactionStore(network, block.getTxs().get(i), block.getHeight(), null);
@@ -180,11 +181,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					} else {
 						throw new VerificationException("出现不支持的交易，保存失败");
 					}
-				} else if(tx.getType() == Definition.TYPE_PAY || 
-						tx.getType() == Definition.TYPE_COINBASE) {
-					//普通交易
+				} else if(tx.isPaymentTransaction()) {
+					
+					//转账交易
 					//coinbase交易没有输入
-					if(tx.getType() == Definition.TYPE_PAY) {
+					if(tx.getType() != Definition.TYPE_COINBASE) {
 						List<Input> inputs = tx.getInputs();
 						for (Input input : inputs) {
 							TransactionInput tInput = (TransactionInput) input;
@@ -219,6 +220,17 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						
 						chainstateStoreProvider.put(key, new byte[]{1});
 					}
+					//特殊业务交易处理
+					if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+						//生产防伪码
+						//把防伪码写进状态表
+						AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
+
+						chainstateStoreProvider.put(atx.getAntifakeHash().getBytes(), tx.getHash().getBytes());
+					} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+						//TODO 防伪码验证
+						
+					}
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//帐户注册和修改账户信息
@@ -252,10 +264,20 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						accountInfo.setPubkeys(pubkeys);
 					}
 					chainstateStoreProvider.saveAccountInfo(accountInfo);
+				} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
+					//普通防伪验证
+					GeneralAntifakeTransaction generalAntifakeTransaction = (GeneralAntifakeTransaction) tx;
+					
+					byte[] antifakeHashBytes = generalAntifakeTransaction.getAntifakeHash().getBytes();
+					
+					chainstateStoreProvider.put(antifakeHashBytes, tx.getHash().getBytes());
 				}
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);
 			}
+			
+			//保存块头
+			db.put(hash.getBytes(), blockStore.serializeHeaderToBytes());
 			
 			byte[] heightBytes = new byte[4]; 
 			Utils.uint32ToByteArrayBE(block.getHeight(), heightBytes, 0);
@@ -271,6 +293,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				preBlockHeader.setNextHash(block.getHash());
 				db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
 			}
+		} catch (Exception e) {
+			log.info("保存区块出错：", e);
 		} finally {
 			blockLock.unlock();
 		}
@@ -283,7 +307,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * @param pubkeys
 	 * @return AccountStore
 	 */
-	public AccountStore createNewAccountInfo(CommonlyTransaction tx, AccountBody accountBody, byte[][] pubkeys) {
+	public AccountStore createNewAccountInfo(BaseCommonlyTransaction tx, AccountBody accountBody, byte[][] pubkeys) {
 		AccountStore accountInfo;
 		accountInfo = new AccountStore(network);
 		accountInfo.setHash160(tx.getHash160());
@@ -359,8 +383,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				}
 			}
-		} else if(transaction instanceof CommonlyTransaction) {
-			CommonlyTransaction commonlytx = (CommonlyTransaction) transaction;
+		} else if(transaction instanceof BaseCommonlyTransaction) {
+			BaseCommonlyTransaction commonlytx = (BaseCommonlyTransaction) transaction;
 			if(accountFilter.contains(commonlytx.getHash160())) {
 				return true;
 			}
@@ -561,8 +585,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				for (Transaction tx : txs) {
 					
 					//普通交易
-					if(tx.getType() == Definition.TYPE_COINBASE ||
-							tx.getType() == Definition.TYPE_PAY) {
+					if(tx.isPaymentTransaction()) {
 						//获取转入交易转入的多少钱
 						List<Output> outputs = tx.getOutputs();
 						
@@ -613,6 +636,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 									}
 								}
 							}
+						}
+						
+						//除单纯的转账交易外，还有可能有业务逻辑附带代币交易的
+						if(!isMineTx && tx.getType() != Definition.TYPE_PAY &&
+								tx.getType() != Definition.TYPE_COINBASE) {
+							isMineTx = checkTxIsMine(tx);
 						}
 						
 						if(isMineTx) {

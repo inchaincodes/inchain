@@ -5,8 +5,8 @@ import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
+import org.inchain.mempool.Mempool;
 import org.inchain.mempool.MempoolContainer;
-import org.inchain.mempool.MempoolContainerMap;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
@@ -39,7 +39,7 @@ public class TransactionMessageProcess implements MessageProcess {
 	
 	private static final Logger log = LoggerFactory.getLogger(TransactionMessageProcess.class);
 	
-	private MempoolContainer mempool = MempoolContainerMap.getInstace();
+	private Mempool mempool = MempoolContainer.getInstace();
 	
 	@Autowired
 	private NetworkParams network;
@@ -79,6 +79,8 @@ public class TransactionMessageProcess implements MessageProcess {
 			boolean res = mempool.add(tx);
 			if(!res) {
 				log.error("加入内存池失败："+ id);
+				//加入内存池失败，有两种情况，第一是重复交易已经存在，第二是双花交易，出现失败时不做处理即可
+				return new MessageProcessResult(tx.getHash(), true);
 			}
 			
 			//转发交易

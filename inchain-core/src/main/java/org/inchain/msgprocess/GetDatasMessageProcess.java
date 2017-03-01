@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.core.Peer;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.Message;
@@ -68,7 +68,7 @@ public class GetDatasMessageProcess implements MessageProcess {
 	 */
 	private void txInventory(InventoryItem inventoryItem, Peer peer) {
 		//首先查看内存里面有没有交易
-		Transaction tx = MempoolContainerMap.getInstace().get(inventoryItem.getHash());
+		Transaction tx = MempoolContainer.getInstace().get(inventoryItem.getHash());
 		if(tx == null) {
 			//内存里面没有，则查询存储
 			TransactionStore ts = blockStoreProvider.getTransaction(inventoryItem.getHash().getBytes());

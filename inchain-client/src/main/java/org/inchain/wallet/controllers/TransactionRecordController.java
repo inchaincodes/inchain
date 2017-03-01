@@ -11,12 +11,14 @@ import org.inchain.account.Account;
 import org.inchain.account.AccountBody.ContentType;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.KeyValuePair;
-import org.inchain.core.Product.ProductType;
-import org.inchain.core.TimeService;
 import org.inchain.core.Definition;
+import org.inchain.core.KeyValuePair;
+import org.inchain.core.Product;
+import org.inchain.core.Product.ProductType;
+import org.inchain.crypto.Sha256Hash;
+import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.TransactionStore;
@@ -24,7 +26,10 @@ import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
+import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Utils;
@@ -139,7 +144,7 @@ public class TransactionRecordController implements SubPageController {
 							Transaction ftx = null;
 							if(fromTx == null) {
 								//交易不存在区块里，那么应该在内存里面
-								ftx = MempoolContainerMap.getInstace().get(from.getParent().getHash());
+								ftx = MempoolContainer.getInstace().get(from.getParent().getHash());
 							} else {
 								ftx = fromTx.getTransaction();
 							}
@@ -167,8 +172,6 @@ public class TransactionRecordController implements SubPageController {
 					}
 					
 					List<Output> outputs = tx.getOutputs();
-					
-					Coin fee = Coin.valueOf(outputs.get(0).getValue());
 					
 					for (Output output : outputs) {
 						Script script = output.getScript();
@@ -198,7 +201,6 @@ public class TransactionRecordController implements SubPageController {
 					if(isSendout) {
 						type = "转出";
 					}
-					amount = fee.toText();
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//认证账户注册
@@ -217,13 +219,11 @@ public class TransactionRecordController implements SubPageController {
 							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
 						}
 					}
-					amount = "-";
 				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS || 
 						tx.getType() == Definition.TYPE_REM_CONSENSUS) {
 					type = tx.getType() == Definition.TYPE_REG_CONSENSUS ? "注册共识" : "退出共识";
 
 					detail = "-";
-					amount = "-";
 				} else if(tx.getType() == Definition.TYPE_CREATE_PRODUCT) {
 					
 					ProductTransaction ptx = (ProductTransaction) tx;
@@ -243,9 +243,107 @@ public class TransactionRecordController implements SubPageController {
 						}
 					}
 					
-					amount = "-";
+				} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
+
+					GeneralAntifakeTransaction gtx = (GeneralAntifakeTransaction) tx;
+					
+					type = "防伪验证";
+					
+					Product product = null;
+					
+					if(gtx.getProduct() != null) {
+						product = gtx.getProduct();
+					}
+					if(gtx.getProductTx() != null) {
+						TransactionStore ptx = InchainInstance.getInstance().getAccountKit().getTransaction(gtx.getProductTx());
+						//必要的NPT验证
+						if(ptx == null) {
+							log.error("防伪验证，商品信息没有找到，将跳过不显示该交易");
+							continue;
+						}
+						product = ((ProductTransaction)ptx.getTransaction()).getProduct();
+					}
+					
+					if(product == null) {
+						log.error("防伪验证，商品没有找到，将跳过不显示该交易");
+						continue;
+					}
+					
+					List<KeyValuePair> bodyContents = product.getContents();
+					for (KeyValuePair keyValuePair : bodyContents) {
+						if(!"".equals(detail)) {
+							detail += "\r\n";
+						}
+						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+							//时间
+							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+						} else {
+							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+						}
+					}
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+
+					AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
+					
+					atx.verfifyScript();
+					
+					type = "防伪验证";
+					
+					byte[] makeCodeTxBytes = InchainInstance.getInstance().getAccountKit().getChainstate(atx.getAntifakeCode().getBytes());
+					//必要的NPT验证
+					if(makeCodeTxBytes == null) {
+						log.error("防伪码对应的生产记录没有找到，没有找到，将跳过不显示该交易");
+						continue;
+					}
+					TransactionStore makeCodeTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
+					if(makeCodeTxStore == null) {
+						log.error("防伪码对应的生产记录没有找到，没有找到");
+						continue;
+					}
+					AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
+					
+					TransactionStore productTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(makeCodeTx.getProductTx());
+					if(productTxStore == null) {
+						log.error("防伪验证，商品没有找到，将跳过不显示该交易");
+						continue;
+					}
+					
+					List<KeyValuePair> bodyContents = ((ProductTransaction)productTxStore.getTransaction()).getProduct().getContents();
+					for (KeyValuePair keyValuePair : bodyContents) {
+						if(!"".equals(detail)) {
+							detail += "\r\n";
+						}
+						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+							//时间
+							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+						} else {
+							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+						}
+					}
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+					AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
+					
+					type = "防伪码生产";
+					
+					TransactionStore ptx = InchainInstance.getInstance().getAccountKit().getTransaction(atx.getProductTx());
+					//必要的NPT验证
+					if(ptx == null) {
+						log.error("防伪验证，商品信息没有找到，将跳过不显示该交易");
+						continue;
+					}
+					Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
+					
+					detail += product.getName();
+					
+					if(atx.getRewardCoin() != null) {
+						detail += "\r\n";
+						detail += "附带验证奖励 " + atx.getRewardCoin().toText() + " INS";
+					}
 				}
 				
+				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {
+					amount = Coin.valueOf(tx.getOutput(0).getValue()).toText();
+				}
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
 				
 				detailValue.setValue(detail);

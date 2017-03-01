@@ -11,19 +11,19 @@ import javax.annotation.PostConstruct;
 import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeService;
 import org.inchain.core.Definition;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.script.Script;
 import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.CommonlyTransaction;
+import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -172,14 +172,16 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				// 我的交易，则提醒
 				if(tx.isPaymentTransaction()) {
 					//转入给我，则提醒
-					TransactionOutput output = (TransactionOutput) tx.getOutputs().get(0);
-					
-					Script script = output.getScript();
-					if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
-						noticeReceiveAmount(tx, output);
+					if(tx.getOutputs() != null && tx.getOutputs().size() > 0) {
+						TransactionOutput output = (TransactionOutput) tx.getOutputs().get(0);
+						
+						Script script = output.getScript();
+						if(script.isSentToAddress() && blockStoreProvider.getAccountFilter().contains(script.getChunks().get(2).data)) {
+							noticeReceiveAmount(tx, output);
+						}
 					}
 				} else {
-					CommonlyTransaction commonlyTx = (CommonlyTransaction) tx;
+					BaseCommonlyTransaction commonlyTx = (BaseCommonlyTransaction) tx;
 					if(blockStoreProvider.getAccountFilter().contains(commonlyTx.getHash160())) {
 						noticeListener.onNotice("交易已提交", String.format("您的交易 %s 已被网络接受", commonlyTx.getHash()));
 					}
@@ -191,7 +193,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				if(tx.isPaymentTransaction()) {
 					noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
 				} else {
-					CommonlyTransaction commonlyTx = (CommonlyTransaction) tx;
+					BaseCommonlyTransaction commonlyTx = (BaseCommonlyTransaction) tx;
 					if(blockStoreProvider.getAccountFilter().contains(commonlyTx.getHash160())) {
 						noticeListener.onNotice("交易已确认", String.format("您的交易 %s 已成功收录进高度为 %d 的块", commonlyTx.getHash(), ts.getHeight()));
 					}
@@ -225,7 +227,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			byte[] state = chainstateStoreProvider.getBytes(key);
 			if(!Arrays.equals(state, new byte[]{1})) {
 				//查询内存池里是否有该交易
-				preTransaction = MempoolContainerMap.getInstace().get(fromId);
+				preTransaction = MempoolContainer.getInstace().get(fromId);
 			} else {
 				//查询上次的交易
 				preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
@@ -348,7 +350,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		for (TransactionStore transactionStore : mineTxList) {
 			//获取转入交易转入的多少钱
 			Transaction tx = transactionStore.getTransaction();
-			if(!(tx.getType() == Definition.TYPE_PAY || tx.getType() == Definition.TYPE_COINBASE)) {
+			if(!tx.isPaymentTransaction()) {
 				continue;
 			}
 			
@@ -423,7 +425,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			Transaction tx = transactionStore.getTransaction();
 			
 			//如果不是转账交易，则跳过
-			if(!(tx.getType() == Definition.TYPE_PAY || tx.getType() == Definition.TYPE_COINBASE)) {
+			if(!tx.isPaymentTransaction()) {
 				continue;
 			}
 			

@@ -72,6 +72,7 @@ public class MainController {
 	public Button transactionRecordId;		//交易记录
 	public Button consensusRecordId;		//共识节点列表
 	public Button sellerRecordId;			//商家列表
+	public Button antifakeId;				//防伪测试
 	public StackPane contentId;				//子页面内容控件
 	
 	private List<Button> buttons = new ArrayList<Button>();
@@ -104,6 +105,7 @@ public class MainController {
 		buttons.add(transactionRecordId);
 		buttons.add(consensusRecordId);
 		buttons.add(sellerRecordId);
+		buttons.add(antifakeId);
     	
 		EventHandler<ActionEvent> buttonEventHandler = getPageEventHandler();
 		for (Button button : buttons) {
@@ -375,6 +377,10 @@ public class MainController {
 		case "sellerRecordId":
 			//点击商家列表按钮
 			fxml = "/resources/template/businessRecord.fxml";
+			break;
+		case "antifakeId":
+			//点击防伪测试按钮
+			fxml = "/resources/template/antifake.fxml";
 			break;
 		default:
 			break;

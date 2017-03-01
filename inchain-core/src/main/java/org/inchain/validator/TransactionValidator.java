@@ -10,7 +10,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockStoreProvider;
@@ -21,6 +21,8 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
+import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
@@ -81,7 +83,7 @@ public class TransactionValidator {
 			return validatorResult;
 		}
 		//如果是转帐交易
-		if(tx.getType() == Definition.TYPE_PAY) {
+		if(tx.isPaymentTransaction() && tx.getType() != Definition.TYPE_COINBASE) {
 			//验证交易的输入来源，是否已花费的交易，同时验证金额
 			Coin txInputFee = Coin.ZERO;
 			Coin txOutputFee = Coin.ZERO;
@@ -110,7 +112,7 @@ public class TransactionValidator {
 				byte[] state = chainstateStoreProvider.getBytes(key);
 				if(!Arrays.equals(state, new byte[]{1})) {
 					//查询内存池里是否有该交易
-					preTransaction = MempoolContainerMap.getInstace().get(fromId);
+					preTransaction = MempoolContainer.getInstace().get(fromId);
 					if(preTransaction == null) {
 						//区块链和内存池里面都没有，那么是否在传入的列表里面
 						boolean exist = false;
@@ -124,7 +126,7 @@ public class TransactionValidator {
 							}
 						}
 						if(!exist) {
-							result.setResult(false, "引用了不可用的交易");
+							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了不可用的交易");
 							return validatorResult;
 						}
 					}
@@ -151,7 +153,7 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 				txOutputFee = txOutputFee.add(outputCoin);
-				//FIXME 是否验证必须输出到已有的帐户 ???
+				//TODO 是否验证必须输出到已有的帐户 ???
 			}
 			//输出金额不能大于输入金额
 			if(txOutputFee.isGreaterThan(txInputFee)) {
@@ -159,6 +161,64 @@ public class TransactionValidator {
 				return validatorResult;
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
+			}
+			//业务交易且带代币交易
+			if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				//如果是验证码生成交易，则验证产品是否存在
+				AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
+				TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
+				if(txStore == null || txStore.getTransaction() == null) {
+					result.setResult(false, "产品不存在");
+					return validatorResult;
+				}
+				ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
+				if(!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
+					result.setResult(false, "不合法的产品引用");
+					return validatorResult;
+				}
+				//防伪码不能重复
+				try {
+					byte[] txid = chainstateStoreProvider.getBytes(atx.getAntifakeHash().getBytes());
+					if(txid != null) {
+						result.setResult(false, "重复的防伪码");
+						return validatorResult;
+					}
+				} catch (IOException e) {
+					result.setResult(false, "验证防伪码是否重复时出错，错误信息：" + e.getMessage());
+					return validatorResult;
+				}
+			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+				//防伪码验证交易
+				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
+				
+				byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode().getBytes());
+				if(antifakeCodeVerifyMakeTxHash == null) {
+					result.setResult(false, "防伪码不存在");
+					return validatorResult;
+				}
+				
+				TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
+				if(txStore == null || txStore.getTransaction() == null) {
+					result.setResult(false, "防伪码生成交易不存在");
+					return validatorResult;
+				}
+				Transaction antifakeCodeVerifyMakeTx = txStore.getTransaction();
+				if(antifakeCodeVerifyMakeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+					result.setResult(false, "错误的防伪码");
+					return validatorResult;
+				}
+				//保证该防伪码没有被验证
+				byte[] txStatus = antifakeCodeVerifyMakeTx.getHash().getBytes();
+				byte[] txIndex = new byte[txStatus.length + 1];
+				
+				System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
+				txIndex[txIndex.length - 1] = 0;
+				
+				byte[] status = chainstateStoreProvider.getBytes(txIndex);
+				if(status == null) {
+					result.setResult(false, "防伪码已被验证");
+					return validatorResult;
+				}
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册
@@ -235,7 +295,7 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 				ProductTransaction productTx = (ProductTransaction) ts.getTransaction();
-				if(Arrays.equals(productTx.getHash160(), gatx.getSignVerificationScript().getAccountHash160())) {
+				if(!Arrays.equals(productTx.getHash160(), gatx.getSignVerificationScript().getAccountHash160())) {
 					result.setResult(false, "不合法的商品使用");
 					return validatorResult;
 				}
@@ -243,8 +303,8 @@ public class TransactionValidator {
 			
 			//2验证防伪码是否被验证过了
 			try {
-				TransactionStore ts = blockStoreProvider.getTransaction(gatx.getAntifakeHash().getBytes());
-				if(ts != null) {
+				byte[] txhash = chainstateStoreProvider.getBytes(gatx.getAntifakeHash().getBytes());
+				if(txhash != null) {
 					result.setResult(false, "重复的验证");
 					return validatorResult;
 				}

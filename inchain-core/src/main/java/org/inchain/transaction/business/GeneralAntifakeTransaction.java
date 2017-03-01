@@ -17,6 +17,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
+import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 
 /**
@@ -46,9 +47,8 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	/** 纬度，用户验证时的地理位置，不参与防伪码id 的hash，仅用户商家防窜货分析 **/
 	protected double latitude;
  
-	public GeneralAntifakeTransaction(NetworkParams network) throws ProtocolException {
-		super(network);
-		type = Definition.TYPE_GENERAL_ANTIFAKE;
+	public GeneralAntifakeTransaction(NetworkParams network, Product product) throws ProtocolException {
+		this(network, product, RandomUtil.randomLong(), RandomUtil.randomLong());
 	}
 	
 	public GeneralAntifakeTransaction(NetworkParams network, byte[] payloadBytes) throws ProtocolException {
@@ -69,6 +69,16 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 		type = Definition.TYPE_GENERAL_ANTIFAKE;
 	}
 	
+	public GeneralAntifakeTransaction(NetworkParams network, Sha256Hash productTx, long nonce, long password) throws ProtocolException {
+		super(network);
+		
+		this.productTx = productTx;
+		this.nonce = nonce;
+		this.password = password;
+		
+		type = Definition.TYPE_GENERAL_ANTIFAKE;
+	}
+	
 	@Override
 	public void verfify() throws VerificationException {
 		super.verfify();
@@ -82,11 +92,20 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 		if(signVerification == null && signVerificationScript == null) {
 			throw new VerificationException("验证信息不存在");
 		}
+		
+		if(scriptBytes == null) {
+			throw new VerificationException("签名信息不存在");
+		}
+		
 		if(signVerificationScript == null) {
 			signVerificationScript = new Script(signVerification);
 		}
 		
 		if(!signVerificationScript.isCertAccount()) {
+			throw new VerificationException("不合法的商家签名");
+		}
+		
+		if(scriptSig.isCertAccount()) {
 			throw new VerificationException("不合法的商家签名");
 		}
 	}
@@ -95,9 +114,11 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	public void verfifyScript() {
 		super.verfifyScript();
 		//验证商家签名
-		signVerificationScript.runVerify(Sha256Hash.twiceOf(product.serialize()));
-		//验证本单交易
-		scriptSig.runVerify(getHash());
+		try {
+			signVerificationScript.runVerify(getAntifakeHashWithoutSign());
+		} catch (IOException e) {
+			throw new VerificationException(e.getMessage());
+		}
 	}
 	
 	/**
@@ -126,9 +147,7 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 		}
 		
 		//要签名的内容，product + nonce + password
-		byte[] content = getAntifakeConentWithoutSign();
-		
-		Sha256Hash antifakeHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(content));
+		Sha256Hash antifakeHash = getAntifakeHashWithoutSign();
 		
 		ECDSASignature ecSign = keys[0].sign(antifakeHash);
 		byte[] sign1 = ecSign.encodeToDER();
@@ -136,7 +155,7 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 		ecSign = keys[1].sign(antifakeHash);
 		byte[] sign2 = ecSign.encodeToDER();
 		
-		signVerificationScript = ScriptBuilder.createCertAccountScript(ScriptOpCodes.OP_VERMG, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, sign2);
+		signVerificationScript = ScriptBuilder.createCertAccountScript(ScriptOpCodes.OP_VERTR, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, sign2);
 		signVerification = signVerificationScript.getProgram();
 	}
 	
@@ -200,6 +219,15 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	 */
 	public Sha256Hash getAntifakeHash() throws IOException {
 		return Sha256Hash.twiceOf(getAntifakeConent());
+	}
+	
+	/**
+	 * 获取防伪内容的签名前的hash，用户验证认证账户的前面
+	 * @return Sha256Hash
+	 * @throws IOException 
+	 */
+	public Sha256Hash getAntifakeHashWithoutSign() throws IOException {
+		return Sha256Hash.twiceOf(getAntifakeConentWithoutSign());
 	}
 
 	@Override
