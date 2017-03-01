@@ -423,6 +423,19 @@ public class AccountKit {
 		}
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
 		
+		//验证防伪码是否已经被验证了
+		//保证该防伪码没有被验证
+		byte[] txStatus = codeMakeTx.getHash().getBytes();
+		byte[] txIndex = new byte[txStatus.length + 1];
+		
+		System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
+		txIndex[txIndex.length - 1] = 0;
+		
+		byte[] status = chainstateStoreProvider.getBytes(txIndex);
+		if(status == null) {
+			throw new VerificationException("验证失败，该防伪码已被验证");
+		}
+		
 		//防伪码验证脚本
 		Script inputSig = ScriptBuilder.createAntifakeInputScript(antifakeCode.getCertAccountTx(), antifakeCode.getSigns());
 		
@@ -442,6 +455,7 @@ public class AccountKit {
 		if(rewardCoin != null && rewardCoin.isGreaterThan(Coin.ZERO)) {
 			tx.addOutput(rewardCoin, systemAccount.getAddress());
 		}
+		
 		//签名即将广播的信息
 		tx.sign(systemAccount);
 		

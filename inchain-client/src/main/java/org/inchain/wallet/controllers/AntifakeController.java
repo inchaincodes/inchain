@@ -4,6 +4,7 @@ import java.net.URL;
 
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Definition;
+import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.wallet.utils.DailogUtil;
@@ -74,32 +75,8 @@ public class AntifakeController implements SubPageController {
     	}
     	
 		//调用接口广播交易
-    	try {
-    		//如果账户已加密，则需要先解密
-    		if(accountKit.accountIsEncrypted()) {
-    			//解密账户
-    			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
-		        FXMLLoader loader = new FXMLLoader(location);
-		        final AccountKit accountKitTemp = accountKit;
-				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
-					@Override
-					public void run() {
-						if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
-							try {
-								verifyDo(accountKitTemp, antifakeCode);
-							} finally {
-								accountKitTemp.resetKeys();
-							}
-						}
-					}
-				});
-    		} else {
-    			verifyDo(accountKit, antifakeCode);
-    		}
-    	} catch (Exception e) {
-        	DailogUtil.showTip(e.getMessage());
-        	log.error(e.getMessage(), e);
-		}
+    	//如果账户已加密，则需要先解密
+		verifyDo(accountKit, antifakeCode);
 	}
 
     public void verifyDo(AccountKit accountKit, String antifakeCode) {
@@ -111,8 +88,35 @@ public class AntifakeController implements SubPageController {
 			}
 			DailogUtil.showTip(broadcastResult.getMessage(), 2000);
     	} catch (Exception e) {
+    		if(e instanceof AccountEncryptedException) {
+    			decryptWallet(accountKit, antifakeCode);
+    			return;
+    		}
+    		e.printStackTrace();
     		DailogUtil.showTip(e.getMessage(), 3000);
+    		if(log.isDebugEnabled()) {
+    			log.debug("验证出错：{}", e.getMessage());
+    		}
 		}
+	}
+
+	private void decryptWallet(AccountKit accountKit, String antifakeCode) {
+		//解密账户
+		URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+		FXMLLoader loader = new FXMLLoader(location);
+		final AccountKit accountKitTemp = accountKit;
+		DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
+			@Override
+			public void run() {
+				if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+					try {
+						verifyDo(accountKitTemp, antifakeCode);
+					} finally {
+						accountKitTemp.resetKeys();
+					}
+				}
+			}
+		});
 	}
     
     /**

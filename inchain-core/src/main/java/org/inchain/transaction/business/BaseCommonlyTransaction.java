@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import org.inchain.account.Account;
 import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -123,6 +124,11 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 		hash = null;
 		hash = getHash();
 		scriptBytes = null;
+
+		//是否加密
+		if(account.isEncrypted()) {
+			throw new AccountEncryptedException();
+		}
 		
 		if(account.isCertAccount()) {
 			//认证账户
@@ -151,6 +157,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 		} else {
 			//普通账户
 			ECKey key = account.getEcKey();
+			
 			ECDSASignature ecSign = key.sign(hash);
 			byte[] sign = ecSign.encodeToDER();
 			
