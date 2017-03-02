@@ -68,6 +68,10 @@ public class MainController {
 	public Button sellerRecordId;			//商家列表
 	public Button antifakeId;				//防伪测试
 	
+	public ImageView netInfoImageViewId;	//网络信息
+	public ImageView blockInfoImageViewtId;	//区块信息
+	public ImageView nowNetTimeImageViewId;	//网络时间
+	
 	public StackPane contentId;				//子页面内容控件
 	private List<Button> buttons = new ArrayList<Button>();
 	private Map<String, Node> pageMaps = new HashMap<String, Node>();	//页面列表
@@ -75,17 +79,33 @@ public class MainController {
 	private String currentPageId;			//当前显示的页面
 	private Stage stage;
 	Image imageDecline;
+	
+	
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
     	
-    	Tooltip localTooltip = new Tooltip("本地最新高度");
-    	localTooltip.setFont(Font.font("宋体", 14));
-    	localNewestHeightId.setTooltip(localTooltip);
+    	Font font = Font.font("宋体", 14);
 
+    	Tooltip netInfoTooltip = new Tooltip("节点信息");
+    	netInfoTooltip.setFont(font);
+    	Tooltip.install(netInfoImageViewId, netInfoTooltip);
+    	
+    	Tooltip nowNetTimeTooltip = new Tooltip("网络时间");
+    	nowNetTimeTooltip.setFont(font);
+    	Tooltip.install(nowNetTimeImageViewId.getParent(), nowNetTimeTooltip);
+
+    	Tooltip blockInfoTooltip = new Tooltip("区块信息");
+    	blockInfoTooltip.setFont(font);
+    	Tooltip.install(blockInfoImageViewtId, blockInfoTooltip);
+    	
+    	Tooltip localTooltip = new Tooltip("本地最新高度");
+    	localTooltip.setFont(font);
+    	localNewestHeightId.setTooltip(localTooltip);
+    	
     	Tooltip netTooltip = new Tooltip("网络最新高度");
-    	netTooltip.setFont(Font.font("宋体", 14));
+    	netTooltip.setFont(font);
     	netNewestHeightId.setTooltip(netTooltip);
     	
     	addImageToButton(accountInfoId,"accountInfo");
@@ -110,6 +130,7 @@ public class MainController {
 	private void addImageToButton(Button button,String name) {
 		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
     	button.setGraphic(new ImageView(imageDecline));
+    	button.setGraphicTextGap(10);
 	}
 
     /**

@@ -18,7 +18,7 @@
     <StackPane fx:id="contentId" layoutX="226.0" layoutY="87.0" minHeight="510.0" minWidth="774.0" prefHeight="510.0" prefWidth="774.0" style="-fx-border-color: lightgrey; -fx-border-style: dashed" AnchorPane.bottomAnchor="135.0" AnchorPane.leftAnchor="226.0" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="25.0" />
       <HBox alignment="CENTER" layoutX="226.0" layoutY="612.0" prefHeight="36.0" spacing="8.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="226.0">
          <children>
-            <ImageView fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fx:id="nowNetTimeImageViewId" fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
                <image>
                   <Image url="@../../images/date_icon.png" />
                </image>
@@ -35,7 +35,7 @@
          <children>
             <HBox alignment="CENTER_LEFT" prefHeight="36.0">
                <children>
-                  <ImageView fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
+                  <ImageView fx:id="blockInfoImageViewtId" fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../../images/block_icon.png" />
                      </image>
@@ -63,7 +63,7 @@
             </HBox>
             <HBox alignment="CENTER_RIGHT">
                <children>
-                  <ImageView fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
+                  <ImageView fx:id="netInfoImageViewId" fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
                      <image>
                         <Image url="@../../images/network_icon.png" />
                      </image>
