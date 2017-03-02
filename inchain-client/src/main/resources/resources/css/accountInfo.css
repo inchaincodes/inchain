@@ -1,0 +1,14 @@
+#infoItem{
+	-fx-background-image:url("/images/info_item_bg.png");
+}
+
+Button{
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: #34538b;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_CENTER;
+}
+

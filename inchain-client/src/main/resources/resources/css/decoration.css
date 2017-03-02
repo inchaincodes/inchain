@@ -1,0 +1,68 @@
+.root{
+	-fx-background-image: url("/images/default_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;	
+    -fx-background-size: cover;
+}
+#headBar{
+	-fx-background-image:url("/images/headBar.png");
+	-fx-background-repeat: repeat;
+	-fx-background-size: cover;
+}
+.root #menuId Button{
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_LEFT;
+    -fx-padding:0 0 0 30;
+    -fx-background-size: cover;
+    -fx-background-image:url("/images/button_bg.png");
+}
+.root #menuId  Button:hover{
+	 -fx-background-image:url("/images/default_bg.png");
+}
+.root Label{
+	-fx-text-fill:WHITE;
+}
+#copy-button{
+	-fx-font-size:12;
+	-fx-padding:0;
+}
+#copy-button :hover{
+	-fx-font-size:14;
+	-fx-padding:0;
+}
+#decoration-button-iconified {
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-image: url("/images/iconified.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+#decoration-button-iconified:hover {
+	
+    -fx-background-color: null;
+    -fx-background-image: url("/images/iconifiedH.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+#decoration-button-close {
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-image: url("/images/close.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+#decoration-button-close:hover {
+    -fx-background-color: null;
+    -fx-background-image: url("/images/closeH.png");
+    -fx-background-repeat: no-repeat;
+}
