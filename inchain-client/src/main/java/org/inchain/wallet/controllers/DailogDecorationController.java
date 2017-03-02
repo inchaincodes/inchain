@@ -1,7 +1,5 @@
 package org.inchain.wallet.controllers;
 
-import org.inchain.wallet.Context;
-
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -11,7 +9,7 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
-public class DailogDecorationController extends DailogController{
+public class DailogDecorationController {
 
 	private Stage stage;
 	public Button close;
@@ -49,11 +47,6 @@ public class DailogDecorationController extends DailogController{
 		close.addEventHandler(MouseEvent.MOUSE_PRESSED, event ->{
 			if(stage != null) {
 				stage.close();
-				Context.deleteStage(getPageId());
-				System.out.println(getPageId());
-				if(callback != null) {
-					callback.run();
-				}
 			}
 		});
 	}

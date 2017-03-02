@@ -3,6 +3,7 @@ package org.inchain.wallet.utils;
 import java.net.URL;
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.Context;
+import org.inchain.wallet.controllers.DailogController;
 import org.inchain.wallet.controllers.DailogDecorationController;
 import org.inchain.wallet.entity.Point;
 
@@ -13,6 +14,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -24,7 +26,6 @@ import javafx.stage.StageStyle;
 public class DailogUtil {
 	
 	public final static long DEFAULT_HIDE_TIME = 1000l;
-	public static DailogDecorationController dailogDecorationController;
 	
 	/**
 	 * 提示消息
@@ -146,7 +147,7 @@ public class DailogUtil {
 			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
 			FXMLLoader loader =  new FXMLLoader(url);
 			Pane ui = loader.load();
-			dailogDecorationController = loader.getController();
+			DailogDecorationController dailogDecorationController = loader.getController();
 			Pane dailogContent = content.load();
 			
 			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
@@ -159,16 +160,20 @@ public class DailogUtil {
 			window.setY(point.getY());
 			//设置程序标题
 			window.setTitle(title);
+			window.initModality(Modality.APPLICATION_MODAL);
 			//设置程序图标
 			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
 			Scene scene = new Scene(ui);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
-			if(ui.getId() != null) {
-				Context.addStage(ui.getId(), window);
+			if(dailogContent.getId() != null) {
+				Context.addStage(dailogContent.getId(), window);
 			}
-			dailogDecorationController.setCallback(callback);
-			dailogDecorationController.setPageId(ui.getId());
+			
+			DailogController controller = content.getController();
+			
+			controller.setCallback(callback);
+			controller.setPageId(dailogContent.getId());
 			
 			window.showAndWait();
 		} catch (Exception e) {
