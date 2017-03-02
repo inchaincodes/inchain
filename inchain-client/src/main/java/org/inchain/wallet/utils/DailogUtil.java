@@ -1,20 +1,20 @@
 package org.inchain.wallet.utils;
 
+import java.net.URL;
+import org.inchain.wallet.Constant;
 import org.inchain.wallet.Context;
-import org.inchain.wallet.controllers.DailogController;
+import org.inchain.wallet.controllers.DailogDecorationController;
 import org.inchain.wallet.entity.Point;
 
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.WindowEvent;
 
 /**
  * 弹出框工具类
@@ -24,7 +24,8 @@ import javafx.stage.WindowEvent;
 public class DailogUtil {
 	
 	public final static long DEFAULT_HIDE_TIME = 1000l;
-
+	public static DailogDecorationController dailogDecorationController;
+	
 	/**
 	 * 提示消息
 	 * @param message
@@ -136,41 +137,38 @@ public class DailogUtil {
 	
 	/**
 	 * 显示弹出层
-	 * @param loader
+	 * @param content
 	 * @param title
 	 * @param callback 关闭时的回调
 	 */
-	public static void showDailog(FXMLLoader loader, String title, final Runnable callback) {
+	public static void showDailog(FXMLLoader content, String title, final Runnable callback) {
 		try {
+			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
+			FXMLLoader loader =  new FXMLLoader(url);
 			Pane ui = loader.load();
-			Stage window = new Stage(StageStyle.UTILITY);
-			window.setTitle(title);
-			window.initModality(Modality.APPLICATION_MODAL);
+			dailogDecorationController = loader.getController();
+			Pane dailogContent = content.load();
 			
+			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
+			
+			Stage window = new Stage(StageStyle.TRANSPARENT);
+			dailogDecorationController.setStage(window);
+			dailogDecorationController.setTitle(title);
 			Point point = getDailogPoint(ui.getPrefWidth(), ui.getPrefHeight());
 			window.setX(point.getX());
 			window.setY(point.getY());
-	
+			//设置程序标题
+			window.setTitle(title);
+			//设置程序图标
+			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
 			Scene scene = new Scene(ui);
 			window.setScene(scene);
-			
+			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
 			if(ui.getId() != null) {
 				Context.addStage(ui.getId(), window);
 			}
-			window.setOnCloseRequest(new EventHandler<WindowEvent>() {
-				@Override
-				public void handle(WindowEvent event) {
-					if(ui.getId() != null) {
-						Context.deleteStage(ui.getId());
-					}
-					if(callback != null) {
-						callback.run();
-					}
-				}
-			});
-			DailogController controller = loader.getController();
-			controller.setCallback(callback);
-			controller.setPageId(ui.getId());
+			dailogDecorationController.setCallback(callback);
+			dailogDecorationController.setPageId(ui.getId());
 			
 			window.showAndWait();
 		} catch (Exception e) {

@@ -17,19 +17,15 @@ import org.inchain.kit.InchainInstance;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
-import org.mistfx.decoration.Decoration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.WindowEvent;
@@ -39,13 +35,9 @@ import javafx.stage.WindowEvent;
  * @author ln
  *
  */
-public class Main extends Application implements ActionListener {
+public class Main extends Decoration implements ActionListener {
 	
 	private static final Logger log = LoggerFactory.getLogger(Main.class);
-	
-	private static final int DEFAULT_WIDTH = 640;
-	private static final int DEFAULT_HEIGHT = 480;
-	
 	
 	//如果系统支持托盘， 在第一次点击关闭按钮时，最小化到托盘，弹出提示
 	private boolean hideTip;
@@ -70,6 +62,8 @@ public class Main extends Application implements ActionListener {
 	 */
 	@Override
 	public void start(final Stage stage) throws Exception {
+		super.start(stage);
+		
 		Context.addStage("main", stage);
 		this.stage = stage;
     	
@@ -130,7 +124,7 @@ public class Main extends Application implements ActionListener {
 		});
         
 		startPageStage = new Stage(StageStyle.UNDECORATED);
-		Scene scene = new Scene(mainUI, 580, 320);
+		Scene scene = new Scene(mainUI);
 		scene.getStylesheets().add("/resources/css/startPage.css");
 		startPageStage.initOwner(stage);
 		startPageStage.setScene(scene);
@@ -164,21 +158,8 @@ public class Main extends Application implements ActionListener {
         
         mainController = loader.getController();
         mainController.setStage(stage);
- 
-        StackPane uiStack = new StackPane(mainUI);
-        
-        stage.setMinHeight(DEFAULT_HEIGHT);
-        stage.setMinWidth(DEFAULT_WIDTH);
-        stage.setWidth(DEFAULT_WIDTH);
-        stage.setHeight(DEFAULT_HEIGHT);
-        
-        Decoration decoration = new Decoration(uiStack);
-        
-        Scene scene = new Scene(decoration, Color.TRANSPARENT);
-        scene.getStylesheets().add("/resources/css/wallet.css");
-        scene.getStylesheets().add("/resources/css/tableView.css");
-        stage.setScene(scene);
-        stage.initStyle(StageStyle.TRANSPARENT);
+        mainController.setDecorationController(decorationController);
+        mainContent.getChildren().add(mainUI);
 	}
 
 	/*
@@ -199,6 +180,7 @@ public class Main extends Application implements ActionListener {
                 if(SystemTray.isSupported()) {
             		//隐藏，可双击托盘恢复
             		hide();
+            		System.out.println("=====hidetip"+hideTip);
             		if(!hideTip) {
             			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
             			if(trayIcons != null && trayIcons.length > 0) {

@@ -34,6 +34,7 @@ public class StartPageController {
 	//控制器
 	private MainController mainController;
 	
+	public Label speedLabel;
 	public Label tipLabel;
 	public ProgressBar progressBar;
 	
@@ -74,7 +75,6 @@ public class StartPageController {
      * 初始化数据
      */
     protected void initDatas() {
-    	
     	executor.shutdownNow();
     	
     	startupListener = new StartupListener() {
@@ -94,6 +94,8 @@ public class StartPageController {
 							tipLabel.setText(tip);
 							//使用 this.getCompletionRate() 来获取进度
 							progressBar.setProgress((float)(getCompletionRate()/100.0));
+							speedLabel.setText(getCompletionRate()+"%");
+							//progressBar.setStyle("-fx-accent:rgb("+getCompletionRate()/10+",125,125)");
 						}
 					});
 				} catch (Exception e) {

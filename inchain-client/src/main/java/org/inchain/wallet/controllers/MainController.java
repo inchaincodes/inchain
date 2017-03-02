@@ -1,10 +1,8 @@
 package org.inchain.wallet.controllers;
 
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.awt.TrayIcon.MessageType;
-import java.awt.datatransfer.StringSelection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,7 +26,6 @@ import org.inchain.store.TransactionStore;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.listener.StartupListener;
-import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +37,8 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
@@ -55,16 +53,12 @@ public class MainController {
 	
 	private static final Logger log = LoggerFactory.getLogger(MainController.class);
 	
-	public Label balanceId;						//账户余额
-	public Label accountAddressId;				//账户地址
-	public Button copyAccountAddressId;			//复制账户地址按钮
-	
 	public Label nowNetTimeId;					//当前网络时间
 	public Label localNewestHeightId;			//本地最新高度
 	public Label netNewestHeightId;				//网络最新高度
 	public Label blockHeightSeparator;			//本地最新高度与网络最新高度分隔符
-	public Label networkInfosTipId;				//网络连接节点信息提示
 	public Label networkInfosNumId;				//网络连接节点信息
+	public DecorationController decorationController;
 
 	//导航按钮
 	public Button accountInfoId;			//账户信息
@@ -73,15 +67,14 @@ public class MainController {
 	public Button consensusRecordId;		//共识节点列表
 	public Button sellerRecordId;			//商家列表
 	public Button antifakeId;				//防伪测试
-	public StackPane contentId;				//子页面内容控件
 	
+	public StackPane contentId;				//子页面内容控件
 	private List<Button> buttons = new ArrayList<Button>();
 	private Map<String, Node> pageMaps = new HashMap<String, Node>();	//页面列表
 	private Map<String, SubPageController> subPageControllerMaps = new HashMap<String, SubPageController>();	//页面控制器
 	private String currentPageId;			//当前显示的页面
-	
 	private Stage stage;
-	
+	Image imageDecline;
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
@@ -95,10 +88,11 @@ public class MainController {
     	netTooltip.setFont(Font.font("宋体", 14));
     	netNewestHeightId.setTooltip(netTooltip);
     	
-    	Tooltip networkInfosTooltip = new Tooltip("主动连接：0\r\n被动连接：0");
-    	networkInfosTooltip.setFont(Font.font("宋体", 14));
-    	networkInfosTipId.setTooltip(networkInfosTooltip);
-    	networkInfosNumId.setTooltip(networkInfosTooltip);
+    	addImageToButton(accountInfoId,"accountInfo");
+    	addImageToButton(sendAmountId,"sendAmount");
+    	addImageToButton(transactionRecordId,"transactionRecord");
+    	addImageToButton(consensusRecordId,"consensusRecord");
+    	addImageToButton(sellerRecordId,"sellerRecord");
     	
 		buttons.add(accountInfoId);
 		buttons.add(sendAmountId);
@@ -112,6 +106,11 @@ public class MainController {
 			button.setOnAction(buttonEventHandler);
 		}
     }
+
+	private void addImageToButton(Button button,String name) {
+		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
+    	button.setGraphic(new ImageView(imageDecline));
+	}
 
     /**
      * 核心启动完成之后调用的初始化
@@ -132,7 +131,6 @@ public class MainController {
     	startupOnChange(startupListener, "初始化监听器", 3);
     	//初始化监听器
     	initListeners();
-    	
     	//加载完成
     	startupListener.onComplete();
 	}
@@ -148,7 +146,8 @@ public class MainController {
 				if(button == null) {
 					return;
 				}
-				
+				initButtonbg();
+				button.setStyle("-fx-background-image:url(\"/images/button_bgHL.png\")");
 				String id = button.getId();
 				
 				//触发页面显示隐藏事件
@@ -168,6 +167,12 @@ public class MainController {
 		return buttonEventHandler;
 	}
 	
+	protected void initButtonbg() {
+		for (Button button : buttons) {
+			button.setStyle("-fx-background-image:url(\"/images/button_bg.png\")");
+		}
+	}
+
 	/*
 	 * 初始化各个页面的数据
 	 */
@@ -187,10 +192,10 @@ public class MainController {
 						Platform.runLater(new Runnable() {
 						    @Override
 						    public void run() {
-								accountAddressId.setText(addressBase58);
-								accountAddressId.getTooltip().setText(addressBase58);
+						    	decorationController.setAccountAddressId(addressBase58);
+						    	decorationController.setTipText(addressBase58);
 								//设置余额
-								balanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
+						    	decorationController.setBalanceId(address.getBalance().add(address.getUnconfirmedBalance()).toText());
 						    }
 						});
 					}
@@ -227,6 +232,7 @@ public class MainController {
 			String id = button.getId();
 			pageMaps.put(id, getPage(id));
 		}
+		buttons.get(0).setStyle("-fx-background-image:url(\"/images/button_bgHL.png\")");
 		//显示第一个子页面
 		if(buttons.size() > 0) {
 			showPage(buttons.get(0).getId());
@@ -343,6 +349,7 @@ public class MainController {
 				}
 				contentId.getChildren().clear();
 				contentId.getChildren().add(page);
+				
 				currentPageId = id;
 		    }
 		});
@@ -424,20 +431,13 @@ public class MainController {
     		};
     	}.start();
 	}
-
-	
-	/**
-	 * 复制地址到剪切板
-	 */
-	public void onCopy(MouseEvent e) {
-		
-		String address = accountAddressId.getText();
-		StringSelection stsel = new StringSelection(address);
-		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
-		
-		DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
+	public DecorationController getDecorationController() {
+		return decorationController;
 	}
-	
+
+	public void setDecorationController(DecorationController decorationController) {
+		this.decorationController = decorationController;
+	}
     public void setStage(Stage stage) {
 		this.stage = stage;
 	}

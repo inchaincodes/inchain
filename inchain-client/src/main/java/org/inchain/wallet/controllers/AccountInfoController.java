@@ -22,6 +22,8 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 
 /**
@@ -45,11 +47,15 @@ public class AccountInfoController implements SubPageController {
 	public Button backupWalletId;					//备份钱包
 	public Button importWalletId;					//导入钱包
 	public Button encryptWalletId;					//加密钱包
-	
+	Image imageDecline;
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	//初始化按钮
+    	addImageToButton(backupWalletId,"backupWallet");
+    	addImageToButton(importWalletId,"importWallet");
+    	addImageToButton(encryptWalletId,"encryptWallet");
     	//点击备份钱包事件
     	backupWalletId.setOnAction(e -> backupWallet());
     	//点击导入钱包事件
@@ -62,6 +68,11 @@ public class AccountInfoController implements SubPageController {
         //默认选择程序运行目录
         fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
     }
+
+    private void addImageToButton(Button button,String name) {
+		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
+    	button.setGraphic(new ImageView(imageDecline));
+	}
 
 	/**
      * 初始化钱包信息
@@ -91,7 +102,7 @@ public class AccountInfoController implements SubPageController {
 		    @Override
 		    public void run() {
 				if(accountKit.accountIsEncrypted()) {
-		    		encryptWalletId.setText("修改钱包密码");
+		    		encryptWalletId.setText("修改密码");
 				} else {
 					encryptWalletId.setText("加密钱包");
 				} 
