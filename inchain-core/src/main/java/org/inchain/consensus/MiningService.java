@@ -1,7 +1,6 @@
 package org.inchain.consensus;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,10 +8,10 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.Coin;
-import org.inchain.core.TimeService;
+import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
+import org.inchain.core.TimeService;
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
@@ -26,7 +25,6 @@ import org.inchain.message.InventoryMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.ScriptBuilder;
-import org.inchain.signers.ConsensusSigner;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
@@ -68,7 +66,10 @@ public final class MiningService implements Mining {
 	private AccountKit accountKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
-	@Autowired ChainstateStoreProvider chainstateStoreProvider;
+	@Autowired
+	private ChainstateStoreProvider chainstateStoreProvider;
+	@Autowired
+	private DataSynchronizeHandler dataSynchronizeHandler;
 
 	//运行状态
 	private boolean runing;
@@ -353,8 +354,10 @@ public final class MiningService implements Mining {
 		
 		//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
 		while(true && runing) {
-			//是否可进行广播
-			if(peerKit.canBroadcast()) {
+			//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
+			if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete() && 
+					!((account.isCertAccount() && account.isEncryptedOfTr()) || 
+							(account.isCertAccount() && account.isEncrypted()))) {
 				//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
 				BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 				Utils.checkNotNull(bestBlockHeader);
@@ -365,8 +368,10 @@ public final class MiningService implements Mining {
 				
 				ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), height, content);
 				//签名共识消息
-				ConsensusSigner.sign(message, ECKey.fromPrivate(new BigInteger(account.getPriSeed())));
-				consensusMeeting.sendMeetingMessage(message);
+				message.sign(account);
+				
+				consensusMeeting.broadcastMessage(message);
+				consensusMeeting.startSyn();
 				break;
 			} else {
 				try {
@@ -376,17 +381,13 @@ public final class MiningService implements Mining {
 				}
 			}
 		}
-		
-		if(runing) {
-			consensusMeeting.startSyn();
-		}
 	}
 	
 	@Override
 	public void stop() {
 		runing = false;
 		//强制停止
-//		consensusMeeting.stop();
+		consensusMeeting.stop();
 	}
 	
 	@Override

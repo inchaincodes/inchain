@@ -3,11 +3,17 @@ package org.inchain.message;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 
+import org.inchain.account.Account;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.ECKey;
+import org.inchain.crypto.ECKey.ECDSASignature;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
@@ -38,15 +44,15 @@ public class ConsensusMessage extends Message {
 	private byte[] content;
 	//高度
 	private long height;
-	//消息发送时间
+	//时间
 	private long time;
 	//随机数
 	private long nonce;
 	//签名
-	private byte[] sign;
+	private byte[][] signs;
 	
 	public ConsensusMessage(NetworkParams network) {
-        super();
+        super(network);
     }
     
 	public ConsensusMessage(NetworkParams network, byte[] payload) throws ProtocolException {
@@ -58,11 +64,12 @@ public class ConsensusMessage extends Message {
     }
 
     public ConsensusMessage(NetworkParams network, byte[] payload, int offset, int protocolVersion) throws ProtocolException {
-        super(network, payload, offset, protocolVersion, network.getDefaultSerializer(), UNKNOWN_LENGTH);
+        super(network, payload, offset);
+        this.protocolVersion = protocolVersion;
     }
 
 	public ConsensusMessage(NetworkParams network, byte[] hash160, long height, byte[] content) {
-        super();
+        super(network);
         this.protocolVersion = PROTOCOL_VERSION;
         this.hash160 = hash160;
         this.height = height;
@@ -80,7 +87,17 @@ public class ConsensusMessage extends Message {
 		time = readInt64();
 		nonce = readInt64();
 		content = readBytes((int) readVarInt());
-		sign = readBytes((int) readVarInt());
+
+		byte[] sign1 = readBytes((int) readVarInt());
+		byte[] sign2 = null;
+		if(hasMoreBytes()) {
+			sign2 = readBytes((int) readVarInt());
+		}
+		if(sign2 == null) {
+			signs = new byte[][] {sign1};
+		} else {
+			signs = new byte[][] {sign1, sign2};
+		}
 		
 		length = cursor - offset;
 	}
@@ -90,9 +107,12 @@ public class ConsensusMessage extends Message {
 		
 		stream.write(getBodyBytes());
 		
-		if(sign != null) {
-			stream.write(new VarInt(sign.length).encode());
-			stream.write(sign);
+		if(signs != null) {
+			for (int i = 0; i < signs.length; i++) {
+				byte[] sign = signs[i];
+				stream.write(new VarInt(sign.length).encode());
+				stream.write(sign);
+			}
 		}
 	}
 	
@@ -124,12 +144,67 @@ public class ConsensusMessage extends Message {
 		}
 	}
 
-	public Sha256Hash getId() {
-		return id;
+	/**
+	 * 签名共识消息
+	 * @param account
+	 */
+	public void sign(Account account) {
+		Sha256Hash hash = Sha256Hash.twiceOf(getBodyBytes());
+		//是否加密
+		if(account.isEncrypted()) {
+			throw new AccountEncryptedException();
+		}
+		if(account.isCertAccount()) {
+			//认证账户
+			if(account.getAccountTransaction() == null) {
+				throw new VerificationException("签名失败，认证账户没有对应的信息交易");
+			}
+			
+			ECKey[] keys = account.getTrEckeys();
+			
+			if(keys == null) {
+				throw new VerificationException("账户没有解密？");
+			}
+			
+			ECDSASignature ecSign = keys[0].sign(hash);
+			byte[] sign1 = ecSign.encodeToDER();
+			
+			ecSign = keys[1].sign(hash);
+			byte[] sign2 = ecSign.encodeToDER();
+			
+			signs = new byte[][] {sign1, sign2};
+		} else {
+			//普通账户
+			ECKey key = account.getEcKey();
+			
+			ECDSASignature ecSign = key.sign(hash);
+			byte[] sign = ecSign.encodeToDER();
+			
+			signs = new byte[][] {sign};
+		}
+	}
+	
+	/**
+	 * 验证共识消息签名
+	 * @param pubkeys
+	 */
+	public void verfify(byte[][] pubkeys) {
+		if(signs == null || signs.length != pubkeys.length) {
+			throw new VerificationException("签名错误，hash160:" + Hex.encode(getHash160()));
+		}
+		for (int i = 0; i < signs.length; i++) {
+			ECKey key = ECKey.fromPublicOnly(pubkeys[i]);
+			if(!key.verify(Sha256Hash.twiceOf(getBodyBytes()).getBytes(), signs[i])) {
+				throw new VerificationException("错误的共识消息签名信息，hash160:" + Hex.encode(getHash160()));
+			}
+		}
 	}
 
-	public void setId(Sha256Hash id) {
-		this.id = id;
+	public Sha256Hash getId() {
+		if(id == null) {
+			id = Sha256Hash.twiceOf(baseSerialize());
+		}
+		return id;
 	}
 
 	public byte[] getHash160() {
@@ -171,14 +246,6 @@ public class ConsensusMessage extends Message {
 	public void setNonce(long nonce) {
 		this.nonce = nonce;
 	}
-
-	public byte[] getSign() {
-		return sign;
-	}
-
-	public void setSign(byte[] sign) {
-		this.sign = sign;
-	}
 	
 	public Peer getPeer() {
 		return peer;
@@ -188,9 +255,18 @@ public class ConsensusMessage extends Message {
 		this.peer = peer;
 	}
 
+	public byte[][] getSigns() {
+		return signs;
+	}
+
+	public void setSigns(byte[][] signs) {
+		this.signs = signs;
+	}
+
 	@Override
 	public String toString() {
-		return "ConsensusMessage [hash160=" + Hex.encode(hash160) + ", content=" + Hex.encode(content)
-				+ ", nonce=" + nonce + ", time=" + time + ", height=" + height + ", sign=" + Hex.encode(sign) + "]";
+		return "ConsensusMessage [peer=" + peer + ", id=" + id + ", hash160=" + Hex.encode(hash160) + ", content="
+				+ Hex.encode(content) + ", height=" + height + ", nonce=" + nonce + ", signs="
+				+ Arrays.toString(signs) + "]";
 	}
 }

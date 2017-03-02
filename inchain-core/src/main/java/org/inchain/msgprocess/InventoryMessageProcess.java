@@ -1,10 +1,12 @@
 package org.inchain.msgprocess;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -48,6 +50,8 @@ public class InventoryMessageProcess implements MessageProcess {
 	private static Lock blockLocker = new ReentrantLock();
 	//交易下载锁
 	private static Lock txLocker = new ReentrantLock();
+	//其他消息下载锁
+	private static Lock otherLocker = new ReentrantLock();
 
 	@Autowired
 	private PeerKit peerKit;
@@ -120,8 +124,12 @@ public class InventoryMessageProcess implements MessageProcess {
 			});
 		} else {
 			//默认处理
-			filter.insert(inventoryItem.getHash().getBytes());
-			doProcessInventoryItem(inventoryItem);
+			blockExecutorService.submit(new Runnable() {
+				@Override
+				public void run() {
+					doProcessInventoryItem(peer, inventoryItem);
+				}
+			});
 		}
 	}
 
@@ -241,8 +249,25 @@ public class InventoryMessageProcess implements MessageProcess {
 		}
 	}
 
-	private void doProcessInventoryItem(InventoryItem inventoryItem) {
-		
+	private void doProcessInventoryItem(Peer peer, InventoryItem inventoryItem) {
+		try {
+			otherLocker.lock();
+			
+			if(filter.contains(inventoryItem.getHash().getBytes())) {
+				return;
+			}
+			
+			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
+			//获取下载结果，有超时时间
+			GetDataResult result = resultFuture.get(2, TimeUnit.SECONDS);
+			if(result.isSuccess()) {
+				filter.insert(inventoryItem.getHash().getBytes());
+			}
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			e.printStackTrace();
+		} finally {
+			otherLocker.unlock();
+		}
 	}
 
 	/**

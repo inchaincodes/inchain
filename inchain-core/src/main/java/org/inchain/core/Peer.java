@@ -137,6 +137,9 @@ public class Peer extends PeerSocketHandler {
 				futures.set(true);
 			}
 		}
+		if(hash == null) {
+			hash = result.getHash();
+		}
 		//判断是否在下载列表中
 		if(hash != null) {
 			SettableListenableFuture<GetDataResult> future = downDataFutures.get(hash);

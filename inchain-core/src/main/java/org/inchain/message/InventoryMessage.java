@@ -48,20 +48,7 @@ public class InventoryMessage extends Message {
                 throw new ProtocolException("Ran off the end of the INV");
             }
             int typeCode = (int) readBytes(1)[0];
-            InventoryItem.Type type;
-            switch (typeCode) {
-                case 0:
-                    type = InventoryItem.Type.Transaction;
-                    break;
-                case 1:
-                    type = InventoryItem.Type.Block;
-                    break;
-                case 2:
-                    type = InventoryItem.Type.NewBlock;
-                    break;
-                default:
-                    throw new ProtocolException("Unknown inv type: " + typeCode);
-            }
+            InventoryItem.Type type = InventoryItem.Type.from(typeCode);
             InventoryItem item = new InventoryItem(type, readHash());
             invs.add(item);
         }

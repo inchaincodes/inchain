@@ -10,7 +10,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.mempool.MempoolContainerMap;
+import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.utils.Hex;
@@ -82,7 +82,7 @@ public class MakeCertAccountRegisterTransaction {
 			System.out.println("tx id is :" +rtx.getHash());
 			System.out.println(rtx.getBody());
 
-			MempoolContainerMap.getInstace().add(rtx);
+			MempoolContainer.getInstace().add(rtx);
 			
 			PeerKit peerKit = springContext.getBean(PeerKit.class);
 			

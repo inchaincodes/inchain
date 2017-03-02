@@ -1,6 +1,5 @@
 package org.inchain.consensus;
 
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,12 +17,12 @@ import javax.annotation.PostConstruct;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.TimeService;
-import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.ConsensusMessage;
+import org.inchain.message.InventoryItem;
+import org.inchain.message.InventoryMessage;
 import org.inchain.network.NetworkParams;
-import org.inchain.signers.ConsensusSigner;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +56,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	private static Map<Long, List<List<ConsensusMessage>>> sequenceBackupList = new HashMap<Long, List<List<ConsensusMessage>>>();
 		
 	//任务调度器
-	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5);
+	private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(2);
 	
 	@Autowired
 	private NetworkParams network;
@@ -94,8 +93,20 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	}
 	
 	@Override
-	public void sendMeetingMessage(ConsensusMessage message) {
-		peerKit.broadcastMessage(message);
+	public void broadcastMessage(ConsensusMessage consensusMessage) {
+		
+		//除拉取共识状态之外的消息都使用inv广播
+		byte[] content = consensusMessage.getContent();
+		if(content[0] == 1 || content[0] == 2) {
+			peerKit.broadcastMessage(consensusMessage);
+		} else {
+			Sha256Hash id = consensusMessage.getId();
+			if(messages.get(id) == null) {
+				receiveMeetingMessage(id, consensusMessage);
+			}
+			InventoryMessage message = new InventoryMessage(network, new InventoryItem(InventoryItem.Type.Consensus, id));
+			peerKit.broadcastMessage(message);
+		}
 	}
 
 	@Override
@@ -104,7 +115,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			return;
 		}
 		//如果已经接收，则不处理
-		if(messageHasReceive(msid)) {
+		if(messageHasReceived(msid)) {
 			return;
 		}
 		messages.put(msid, message);
@@ -130,6 +141,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 发送拉取最新共识状态消息之后，这里接收相应的回应，处理好之后把共识状态置为准备就绪状态
 	 */
 	private void processReceiveMeetingStatus(ConsensusMessage message) {
+		
+		
+		log.info("==============");
+		log.info("{}", message);
+		log.info("==============");
 		
 		message.getHeight();
 		
@@ -242,7 +258,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		}
 		
 		ConsensusMessage consensusMessage = new ConsensusMessage(message.getNetwork(), account.getAddress().getHash160(), bestblockHeight, content);
-		ConsensusSigner.sign(consensusMessage, ECKey.fromPrivate(new BigInteger(account.getPriSeed())));
+		consensusMessage.sign(account);
 		
 		message.getPeer().sendMessage(consensusMessage);
 	}
@@ -322,7 +338,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 						sequences.setContent(message.getContent());
 						sequences.setNonce(message.getNonce());
 						sequences.setTime(message.getTime());
-						sequences.setSign(message.getSign());
+						sequences.setSigns(message.getSigns());
 						break;
 					}
 				}
@@ -341,8 +357,18 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * @return boolean
 	 */
 	@Override
-	public boolean messageHasReceive(Sha256Hash msid) {
+	public boolean messageHasReceived(Sha256Hash msid) {
 		return messages.containsKey(msid);
+	}
+
+	/**
+	 * 获取一个已接收的共识消息，如果没有则会返回null
+	 * @param msid
+	 * @return ConsensusMessage
+	 */
+	@Override
+	public ConsensusMessage getMeetingMessage(Sha256Hash msid) {
+		return messages.get(msid);
 	}
 
 	@Override
@@ -626,12 +652,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			tempConsensusMessageList.sort(new Comparator<ConsensusMessage>() {
 				@Override
 				public int compare(ConsensusMessage o1, ConsensusMessage o2) {
-					if(o1.getId() == null) {
-						o1.setId(Sha256Hash.twiceOf(o1.baseSerialize()));
-					}
-					if(o2.getId() == null) {
-						o2.setId(Sha256Hash.twiceOf(o2.baseSerialize()));
-					}
 					return o1.getId().compareTo(o2.getId());
 				}
 			});
@@ -736,7 +756,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	private void sendReadyMessage(long height) {
 		
 		if(readyMessageCacher != null && currentMeetingHeight == height) {
-			sendMeetingMessage(readyMessageCacher);
+			broadcastMessage(readyMessageCacher);
 			return;
 		}
 		//content格式第一位为type,3为准备就绪消息
@@ -744,8 +764,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), height, content);
 		//签名共识消息
-		ConsensusSigner.sign(message, ECKey.fromPrivate(new BigInteger(account.getPriSeed())));
-		sendMeetingMessage(message);
+		message.sign(account);
+		
+		broadcastMessage(message);
 		
 		readyMessageCacher = message;
 		if(log.isDebugEnabled()) {
@@ -764,12 +785,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			list.sort(new Comparator<ConsensusMessage>() {
 				@Override
 				public int compare(ConsensusMessage o1, ConsensusMessage o2) {
-					if(o1.getId() == null) {
-						o1.setId(Sha256Hash.twiceOf(o1.baseSerialize()));
-					}
-					if(o2.getId() == null) {
-						o2.setId(Sha256Hash.twiceOf(o2.baseSerialize()));
-					}
 					return o1.getId().compareTo(o2.getId());
 				}
 			});
@@ -787,9 +802,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			
 			ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), currentMeetingHeight, content);
 			//签名共识消息
-			ConsensusSigner.sign(message, ECKey.fromPrivate(new BigInteger(account.getPriSeed())));
+			message.sign(account);
 			
-			sendMeetingMessage(message);
+			broadcastMessage(message);
 			
 			currentSendSequenceCount = list.size();
 			

@@ -2,13 +2,16 @@ package org.inchain.msgprocess;
 
 import java.util.List;
 
-import org.inchain.SpringContextUtils;
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Peer;
 import org.inchain.mempool.MempoolContainer;
+import org.inchain.message.ConsensusMessage;
+import org.inchain.message.DataNotFoundMessage;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
@@ -29,7 +32,11 @@ public class GetDatasMessageProcess implements MessageProcess {
 	private static final Logger log = LoggerFactory.getLogger(GetDatasMessageProcess.class);
 	
 	@Autowired
+	private NetworkParams network;
+	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private ConsensusMeeting consensusMeeting;
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -53,8 +60,21 @@ public class GetDatasMessageProcess implements MessageProcess {
 				//交易数据获取
 				txInventory(inventoryItem, peer);
 			} else if(inventoryItem.getType() == InventoryItem.Type.Block){
+				//获取区块数据
 				BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
+				if(blockStore == null) {
+					peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+					continue;
+				}
 				peer.sendMessage(blockStore.getBlock());
+			} else if(inventoryItem.getType() == InventoryItem.Type.Consensus) {
+				//共识消息
+				ConsensusMessage consensusMessage = consensusMeeting.getMeetingMessage(inventoryItem.getHash());
+				if(consensusMessage == null) {
+					peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+					continue;
+				}
+				peer.sendMessage(consensusMessage);
 			}
 		}
 		
@@ -74,7 +94,7 @@ public class GetDatasMessageProcess implements MessageProcess {
 			TransactionStore ts = blockStoreProvider.getTransaction(inventoryItem.getHash().getBytes());
 			if(ts == null || ts.getTransaction() == null) {
 				//数据没找到，回应notfound
-				//TODO
+				peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
 				return;
 			} else {
 				tx = ts.getTransaction();
@@ -87,8 +107,11 @@ public class GetDatasMessageProcess implements MessageProcess {
 	 * 下载新区块
 	 */
 	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
-		BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
 		BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
+		if(blockStore == null) {
+			peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+			return;
+		}
 		peer.sendMessage(new NewBlockMessage(peer.getNetwork(), blockStore.getBlock().baseSerialize()));
 	}
 

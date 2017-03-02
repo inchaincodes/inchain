@@ -28,7 +28,7 @@ public interface ConsensusPool {
 	/**
 	 * 获取共识节点的公钥
 	 * @param hash160
-	 * @return byte[]
+	 * @return byte[][]
 	 */
-	public byte[] getPubkey(byte[] hash160);
+	public byte[][] getPubkey(byte[] hash160);
 }

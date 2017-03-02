@@ -125,7 +125,6 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	 * 除转帐交易外的其它交易，通用的签名方法
 	 * 如果账户已加密的情况，则需要先解密账户
 	 * @param account
-	 * @param type TransactionDefinition.TX_VERIFY_MG利用管理私钥签名，TransactionDefinition.TX_VERIFY_TR利用交易私钥签名
 	 * @throws IOException 
 	 */
 	public void makeSign(Account account) throws VerificationException, IOException {

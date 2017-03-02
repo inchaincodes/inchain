@@ -16,7 +16,7 @@ public interface ConsensusMeeting {
 	 * 会议发言，向全网广播当前的想法，仅允许共识节点
 	 * @param message
 	 */
-	void sendMeetingMessage(ConsensusMessage message);
+	void broadcastMessage(ConsensusMessage message);
 	
 	/**
 	 * 接收来自网络的其它节点的发言，并做相应的回复
@@ -26,11 +26,18 @@ public interface ConsensusMeeting {
 	void receiveMeetingMessage(Sha256Hash msid, ConsensusMessage message);
 	
 	/**
+	 * 获取一个已接收的共识消息，如果没有则会返回null
+	 * @param msid
+	 * @return ConsensusMessage
+	 */
+	ConsensusMessage getMeetingMessage(Sha256Hash msid);
+	
+	/**
 	 * 消息是否接收
 	 * @param msid
 	 * @return boolean
 	 */
-	boolean messageHasReceive(Sha256Hash msid);
+	boolean messageHasReceived(Sha256Hash msid);
 	
 	/**
 	 * 下一个是否轮到我

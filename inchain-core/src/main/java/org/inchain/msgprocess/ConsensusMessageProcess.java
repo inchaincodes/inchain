@@ -1,17 +1,15 @@
 package org.inchain.msgprocess;
 
-import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Peer;
-import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
-import org.inchain.kits.PeerKit;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.Message;
 import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,6 +22,11 @@ public class ConsensusMessageProcess implements MessageProcess {
 	
 	private final Logger log = LoggerFactory.getLogger(getClass());
 	
+	@Autowired
+	private ConsensusPool consensusPool;
+	@Autowired
+	private ConsensusMeeting consensusMeeting;
+	
 	/**
 	 * 接收到共识消息，在此做2个验证，第一签名是否正确，第二是否是共识节点发出的消息，验证通过之后，就放到共识会议记录里面去，然后转发该条消息
 	 */
@@ -32,42 +35,46 @@ public class ConsensusMessageProcess implements MessageProcess {
 		
 		ConsensusMessage consensusMessage = (ConsensusMessage) message;
 		
+		MessageProcessResult result = new MessageProcessResult(consensusMessage.getId(), false);
+		
 		//验证签名是否正确
 		//所有节点参与共识，必须以书面协议形式进行签名，确保恶意节点能被追踪处理
-		if(consensusMessage.getSign() == null) {
+		if(consensusMessage.getSigns() == null) {
 			log.warn("缺少签名的共识消息，hash160: {}", Hex.encode(consensusMessage.getHash160()));
-			return null;
+			return result;
 		}
 		
-		ConsensusPool consensusPool = SpringContextUtils.getBean(ConsensusPool.class);
 		if(!consensusPool.contains(consensusMessage.getHash160())) {
 			log.warn("非共识节点违规共识消息，hash160: {}", Hex.encode(consensusMessage.getHash160()));
-			return null;
+			return result;
 		}
 		
 		//判断是否已经接收过的消息
 		//TODO 这里可以用布隆过滤器实现
-		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
 		
-		Sha256Hash msid = Sha256Hash.twiceOf(consensusMessage.baseSerialize());
-		if(consensusMeeting.messageHasReceive(msid)) {
+		Sha256Hash msid = consensusMessage.getId();
+		if(consensusMeeting.messageHasReceived(msid)) {
+			log.info("共识消息{},已经处理过", msid.toString());
 			if(log.isDebugEnabled()) {
 				log.debug("共识消息{},已经处理过", msid.toString());
 			}
-			return null;
+			return result;
 		}
 		
 		//验证签名
-		byte[] pubkey = consensusPool.getPubkey(consensusMessage.getHash160());
-		
-		if(pubkey == null) {
+		byte[][] pubkeys = consensusPool.getPubkey(consensusMessage.getHash160());
+		if(pubkeys == null) {
 			log.warn("该共识节点缺少公钥信息，hash160: {}", Hex.encode(consensusMessage.getHash160()));
-			return null;
+			return result;
 		}
-		ECKey key = ECKey.fromPublicOnly(pubkey);
-		if(!key.verify(Sha256Hash.twiceOf(consensusMessage.getBodyBytes()).getBytes(), consensusMessage.getSign())) {
-			log.warn("错误的共识消息签名信息，hash160: {}", Hex.encode(consensusMessage.getHash160()));
-			return null;
+		try {
+			consensusMessage.verfify(pubkeys);
+		} catch (Exception e) {
+			log.info("共识消息{},验证出错：{}", msid.toString(), e.getMessage());
+			if(log.isDebugEnabled()) {
+				log.debug("共识消息{},验证出错：{}", msid.toString(), e.getMessage());
+			}
+			return result;
 		}
 		
 		if(log.isDebugEnabled()) {
@@ -75,23 +82,21 @@ public class ConsensusMessageProcess implements MessageProcess {
 		}
 		
 		//验证通过
-		
-		//转发消息
 		//除拉取共识状态之外的消息都转发
 		byte[] content = consensusMessage.getContent();
 		if(content[0] == 1 || content[0] == 2) {
 			//拉取和回应共识状态消息，不转发
 			consensusMessage.setPeer(peer);
+			//加入共识会议记录器
 			consensusMeeting.receiveMeetingMessage(msid, consensusMessage);
 		} else {
 			//加入共识会议记录器
 			consensusMeeting.receiveMeetingMessage(msid, consensusMessage);
-			
-			//TODO
-			PeerKit peerKit = SpringContextUtils.getBean(PeerKit.class);
-			peerKit.broadcastMessage(consensusMessage);
+			//转发消息
+			consensusMeeting.broadcastMessage(consensusMessage);
 		}
-		return null;
+		
+		return new MessageProcessResult(consensusMessage.getId(), true);
 	}
 
 }

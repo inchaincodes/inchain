@@ -152,11 +152,11 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * @param hash160
 	 * @return byte[]
 	 */
-	public byte[] getPubkey(byte[] hash160) {
+	public byte[][] getPubkey(byte[] hash160) {
 		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			if(Arrays.equals(hash160, entry.getKey())) {
 				//TODO
-				return entry.getValue()[0];
+				return entry.getValue();
 			}
 		}
 		return null;

@@ -1611,7 +1611,6 @@ public class Script {
 	
 	/**
      * 是否是防伪验证输入脚本
-     * @param script
      * @return boolean
      */
 	public boolean isAntifakeInputScript() {
