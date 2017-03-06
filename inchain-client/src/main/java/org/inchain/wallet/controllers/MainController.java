@@ -130,7 +130,6 @@ public class MainController {
 
 	private void addImageToButton(Button button,String name) {
 		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png")); 
-System.out.println(imageDecline.getWidth()+":"+imageDecline.getHeight()+"\n");
 		button.setGraphic(new ImageView(imageDecline));
     	button.setGraphicTextGap(10);
 	}
