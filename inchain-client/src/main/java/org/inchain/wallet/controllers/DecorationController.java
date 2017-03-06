@@ -12,6 +12,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -31,6 +33,8 @@ public class DecorationController {
     @FXML protected Region nwEdge;
     @FXML protected Region neEdge;
 
+    @FXML protected AnchorPane root;
+    @FXML protected HBox detail;
     private Rectangle2D bounds;
     private boolean isMaximized;
     @FXML public Button iconified,close;
@@ -44,20 +48,22 @@ public class DecorationController {
     private volatile double xOffset, yOffset, xMoveOffset, yMoveOffset;
     
 	private Rectangle2D primaryScreenBounds = Screen.getPrimary().getVisualBounds();
-    
-    public void initialize() {
+
+	public void initialize() {
     	if (dragbar != null) {
             dragbar.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
                 if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2) {
                     //双击最大化
                     if(isMaximized) {
                     	setNewPosition();
+                		setDetailPosition(bounds.getWidth()/3);
                     } else {
                     	markWindowPosition();
                     	stage.setX(primaryScreenBounds.getMinX());
                     	stage.setY(primaryScreenBounds.getMinY());
                     	stage.setWidth(primaryScreenBounds.getWidth());
                     	stage.setHeight(primaryScreenBounds.getHeight());
+                    	setDetailPosition(primaryScreenBounds.getWidth()/3);
                     }
                     isMaximized = !isMaximized;
                     event.consume();
@@ -178,11 +184,16 @@ public class DecorationController {
     	});
     }
 
+	private void setDetailPosition(Double position) {
+		root.setLeftAnchor(detail,position);
+	}
+
 	private void eEdgeDragged(MouseEvent event) {
 		double newX = event.getSceneX() - xMoveOffset;
 		double newWidth = newX+ bounds.getWidth();
 		if(newWidth >= stage.getMinWidth()){
 			stage.setWidth(newWidth);
+			setDetailPosition(newWidth/3);
 		}
 	}
 	private void wEdgeDragged(MouseEvent event) {
@@ -191,6 +202,7 @@ public class DecorationController {
 		if (newWidth >= stage.getMinWidth()){
 			stage.setWidth(newWidth);
 			stage.setX(newX);
+			setDetailPosition(newWidth/3);
 		}
 	}
 

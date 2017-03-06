@@ -12,7 +12,7 @@
 <?import javafx.scene.text.*?>
 <?import wallettemplate.controls.*?>
 
-<AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="320.0" prefWidth="580.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.StartPageController">
+<AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="490.0" prefWidth="700.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.StartPageController">
    <children>
       <ProgressBar fx:id="progressBar" layoutX="149.0" layoutY="288.0" minHeight="-Infinity" prefHeight="10.0" prefWidth="431.0" progress="0.0" AnchorPane.bottomAnchor="38.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
          <padding>
@@ -28,9 +28,5 @@
             </AnchorPane>
          </children>
       </HBox>
-      <ImageView fitHeight="125.0" fitWidth="250.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="165.0" AnchorPane.topAnchor="105.0">
-         <image>
-            <Image url="@../../images/WalletLogo.png" />
-         </image></ImageView>
    </children>
 </AnchorPane>

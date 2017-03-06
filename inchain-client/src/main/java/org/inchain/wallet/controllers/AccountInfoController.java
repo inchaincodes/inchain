@@ -47,6 +47,7 @@ public class AccountInfoController implements SubPageController {
 	public Button backupWalletId;					//备份钱包
 	public Button importWalletId;					//导入钱包
 	public Button encryptWalletId;					//加密钱包
+	
 	Image imageDecline;
 	/**
 	 *  FXMLLoader 调用的初始化
@@ -72,6 +73,7 @@ public class AccountInfoController implements SubPageController {
     private void addImageToButton(Button button,String name) {
 		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
     	button.setGraphic(new ImageView(imageDecline));
+    	button.setGraphicTextGap(10);
 	}
 
 	/**
@@ -211,7 +213,7 @@ public class AccountInfoController implements SubPageController {
 					location = getClass().getResource("/resources/template/changeWalletPassword.fxml");
 				}
 		        FXMLLoader loader = new FXMLLoader(location);
-				DailogUtil.showDailog(loader, "修改钱包密码");
+				DailogUtil.showDailog(loader, "修改密码");
 			} else {
 				//加密
 				URL location = getClass().getResource("/resources/template/encryptWallet.fxml");
@@ -223,7 +225,7 @@ public class AccountInfoController implements SubPageController {
 						AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 						//判断账户是否加密
 						if(accountKit.accountIsEncrypted()) {
-				    		encryptWalletId.setText("修改钱包密码");
+				    		encryptWalletId.setText("修改密码");
 						}
 					}
 				});

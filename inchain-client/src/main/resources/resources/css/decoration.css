@@ -9,6 +9,9 @@
 	-fx-background-repeat: repeat;
 	-fx-background-size: cover;
 }
+.root #menuId {
+	-fx-background-image:url("/images/menu_bg.png");
+}
 .root #menuId Button{
 	-fx-background-radius: 0;
     -fx-border-style: null;
@@ -16,24 +19,23 @@
     -fx-text-fill:WHITE;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
-    -fx-alignment:BASELINE_LEFT;
-    -fx-padding:0 0 0 30;
-    -fx-background-size: cover;
-    -fx-background-image:url("/images/button_bg.png");
+    -fx-alignment:CENTER_LEFT;
+    -fx-padding:0 0 0 48;
+    -fx-border-color: transparent transparent #6da9e9 transparent;
 }
 .root #menuId  Button:hover{
-	 -fx-background-image:url("/images/default_bg.png");
+	 -fx-background-color: #183556;
 }
 .root Label{
 	-fx-text-fill:WHITE;
 }
-#copy-button{
-	-fx-font-size:12;
-	-fx-padding:0;
+.copy-button{
+	-fx-background-color:#34538b;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:12;
 }
-#copy-button :hover{
-	-fx-font-size:14;
-	-fx-padding:0;
+.copy-button:hover{
+	-fx-background-color:#5070aa;
 }
 #decoration-button-iconified {
 	-fx-background-radius: 0;
@@ -45,11 +47,7 @@
 }
 
 #decoration-button-iconified:hover {
-	
-    -fx-background-color: null;
     -fx-background-image: url("/images/iconifiedH.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-position: center;
 }
 
 #decoration-button-close {
@@ -62,7 +60,5 @@
 }
 
 #decoration-button-close:hover {
-    -fx-background-color: null;
-    -fx-background-image: url("/images/closeH.png");
-    -fx-background-repeat: no-repeat;
+    -fx-background-image: url("/images/closeHL_bg.png");
 }

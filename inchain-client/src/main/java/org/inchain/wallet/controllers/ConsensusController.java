@@ -62,6 +62,7 @@ public class ConsensusController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	
     	status.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Integer>("status"));
     	address.setCellValueFactory(new PropertyValueFactory<ConensusEntity, String>("address"));
     	cert.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Long>("cert") {

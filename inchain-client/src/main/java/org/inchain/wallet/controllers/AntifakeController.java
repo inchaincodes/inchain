@@ -15,8 +15,12 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.Background;
 
 /**
  * 防伪测试控制器
@@ -36,6 +40,11 @@ public class AntifakeController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	antifakeCodeId.setBackground(Background.EMPTY);
+    	Image reset = new Image(getClass().getResourceAsStream("/images/reset_icon.png"));
+    	resetButId.setGraphic(new ImageView(reset));
+    	Image verify = new Image(getClass().getResourceAsStream("/images/verify_icon.png"));
+    	verifyButId.setGraphic(new ImageView(verify));
     	resetButId.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {

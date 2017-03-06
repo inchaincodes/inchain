@@ -5,6 +5,7 @@ import org.inchain.wallet.entity.Point;
 
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -35,14 +36,13 @@ public class ConfirmDailog {
 
     public ConfirmDailog(Stage stage, String message) {
 
-    	int width = 280;
-    	int height = 160;
+    	int width = 460;
+    	int height = 246;
     	
     	Point point = DailogUtil.getDailogPoint(width, height);
 
         dialogStage = new Stage();
         primaryStage = stage;
-
         dialogStage.initOwner(primaryStage);
 
         dialogStage.initModality(Modality.WINDOW_MODAL);
@@ -52,13 +52,14 @@ public class ConfirmDailog {
         dialogStage.setX(point.getX());
         dialogStage.setY(point.getY());
         dialogStage.setResizable(false);
-
         BorderPane borderPaneLayout = new BorderPane();
         borderPaneLayout.getStyleClass().add("root");
-
+        borderPaneLayout.setStyle("-fx-background-image:url(\"/images/confirm_dailog_bg.png\")");
         Button confirm = new Button("确认");
+		confirm.setCursor(Cursor.HAND);
         Button cancel = new Button("取消");
-
+        cancel.setCursor(Cursor.HAND);
+        
         confirm.setOnMouseClicked(new EventHandler<MouseEvent>() {
             public void handle(MouseEvent event) {
                 dialogStage.close();
@@ -94,6 +95,7 @@ public class ConfirmDailog {
         borderPaneLayout.setCenter(vBox);
 
         Scene scene = new Scene(borderPaneLayout);
+        scene.getStylesheets().add("/resources/css/confirmDailog.css");
         dialogStage.setScene(scene);
 
     }

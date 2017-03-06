@@ -19,6 +19,7 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.TableCell;
@@ -93,7 +94,9 @@ public class BusinessRecordController implements SubPageController {
     						setGraphic(null);
     					} else {
     						VBox box = new VBox(5);
-    						
+    						box.setPrefHeight(110);
+    						Insets padding= new Insets(10,10,10,10);
+							box.setPadding(padding);
     						for (KeyValuePair keyValuePair : item) {
     							String name = keyValuePair.getKeyName();
     							Label nameLabel = new Label(name);

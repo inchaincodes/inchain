@@ -1,59 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.*?>
+<?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<StackPane prefHeight="300.0" prefWidth="500.0" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" fx:controller="org.inchain.wallet.controllers.SendAmountController" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+<StackPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" stylesheets="@../css/sendAmount.css" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SendAmountController">
    <children>
-      <VBox prefHeight="200.0" prefWidth="100.0">
+      <AnchorPane>
          <children>
-            <HBox alignment="CENTER" fillHeight="false" prefHeight="56.0" prefWidth="500.0">
+            <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="220.0">
                <children>
-                  <Label text="当前可用余额" />
-                  <Label fx:id="canUseBlanaceId">
+                  <Button fx:id="resetButId" layoutX="247.0" layoutY="15.0" mnemonicParsing="false" prefHeight="35.0" prefWidth="110.0" text="重置" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="10.0">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></Button>
+                  <Button fx:id="sendButId" layoutX="50.0" layoutY="10.0" mnemonicParsing="false" prefHeight="35.0" prefWidth="110.0" text="发送" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="10.0">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></Button>
+               </children>
+            </AnchorPane>
+            <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <Label text="接收地址">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font></Label>
+                  <TextField fx:id="receiveAddressId" prefHeight="28.0" prefWidth="250.0" promptText="请输入接收地址">
                      <HBox.margin>
-                        <Insets left="20.0" />
+                        <Insets left="30.0" />
                      </HBox.margin>
-                  </Label>
-               </children>
-            </HBox>
-            <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
-               <children>
-                  <HBox alignment="CENTER" prefHeight="28.0" prefWidth="200.0">
-                     <children>
-                        <Label prefHeight="61.0" prefWidth="60.0" text="接收地址" />
-                        <TextField fx:id="receiveAddressId" />
-                     </children>
-                  </HBox>
-                  <HBox alignment="CENTER" prefHeight="28.0" prefWidth="200.0">
-                     <children>
-                        <Label prefHeight="61.0" prefWidth="60.0" text="发送金额" />
-                        <TextField fx:id="sendAmountId" />
-                     </children>
-                  </HBox>
-                  <HBox alignment="CENTER" prefHeight="28.0" prefWidth="200.0">
-                     <children>
-                        <Label prefHeight="61.0" prefWidth="60.0" text="手续费" />
-                        <TextField fx:id="feeId" disable="true" text="0.1" />
-                     </children>
-                  </HBox>
-               </children>
-            </VBox>
-            <HBox alignment="BOTTOM_CENTER" prefHeight="100.0" prefWidth="200.0" spacing="20.0">
-               <children>
-                  <Button fx:id="sendButId" mnemonicParsing="false" text="发送" />
-                  <Button fx:id="resetButId" mnemonicParsing="false" text="重置" />
+                  </TextField>
                </children>
                <padding>
-                  <Insets bottom="30.0" />
+                  <Insets left="50.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="53.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="53.0">
+               <children>
+                  <Label text="可用余额">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font></Label>
+                  <Label fx:id="canUseBlanaceId" textFill="WHITE">
+                     <HBox.margin>
+                        <Insets left="40.0" />
+                     </HBox.margin>
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                  </Label>
+               </children>
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <padding>
+                  <Insets left="50.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="94.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="106.0">
+               <children>
+                  <Label text="发送金额">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font></Label>
+                  <TextField fx:id="sendAmountId" prefHeight="28.0" prefWidth="250.0" promptText="请输入发送金额">
+                     <HBox.margin>
+                        <Insets left="30.0" />
+                     </HBox.margin>
+                  </TextField>
+               </children>
+               <padding>
+                  <Insets left="50.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="159.0">
+               <children>
+                  <Label text="手续费" />
+                  <TextField fx:id="feeId" disable="true" prefWidth="250.0" text="0.1">
+                     <HBox.margin>
+                        <Insets left="42.0" />
+                     </HBox.margin>
+                  </TextField>
+               </children>
+               <padding>
+                  <Insets left="50.0" />
                </padding>
             </HBox>
          </children>
-      </VBox>
+      </AnchorPane>
    </children>
-   <padding>
-      <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-   </padding>
 </StackPane>

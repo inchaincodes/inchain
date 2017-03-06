@@ -1,7 +1,3 @@
-#infoItem{
-	-fx-border-color: transparent transparent #6da9e9 transparent;
-}
-
 Button{
 	-fx-background-radius: 3;
     -fx-border-style: null;
@@ -14,4 +10,10 @@ Button{
 
 Button:hover{
 	 -fx-background-color: #5070aa;
+}
+
+Label{
+	-fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
 }

@@ -1,5 +1,5 @@
 .root-pane {
-	-fx-background-image: url("/images/start_page_bg.png");
+	-fx-background-image: url("/images/start_bg.png");
 	-fx-background-repeat: repeat;
 	-fx-background-size: cover;
 	-fx-background-radius: 5.0;

@@ -26,7 +26,6 @@ public class ChangeWalletPasswordController extends DailogController {
 	public void initialize() {
 		cancelId.setOnAction(e -> resetAndclose());
 		okId.setOnAction(e -> encryptWallet());
-		setPageId("Dailogroot");
 	}
 	
 	/*

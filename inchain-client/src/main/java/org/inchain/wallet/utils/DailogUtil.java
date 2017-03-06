@@ -122,8 +122,8 @@ public class DailogUtil {
 	 */
 	public static Point getDailogPoint(double dailogWidth, double dailogHeight) {
 		Stage mainStage = Context.getMainStage();
-		double x = mainStage.getX() + (mainStage.getWidth() - dailogWidth) / 2;
-    	double y = mainStage.getY() + (mainStage.getHeight() - dailogHeight) / 2;
+		double x = mainStage.getX()+ 113 + (mainStage.getWidth() - dailogWidth) / 2;
+    	double y = mainStage.getY() + 25 + (mainStage.getHeight() - dailogHeight) / 2;
     	return new Point(x, y);
 	}
 	

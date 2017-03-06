@@ -8,38 +8,30 @@ table-row-cell .table-cell {
 .table-view .table-row-cell {    
     -fx-background-insets: 0;    
 }
-table-row-cell:empty .table-cell {    
-    -fx-border-width: 0px;    
+.table-view .column-header{
+	 -fx-background-color: transparent;  
 }
-.table-view .column-header-background, .table-view .column-header{     
+.table-view .column-header-background{    
+	-fx-padding:8px;
     -fx-background-color: transparent;  
-    -fx-background-image: url("/images/start_page_bg.png");
-	-fx-background-repeat: repeat;
-	-fx-background-size: cover;
-    -fx-size: 3em;
-}
-.table-view > .column-header-background > .show-hide-columns-button {  
-    -fx-font-weight: bold;  
-    -fx-font-color: #000000; 
-    -fx-size: 2em;
-    -fx-text-fill: -fx-selection-bar-text;
-    -fx-padding: 0.166667em;
-} 
-.table-view .filler,  
-.table-view:constrained-resize .filler{  
-    -fx-background-color: transparent;
-    -fx-background-insets: 0, 0 0 1 0, 1 1 2 1;  
+    -fx-border-width:2px;
+    -fx-border-color: transparent transparent #6da9e9 transparent;
 }
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell {  
 	-fx-background-color: transparent;
 } 
 
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell > .table-cell {  
-    -fx-alignment: center;
-}
-.table-row-cell:filled > .table-cell:selected{
-	-fx-background-color: #ffffff;
+    -fx-alignment:CENTER;
+    -fx-text-fill:WHITE;
 } 
+
+.table-view > .virtual-flow > .scroll-bar:horizontal{ 
+	-fx-color: transparent;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0, 0 0 0 1;  
+    -fx-padding: -1 -1 -1 0;  
+}  
 
 .table-view > .virtual-flow > .scroll-bar:vertical{
 	-fx-color: #64d3ff;
@@ -48,13 +40,19 @@ table-row-cell:empty .table-cell {
     -fx-padding: -1 -1 -1 0;  
 }
 
-.table-view > .virtual-flow > .corner {  
-    -fx-background-color: derive(-fx-base,-1%); /*-fx-base 是modena 预先定义的颜色*/  
+.table-view,
+.tree-table-view {
+    /* Constants used throughout the tableview. */
+    -fx-table-cell-border-color: transparent;
 }
 
-.table-view > .virtual-flow > .scroll-bar:horizontal{ 
-	-fx-color: transparent;
-    -fx-background-color: transparent;
-    -fx-background-insets: 0, 0 0 0 1;  
-    -fx-padding: -1 -1 -1 0;  
-}  
+.table-cell {
+    -fx-padding: 0.2em; /* 2px, plus border adds 1px */
+    -fx-background-color: null;
+    -fx-border-color: transparent transparent #6da9e9 transparent;
+    -fx-cell-size: 2.0em; /* 24 */
+    -fx-text-fill: -fx-text-background-color;
+}
+ .table-row-cell:empty .table-cell {  
+    -fx-border-width: 0px;
+} 

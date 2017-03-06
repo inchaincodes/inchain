@@ -1,35 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.*?>
+<?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox fx:id="encryptWalletId" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="188.0" prefWidth="360.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.EncryptWalletController">
+<AnchorPane fx:id="encryptWalletId" prefHeight="200.0" prefWidth="460.0" stylesheets="@../css/changeWalletPassword.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.EncryptWalletController">
    <children>
-      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0">
+      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="50.0">
          <children>
-            <Label text="密码" />
-            <PasswordField fx:id="passwordId" />
+            <Label text="密码" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+            </Label>
+            <PasswordField fx:id="passwordId" promptText="请输入密码">
+               <HBox.margin>
+                  <Insets left="26.0" />
+               </HBox.margin>
+            </PasswordField>
          </children>
-         <VBox.margin>
-            <Insets left="26.0" />
-         </VBox.margin>
       </HBox>
-      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0">
+      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="100.0">
          <children>
-            <Label text="重复密码" />
-            <PasswordField fx:id="repeatId" />
+            <Label text="重复密码" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+            </Label>
+            <PasswordField fx:id="repeatId" promptText="请确认密码" />
          </children>
       </HBox>
-      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0">
+      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="150.0">
          <children>
-            <Button fx:id="okId" mnemonicParsing="false" text="确定" />
-            <Button fx:id="cancelId" mnemonicParsing="false" text="取消" />
+            <Button id="sure" fx:id="okId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="确定" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
+            <Button id="cancel" fx:id="cancelId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="取消" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
          </children>
       </HBox>
    </children>
-   <padding>
-      <Insets bottom="20.0" top="20.0" />
-   </padding>
-</VBox>
+</AnchorPane>

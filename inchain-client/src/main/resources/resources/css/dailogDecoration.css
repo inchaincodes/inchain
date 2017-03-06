@@ -9,13 +9,13 @@
 	-fx-background-radius: 0;
     -fx-border-style: null;
     -fx-background-color: null;
-    -fx-background-image: url("/images/close.png");
+    -fx-background-image: url("/images/Dailogclose.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
 }
 
 #close:hover {
     -fx-background-color: null;
-    -fx-background-image: url("/images/closeH.png");
+    -fx-background-image: url("/images/dailogCloseHL_bg.png");
     -fx-background-repeat: no-repeat;
 }

@@ -22,6 +22,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 
 /**
  * 交易转账控制器
@@ -44,6 +46,14 @@ public class SendAmountController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	Image sendIcon = new Image(getClass().getResourceAsStream("/images/send_icon.png"));
+    	Image resetIcon = new Image (getClass().getResourceAsStream("/images/reset_icon.png"));
+    	//设置按钮图片以及图片与字体之间的间距
+    	sendButId.setGraphic(new ImageView(sendIcon));
+    	sendButId.setGraphicTextGap(10);
+    	resetButId.setGraphic(new ImageView(resetIcon));
+    	resetButId.setGraphicTextGap(10);
+    	
     	resetButId.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {

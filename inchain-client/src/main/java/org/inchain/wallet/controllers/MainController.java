@@ -113,6 +113,7 @@ public class MainController {
     	addImageToButton(transactionRecordId,"transactionRecord");
     	addImageToButton(consensusRecordId,"consensusRecord");
     	addImageToButton(sellerRecordId,"sellerRecord");
+    	addImageToButton(antifakeId, "antifake");
     	
 		buttons.add(accountInfoId);
 		buttons.add(sendAmountId);
@@ -128,8 +129,9 @@ public class MainController {
     }
 
 	private void addImageToButton(Button button,String name) {
-		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
-    	button.setGraphic(new ImageView(imageDecline));
+		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png")); 
+System.out.println(imageDecline.getWidth()+":"+imageDecline.getHeight()+"\n");
+		button.setGraphic(new ImageView(imageDecline));
     	button.setGraphicTextGap(10);
 	}
 
@@ -190,7 +192,7 @@ public class MainController {
 	
 	protected void initButtonbg() {
 		for (Button button : buttons) {
-			button.setStyle("-fx-background-image:url(\"/images/button_bg.png\")");
+			button.setStyle("-fx-background-image:null");
 		}
 	}
 

@@ -45,6 +45,8 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.util.Callback;
 
 /**
@@ -67,7 +69,10 @@ public class TransactionRecordController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
+    	Image imageDecline = new Image(getClass().getResourceAsStream("/images/block_icon.png"));  
+    	
     	status.setCellValueFactory(new PropertyValueFactory<TransactionEntity, Long>("status"));
+    	status.setGraphic(new ImageView(imageDecline));
     	type.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("type"));
     	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, DetailValue>("detail"));
     	detail.setCellFactory(new Callback<TableColumn<TransactionEntity, DetailValue>, TableCell<TransactionEntity, DetailValue>>() {
@@ -344,7 +349,7 @@ public class TransactionRecordController implements SubPageController {
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {
 					amount = Coin.valueOf(tx.getOutput(0).getValue()).toText();
 				}
-				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss.SSS");
+				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss");
 				
 				detailValue.setValue(detail);
 				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detailValue, amount, time));

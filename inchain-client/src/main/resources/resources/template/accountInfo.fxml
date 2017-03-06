@@ -1,98 +1,121 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.text.*?>
+<?import javafx.scene.*?>
 <?import javafx.geometry.*?>
+<?import javafx.scene.text.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" stylesheets="@../css/accountInfo.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AccountInfoController">
+<StackPane alignment="TOP_CENTER" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" stylesheets="@../css/accountInfo.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AccountInfoController">
    <children>
-      <AnchorPane AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="220.0">
+      <AnchorPane centerShape="false">
          <children>
-            <Button fx:id="importWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="导入钱包" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" />
-            <Button fx:id="backupWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="备份钱包" AnchorPane.leftAnchor="145.0" AnchorPane.topAnchor="0.0" />
-            <Button fx:id="encryptWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="加密钱包" AnchorPane.leftAnchor="285.0" AnchorPane.topAnchor="0.0" />
+            <AnchorPane AnchorPane.topAnchor="220.0">
+               <children>
+                  <Button fx:id="importWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" styleClass="importWalletId" text="导入钱包" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></Button>
+                  <Button fx:id="backupWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" styleClass="backupWalletId" text="备份钱包" AnchorPane.leftAnchor="145.0" AnchorPane.topAnchor="0.0">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></Button>
+                  <Button fx:id="encryptWalletId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="加密钱包" AnchorPane.leftAnchor="285.0" AnchorPane.topAnchor="0.0">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor></Button>
+               </children>
+            </AnchorPane>
+            <HBox id="infoItem" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="125.0">
+               <children>
+                  <Label text="信用：">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="70.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label fx:id="certId" text="0">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="70.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="20.0" top="20.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="75.0">
+               <children>
+                  <Label text="不可用余额：">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="70.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label fx:id="canNotUseBlanaceId" text="0.00">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="30.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label text="INS">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="10.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="20.0" top="20.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="25.0">
+               <children>
+                  <Label text="可用余额：">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="70.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label fx:id="canUseBlanaceId" text="0.00">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="40.0" />
+                     </HBox.margin>
+                  </Label>
+                  <Label text="INS">
+                     <font>
+                        <Font name="Microsoft YaHei" size="14.0" />
+                     </font>
+                     <HBox.margin>
+                        <Insets left="10.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <padding>
+                  <Insets left="20.0" top="20.0" />
+               </padding>
+            </HBox>
          </children>
       </AnchorPane>
-      <HBox id="infoItem" prefHeight="53.0" prefWidth="400.0" AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="125.0">
-         <children>
-            <Label text="信用：">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="70.0" />
-               </HBox.margin></Label>
-            <Label fx:id="certId" text="0">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="70.0" />
-               </HBox.margin></Label>
-         </children>
-         <padding>
-            <Insets left="20.0" top="20.0" />
-         </padding>
-      </HBox>
-      <HBox id="infoItem" prefHeight="53.0" prefWidth="400.0" AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="75.0">
-         <children>
-            <Label text="不可用余额：">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="70.0" />
-               </HBox.margin></Label>
-            <Label fx:id="canNotUseBlanaceId" text="0.00">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="30.0" />
-               </HBox.margin></Label>
-            <Label text="INS">
-               <HBox.margin>
-                  <Insets left="10.0" />
-               </HBox.margin>
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-            </Label>
-         </children>
-         <padding>
-            <Insets left="20.0" top="20.0" />
-         </padding>
-      </HBox>
-      <HBox id="infoItem" prefHeight="53.0" prefWidth="400.0" AnchorPane.leftAnchor="210.0" AnchorPane.topAnchor="25.0">
-         <children>
-            <Label text="可用余额：">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="70.0" />
-               </HBox.margin></Label>
-            <Label fx:id="canUseBlanaceId" text="0.00">
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-               <HBox.margin>
-                  <Insets left="40.0" />
-               </HBox.margin></Label>
-            <Label text="INS">
-               <HBox.margin>
-                  <Insets left="10.0" />
-               </HBox.margin>
-               <font>
-                  <Font name="Microsoft YaHei" size="14.0" />
-               </font>
-            </Label>
-         </children>
-         <padding>
-            <Insets left="20.0" top="20.0" />
-         </padding>
-      </HBox>
    </children>
-</AnchorPane>
+   <opaqueInsets>
+      <Insets />
+   </opaqueInsets>
+</StackPane>

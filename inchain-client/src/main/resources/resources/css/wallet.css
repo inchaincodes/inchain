@@ -5,7 +5,7 @@
 }
 
 .title-banner {
-    -fx-background-color: #b3fbc4;
+    -fx-background-color: #ffff;
 }
 
 .title-label {
@@ -53,4 +53,24 @@
     -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, -fx-body-color;
     -fx-background-radius: 3;
     -fx-text-fill: black;
+}
+
+.text-area {
+	-fx-text-fill: #fff;
+    -fx-background-color: transparent;
+    -fx-border-color: #6da9e9;
+    -fx-border-radius: 3;
+}
+
+.text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.text-area .scroll-pane .viewport{
+    -fx-background-color: transparent;
+}
+
+
+.text-area .scroll-pane .content{
+    -fx-background-color: transparent;
 }
