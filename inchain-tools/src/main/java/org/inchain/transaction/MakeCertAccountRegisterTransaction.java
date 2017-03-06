@@ -62,8 +62,8 @@ public class MakeCertAccountRegisterTransaction {
 			
 			tx.calculateSignature(mgtx, eckeys[0], eckeys[1]);
 			
-			tx.verfify();
-			tx.verfifyScript();
+			tx.verify();
+			tx.verifyScript();
 			
 			//序列化和反序列化
 			byte[] txContent = tx.baseSerialize();
@@ -71,8 +71,8 @@ public class MakeCertAccountRegisterTransaction {
 			
 			CertAccountRegisterTransaction rtx = new CertAccountRegisterTransaction(network, txContent, 0);
 			
-			rtx.verfify();
-			rtx.verfifyScript();
+			rtx.verify();
+			rtx.verifyScript();
 			
 			TransactionValidator transactionValidator = springContext.getBean(TransactionValidator.class);
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(rtx, null);

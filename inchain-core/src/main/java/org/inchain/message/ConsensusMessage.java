@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 import org.inchain.account.Account;
+import org.inchain.account.Address;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
@@ -82,15 +83,18 @@ public class ConsensusMessage extends Message {
 	protected void parse() throws ProtocolException {
 		//协议号
 		protocolVersion = readBytes(1)[0];
-		hash160 = readBytes((int) readVarInt());
+		hash160 = readBytes(Address.LENGTH);
 		height = readUint32();
 		time = readInt64();
 		nonce = readInt64();
 		content = readBytes((int) readVarInt());
 
+		int signCount = (int) readVarInt();
+		
 		byte[] sign1 = readBytes((int) readVarInt());
 		byte[] sign2 = null;
-		if(hasMoreBytes()) {
+		
+		if(signCount == 2) {
 			sign2 = readBytes((int) readVarInt());
 		}
 		if(sign2 == null) {
@@ -108,6 +112,7 @@ public class ConsensusMessage extends Message {
 		stream.write(getBodyBytes());
 		
 		if(signs != null) {
+			stream.write(new VarInt(signs.length).encode());
 			for (int i = 0; i < signs.length; i++) {
 				byte[] sign = signs[i];
 				stream.write(new VarInt(sign.length).encode());
@@ -124,7 +129,6 @@ public class ConsensusMessage extends Message {
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		try {
 			stream.write(protocolVersion);
-			stream.write(new VarInt(hash160.length).encode());
 			stream.write(hash160);
 			Utils.uint32ToByteStreamLE(height, stream);
 			Utils.int64ToByteStreamLE(time, stream);
@@ -265,7 +269,7 @@ public class ConsensusMessage extends Message {
 
 	@Override
 	public String toString() {
-		return "ConsensusMessage [peer=" + peer + ", id=" + id + ", hash160=" + Hex.encode(hash160) + ", content="
+		return "ConsensusMessage [id=" + getId() + ", hash160=" + Hex.encode(hash160) + ", content="
 				+ Hex.encode(content) + ", height=" + height + ", nonce=" + nonce + ", signs="
 				+ Arrays.toString(signs) + "]";
 	}

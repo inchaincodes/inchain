@@ -45,7 +45,7 @@ public class CertAccountUpdateTransaction extends CertAccountRegisterTransaction
 	 * 验证交易的合法性
 	 */
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 	}
 }

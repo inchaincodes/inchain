@@ -124,8 +124,8 @@ public class AntifakeCodeVerifyTransactionTest extends TestNetBaseTestCase {
 		log.info("tx {}", tx);
 		log.info("tx content : {}", Hex.encode(tx.baseSerialize()));
 		
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		//验证交易是否合法
 		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);

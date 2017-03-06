@@ -80,7 +80,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	/**
 	 * 验证交易的合法性
 	 */
-	public void verfify() throws VerificationException {
+	public void verify() throws VerificationException {
 		if(scriptBytes == null && scriptSig == null) {
 			throw new VerificationException("验证脚本不存在");
 		}
@@ -92,8 +92,8 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	/**
 	 * 验证交易脚本
 	 */
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 		verfifyCommonScript();
 	}
 	
@@ -184,7 +184,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	 * 获取交易发起账户压缩过的公钥
 	 * 通过签名脚本获取
 	 * 仅支持普通系统账户，直接在签名脚本里获取
-	 * 若需获取认证账户的公钥，需在链上查询，调用 {@link org.inchain.store.ChainstateStoreProvider} 中的 getCertAccountPubkeys方法 获取认证账户的最新公钥
+	 * 若需获取认证账户的公钥，需在链上查询，调用 {@link org.inchain.store.ChainstateStoreProvider} 中的 getAccountPubkeys方法 获取认证账户的最新公钥
 	 * @return byte[]
 	 */
 	public byte[] getPubkey() {
@@ -192,7 +192,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			throw new VerificationException("交易验证脚本不存在，无法获取账户公钥");
 		}
 		if(!isSystemAccount()) {
-			throw new RuntimeException("该方法不能获取认证账户的公钥， 请调用org.inchain.store.ChainstateStoreProvider中的getCertAccountPubkeys获取");
+			throw new RuntimeException("该方法不能获取认证账户的公钥， 请调用org.inchain.store.ChainstateStoreProvider中的getAccountPubkeys获取");
 		}
 		return scriptSig.getAccountPubkey();
 	}

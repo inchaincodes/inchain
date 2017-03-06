@@ -47,7 +47,7 @@ public class CertAccountRegisterTransactionTest extends TestNetBaseTestCase {
 		ECKey[] eckeys = account.decryptionMg("inchain123456");
 		tx.calculateSignature(Sha256Hash.wrap(Hex.decode("d936ad91a50e918ebb8376c7335fb7d16255333ea859d64d7d4d1f309052c8f8")), eckeys[0], eckeys[1]);
 		
-		tx.verfify();
+		tx.verify();
 //		tx.verfifyScript();
 		
 		//序列化和反序列化
@@ -56,7 +56,7 @@ public class CertAccountRegisterTransactionTest extends TestNetBaseTestCase {
 		
 		CertAccountRegisterTransaction rtx = new CertAccountRegisterTransaction(network, txContent, 0);
 		
-		rtx.verfify();
+		rtx.verify();
 		
 		System.out.println(rtx.getBody().serialize().length);
 //		rtx.verfifyScript();

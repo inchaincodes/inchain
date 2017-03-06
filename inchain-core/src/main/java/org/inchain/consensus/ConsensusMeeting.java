@@ -1,5 +1,8 @@
 package org.inchain.consensus;
 
+import java.util.List;
+import java.util.Set;
+
 import org.inchain.account.Account;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.ConsensusMessage;
@@ -40,20 +43,28 @@ public interface ConsensusMeeting {
 	boolean messageHasReceived(Sha256Hash msid);
 	
 	/**
-	 * 下一个是否轮到我
-	 * @return boolean
+	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
+	 * @param height 区块高度
+	 * @return ConsensusInfos
 	 */
-	boolean nextIsMy();
-	
-	/**
-	 * 新块产生，进行广播
-	 */
-	void newBlockBroadcast();
+	ConsensusInfos getCurrentConsensusInfos(long height);
+
 	/**
 	 * 设置运行账户
 	 * @param account 
 	 */
 	void setAccount(Account account);
+	
+	/**
+	 * 获取本轮共识的开始点，也就是开始高度
+	 * @return long
+	 */
+	long getPeriodStartPoint();
+	
+	/**
+	 * 获取本轮和上一轮超时的账号
+	 */
+	Set<ConsensusAccount> getTimeoutList();
 	
 	/**
 	 * 异步启动
@@ -64,5 +75,6 @@ public interface ConsensusMeeting {
 	 * 停止
 	 */
 	void stop();
+
 
 }

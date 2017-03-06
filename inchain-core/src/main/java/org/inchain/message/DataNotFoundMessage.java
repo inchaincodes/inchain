@@ -39,6 +39,10 @@ public class DataNotFoundMessage extends Message {
 		stream.write(hash.getReversedBytes());
 	}
 
+	public Sha256Hash getHash() {
+		return hash;
+	}
+	
 	@Override
 	public String toString() {
 		return "DataNotFoundMessage [hash=" + hash + "]";

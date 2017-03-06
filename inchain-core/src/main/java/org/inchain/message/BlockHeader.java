@@ -1,14 +1,23 @@
 package org.inchain.message;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.account.Account;
+import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.ECKey;
+import org.inchain.crypto.ECKey.ECDSASignature;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.Script;
+import org.inchain.script.ScriptBuilder;
 import org.inchain.utils.Utils;
 
 /**
@@ -32,6 +41,15 @@ public class BlockHeader extends Message {
 	protected long height;
 	//交易数
 	protected long txCount;
+	//该时段共识人数
+	protected int periodCount;
+	//时段，一轮共识中的第几个时间段，可验证对应的共识人
+	protected int timePeriod;
+	//段开始点
+	protected long periodStartPoint;
+	//签名脚本，包含共识打包人信息和签名，签名是对以上信息的签名
+	protected byte[] scriptBytes;
+	protected Script scriptSig;
 	
 	protected List<Sha256Hash> txHashs;
 	
@@ -51,8 +69,15 @@ public class BlockHeader extends Message {
 		version = readUint32();
 		preHash = Sha256Hash.wrap(readBytes(32));
 		merkleHash = Sha256Hash.wrap(readBytes(32));
-		time = readUint32();
+		time = readInt64();
 		height = readUint32();
+		periodCount = (int) readVarInt();
+		timePeriod = (int) readVarInt();
+		periodStartPoint = readUint32();
+		scriptBytes = readBytes((int) readVarInt());
+		
+		scriptSig = new Script(scriptBytes);
+		
 		txCount = readVarInt();
 		
 		txHashs = new ArrayList<Sha256Hash>();
@@ -71,8 +96,16 @@ public class BlockHeader extends Message {
 		Utils.uint32ToByteStreamLE(version, stream);
 		stream.write(preHash.getBytes());
 		stream.write(merkleHash.getBytes());
-		Utils.uint32ToByteStreamLE(time, stream);
+		Utils.int64ToByteStreamLE(time, stream);
 		Utils.uint32ToByteStreamLE(height, stream);
+		
+		stream.write(new VarInt(periodCount).encode());
+		stream.write(new VarInt(timePeriod).encode());
+		Utils.uint32ToByteStreamLE(periodStartPoint, stream);
+
+		stream.write(new VarInt(scriptBytes.length).encode());
+		stream.write(scriptBytes);
+		
 		//交易数量
 		stream.write(new VarInt(txCount).encode());
 		if(txHashs != null) {
@@ -81,6 +114,95 @@ public class BlockHeader extends Message {
 			}
 		}
     }
+	
+	/**
+	 * 获取区块头部sha256 hash，用于签名验证
+	 * @return byte[]
+	 * @throws IOException 
+	 */
+	public Sha256Hash getHeaderHash() throws IOException {
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		try {
+			Utils.uint32ToByteStreamLE(version, stream);
+			stream.write(preHash.getBytes());
+			stream.write(merkleHash.getBytes());
+			Utils.int64ToByteStreamLE(time, stream);
+			Utils.uint32ToByteStreamLE(height, stream);
+			Utils.uint32ToByteStreamLE(periodCount, stream);
+			Utils.uint32ToByteStreamLE(timePeriod, stream);
+			//交易数量
+			stream.write(new VarInt(txCount).encode());
+			return Sha256Hash.twiceOf(stream.toByteArray());
+		} catch (IOException e) {
+			throw e;
+		} finally {
+			stream.close();
+		}
+	}
+	
+	/**
+	 * 运行区块签名脚本
+	 */
+	public void verifyScript() throws VerificationException {
+		//运行验证脚本
+		BlockHeader temp = new BlockHeader(network, baseSerialize());
+		try {
+			scriptSig.runVerify(temp.getHeaderHash());
+		} catch (IOException e) {
+			throw new VerificationException(e);
+		}		
+	}
+
+	/**
+	 *  前面区块头信息
+	 * @param account
+	 */
+	public void sign(Account account) {
+		scriptBytes = null;
+		Sha256Hash headerHash = null;
+		try {
+			headerHash = getHeaderHash();
+		} catch (IOException e) {
+			throw new RuntimeException(e.getMessage());
+		}
+
+		//是否加密
+		if(account.isEncrypted()) {
+			throw new AccountEncryptedException();
+		}
+		
+		if(account.isCertAccount()) {
+			//认证账户
+			if(account.getAccountTransaction() == null) {
+				throw new VerificationException("签名失败，认证账户没有对应的信息交易");
+			}
+			
+			ECKey[] keys = account.getTrEckeys();
+			
+			if(keys == null) {
+				throw new VerificationException("账户没有解密？");
+			}
+			
+			ECDSASignature ecSign = keys[0].sign(headerHash);
+			byte[] sign1 = ecSign.encodeToDER();
+			
+			ecSign = keys[1].sign(headerHash);
+			byte[] sign2 = ecSign.encodeToDER();
+			
+			scriptSig = ScriptBuilder.createCertAccountScript(Definition.TX_VERIFY_TR, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, sign2);
+		} else {
+			//普通账户
+			ECKey key = account.getEcKey();
+			
+			ECDSASignature ecSign = key.sign(headerHash);
+			byte[] sign = ecSign.encodeToDER();
+			
+			scriptSig = ScriptBuilder.createSystemAccountScript(account.getAddress().getHash160(), key.getPubKey(true), sign);
+		}
+		scriptBytes = scriptSig.getProgram();
+		
+		length += scriptBytes.length;
+	}
 	
 	@Override
 	public String toString() {
@@ -91,6 +213,14 @@ public class BlockHeader extends Message {
 	public boolean equals(BlockHeader other) {
 		return hash.equals(other.hash) && preHash.equals(other.preHash) && merkleHash.equals(other.merkleHash) && 
 				txCount == other.txCount && time == other.time && height == other.height;
+	}
+	
+	/**
+	 * 获得区块的打包人
+	 * @return byte[]
+	 */
+	public byte[] getHash160() {
+		return scriptSig.getAccountHash160();
 	}
 
 	public long getVersion() {
@@ -155,5 +285,46 @@ public class BlockHeader extends Message {
 
 	public void setTxHashs(List<Sha256Hash> txHashs) {
 		this.txHashs = txHashs;
+	}
+
+	public int getTimePeriod() {
+		return timePeriod;
+	}
+
+	public void setTimePeriod(int timePeriod) {
+		this.timePeriod = timePeriod;
+	}
+
+	public byte[] getScriptBytes() {
+		return scriptBytes;
+	}
+
+	public void setScriptBytes(byte[] scriptBytes) {
+		this.scriptBytes = scriptBytes;
+		scriptSig = new Script(scriptBytes);
+	}
+
+	public Script getScriptSig() {
+		return scriptSig;
+	}
+
+	public void setScriptSig(Script scriptSig) {
+		this.scriptSig = scriptSig;
+	}
+
+	public long getPeriodStartPoint() {
+		return periodStartPoint;
+	}
+
+	public void setPeriodStartPoint(long periodStartPoint) {
+		this.periodStartPoint = periodStartPoint;
+	}
+
+	public int getPeriodCount() {
+		return periodCount;
+	}
+
+	public void setPeriodCount(int periodCount) {
+		this.periodCount = periodCount;
 	}
 }

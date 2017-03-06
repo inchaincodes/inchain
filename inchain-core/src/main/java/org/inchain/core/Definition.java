@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 import org.inchain.message.AddressMessage;
 import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
+import org.inchain.message.DataNotFoundMessage;
 import org.inchain.message.GetAddressMessage;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.message.GetDatasMessage;
@@ -98,6 +99,7 @@ public final class Definition {
     	PROCESS_FACTORYS.put(ConsensusMessage.class, "consensusMessageProcess");
     	PROCESS_FACTORYS.put(InventoryMessage.class, "inventoryMessageProcess");
     	PROCESS_FACTORYS.put(GetDatasMessage.class, "getDatasMessageProcess");
+    	PROCESS_FACTORYS.put(DataNotFoundMessage.class, "dataNotFoundMessageProcess");
 
     	PROCESS_FACTORYS.put(AddressMessage.class, "addressMessageProcess");
     	PROCESS_FACTORYS.put(GetAddressMessage.class, "addressMessageProcess");
@@ -128,6 +130,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(ConsensusMessage.class, "consensus");
     	MESSAGE_COMMANDS.put(InventoryMessage.class, "inv");
     	MESSAGE_COMMANDS.put(GetDatasMessage.class, "getdatas");
+    	MESSAGE_COMMANDS.put(DataNotFoundMessage.class, "notfound");
     	
     	MESSAGE_COMMANDS.put(Transaction.class, "tx");
     	MESSAGE_COMMANDS.put(CertAccountRegisterTransaction.class, "tx");

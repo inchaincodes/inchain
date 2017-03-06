@@ -26,11 +26,11 @@ public class UnkonwTransaction extends CommonlyTransaction {
 	}
 
 	@Override
-	public void verfify() throws VerificationException {
+	public void verify() throws VerificationException {
 	}
 	
 	@Override
-	public void verfifyScript() {
+	public void verifyScript() {
 	}
 	
 	@Override

@@ -8,6 +8,7 @@ import java.util.List;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.Script;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -57,8 +58,13 @@ public class Block extends BlockHeader {
 		version = readUint32();
 		preHash = Sha256Hash.wrap(readBytes(32));
 		merkleHash = Sha256Hash.wrap(readBytes(32));
-		time = readUint32();
+		time = readInt64();
 		height = readUint32();
+		periodCount = (int) readVarInt();
+		timePeriod = (int) readVarInt();
+		periodStartPoint = readUint32();
+		scriptBytes = readBytes((int) readVarInt());
+		scriptSig = new Script(scriptBytes);
 		txCount = readVarInt();
 		
 		txs = new ArrayList<Transaction>();

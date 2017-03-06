@@ -75,6 +75,10 @@ public final class Configure {
 	 */
 	public static int BLOCK_GEN_TIME = getProperty("block.gen.time", 5);
 	/**
+	 * 区块生成间隔时间，单位豪秒
+	 */
+	public static long BLOCK_GEN__MILLISECOND_TIME = BLOCK_GEN_TIME * 1000;
+	/**
 	 * 挖矿奖励冻结区块数
 	 */
 	public static int MINING_MATURE_COUNT = getProperty("block.gen.time", 10);

@@ -51,7 +51,7 @@ public class MempoolContainer implements Mempool {
 			
 			List<Input> thisInputs = tx.getInputs();
 			//TODO 可以考虑这里改为布隆过滤器处理，应该会有性能提升？
-			if(thisInputs.size() > 0) {
+			if(thisInputs != null && thisInputs.size() > 0) {
 				for (Input input : thisInputs) {
 					TransactionInput ti = (TransactionInput) input;
 					TransactionOutput preOutput = ti.getFrom();

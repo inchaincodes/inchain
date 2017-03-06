@@ -71,6 +71,8 @@ public class BlockMessageProcess implements MessageProcess {
 		lock.lock();
 		
 		Block block = (Block) message;
+		block.verifyScript();
+		
 		try {
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(header != null) {

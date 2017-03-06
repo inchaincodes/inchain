@@ -75,8 +75,8 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 		
 		//验证输入脚本
 		if(inputs == null || inputs.isEmpty() || inputs.size() != 1) {
@@ -100,8 +100,8 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 	}
 
 	/**

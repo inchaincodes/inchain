@@ -40,8 +40,8 @@ public class ProductTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 		
 		if(product == null) {
 			new VerificationException("商品信息不存在");
@@ -54,8 +54,8 @@ public class ProductTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 	}
 	
 	@Override

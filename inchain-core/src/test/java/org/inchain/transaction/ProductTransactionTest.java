@@ -66,16 +66,16 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		accountKit.decryptWallet("inchain123", Definition.TX_VERIFY_TR);
 		
 		tx.sign(accountKit.getDefaultAccount());
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		log.info("tx {}", tx);
 		log.info("tx size is {}", tx.baseSerialize().length);
 		
 		tx = new ProductTransaction(network, tx.baseSerialize());
 
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		log.info("tx {}", tx);
 		log.info("tx size is {}", tx.baseSerialize().length);

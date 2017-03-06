@@ -527,6 +527,7 @@ public class Account {
 
 	public void setAddress(Address address) {
 		this.address = address;
+		this.accountType = address.getVersion();
 	}
 
 

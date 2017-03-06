@@ -2,6 +2,7 @@ package org.inchain.consensus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,5 +165,32 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	
 	public Map<byte[], byte[][]> getContainer() {
 		return container;
+	}
+	
+	/**
+	 * 当前共识节点列表快照
+	 * @return List<ConsensusAccount>
+	 */
+	@Override
+	public List<ConsensusAccount> listSnapshots() {
+		//TODO处理并发情况
+		
+		List<ConsensusAccount> list = new ArrayList<ConsensusAccount>();
+		
+		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
+			list.add(new ConsensusAccount(entry.getKey(), entry.getValue()));
+		}
+		
+		//排序
+		if(list.size() > 1) {
+			list.sort(new Comparator<ConsensusAccount>() {
+				@Override
+				public int compare(ConsensusAccount o1, ConsensusAccount o2) {
+					return o1.getHash160Hex().compareTo(o2.getHash160Hex());
+				}
+			});
+		}
+		
+		return list;
 	}
 }

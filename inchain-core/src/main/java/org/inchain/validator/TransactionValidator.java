@@ -74,7 +74,7 @@ public class TransactionValidator {
 		};
 		
 		//验证交易的合法性
-		tx.verfifyScript();
+		tx.verifyScript();
 		
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());

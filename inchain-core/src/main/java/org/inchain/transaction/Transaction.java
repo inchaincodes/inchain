@@ -265,7 +265,7 @@ public class Transaction extends Message {
 	/**
 	 * 验证交易脚本
 	 */
-	public void verfifyScript() {
+	public void verifyScript() {
 
 		//验证交易的输入脚本是否正确
 		if(type == Definition.TYPE_COINBASE) {

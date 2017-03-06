@@ -7,11 +7,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
+
+import org.inchain.TestNetBaseTestCase;
 import org.inchain.UnitBaseTestCase;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.kits.AppKit;
 import org.inchain.message.Block;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.ScriptBuilder;
@@ -19,19 +23,23 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.Hex;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class BlockStoreProvderTest extends UnitBaseTestCase {
+public class BlockStoreProvderTest extends TestNetBaseTestCase {
 
 	@Autowired
 	private NetworkParams network;
 	@Autowired
 	private BlockStoreProvider storeProvider;
+	@Autowired
+	private AppKit appkit;
 	
-	@Before
+	@PostConstruct
 	public void init() throws IOException {
+		
+		appkit.start();
+		
 		BlockStore bestBlock = storeProvider.getBestBlock();
 		if(bestBlock != null) {
 			storeProvider.delete(bestBlock.getBlock().getHash().getBytes());
@@ -75,7 +83,7 @@ public class BlockStoreProvderTest extends UnitBaseTestCase {
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
 		coinBaseTx.addOutput(Coin.valueOf(100l), Address.fromBase58(network, "uNdmAUpGqrNYgguFQT97eByXb6v1CUtcHR"));
-		coinBaseTx.verfifyScript();
+		coinBaseTx.verifyScript();
 		
 		txs.add(coinBaseTx);
 		

@@ -43,7 +43,7 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 	/**
 	 * 验证交易的合法性
 	 */
-	public void verfify() throws VerificationException {
+	public void verify() throws VerificationException {
 		if(hash160 == null || hash160.length != Address.LENGTH) {
 			throw new VerificationException("hash160 错误");
 		}
@@ -65,8 +65,8 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 	 * 验证签名
 	 */
 	@Override
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 	}
 	
 	

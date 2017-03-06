@@ -360,8 +360,8 @@ public class AccountKit {
 		}
 		tx.sign(account);
 		
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		//验证交易是否合法
 		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, null);
@@ -460,8 +460,8 @@ public class AccountKit {
 		tx.sign(systemAccount);
 		
 		//验证成功才广播
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		//验证交易合法才广播
 		//这里面同时会判断是否被验证过了
@@ -963,7 +963,7 @@ public class AccountKit {
 		tx.calculateSignature(Sha256Hash.ZERO_HASH, ECKey.fromPrivate(AccountTool.genPrivKey1(seedPribs, pwd.getBytes())), 
 				ECKey.fromPrivate(AccountTool.genPrivKey2(seedPribs, pwd.getBytes())));
 		
-		tx.verfifyScript();
+		tx.verifyScript();
 		
 //		//序列化和反序列化
 //		byte[] txContent = tx.baseSerialize();
@@ -1259,8 +1259,8 @@ public class AccountKit {
 							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
 					
 					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_MG);
-					rtx.verfify();
-					rtx.verfifyScript();
+					rtx.verify();
+					rtx.verifyScript();
 
 					MempoolContainer.getInstace().add(rtx);
 					
@@ -1694,8 +1694,8 @@ public class AccountKit {
 					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, Definition.VERSION, TimeService.currentTimeMillis());
 					regConsensus.sign(account);
 					
-					regConsensus.verfify();
-					regConsensus.verfifyScript();
+					regConsensus.verify();
+					regConsensus.verifyScript();
 					
 					//加入内存池
 					MempoolContainer.getInstace().add(regConsensus);
@@ -1726,8 +1726,8 @@ public class AccountKit {
 					RemConsensusTransaction remConsensus = new RemConsensusTransaction(network, Definition.VERSION, TimeService.currentTimeMillis());
 					remConsensus.sign(account);
 					
-					remConsensus.verfify();
-					remConsensus.verfifyScript();
+					remConsensus.verify();
+					remConsensus.verifyScript();
 					
 					//加入内存池
 					MempoolContainer.getInstace().add(remConsensus);

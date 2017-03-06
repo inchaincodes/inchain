@@ -1,6 +1,7 @@
 package org.inchain.msgprocess;
 
 import org.inchain.core.Peer;
+import org.inchain.core.Result;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
@@ -11,6 +12,8 @@ import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.Hex;
+import org.inchain.validator.NewBlockValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,18 +36,25 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	
 	@Autowired
 	private PeerKit peerKit;
+	@Autowired
+	private NewBlockValidator newBlockValidator;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
 	 */
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
-		//验证新区块打包的人是否合法
-		//TODO
 
 		Block block = (Block) message;
+
+		log.info("new block : 时间{} ,  哈希 {}, 高度 {}, 打包人 {} ， 开始位置 {} ，当前位置 {}", block.getTime(), block.getHash(), block.getHeight(), Hex.encode(block.getHash160()), block.getPeriodStartPoint(), block.getTimePeriod());
 		
-		log.info("new block : {}", block);
+		//验证新区块
+		Result valResult = newBlockValidator.doVal(block);
+		if(!valResult.isSuccess()) {
+			log.warn("新区块{} 验证失败： {}", block.getHash(), valResult.getMessage());
+			return new MessageProcessResult(block.getHash(), false);
+		}
 		
 		peer.getNetwork().setBestHeight(block.getHeight());
 		

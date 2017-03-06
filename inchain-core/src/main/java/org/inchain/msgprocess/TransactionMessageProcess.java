@@ -64,7 +64,7 @@ public class TransactionMessageProcess implements MessageProcess {
 		try {
 
 			//验证交易的合法性
-			tx.verfifyScript();
+			tx.verifyScript();
 			
 			Sha256Hash id = tx.getHash();
 			

@@ -54,7 +54,6 @@ public class ConsensusMessageProcess implements MessageProcess {
 		
 		Sha256Hash msid = consensusMessage.getId();
 		if(consensusMeeting.messageHasReceived(msid)) {
-			log.info("共识消息{},已经处理过", msid.toString());
 			if(log.isDebugEnabled()) {
 				log.debug("共识消息{},已经处理过", msid.toString());
 			}

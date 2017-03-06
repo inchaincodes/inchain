@@ -290,7 +290,7 @@ public class TransactionRecordController implements SubPageController {
 
 					AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
 					
-					atx.verfifyScript();
+					atx.verifyScript();
 					
 					type = "防伪验证";
 					

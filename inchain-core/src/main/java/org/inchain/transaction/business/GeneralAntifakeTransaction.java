@@ -80,8 +80,8 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 		
 		if(product == null || productTx == null) {
 			new VerificationException("商品信息不存在");
@@ -111,8 +111,8 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 		//验证商家签名
 		try {
 			signVerificationScript.runVerify(getAntifakeHashWithoutSign());

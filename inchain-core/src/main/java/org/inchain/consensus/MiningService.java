@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
@@ -18,7 +19,6 @@ import org.inchain.kits.PeerKit;
 import org.inchain.mempool.Mempool;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
-import org.inchain.message.ConsensusMessage;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
@@ -73,21 +73,23 @@ public final class MiningService implements Mining {
 
 	//运行状态
 	private boolean runing;
+	private Account account;
 	
 	/**
-	 * mining 
+	 * 执行打包
+	 * @param timePeriod 我的时段
+	 * @param periodCount	当前时段总数，也就是参与共识的人数
 	 */
-	public void mining() {
+	public void mining(int timePeriod, int periodCount) {
 		
-		//如果区块高度不是最新的，那么同步至最新的再开始
-		//TODO
-		
+		//本地最新区块
 		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 		
 		Utils.checkNotNull(bestBlockHeader);
 		
 		//上一区块的时间戳
-		long time = TimeService.currentTimeMillis();
+//		long time = bestBlockHeader.getBlockHeader().getTime();
+		long time = TimeService.currentTimeMillis() - 200;
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -131,6 +133,10 @@ public final class MiningService implements Mining {
 			}
 		}
 		
+		//再次获取本地最新区块，因为有可能已经更新了
+		//TODO 这也引发了问题，双花的可能
+		bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+		
 		//coinbase交易
 		//coinbase交易获取手续费
 		Transaction coinBaseTx = new Transaction(network);
@@ -142,13 +148,18 @@ public final class MiningService implements Mining {
 		coinBaseTx.addInput(input);
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
-		log.info("高度： "+bestBlockHeader.getBlockHeader().getHeight()+"=======================手续费： " + fee);
-		
 		coinBaseTx.addOutput(fee, accountKit.getAccountList().get(0).getAddress());
-		coinBaseTx.verfifyScript();
+		coinBaseTx.verifyScript();
 		
 		//加入coinbase交易到交易列表
 		transactionList.add(0, coinBaseTx);
+		
+		//处理违规情况的节点，目前只处理超时的
+		Set<ConsensusAccount> timeoutList = consensusMeeting.getTimeoutList();
+		for (ConsensusAccount consensusAccount : timeoutList) {
+			//
+			log.info("超时的节点： {}" , consensusAccount);
+		}
 		
 		//广播区块
 		Block block = new Block(network);
@@ -160,11 +171,21 @@ public final class MiningService implements Mining {
 		block.setTxCount(transactionList.size());
 		block.setTxs(transactionList);
 		block.setMerkleHash(block.buildMerkleHash());
+		block.setPeriodCount(periodCount);
+		block.setTimePeriod(timePeriod);
+		block.setPeriodStartPoint(consensusMeeting.getPeriodStartPoint());
+		
+		block.sign(account);
+		block.verifyScript();
 		
 		BlockStore blockStore = new BlockStore(network, block);
-		
 
 		try {
+
+			log.info("高度： "+block.getHeight()+" , 出块时间: " + block.getTime() + "  =======================手续费： " + fee);
+			
+			//分叉处理 TODO
+			
 			blockStoreProvider.saveBlock(blockStore);
 			if(log.isDebugEnabled()) {
 				log.debug("broadcast new block {}", blockStore);
@@ -174,7 +195,9 @@ public final class MiningService implements Mining {
 			InventoryMessage invMessage = new InventoryMessage(network, item);
 			peerKit.broadcastMessage(invMessage);
 			
-//			peerKit.broadcastBlock(new NewBlockMessage(network, block.baseSerialize()));
+			if(peerKit.getBlockChangedListener() != null) {
+				peerKit.getBlockChangedListener().onChanged(block.getHeight(), block.getHeight(), block.getHash(), block.getHash());
+			}
 		} catch (IOException e) {
 			log.error("共识产生的新块保存时报错", e);
 		}
@@ -209,7 +232,7 @@ public final class MiningService implements Mining {
 
 		try {
 			//验证交易的合法性
-			tx.verfifyScript();
+			tx.verifyScript();
 			
 			//交易的txid不能和区块里面的交易重复
 			TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
@@ -291,7 +314,7 @@ public final class MiningService implements Mining {
 						throw new VerificationException("输出金额不能为负数");
 					}
 					txOutputFee = txOutputFee.add(outputCoin);
-					//FIXME 是否验证必须输出到已有的帐户 ???
+					//是否验证必须输出到已有的帐户 ??? TODO
 				}
 				//输出金额不能大于输入金额
 				if(txOutputFee.isGreaterThan(txInputFee)) {
@@ -330,56 +353,49 @@ public final class MiningService implements Mining {
 
 	@Override
 	public void start() {
+
+		consensusMeeting.startSyn();
 		
 		runing = true;
 		
 		Account account = null;
 		try {
+			//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
+			while(true && runing) {
+				//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
+				if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
+					break;
+				} else {
+					try {
+						Thread.sleep(1000l);
+					} catch (InterruptedException e) {
+						log.error("wait connect err", e);
+					}
+				}
+			}
+			
 			while(true && runing) {
 				//监控自己是否成功成为共识节点
 				List<Account> accountList = accountKit.getAccountList();
 				if(accountList != null && accountList.size() > 0) {
 					account = accountList.get(0);
 					if(consensusPool.contains(account.getAddress().getHash160())) {
-						break;
+						//账户是否已解密
+						if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
+								(account.isCertAccount() && account.isEncrypted()))) {
+
+							log.info("开始共识，本地最新高度 {}", network.getBestBlockHeight());
+							
+							consensusMeeting.setAccount(account);
+							this.account = account;
+							break;
+						}
 					}
 				}
 				Thread.sleep(1000l);
 			}
 		} catch (InterruptedException e) {
 			log.error("mining err", e);
-		}
-		
-		consensusMeeting.setAccount(account);
-		
-		//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
-		while(true && runing) {
-			//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
-			if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete() && 
-					!((account.isCertAccount() && account.isEncryptedOfTr()) || 
-							(account.isCertAccount() && account.isEncrypted()))) {
-				//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
-				BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
-				Utils.checkNotNull(bestBlockHeader);
-				long height = bestBlockHeader.getBlockHeader().getHeight();
-				
-				//content格式第一位为type,1为拉取共识状态信息
-				byte[] content = new byte[] { 1 };
-				
-				ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), height, content);
-				//签名共识消息
-				message.sign(account);
-				
-				consensusMeeting.broadcastMessage(message);
-				consensusMeeting.startSyn();
-				break;
-			} else {
-				try {
-					Thread.sleep(1000l);
-				} catch (InterruptedException e) {
-					log.error("wait connect err", e);
-				}
-			}
 		}
 	}
 	

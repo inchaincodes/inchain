@@ -82,7 +82,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * @param blockStore
 	 * @throws IOException 
 	 */
-	public void saveBlock(BlockStore blockStore) throws IOException {
+	public void saveBlock(BlockStore blockStore) throws IOException, VerificationException {
 		blockLock.lock();
 		try {
 			//最新的区块
@@ -293,8 +293,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				preBlockHeader.setNextHash(block.getHash());
 				db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
 			}
-		} catch (Exception e) {
+		} catch (IOException | VerificationException e) {
 			log.info("保存区块出错：", e);
+			throw e;
 		} finally {
 			blockLock.unlock();
 		}
@@ -481,6 +482,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		block.setPreHash(header.getBlockHeader().getPreHash());
 		block.setTime(header.getBlockHeader().getTime());
 		block.setTxCount(header.getBlockHeader().getTxCount());
+		block.setPeriodCount(header.getBlockHeader().getPeriodCount());
+		block.setTimePeriod(header.getBlockHeader().getTimePeriod());
+		block.setPeriodStartPoint(header.getBlockHeader().getPeriodStartPoint());
+		block.setScriptBytes(header.getBlockHeader().getScriptBytes());
 		
 		blockStore.setBlock(block);
 		blockStore.setNextHash(header.getNextHash());

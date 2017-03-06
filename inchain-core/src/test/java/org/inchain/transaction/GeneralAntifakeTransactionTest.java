@@ -101,8 +101,8 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 		
 		tx.sign(systemAccount);
 		
-		tx.verfify();
-		tx.verfifyScript();
+		tx.verify();
+		tx.verifyScript();
 		
 		TransactionValidatorResult valResult = transactionValidator.valDo(tx).getResult();
 		log.info("val result : {}" , valResult);

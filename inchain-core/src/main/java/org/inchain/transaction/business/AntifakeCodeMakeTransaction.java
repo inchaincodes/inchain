@@ -71,8 +71,8 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 		
 		if( productTx == null) {
 			throw new VerificationException("商品信息不存在");
@@ -85,8 +85,8 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	public void verfifyScript() {
-		super.verfifyScript();
+	public void verifyScript() {
+		super.verifyScript();
 	}
 	
 	/**

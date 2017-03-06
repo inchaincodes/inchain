@@ -377,7 +377,19 @@ public class PeerKit {
 	 * @return boolean
 	 */
 	public boolean canBroadcast() {
-		return inPeers.size() > 0 || outPeers.size() > 0;
+		//握手成功可以进行数据交换的节点数量
+		int count = 0;
+		for (Peer peer : inPeers) {
+			if(peer.isHandshake()) {
+				count ++;
+			}
+		}
+		for (Peer peer : outPeers) {
+			if(peer.isHandshake()) {
+				count ++;
+			}
+		}
+		return count > 0;
 	}
 	
 	/**

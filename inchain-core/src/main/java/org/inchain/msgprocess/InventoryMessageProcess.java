@@ -69,7 +69,6 @@ public class InventoryMessageProcess implements MessageProcess {
 			log.debug("receive inv message: {}", message);
 		}
 		
-		
 		InventoryMessage invMessage = (InventoryMessage) message;
 		
 		List<InventoryItem> invList = invMessage.getInvs();
@@ -259,7 +258,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			
 			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 			//获取下载结果，有超时时间
-			GetDataResult result = resultFuture.get(2, TimeUnit.SECONDS);
+			GetDataResult result = resultFuture.get(1, TimeUnit.SECONDS);
 			if(result.isSuccess()) {
 				filter.insert(inventoryItem.getHash().getBytes());
 			}

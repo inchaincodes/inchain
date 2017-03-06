@@ -36,9 +36,9 @@ public class RegConsensusTransaction extends CommonlyTransaction {
 	/**
 	 * 验证交易的合法性
 	 */
-	public void verfify() throws VerificationException {
+	public void verify() throws VerificationException {
 		
-		super.verfify();
+		super.verify();
 		
 		if(type != Definition.TYPE_REG_CONSENSUS) {
 			throw new VerificationException("交易类型错误");
@@ -48,9 +48,9 @@ public class RegConsensusTransaction extends CommonlyTransaction {
 	/**
 	 * 验证交易脚本
 	 */
-	public void verfifyScript() {
+	public void verifyScript() {
 		//特殊的验证脚本
-		super.verfifyScript();
+		super.verifyScript();
 	}
 	
 	/**

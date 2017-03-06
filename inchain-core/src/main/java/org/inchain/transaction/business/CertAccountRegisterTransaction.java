@@ -126,8 +126,8 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 	 * 验证交易的合法性
 	 */
 	@Override
-	public void verfify() throws VerificationException {
-		super.verfify();
+	public void verify() throws VerificationException {
+		super.verify();
 		if(body == null || body.serialize().length > MAX_BODY_LENGTH) {
 			throw new VerificationException("主体信息错误");
 		}

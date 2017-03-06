@@ -34,8 +34,8 @@ public class RegConsensusTranslationTest extends UnitBaseTestCase {
 		account.setEcKey(key);
 		regConsensusTransaction.sign(account);
 		
-		regConsensusTransaction.verfify();
-		regConsensusTransaction.verfifyScript();
+		regConsensusTransaction.verify();
+		regConsensusTransaction.verifyScript();
 		
 		RegConsensusTransaction regConsensusTransactionTemp = new RegConsensusTransaction(network, regConsensusTransaction.baseSerialize(), 0);
 		

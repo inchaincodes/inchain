@@ -67,7 +67,7 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 		System.out.println("==========================");
 				
 		coinBaseTx.addOutput(Coin.MAX, address);
-		coinBaseTx.verfifyScript();
+		coinBaseTx.verifyScript();
 		
 		txs.add(coinBaseTx);
 		
@@ -104,8 +104,8 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 			account.setEcKey(key);
 			regConsensusTransaction.sign(account);
 			
-			regConsensusTransaction.verfify();
-			regConsensusTransaction.verfifyScript();
+			regConsensusTransaction.verify();
+			regConsensusTransaction.verifyScript();
 			
 			txs.add(regConsensusTransaction);
 		}
