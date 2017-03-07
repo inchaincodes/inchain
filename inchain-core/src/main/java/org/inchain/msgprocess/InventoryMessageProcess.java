@@ -154,8 +154,8 @@ public class InventoryMessageProcess implements MessageProcess {
 				//下载交易
 				Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 				
-				//获取下载结果，10s超时
-				GetDataResult result = resultFuture.get(10, TimeUnit.SECONDS);
+				//获取下载结果，超时后切换
+				GetDataResult result = resultFuture.get(3, TimeUnit.SECONDS);
 				
 				if(result.isSuccess()) {
 					if(log.isDebugEnabled()) {
@@ -190,7 +190,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 			
 			//获取下载结果，有超时时间
-			GetDataResult result = resultFuture.get(30, TimeUnit.SECONDS);
+			GetDataResult result = resultFuture.get(3, TimeUnit.SECONDS);
 			
 			if(result.isSuccess()) {
 				Block block = (Block) result.getData();

@@ -533,8 +533,12 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	}
 
 	@Override
-	public ConsensusInfos getCurrentConsensusInfos(long height) {
-		return currentMetting.getCurrentConsensusInfos(height);
+	public ConsensusInfos getCurrentConsensusInfos(int timePeriod) {
+		if(currentMetting == null) {
+			//可能原因，还没有同步完？
+			return ConsensusInfos.UNCERTAIN;
+		}
+		return currentMetting.getCurrentConsensusInfos(timePeriod);
 	}
 
 	/**

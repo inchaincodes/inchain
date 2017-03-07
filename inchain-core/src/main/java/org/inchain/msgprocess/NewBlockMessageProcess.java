@@ -53,6 +53,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		Result valResult = newBlockValidator.doVal(block);
 		if(!valResult.isSuccess()) {
 			log.warn("新区块{} 验证失败： {}", block.getHash(), valResult.getMessage());
+			
 			return new MessageProcessResult(block.getHash(), false);
 		}
 		

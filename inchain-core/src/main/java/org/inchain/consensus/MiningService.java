@@ -353,8 +353,6 @@ public final class MiningService implements Mining {
 
 	@Override
 	public void start() {
-
-		consensusMeeting.startSyn();
 		
 		runing = true;
 		
@@ -364,6 +362,7 @@ public final class MiningService implements Mining {
 			while(true && runing) {
 				//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
 				if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
+					consensusMeeting.startSyn();
 					break;
 				} else {
 					try {

@@ -44,10 +44,10 @@ public interface ConsensusMeeting {
 	
 	/**
 	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
-	 * @param height 区块高度
+	 * @param timePeriod 区块时段
 	 * @return ConsensusInfos
 	 */
-	ConsensusInfos getCurrentConsensusInfos(long height);
+	ConsensusInfos getCurrentConsensusInfos(int timePeriod);
 
 	/**
 	 * 设置运行账户

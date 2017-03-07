@@ -281,24 +281,21 @@ public class MeetingItem implements Cloneable {
 	
 	/**
 	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
-	 * @param height 区块高度
+	 * @param timePeriod 区块时段
 	 * @return ConsensusInfos
 	 */
-	public ConsensusInfos getCurrentConsensusInfos(long height) {
+	public ConsensusInfos getCurrentConsensusInfos(int timePeriod) {
 		//根据时间戳确定当前的受托人和高度
 		
-//		int index = (int) (height - 1 - startHeight + diffCount);
-		
-		int index = (int) Math.floor((TimeService.currentTimeMillis() - startTime) / Configure.BLOCK_GEN__MILLISECOND_TIME) - 1;
-		if(index < 0) {
-			index = 0;
+		if(timePeriod >= consensusList.size() || timePeriod < 0) {
+			return null;
 		}
+		ConsensusAccount consensusAccount = consensusList.get(timePeriod);
 		
-		log.info("index {},  {}", index,(TimeService.currentTimeMillis() - startTime));
-		
-		byte[] hash160 = consensusList.get(index).getHash160();
-		long beginTime = startTime + index * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		byte[] hash160 = consensusAccount.getHash160();
+		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME;
 		long endTime = beginTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
+		
 		return new ConsensusInfos(height, hash160, beginTime, endTime);
 	}
 
