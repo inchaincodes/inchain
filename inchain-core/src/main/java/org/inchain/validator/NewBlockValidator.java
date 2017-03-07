@@ -1,12 +1,14 @@
 package org.inchain.validator;
 
 import java.util.Arrays;
+import java.util.Date;
 
 import org.inchain.Configure;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Result;
 import org.inchain.message.Block;
+import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,7 @@ public class NewBlockValidator {
 
 			if(currentInfos == null) {
 				log.error("验证新区块时段出错", block);
-				return new Result(false, "error");
+				return new Result(false, "验证新区块时段出错");
 			}
 			
 			log.info("新区块验证信息：{}", currentInfos);
@@ -42,15 +44,16 @@ public class NewBlockValidator {
 			}
 			
 			if(!Arrays.equals(currentInfos.getHash160(), block.getHash160())) {
-				log.error("new block error 新区块验证错误 : {} {}", block.getHeight(), block.getHash());
-				return new Result(false, "error");
+				log.error("新区块打包人验证错误 : {} {}", block.getHeight(), block.getHash());
+				return new Result(false, "新区块打包人验证错误");
 			}
 			
 			//如果时间不同，则应该放入分叉里
 			if(currentInfos.getBeginTime() - Configure.BLOCK_GEN__MILLISECOND_TIME > block.getTime() || 
 					currentInfos.getEndTime() + Configure.BLOCK_GEN__MILLISECOND_TIME < block.getTime()) {
-				log.error("new block error 新区块验时间戳验证出错 : {} {}", block.getHeight(), block.getHash());
-				return new Result(false, "error");
+				log.error("新区块时间戳验证出错 : 高度 {} , hash {} , 块时间 {}, 时段 {} - {}", block.getHeight(), block.getHash(),
+						DateUtil.convertDate(new Date(block.getTime())), DateUtil.convertDate(new Date(currentInfos.getBeginTime())), DateUtil.convertDate(new Date(currentInfos.getEndTime())));
+				return new Result(false, "新区块时间戳验证出错");
 			}
 			//TODO
 		} catch (Exception e) {

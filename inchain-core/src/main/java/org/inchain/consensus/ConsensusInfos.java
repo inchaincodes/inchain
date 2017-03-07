@@ -77,7 +77,7 @@ public class ConsensusInfos {
 
 	@Override
 	public String toString() {
-		return "ConsensusInfos [result=" + result + ", height=" + height + ", hash160=" + Hex.encode(hash160)
+		return "ConsensusInfos [result=" + result + ", height=" + height + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
 				+ ", beginTime=" + beginTime + ", endTime=" + endTime + "]";
 	}
 	

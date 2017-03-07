@@ -77,19 +77,18 @@ public final class MiningService implements Mining {
 	
 	/**
 	 * 执行打包
-	 * @param timePeriod 我的时段
-	 * @param periodCount	当前时段总数，也就是参与共识的人数
 	 */
-	public void mining(int timePeriod, int periodCount) {
+	public void mining() {
 		
 		//本地最新区块
 		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 		
 		Utils.checkNotNull(bestBlockHeader);
 		
-		//上一区块的时间戳
-//		long time = bestBlockHeader.getBlockHeader().getTime();
-		long time = TimeService.currentTimeMillis() - 200;
+		//获取我的时段开始时间
+		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
+		
+		long time = miningInfos.getBeginTime();
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -166,13 +165,13 @@ public final class MiningService implements Mining {
 
 		block.setHeight(bestBlockHeader.getBlockHeader().getHeight()+1);
 		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
-		block.setTime(TimeService.currentTimeMillis());
+		block.setTime(miningInfos.getEndTime());
 		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
 		block.setTxCount(transactionList.size());
 		block.setTxs(transactionList);
 		block.setMerkleHash(block.buildMerkleHash());
-		block.setPeriodCount(periodCount);
-		block.setTimePeriod(timePeriod);
+		block.setPeriodCount(miningInfos.getPeriodCount());
+		block.setTimePeriod(miningInfos.getTimePeriod());
 		block.setPeriodStartPoint(consensusMeeting.getPeriodStartPoint());
 		
 		block.sign(account);

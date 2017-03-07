@@ -2,6 +2,7 @@ package org.inchain.consensus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -12,6 +13,7 @@ import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.utils.ByteArrayTool;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -280,6 +282,14 @@ public class MeetingItem implements Cloneable {
 	}
 	
 	/**
+	 * 获取当前轮的时段数量，也就是由多少人参与共识
+	 * @return int
+	 */
+	public int getPeriodCount() {
+		return consensusList.size();
+	}
+	
+	/**
 	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
 	 * @param timePeriod 区块时段
 	 * @return ConsensusInfos
@@ -364,66 +374,51 @@ public class MeetingItem implements Cloneable {
 	public void setViolationList(List<ConsensusAccount> violationList) {
 		this.violationList = violationList;
 	}
-
 	public List<ConsensusAccount> getConsensusList() {
 		return consensusList;
 	}
-
 	public long getStartTime() {
 		return startTime;
 	}
-
 	public void setStartTime(long startTime) {
 		this.startTime = startTime;
 	}
-
 	public long getEndTime() {
 		return endTime;
 	}
-
 	public void setEndTime(long endTime) {
 		this.endTime = endTime;
 	}
-
 	public long getMyPackageTime() {
 		return myPackageTime;
 	}
-
 	public void setMyPackageTime(long myPackageTime) {
 		this.myPackageTime = myPackageTime;
 	}
-
 	public long getMyPackageTimeEnd() {
 		return myPackageTimeEnd;
 	}
-
 	public void setMyPackageTimeEnd(long myPackageTimeEnd) {
 		this.myPackageTimeEnd = myPackageTimeEnd;
+	}
+	public byte[] getMyHash160() {
+		return myHash160;
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("MeetingItem [consensusList=");
-		builder.append(consensusList);
-		builder.append(", consensusMeeting=");
-		builder.append(consensusMeeting);
-		builder.append(", diffCount=");
-		builder.append(diffCount);
-		builder.append(", height=");
-		builder.append(height);
-		builder.append(", startHeight=");
+		builder.append("MeetingItem [");
+		builder.append("startHeight=");
 		builder.append(startHeight);
 		builder.append(", endHeight=");
 		builder.append(endHeight);
-		builder.append(", status=");
-		builder.append(status);
-		builder.append(", newestTime=");
-		builder.append(newestTime);
 		builder.append(", startTime=");
-		builder.append(startTime);
+		builder.append(DateUtil.convertDate(new Date(startTime)));
 		builder.append(", endTime=");
-		builder.append(endTime);
+		builder.append(DateUtil.convertDate(new Date(endTime)));
+		builder.append(", myPackageTime=");
+		builder.append(DateUtil.convertDate(new Date(myPackageTime)));
 		builder.append(", hasPackage=");
 		builder.append(hasPackage);
 		builder.append(", myHash160=");
@@ -434,8 +429,6 @@ public class MeetingItem implements Cloneable {
 		}
 		builder.append(", index=");
 		builder.append(index);
-		builder.append(", myPackageTime=");
-		builder.append(myPackageTime);
 		builder.append(", timeoutList=");
 		builder.append(timeoutList);
 		builder.append("]");

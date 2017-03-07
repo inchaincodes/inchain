@@ -255,7 +255,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			BlockHeaderStore bestBlockHeaderStore = network.getBestBlockHeader();
 			
 			if(bestBlockHeaderStore == null || bestBlockHeaderStore.getBlockHeader() == null ||
-					bestBlockHeaderStore.getBlockHeader().getTimePeriod() < currentMetting.getConsensusList().size()) {
+					bestBlockHeaderStore.getBlockHeader().getTimePeriod() < currentMetting.getPeriodCount()) {
 				if(!currentMetting.canEnd()) {
 					//再检查时间
 					return;
@@ -269,14 +269,14 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 			
 			long newStartTime = bestBlockHeaderStore.getBlockHeader().getTime();
-			int diff = previousMetting.getConsensusList().size() - bestBlockHeaderStore.getBlockHeader().getTimePeriod() -1;
+			int diff = previousMetting.getPeriodCount() - bestBlockHeaderStore.getBlockHeader().getTimePeriod() -1;
 			if(diff > 0) {
 				newStartTime += diff * Configure.BLOCK_GEN__MILLISECOND_TIME;
 			}
 			
 			currentMetting = new MeetingItem(this, bestBlockHeaderStore.getBlockHeader().getHeight() + 1, consensusPool.listSnapshots());
 			
-			if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= currentMetting.getConsensusList().size()) {
+			if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= currentMetting.getPeriodCount()) {
 				currentMetting.startConsensus();
 			} else {
 				currentMetting.startConsensus(newStartTime);
@@ -299,7 +299,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		packageing = true;
 		
 		try {
-			mining.mining(currentMetting.getTimePeriod(), currentMetting.getConsensusList().size());
+			mining.mining();
 		} catch (Exception e) {
 			log.error("mining err", e);
 		}
@@ -548,6 +548,21 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	@Override
 	public long getPeriodStartPoint() {
 		return currentMetting.getStartHeight();
+	}
+
+	/**
+	 * 打包信息，轮到我打包时，根据共识会议，获取我的打包信息
+	 * @return MiningInfos
+	 */
+	@Override
+	public MiningInfos getMineMiningInfos() {
+		MiningInfos infos = new MiningInfos();
+		infos.setHash160(currentMetting.getMyHash160());
+		infos.setTimePeriod(currentMetting.getTimePeriod());
+		infos.setPeriodCount(currentMetting.getPeriodCount());
+		infos.setBeginTime(currentMetting.getMyPackageTime());
+		infos.setEndTime(currentMetting.getMyPackageTimeEnd());
+		return infos;
 	}
 	
 }

@@ -50,6 +50,12 @@ public interface ConsensusMeeting {
 	ConsensusInfos getCurrentConsensusInfos(int timePeriod);
 
 	/**
+	 * 打包信息，轮到我打包时，根据共识会议，获取我的打包信息
+	 * @return MiningInfos
+	 */
+	MiningInfos getMineMiningInfos();
+	
+	/**
 	 * 设置运行账户
 	 * @param account 
 	 */
