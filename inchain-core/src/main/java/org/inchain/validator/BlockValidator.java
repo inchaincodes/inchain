@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
  *
  */
 @Service
-public class NewBlockValidator {
+public class BlockValidator {
 
 	private Logger log = LoggerFactory.getLogger(getClass());
 	

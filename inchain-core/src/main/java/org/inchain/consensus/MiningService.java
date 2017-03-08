@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +42,9 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +78,8 @@ public final class MiningService implements Mining {
 	private ChainstateStoreProvider chainstateStoreProvider;
 	@Autowired
 	private DataSynchronizeHandler dataSynchronizeHandler;
+	@Autowired
+	private TransactionValidator transactionValidator;
 
 	//运行状态
 	private boolean runing;
@@ -117,14 +123,14 @@ public final class MiningService implements Mining {
 	 */
 	public void mining() {
 		
+		long beginTime = TimeService.currentTimeMillis();
+		
 		//临时处理，延迟1s，解决内存池来不及移除新块交易的问题
 		try {
 			Thread.sleep(1000l);
 		} catch (InterruptedException e1) {
 			e1.printStackTrace();
 		}
-		
-		long beginTime = TimeService.currentTimeMillis();
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -137,19 +143,25 @@ public final class MiningService implements Mining {
 			
 			while(tx != null) {
 				//如果某笔交易验证失败，则不打包进区块
-				boolean res = verifyTx(transactionList, tx);
-				if(res) {
-					//交易费
-					//只有pay交易才有交易费
-					if(tx.getType() == Definition.TYPE_PAY
-							|| tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
-						fee = fee.add(getTransactionFee(tx));
+				try{
+					boolean res = verifyTx(transactionList, tx);
+					if(res) {
+						//交易费
+						//只有pay交易才有交易费
+						if(tx.getType() == Definition.TYPE_PAY
+								|| tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+							fee = fee.add(getTransactionFee(tx));
+						}
+						transactionList.add(tx);
+					} else {
+						//验证失败
+						debug("交易验证失败：" + tx.getHash());
 					}
-					transactionList.add(tx);
-				} else {
-					//验证失败
-					debug("交易验证失败：" + tx.getHash());
+				} catch (Exception e) {
+
+					debug("交易验证失败：" + tx.getHash() + "    错误详情：" + e.getMessage());
 				}
+				
 				//如果时间到了，那么退出打包，然后广区块
 				if(TimeService.currentTimeMillis() - beginTime >= Configure.BLOCK_GEN__MILLISECOND_TIME || forcedStopModel == 1) {
 					break;
@@ -210,12 +222,17 @@ public final class MiningService implements Mining {
 		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
 		block.setTime(miningInfos.getEndTime());
 		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
-		block.setTxCount(transactionList.size()); 
 		block.setTxs(transactionList);
-		block.setMerkleHash(block.buildMerkleHash());
+//		block.setTxCount(transactionList.size()); 
+//		block.setMerkleHash(block.buildMerkleHash());
 		block.setPeriodCount(miningInfos.getPeriodCount());
 		block.setTimePeriod(miningInfos.getTimePeriod());
 		block.setPeriodStartPoint(consensusMeeting.getPeriodStartPoint());
+		
+		verifyBlockTx(block);
+		block.setTxs(transactionList);
+		block.setTxCount(transactionList.size()); 
+		block.setMerkleHash(block.buildMerkleHash());
 		
 		block.sign(account);
 		block.verifyScript();
@@ -250,6 +267,21 @@ public final class MiningService implements Mining {
 			}
 		} catch (IOException e) {
 			log.error("共识产生的新块保存时报错", e);
+		}
+	}
+	
+	private void verifyBlockTx(Block block) {
+		List<Transaction> txs = block.getTxs();
+		
+		Iterator<Transaction> it = txs.iterator();
+		while(it.hasNext()) {
+			Transaction tx = it.next();
+			
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
+			if(!rs.getResult().isSuccess()) {
+				it.remove();
+				mempool.add(tx);
+			}
 		}
 	}
 	

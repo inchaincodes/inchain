@@ -13,7 +13,7 @@ import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Hex;
-import org.inchain.validator.NewBlockValidator;
+import org.inchain.validator.BlockValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	@Autowired
 	private PeerKit peerKit;
 	@Autowired
-	private NewBlockValidator newBlockValidator;
+	private BlockValidator newBlockValidator;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块

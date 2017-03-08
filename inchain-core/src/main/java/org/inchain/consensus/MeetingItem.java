@@ -246,8 +246,8 @@ public class MeetingItem implements Cloneable {
 		
 		//这里运行广播的时间段，是该节点的时间段中间值，往后延一个区块出块的时间，意味着只有在这个时间段出块，才会被接受
 		//系统默认的是中间值出块，最大程度保证诚信节点的稳定运行
-		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME + (Configure.BLOCK_GEN__MILLISECOND_TIME / 2);
-		long endTime = beginTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
+		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		long endTime = beginTime + 2 * Configure.BLOCK_GEN__MILLISECOND_TIME;
 		
 		return new ConsensusInfos(hash160, beginTime, endTime);
 	}
