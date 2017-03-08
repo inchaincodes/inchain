@@ -183,7 +183,7 @@ public class MeetingItem implements Cloneable {
 			ConsensusAccount consensusAccount = consensusList.get(i);
 			if(Arrays.equals(myHash160, consensusAccount.getHash160())) {
 				this.myHash160 = myHash160;
-				myPackageTime = startTime + (i * Configure.BLOCK_GEN__MILLISECOND_TIME);
+				myPackageTime = startTime + (i * Configure.BLOCK_GEN__MILLISECOND_TIME) - 1000;
 				myPackageTimeEnd = myPackageTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
 				
 //				if(TimeService.currentTimeMillis() - Configure.BLOCK_GEN__MILLISECOND_TIME > myPackageTime) {
@@ -331,6 +331,35 @@ public class MeetingItem implements Cloneable {
 			timeoutList = new ArrayList<ConsensusAccount>();
 		}
 		timeoutList.add(consensusList.get(index));
+	}
+	
+	/**
+	 * 获取某个账户的共识时段，返回-1代表不是共识账户
+	 * @param hash160
+	 * @return int
+	 */
+	public int getPeriod(byte[] hash160) {
+		for (int i = 0; i < consensusList.size(); i++) {
+			ConsensusAccount consensusAccount = consensusList.get(i);
+			if(Arrays.equals(hash160, consensusAccount.getHash160())) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	/**
+	 * 判断该节点是否在共识列表中
+	 * @param consensusAccount
+	 * @return boolean
+	 */
+	public boolean exist(ConsensusAccount consensusAccount) {
+		for (ConsensusAccount ca : consensusList) {
+			if(Arrays.equals(ca.getHash160(), consensusAccount.getHash160())) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	@Override

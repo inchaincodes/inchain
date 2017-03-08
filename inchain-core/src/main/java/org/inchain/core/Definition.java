@@ -28,6 +28,7 @@ import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
 
 /**
  * 协议定义
@@ -46,6 +47,8 @@ public final class Definition {
 	public static final int TYPE_PAY = 2;						//普通支付交易
 	public static final int TYPE_REG_CONSENSUS = 3;				//注册成为共识节点
 	public static final int TYPE_REM_CONSENSUS = 4;				//注销共识节点
+	public static final int TYPE_VIOLATION = 5;					// 违规事件处理
+	
 	public static final int TYPE_CERT_ACCOUNT_REGISTER = 11;	//认证账户注册
 	public static final int TYPE_CERT_ACCOUNT_UPDATE = 12;		//认证账户修改信息
 	
@@ -109,6 +112,7 @@ public final class Definition {
     	PROCESS_FACTORYS.put(CertAccountUpdateTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RegConsensusTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RemConsensusTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(ViolationTransaction.class, "transactionMessageProcess");
     	
     	//业务消息处理器 
     	PROCESS_FACTORYS.put(ProductTransaction.class, "transactionMessageProcess");
@@ -137,6 +141,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(ViolationTransaction.class, "tx");
 
     	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
@@ -158,6 +163,7 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_GENERAL_ANTIFAKE, GeneralAntifakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_MAKE, AntifakeCodeMakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_VIOLATION, ViolationTransaction.class);
 		
     	//===========================-分割线=============================//
     	

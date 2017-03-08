@@ -11,6 +11,11 @@ public interface Mining {
 	
 	void stop();
 	
+	/**
+	 * 重置共识
+	 */
+	void reset();
+	
 	int status();
 	
 	/**

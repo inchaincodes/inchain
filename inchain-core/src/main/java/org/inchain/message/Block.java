@@ -127,8 +127,27 @@ public class Block extends BlockHeader {
 	
 	@Override
 	public String toString() {
-		return "Block [hash=" + getHash() + ", preHash=" + preHash + ", merkleHash=" + merkleHash + ", txCount="
-				+ txCount + ", time=" + time + ", height=" + height + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("Block [hash=");
+		builder.append(hash);
+		builder.append(", preHash=");
+		builder.append(preHash);
+		builder.append(", merkleHash=");
+		builder.append(merkleHash);
+		builder.append(", time=");
+		builder.append(time);
+		builder.append(", height=");
+		builder.append(height);
+		builder.append(", txCount=");
+		builder.append(txCount);
+		builder.append(", periodCount=");
+		builder.append(periodCount);
+		builder.append(", timePeriod=");
+		builder.append(timePeriod);
+		builder.append(", periodStartPoint=");
+		builder.append(periodStartPoint);
+		builder.append("]");
+		return builder.toString();
 	}
 
 	public boolean equals(BlockHeader other) {

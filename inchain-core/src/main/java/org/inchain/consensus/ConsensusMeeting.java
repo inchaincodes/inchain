@@ -44,10 +44,11 @@ public interface ConsensusMeeting {
 	
 	/**
 	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
+	 * @param startPoint 开始高度
 	 * @param timePeriod 区块时段
 	 * @return ConsensusInfos
 	 */
-	ConsensusInfos getCurrentConsensusInfos(int timePeriod);
+	ConsensusInfos getCurrentConsensusInfos(long startPoint, int timePeriod);
 
 	/**
 	 * 打包信息，轮到我打包时，根据共识会议，获取我的打包信息
@@ -62,15 +63,35 @@ public interface ConsensusMeeting {
 	void setAccount(Account account);
 	
 	/**
+	 * 获取当前正在共识的账户
+	 * @return Account 
+	 */
+	Account getAccount();
+	
+	/**
 	 * 获取本轮共识的开始点，也就是开始高度
 	 * @return long
 	 */
 	long getPeriodStartPoint();
 	
 	/**
-	 * 获取本轮和上一轮超时的账号
+	 * 获取本轮和上一轮超时的违规信息
 	 */
-	Set<ConsensusAccount> getTimeoutList();
+	Set<TimeoutConsensusViolation> getTimeoutList();
+	
+	/**
+	 * 获取某论的共识快照，从最新的内存映射倒推
+	 * TODO 可以考虑做一个内存映射，每次分析计算量太大 ？
+	 * @param startPoint
+	 * @return List<ConsensusAccount>
+	 */
+	List<ConsensusAccount> analysisSnapshotsByStartPoint(long startPoint);
+
+	/**
+	 * 获取以startPoint开始的会议详情
+	 * @return MeetingItem
+	 */
+	MeetingItem getMeetingItem(long startPoint);
 	
 	/**
 	 * 异步启动
@@ -78,9 +99,12 @@ public interface ConsensusMeeting {
 	void startSyn();
 	
 	/**
-	 * 停止
+	 * 停止服务
 	 */
 	void stop();
-
-
+	
+	/**
+	 * 停止共识
+	 */
+	void stopConsensus();
 }

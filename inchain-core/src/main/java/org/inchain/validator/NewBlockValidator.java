@@ -8,6 +8,8 @@ import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Result;
 import org.inchain.message.Block;
+import org.inchain.message.BlockHeader;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,18 +28,22 @@ public class NewBlockValidator {
 	
 	@Autowired
 	private ConsensusMeeting consensusMeeting;
+	@Autowired
+	private NetworkParams networkParams;
 
 	public Result doVal(Block block) {
 		try {
 			//验证新区块打包的人是否合法
-			ConsensusInfos currentInfos = consensusMeeting.getCurrentConsensusInfos(block.getTimePeriod());
+			ConsensusInfos currentInfos = consensusMeeting.getCurrentConsensusInfos(block.getPeriodStartPoint(), block.getTimePeriod());
 
 			if(currentInfos == null) {
 				log.error("验证新区块时段出错", block);
 				return new Result(false, "验证新区块时段出错");
 			}
 			
-			log.info("新区块验证信息：{}", currentInfos);
+			if(log.isDebugEnabled()) {
+				log.debug("新区块验证信息：{}", currentInfos);
+			}
 			//如果返回的是不确定，则通过
 			if(currentInfos.getResult() == ConsensusInfos.RESULT_UNCERTAIN) {
 				return new Result(true, "uncertain");
@@ -56,6 +62,11 @@ public class NewBlockValidator {
 				return new Result(false, "新区块时间戳验证出错");
 			}
 			//TODO
+			BlockHeader bestBlock = networkParams.getBestBlockHeader().getBlockHeader();
+			if(bestBlock.getPeriodStartPoint() == block.getPeriodStartPoint() && bestBlock.getTimePeriod() >= block.getTime()) {
+				return new Result(false, "新区块时段比老区块小，禁止接收");
+			}
+			
 		} catch (Exception e) {
 			log.error("验证新区块时段出错", e);
 		}

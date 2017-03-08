@@ -3,6 +3,7 @@ package org.inchain.consensus;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -11,7 +12,9 @@ import org.inchain.account.Account;
 import org.inchain.core.Coin;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
+import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.TimeService;
+import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
@@ -36,6 +39,8 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -154,10 +159,11 @@ public final class MiningService implements Mining {
 		transactionList.add(0, coinBaseTx);
 		
 		//处理违规情况的节点，目前只处理超时的
-		Set<ConsensusAccount> timeoutList = consensusMeeting.getTimeoutList();
-		for (ConsensusAccount consensusAccount : timeoutList) {
-			//
-			log.info("超时的节点： {}" , consensusAccount);
+		Set<TimeoutConsensusViolation> timeoutList = consensusMeeting.getTimeoutList();
+		for (TimeoutConsensusViolation consensusViolation : timeoutList) {
+			log.info("超时的节点： {}" , consensusViolation);
+			//判断该节点是否已被处理，如果没处理则我来处理
+			processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
 		}
 		
 		//广播区块
@@ -181,7 +187,9 @@ public final class MiningService implements Mining {
 
 		try {
 
-			log.info("高度： "+block.getHeight()+" , 出块时间: " + block.getTime() + "  =======================手续费： " + fee);
+			if(log.isDebugEnabled()) {
+				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
+			}
 			
 			//分叉处理 TODO
 			
@@ -202,6 +210,37 @@ public final class MiningService implements Mining {
 		}
 	}
 	
+	/*
+	 * 处理违规节点
+	 * violationType 违规类型，不同的类型面临的处罚不一样，1代表超时未出块
+	 */
+	private void processViolationConsensusAccount(int violationType, TimeoutConsensusViolation consensusViolation,
+			List<Transaction> transactionList) {
+		try {
+			if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+				//超时处理
+				NotBroadcastBlockViolationEvidence evidence = new NotBroadcastBlockViolationEvidence(consensusViolation.getHash160(), 
+						consensusViolation.getPreBlockHeight(), consensusViolation.getNextBlockHeight());
+				//判断该节点是否已经被处理过了
+				Sha256Hash evidenceHash = evidence.getEvidenceHash();
+				byte[] txHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
+				if(txHashBytes != null) {
+					return;
+				}
+				
+				ViolationTransaction tx = new ViolationTransaction(network, evidence);
+				
+				tx.sign(account);
+				tx.verify();
+				tx.verifyScript();
+				
+				transactionList.add(tx);
+			}
+		} catch (Exception e) {
+			log.error("处理违规节点时出错：{}", e.getMessage(), e);
+		}
+	}
+
 	/*
 	 * 获取交易的手续费
 	 */
@@ -355,45 +394,20 @@ public final class MiningService implements Mining {
 		
 		runing = true;
 		
-		Account account = null;
-		try {
-			//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
-			while(true && runing) {
-				//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
-				if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
-					consensusMeeting.startSyn();
-					break;
-				} else {
-					try {
-						Thread.sleep(1000l);
-					} catch (InterruptedException e) {
-						log.error("wait connect err", e);
-					}
+		//连接到其它节点之后，开始进行共识，如果没有连接，那么等待连接
+		while(true && runing) {
+			//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
+			if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
+				consensusMeeting.startSyn();
+				reset();
+				break;
+			} else {
+				try {
+					Thread.sleep(1000l);
+				} catch (InterruptedException e) {
+					log.error("wait connect err", e);
 				}
 			}
-			
-			while(true && runing) {
-				//监控自己是否成功成为共识节点
-				List<Account> accountList = accountKit.getAccountList();
-				if(accountList != null && accountList.size() > 0) {
-					account = accountList.get(0);
-					if(consensusPool.contains(account.getAddress().getHash160())) {
-						//账户是否已解密
-						if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
-								(account.isCertAccount() && account.isEncrypted()))) {
-
-							log.info("开始共识，本地最新高度 {}", network.getBestBlockHeight());
-							
-							consensusMeeting.setAccount(account);
-							this.account = account;
-							break;
-						}
-					}
-				}
-				Thread.sleep(1000l);
-			}
-		} catch (InterruptedException e) {
-			log.error("mining err", e);
 		}
 	}
 	
@@ -402,6 +416,38 @@ public final class MiningService implements Mining {
 		runing = false;
 		//强制停止
 		consensusMeeting.stop();
+	}
+	
+	@Override
+	public void reset() {
+		new Thread() {
+			public void run() {
+				consensusMeeting.setAccount(null);
+				while(true && runing) {
+					//监控自己是否成功成为共识节点
+					Account account = accountKit.getDefaultAccount();
+					if(account != null) {
+						if(consensusPool.contains(account.getAddress().getHash160())) {
+							//账户是否已解密
+							if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
+									(account.isCertAccount() && account.isEncrypted()))) {
+								
+								log.info("开始共识，本地最新高度 {}", network.getBestBlockHeight());
+								
+								consensusMeeting.setAccount(account);
+								MiningService.this.account = account;
+								break;
+							}
+						}
+					}
+					try {
+						Thread.sleep(1000l);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		}.start();
 	}
 	
 	@Override

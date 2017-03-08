@@ -1,5 +1,6 @@
 package org.inchain.consensus;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -95,6 +97,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	private boolean packageing;
 	//共识调度器状态，0等待初始化，1初始化中，2初始化成功，共识中，3初始化失败
 	private int meetingStatus = 0;
+	//共识轮数
+	private AtomicInteger meetingRound = new AtomicInteger();
 
 	@Override
 	public void startSyn() {
@@ -154,8 +158,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		//获取开始时的共识列表
 		//利用当前的快照倒推
-		List<ConsensusAccount> consensusList = consensusPool.listSnapshots();
-		analysisSnapshotsByStartPoint(startPoint, bestBlockHeader, consensusList);
+		List<ConsensusAccount> consensusList = analysisSnapshotsByStartPoint(startPoint);
 		
 		currentMetting = new MeetingItem(this, startPoint, consensusList);
 		
@@ -163,7 +166,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(startBlockHeader == null) {
 			return;
 		}
-		log.info(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), startBlockHeader.getBlockHeader().getTime());
+		if(log.isDebugEnabled()) {
+			log.debug(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), startBlockHeader.getBlockHeader().getTime());
+		}
 		currentMetting.startConsensus(startBlockHeader.getBlockHeader().getTime() + Configure.BLOCK_GEN__MILLISECOND_TIME * (startBlockHeader.getBlockHeader().getPeriodCount() - startBlockHeader.getBlockHeader().getTimePeriod() - 1));
 		
 //		//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
@@ -182,13 +187,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	/**
 	 * 分析这个时间段的共识进出
 	 * @param startPoint
-	 * @param endBlock
-	 * @param consensusList 
+	 * @return List<ConsensusAccount> 
 	 */
-	public void analysisSnapshotsByStartPoint(long startPoint, BlockHeader endBlock, List<ConsensusAccount> consensusList) {
+	public List<ConsensusAccount> analysisSnapshotsByStartPoint(long startPoint) {
 		
-		//
-		byte[] endBlockHashBytes = endBlock.getHash().getBytes();
+		List<ConsensusAccount> consensusList = consensusPool.listSnapshots();
+		
+		byte[] endBlockHashBytes = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHash().getBytes();
 		while(true) {
 			BlockStore blockStore = blockStoreProvider.getBlock(endBlockHashBytes);
 			if(blockStore == null || blockStore.getBlock() == null) {
@@ -236,6 +241,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				return o1.getHash160Hex().compareTo(o2.getHash160Hex());
 			}
 		});
+		return consensusList;
 	}
 
 	/*
@@ -255,7 +261,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			BlockHeaderStore bestBlockHeaderStore = network.getBestBlockHeader();
 			
 			if(bestBlockHeaderStore == null || bestBlockHeaderStore.getBlockHeader() == null ||
-					bestBlockHeaderStore.getBlockHeader().getTimePeriod() < currentMetting.getPeriodCount()) {
+					bestBlockHeaderStore.getBlockHeader().getTimePeriod() < currentMetting.getPeriodCount()
+					|| bestBlockHeaderStore.getBlockHeader().getPeriodStartPoint() != currentMetting.getStartHeight()) {
 				if(!currentMetting.canEnd()) {
 					//再检查时间
 					return;
@@ -269,7 +276,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 			
 			long newStartTime = bestBlockHeaderStore.getBlockHeader().getTime();
-			int diff = previousMetting.getPeriodCount() - bestBlockHeaderStore.getBlockHeader().getTimePeriod() -1;
+			
+			int diff = previousMetting.getPeriodCount() - bestBlockHeaderStore.getBlockHeader().getTimePeriod() - 1;
+			
+			if(log.isDebugEnabled()) {
+				log.debug("diff {}", diff);
+			}
+			
 			if(diff > 0) {
 				newStartTime += diff * Configure.BLOCK_GEN__MILLISECOND_TIME;
 			}
@@ -283,6 +296,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 			
 			log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {} , 我的时间 {}", DateUtil.convertDate(new Date(currentMetting.getStartTime())), DateUtil.convertDate(new Date(currentMetting.getEndTime())), DateUtil.convertDate(new Date(currentMetting.getMyPackageTime())));
+			
+			meetingRound.incrementAndGet();
 			
 			//当前不该我打包，但是我应该监控当前的状态，如果超时或者出现分叉，应及时处理
 			//currentMetting.monitor(localBestBlockHeight);
@@ -431,9 +446,14 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	/**
 	 * 获取本轮和上一轮超时的账号
 	 */
-	public Set<ConsensusAccount> getTimeoutList() {
+	public Set<TimeoutConsensusViolation> getTimeoutList() {
 		
-		Set<ConsensusAccount> timeoutList = new HashSet<ConsensusAccount>();
+		Set<TimeoutConsensusViolation> timeoutList = new HashSet<TimeoutConsensusViolation>();
+		
+		//只有共识3轮以上，才开始处理超时账号
+		if(meetingRound.get() < 3) {
+			return timeoutList;
+		}
 		
 		if(previousMetting != null) {
 			//上一轮的是否已处理
@@ -443,26 +463,35 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				int allCount = list.size();
 				
 				long startHeight = previousMetting.getStartHeight();
-
-				BlockHeader lastHeader = null;
 				
+				Map<Integer, Long> packagePeriodMap = new HashMap<Integer, Long>();
+				
+				BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(startHeight);
+				while(true) {
+					//上一轮的开始高度
+					if(blockHeaderStore == null) {
+						break;
+					}
+					packagePeriodMap.put(blockHeaderStore.getBlockHeader().getTimePeriod(), blockHeaderStore.getBlockHeader().getHeight());
+					
+					BlockHeaderStore blockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(blockHeaderStore.getBlockHeader().getHeight() + 1);
+					if(blockHeaderStoreTemp == null) {
+						break;
+					}
+					if(blockHeaderStoreTemp.getBlockHeader().getPeriodStartPoint() != blockHeaderStore.getBlockHeader().getPeriodStartPoint()) {
+						break;
+					}
+					blockHeaderStore = blockHeaderStoreTemp;
+				}
+
 				for (int i = 0; i < allCount; i++) {
 					ConsensusAccount cus = list.get(i);
-					
-					if(lastHeader == null || lastHeader.getTimePeriod() < i) {
-						BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(startHeight);
-						if(blockHeaderStore == null) {
-							lastHeader = null;
-						} else {
-							lastHeader = blockHeaderStore.getBlockHeader();
+					if(!packagePeriodMap.containsKey(i)) {
+						//没出，判断本轮是否还有他，如果有则加入超时列表等待处理
+						if(currentMetting.exist(cus)) {
+							TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), startHeight, startHeight);
+							timeoutList.add(violation);
 						}
-					}
-					
-					if(lastHeader == null || lastHeader.getTimePeriod() != i) {
-						//没出
-						timeoutList.add(cus);
-					} else {
-						startHeight ++;
 					}
 				}
 			}
@@ -478,7 +507,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		List<ConsensusAccount> list = currentMetting.getConsensusList();
 		
-		for (int i = 0; i < myTimePeriod; i++) {
+		for (int i = 0; i < myTimePeriod - 2; i++) {
 			ConsensusAccount cus = list.get(i);
 			
 			if(lastHeader == null || lastHeader.getTimePeriod() < i) {
@@ -492,7 +521,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			
 			if(lastHeader == null || lastHeader.getTimePeriod() != i) {
 				//没出
-				timeoutList.add(cus);
+				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), currentMetting.getStartHeight(), startHeight);
+				timeoutList.add(violation);
 			} else {
 				startHeight ++;
 			}
@@ -501,10 +531,20 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		return timeoutList;
 	}
 	
-	
+	/**
+	 * 停止服务
+	 */
 	@Override
 	public void stop() {
 		executor.shutdownNow();
+	}
+
+	/**
+	 * 停止共识
+	 */
+	@Override
+	public void stopConsensus() {
+		account = null;
 	}
 
 	@Override
@@ -532,13 +572,25 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		return false;
 	}
 
+	/**
+	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
+	 * @param startPoint 开始高度
+	 * @param timePeriod 区块时段
+	 * @return ConsensusInfos
+	 */
 	@Override
-	public ConsensusInfos getCurrentConsensusInfos(int timePeriod) {
+	public ConsensusInfos getCurrentConsensusInfos(long startPoint, int timePeriod) {
 		if(currentMetting == null) {
 			//可能原因，还没有同步完？
 			return ConsensusInfos.UNCERTAIN;
 		}
-		return currentMetting.getCurrentConsensusInfos(timePeriod);
+		if(currentMetting.getStartHeight() == startPoint) {
+			return currentMetting.getCurrentConsensusInfos(timePeriod);
+		} else if(previousMetting != null && previousMetting.getStartHeight() == startPoint) {
+			return previousMetting.getCurrentConsensusInfos(timePeriod);
+		}
+		//应该不会到这里来
+		return ConsensusInfos.UNCERTAIN;
 	}
 
 	/**
@@ -564,5 +616,22 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		infos.setEndTime(currentMetting.getMyPackageTimeEnd());
 		return infos;
 	}
-	
+
+	/**
+	 * 获取以startPoint开始的会议详情
+	 * @return MeetingItem
+	 */
+	@Override
+	public MeetingItem getMeetingItem(long startPoint) {
+		if(currentMetting == null) {
+			return null;
+		}
+		if(currentMetting.getStartHeight() == startPoint) {
+			return currentMetting;
+		}
+		if(previousMetting != null && previousMetting.getStartHeight() == startPoint) {
+			return previousMetting;
+		}
+		return null;
+	}
 }

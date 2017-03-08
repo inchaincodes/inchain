@@ -8,9 +8,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
+import org.inchain.consensus.MiningService;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
@@ -32,6 +35,7 @@ import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +62,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	//共识缓存器
 	@Autowired
 	private ConsensusPool consensusPool;
+	@Autowired
+	private MiningService mining;
+	@Autowired
+	private ConsensusMeeting consensusMeeting;
 
 	//新交易监听器
 	private TransactionListener transactionListener;
@@ -117,6 +125,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				db.put(tx.getHash().getBytes(), txs.baseSerialize());
 				
 				//如果是共识注册交易，则保存至区块状态表
+				//TODO 下面的代码请使用状态模式重构
 				if(tx instanceof RegConsensusTransaction) {
 					RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
 					
@@ -142,13 +151,21 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					byte[][] pubkeys = accountInfo.getPubkeys();
 					//添加到共识缓存器里
 					consensusPool.add(regTransaction.getHash160(), pubkeys);
-				} else if(tx instanceof RemConsensusTransaction) {
+				} else if(tx instanceof RemConsensusTransaction || tx instanceof ViolationTransaction) {
 					//退出共识
-					RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+					byte[] hash160 = null;
+					if(tx instanceof RemConsensusTransaction) {
+						//主动退出共识
+						RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+						hash160 = remTransaction.getHash160();
+					} else {
+						//违规被提出共识
+						ViolationTransaction vtx = (ViolationTransaction)tx;
+						hash160 = vtx.getViolationEvidence().getAudienceHash160();
+					}
 					
 					//从共识账户列表中删除
 					byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
-					byte[] hash160 = remTransaction.getHash160();
 					
 					byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - Address.LENGTH];
 					
@@ -163,6 +180,27 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
 					//从共识缓存器里中移除
 					consensusPool.delete(hash160);
+					
+					//退出的账户
+					byte[] remHash160 = null;
+					
+					if(tx instanceof ViolationTransaction) {
+						//违规被提出共识，增加规则证据到状态里，以便查证
+						ViolationTransaction vtx = (ViolationTransaction)tx;
+						Sha256Hash evidenceHash = vtx.getViolationEvidence().getEvidenceHash();
+						chainstateStoreProvider.put(evidenceHash.getBytes(), tx.getHash().getBytes());
+						
+						remHash160 = vtx.getViolationEvidence().getAudienceHash160();
+					} else {
+						remHash160 = hash160;
+					}
+					if(remHash160 != null) {
+						//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
+						Account consensusAccount = consensusMeeting.getAccount();
+						if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), remHash160)) {
+							mining.reset();
+						}
+					}
 				} else if(tx instanceof CreditTransaction) {
 					//只有创世块支持该类型交易
 					if(bestBlockHeader == null && Arrays.equals(bestBlockKey, block.getPreHash().getBytes()) && block.getHeight() == 0l) {
@@ -689,6 +727,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 //			List<Transaction> txs = nextBlockStore.getBlock().getTxs();
 //			if(txs.size() > 2) {
 //				log.info("============== block tx count is {}, size is {} bytes", txs.size(), nextBlockStore.getBlock().baseSerialize().length);
+//			}
+//			if(nextBlockStore.getBlock().getHeight() == 356l) {
+//				log.info("========= {}", nextBlockStore.getBlock());
 //			}
 //			nextHash = nextBlockStore.getNextHash();
 //		}
