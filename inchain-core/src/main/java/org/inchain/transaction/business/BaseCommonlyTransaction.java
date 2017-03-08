@@ -118,7 +118,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	 * 除转帐交易外的其它交易，通用的签名方法
 	 * 如果账户已加密的情况，则需要先解密账户
 	 * @param account
-	 * @param type TransactionDefinition.TX_VERIFY_MG利用管理私钥签名，TransactionDefinition.TX_VERIFY_TR利用交易私钥签名
+	 * @param type Definition.TX_VERIFY_MG利用管理私钥签名，Definition.TX_VERIFY_TR利用交易私钥签名
 	 */
 	public void sign(Account account, int type) {
 		hash = null;
@@ -126,8 +126,15 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 		scriptBytes = null;
 
 		//是否加密
-		if(account.isEncrypted()) {
+		if(!account.isCertAccount() && account.isEncrypted()) {
 			throw new AccountEncryptedException();
+		}
+		if(account.isCertAccount()) {
+			if(type == Definition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
+				throw new AccountEncryptedException();
+			} else if(account.isEncryptedOfTr()) {
+				throw new AccountEncryptedException();
+			}
 		}
 		
 		if(account.isCertAccount()) {

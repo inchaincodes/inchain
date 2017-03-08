@@ -1,6 +1,5 @@
 package org.inchain.consensus;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -111,22 +110,22 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 					log.error("共识会议出错", e);
 				}
 			}
-		}, 1, 1, TimeUnit.SECONDS);		
+		}, 1000, 100, TimeUnit.MILLISECONDS);		
 	}
 
-
 	int count = 0;
-	
 	/**
 	 * 共识会议
 	 */
 	protected void meeting() {
+		
 		count++;
-		if(count % 10 == 0) {
+		if(count % 100 == 0) {
 			String hash160 = null;
 			if(account != null) {
 				hash160 = Hex.encode(account.getAddress().getHash160());
 			}
+			
 			log.info("bestHeight {}, meetingStatus : {}, hash160 : {}, currentMetting : {}", getLocalBestBlockHeight(), meetingStatus, hash160, currentMetting);
 		}
 		if(meetingStatus == 0 || meetingStatus == 3) {
@@ -145,6 +144,117 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		doMeeting();
 	}
 
+	/*
+	 * 打包数据
+	 */
+	private void doMeeting() {
+		if(currentMetting.canPackage()) {
+			//当前轮到我打包，异步打包数据
+			doPackage();
+		} else {
+			//检查时间是否可以结束了
+			if(currentMetting.canEnd()) {
+				newMeetingRound();
+			} else {
+				//检查高度是否达到结束条件
+				BlockHeader bestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+				if(bestBlockHeader.getPeriodStartPoint() == currentMetting.getStartHeight() && bestBlockHeader.getTimePeriod() == currentMetting.getPeriodCount() - 1) {
+					newMeetingRound();
+				}
+			}
+		}
+	}
+
+	/*
+	 * 开始新的一轮共识
+	 */
+	private void newMeetingRound() {
+		//如果当前正在打包，则等待
+		while(packageing) {
+			try {
+				Thread.sleep(20);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		try {
+			previousMetting = currentMetting.clone();
+		} catch (CloneNotSupportedException e) {
+			log.error("备份当前轮次信息失败" , e);
+		}
+		
+		//判断最新的块，是否已是上一轮的最后一个，如果不是，则延迟设置新一轮的信息，如果是，则马上设置
+		BlockHeader bestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+		currentMetting = new MeetingItem(this, bestBlockHeader.getHeight() + 1, consensusPool.listSnapshots());
+		
+		if(previousMetting.isLastBlock(bestBlockHeader)) {
+			//已经是最新的，马上开始新一轮共识
+			initNewMeetingRound(bestBlockHeader);
+		} else {
+			//不确定当前最新的块是否已是最新的，所以等待最新的块，直到超时
+			long nowTime = TimeService.currentTimeMillis();
+			
+			//由于时间和开始高度会延迟设置，这里判断如果我是第一个，则马上开始打包
+			if(currentMetting.getTimePeriod() == 0) {
+				doPackage();
+			}
+			
+			while(true) {
+				//是否超时，超时时间为区块生成间隔的一半加上1s
+				boolean hasTimeout = (TimeService.currentTimeMillis() - nowTime) > (Configure.BLOCK_GEN__MILLISECOND_TIME / 2 + 1000);
+				//最新区块
+				BlockHeader newBestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+				//如果超时或者已是最新区块，则开始
+				if(hasTimeout || previousMetting.isLastBlock(newBestBlockHeader)) {
+					//判断最新块有没有发生变化
+					if(previousMetting.isLastBlock(newBestBlockHeader)) {
+						//有变化
+						currentMetting = new MeetingItem(this, newBestBlockHeader.getHeight() + 1, consensusPool.listSnapshots());
+						bestBlockHeader = newBestBlockHeader;
+						
+						//判断我是否应该停止共识
+						if(packageing && currentMetting.getTimePeriod() != 0) {
+							stopPackageNow();
+						}
+					}
+					initNewMeetingRound(bestBlockHeader);
+					break;
+				}
+				try {
+					Thread.sleep(100l);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	/*
+	 * 初始化新一轮共识
+	 */
+	private void initNewMeetingRound(BlockHeader bestBlockHeader) {
+		long newStartTime = bestBlockHeader.getTime();
+		
+		int diff = previousMetting.getPeriodCount() - bestBlockHeader.getTimePeriod() - 1;
+		
+		if(log.isDebugEnabled()) {
+			log.debug("diff {}", diff);
+		}
+		
+		if(diff > 0) {
+			newStartTime += diff * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		}
+		
+		if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= currentMetting.getPeriodCount()) {
+			currentMetting.startConsensus();
+		} else {
+			currentMetting.startConsensus(newStartTime);
+		}
+		meetingRound.incrementAndGet();
+		
+		log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {} , 我的时间 {}", DateUtil.convertDate(new Date(currentMetting.getStartTime())), DateUtil.convertDate(new Date(currentMetting.getEndTime())), DateUtil.convertDate(new Date(currentMetting.getMyPackageTime())));
+	}
+
 	/**
 	 * 初始化，拉取当前的共识状态
 	 */
@@ -155,21 +265,31 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		//获取当前的共识段开始点
 		long startPoint = bestBlockHeader.getPeriodStartPoint();
+		if(startPoint == 0) {
+			startPoint++;
+		}
 		
 		//获取开始时的共识列表
 		//利用当前的快照倒推
 		List<ConsensusAccount> consensusList = analysisSnapshotsByStartPoint(startPoint);
 		
 		currentMetting = new MeetingItem(this, startPoint, consensusList);
-		
 		BlockHeaderStore startBlockHeader = blockStoreProvider.getHeaderByHeight(startPoint - 1);
 		if(startBlockHeader == null) {
+			currentMetting.startConsensus();
 			return;
 		}
 		if(log.isDebugEnabled()) {
 			log.debug(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), startBlockHeader.getBlockHeader().getTime());
 		}
-		currentMetting.startConsensus(startBlockHeader.getBlockHeader().getTime() + Configure.BLOCK_GEN__MILLISECOND_TIME * (startBlockHeader.getBlockHeader().getPeriodCount() - startBlockHeader.getBlockHeader().getTimePeriod() - 1));
+		
+		long newStartTime = startBlockHeader.getBlockHeader().getTime() + Configure.BLOCK_GEN__MILLISECOND_TIME * (startBlockHeader.getBlockHeader().getPeriodCount() - startBlockHeader.getBlockHeader().getTimePeriod() - 1);
+		
+		if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= startBlockHeader.getBlockHeader().getPeriodCount()) {
+			currentMetting.startConsensus();
+		} else {
+			currentMetting.startConsensus(newStartTime);
+		}
 		
 //		//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
 //		long height = getLocalBestBlockHeight();
@@ -183,6 +303,58 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 //		broadcastMessage(message);
 //		log.info(" send message {} ", message);
 	}
+	
+	/**
+	 * 打包数据出新块
+	 */
+	public void doPackage() {
+		if(packageing) {
+			return;
+		}
+		packageing = true;
+		
+		new Thread() {
+			public void run() {
+				try {
+					mining.mining();
+				} catch (Exception e) {
+					log.error("mining err", e);
+				}
+				packageing = false;
+			}
+		}.start();
+	}
+	
+	/**
+	 * 立刻停止打包
+	 */
+	public void stopPackageNow() {
+		packageing = false;
+		mining.stopMining();
+	}
+	
+	/**
+	 * 广播会议消息
+	 */
+	@Override
+	public void broadcastMessage(ConsensusMessage consensusMessage) {
+		//除拉取共识状态之外的消息都使用inv广播
+		byte[] content = consensusMessage.getContent();
+		if(content[0] == 1 || content[0] == 2) {
+			peerKit.broadcastMessage(consensusMessage);
+		} else {
+			Sha256Hash id = consensusMessage.getId();
+			if(messages.get(id) == null) {
+				receiveMeetingMessage(id, consensusMessage);
+				//过滤该条消息的inv，因为本地发出的，没必要再下载
+				filter.insert(id.getBytes());
+			}
+			InventoryMessage message = new InventoryMessage(network, new InventoryItem(InventoryItem.Type.Consensus, id));
+			peerKit.broadcastMessage(message);
+		}
+	}
+	
+
 
 	/**
 	 * 分析这个时间段的共识进出
@@ -196,7 +368,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		byte[] endBlockHashBytes = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHash().getBytes();
 		while(true) {
 			BlockStore blockStore = blockStoreProvider.getBlock(endBlockHashBytes);
-			if(blockStore == null || blockStore.getBlock() == null) {
+			if(blockStore == null || blockStore.getBlock() == null || blockStore.getBlock().getHeight() == 0l) {
 				break;
 			}
 			Block block = blockStore.getBlock();
@@ -242,105 +414,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 		});
 		return consensusList;
-	}
-
-	/*
-	 * 打包数据
-	 */
-	private void doMeeting() {
-		if(currentMetting.canPackage()) {
-			//当前轮到我打包，异步打包数据
-			new Thread() {
-				public void run() {
-					doPackage();
-				}
-			}.start();
-		} else {
-			//是否可以结束了
-			//先检查高度
-			BlockHeaderStore bestBlockHeaderStore = network.getBestBlockHeader();
-			
-			if(bestBlockHeaderStore == null || bestBlockHeaderStore.getBlockHeader() == null ||
-					bestBlockHeaderStore.getBlockHeader().getTimePeriod() < currentMetting.getPeriodCount()
-					|| bestBlockHeaderStore.getBlockHeader().getPeriodStartPoint() != currentMetting.getStartHeight()) {
-				if(!currentMetting.canEnd()) {
-					//再检查时间
-					return;
-				}
-			}
-			
-			try {
-				previousMetting = currentMetting.clone();
-			} catch (CloneNotSupportedException e) {
-				log.error("备份当前轮次信息失败" , e);
-			}
-			
-			long newStartTime = bestBlockHeaderStore.getBlockHeader().getTime();
-			
-			int diff = previousMetting.getPeriodCount() - bestBlockHeaderStore.getBlockHeader().getTimePeriod() - 1;
-			
-			if(log.isDebugEnabled()) {
-				log.debug("diff {}", diff);
-			}
-			
-			if(diff > 0) {
-				newStartTime += diff * Configure.BLOCK_GEN__MILLISECOND_TIME;
-			}
-			
-			currentMetting = new MeetingItem(this, bestBlockHeaderStore.getBlockHeader().getHeight() + 1, consensusPool.listSnapshots());
-			
-			if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= currentMetting.getPeriodCount()) {
-				currentMetting.startConsensus();
-			} else {
-				currentMetting.startConsensus(newStartTime);
-			}
-			
-			log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {} , 我的时间 {}", DateUtil.convertDate(new Date(currentMetting.getStartTime())), DateUtil.convertDate(new Date(currentMetting.getEndTime())), DateUtil.convertDate(new Date(currentMetting.getMyPackageTime())));
-			
-			meetingRound.incrementAndGet();
-			
-			//当前不该我打包，但是我应该监控当前的状态，如果超时或者出现分叉，应及时处理
-			//currentMetting.monitor(localBestBlockHeight);
-		}
-	}
-	
-	/**
-	 * 打包数据出新块
-	 */
-	public void doPackage() {
-		if(packageing) {
-			return;
-		}
-		packageing = true;
-		
-		try {
-			mining.mining();
-		} catch (Exception e) {
-			log.error("mining err", e);
-		}
-		
-		packageing = false;
-	}
-	
-	/**
-	 * 广播会议消息
-	 */
-	@Override
-	public void broadcastMessage(ConsensusMessage consensusMessage) {
-		//除拉取共识状态之外的消息都使用inv广播
-		byte[] content = consensusMessage.getContent();
-		if(content[0] == 1 || content[0] == 2) {
-			peerKit.broadcastMessage(consensusMessage);
-		} else {
-			Sha256Hash id = consensusMessage.getId();
-			if(messages.get(id) == null) {
-				receiveMeetingMessage(id, consensusMessage);
-				//过滤该条消息的inv，因为本地发出的，没必要再下载
-				filter.insert(id.getBytes());
-			}
-			InventoryMessage message = new InventoryMessage(network, new InventoryItem(InventoryItem.Type.Consensus, id));
-			peerKit.broadcastMessage(message);
-		}
 	}
 	
 	/**
@@ -451,7 +524,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		Set<TimeoutConsensusViolation> timeoutList = new HashSet<TimeoutConsensusViolation>();
 		
 		//只有共识3轮以上，才开始处理超时账号
-		if(meetingRound.get() < 3) {
+		if(meetingRound.get() < 3/* || currentMetting.getTimePeriod() < 2*/) {
 			return timeoutList;
 		}
 		
@@ -489,7 +562,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 					if(!packagePeriodMap.containsKey(i)) {
 						//没出，判断本轮是否还有他，如果有则加入超时列表等待处理
 						if(currentMetting.exist(cus)) {
-							TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), startHeight, startHeight);
+							TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), startHeight);
 							timeoutList.add(violation);
 						}
 					}
@@ -521,7 +594,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			
 			if(lastHeader == null || lastHeader.getTimePeriod() != i) {
 				//没出
-				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), currentMetting.getStartHeight(), startHeight);
+				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), currentMetting.getStartHeight());
 				timeoutList.add(violation);
 			} else {
 				startHeight ++;
@@ -550,6 +623,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	@Override
 	public void setAccount(Account account) {
 		this.account = account;
+		//开始共识的时候，重新记轮次
+		meetingRound = new AtomicInteger();
 	}
 	
 	public Account getAccount() {
@@ -588,9 +663,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			return currentMetting.getCurrentConsensusInfos(timePeriod);
 		} else if(previousMetting != null && previousMetting.getStartHeight() == startPoint) {
 			return previousMetting.getCurrentConsensusInfos(timePeriod);
+		} else {
+			//错误的区，如果接收，会引起灾难
+			return null;
 		}
-		//应该不会到这里来
-		return ConsensusInfos.UNCERTAIN;
 	}
 
 	/**
@@ -608,13 +684,32 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 */
 	@Override
 	public MiningInfos getMineMiningInfos() {
-		MiningInfos infos = new MiningInfos();
-		infos.setHash160(currentMetting.getMyHash160());
-		infos.setTimePeriod(currentMetting.getTimePeriod());
-		infos.setPeriodCount(currentMetting.getPeriodCount());
-		infos.setBeginTime(currentMetting.getMyPackageTime());
-		infos.setEndTime(currentMetting.getMyPackageTimeEnd());
-		return infos;
+		//判断是否已经被切换
+		if(Math.abs(TimeService.currentTimeMillis() - currentMetting.getMyPackageTimeEnd()) >= (Configure.BLOCK_GEN__MILLISECOND_TIME / 2)) {
+			//有两种情况，一种是轮次已被切换，另外一种就是超时
+			if(previousMetting.getTimePeriod() == previousMetting.getPeriodCount() - 1) {
+				//被切换
+				MiningInfos infos = new MiningInfos();
+				infos.setHash160(previousMetting.getMyHash160());
+				infos.setTimePeriod(previousMetting.getTimePeriod());
+				infos.setPeriodCount(previousMetting.getPeriodCount());
+				infos.setBeginTime(previousMetting.getMyPackageTime());
+				infos.setEndTime(previousMetting.getMyPackageTimeEnd());
+
+				return infos;
+			} else {
+				//其它情况，就乖乖的不广播了吧
+				return null;
+			}
+		} else {
+			MiningInfos infos = new MiningInfos();
+			infos.setHash160(currentMetting.getMyHash160());
+			infos.setTimePeriod(currentMetting.getTimePeriod());
+			infos.setPeriodCount(currentMetting.getPeriodCount());
+			infos.setBeginTime(currentMetting.getMyPackageTime());
+			infos.setEndTime(currentMetting.getMyPackageTimeEnd());
+			return infos;
+		}
 	}
 
 	/**

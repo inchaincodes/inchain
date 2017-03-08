@@ -20,32 +20,23 @@ public class ConsensusInfos {
 		this.result = result;
 	}
 	
-	public ConsensusInfos(long height, byte[] hash160) {
+	public ConsensusInfos(byte[] hash160) {
 		this.result = RESULT_SUCCESS;
-		this.height = height;
 		this.hash160 = hash160;
 	}
 	
-	public ConsensusInfos(long height, byte[] hash160, long beginTime, long endTime) {
+	public ConsensusInfos(byte[] hash160, long beginTime, long endTime) {
 		this.result = RESULT_SUCCESS;
-		this.height = height;
 		this.hash160 = hash160;
 		this.beginTime = beginTime;
 		this.endTime = endTime;
 	}
 
 	private int result;
-	private long height;
 	private byte[] hash160;
 	private long beginTime;	//当前共识人的块周期开始时间
 	private long endTime;	//当前共识人的块周期结束时间
 	
-	public long getHeight() {
-		return height;
-	}
-	public void setHeight(long height) {
-		this.height = height;
-	}
 	public byte[] getHash160() {
 		return hash160;
 	}
@@ -77,7 +68,7 @@ public class ConsensusInfos {
 
 	@Override
 	public String toString() {
-		return "ConsensusInfos [result=" + result + ", height=" + height + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
+		return "ConsensusInfos [result=" + result + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
 				+ ", beginTime=" + beginTime + ", endTime=" + endTime + "]";
 	}
 	

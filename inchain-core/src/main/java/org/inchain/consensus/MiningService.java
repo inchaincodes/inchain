@@ -41,7 +41,6 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
-import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,22 +77,54 @@ public final class MiningService implements Mining {
 
 	//运行状态
 	private boolean runing;
+	//强制停止状态，在打包过程中检查该参数,默认为0，当为1时进入强制停止状态，为2时代表打包已停止
+	private int forcedStopModel;
+	
 	private Account account;
+	
+	/**
+	 * 立刻停止打包，注意不是停止服务
+	 */
+	public void stopMining() {
+		//进入强制停止模式
+		forcedStopModel = 1;
+		
+		//异步监控超时处理
+		new Thread() {
+			public void run() {
+				//超时处理
+				long nowTime = TimeService.currentTimeMillis();
+				while(true) {
+					if(forcedStopModel == 2) {
+						break;
+					}
+					if(TimeService.currentTimeMillis() - nowTime > Configure.BLOCK_GEN__MILLISECOND_TIME) {
+						forcedStopModel = 2;
+						break;
+					}
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			};
+		}.start();
+	}
 	
 	/**
 	 * 执行打包
 	 */
 	public void mining() {
 		
-		//本地最新区块
-		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+		//临时处理，延迟1s，解决内存池来不及移除新块交易的问题
+		try {
+			Thread.sleep(1000l);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
 		
-		Utils.checkNotNull(bestBlockHeader);
-		
-		//获取我的时段开始时间
-		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
-		
-		long time = miningInfos.getBeginTime();
+		long beginTime = TimeService.currentTimeMillis();
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -120,26 +151,25 @@ public final class MiningService implements Mining {
 					debug("交易验证失败：" + tx.getHash());
 				}
 				//如果时间到了，那么退出打包，然后广区块
-				if(TimeService.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
+				if(TimeService.currentTimeMillis() - beginTime >= Configure.BLOCK_GEN__MILLISECOND_TIME || forcedStopModel == 1) {
 					break;
 				}
 				tx = mempool.get();
 			}
 			//如果时间到了，那么退出打包，然后广区块
-			if(TimeService.currentTimeMillis() - time >= Configure.BLOCK_GEN_TIME * 1000) {
+			if(TimeService.currentTimeMillis() - beginTime >= Configure.BLOCK_GEN__MILLISECOND_TIME || forcedStopModel == 1) {
 				break;
 			}
 
 			try {
-				Thread.sleep(100l);
+				Thread.sleep(10l);
 			} catch (InterruptedException e) {
 				log.error("mining wait err", e);
 			}
 		}
 		
-		//再次获取本地最新区块，因为有可能已经更新了
-		//TODO 这也引发了问题，双花的可能
-		bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+		//本地最新区块
+		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
 		
 		//coinbase交易
 		//coinbase交易获取手续费
@@ -165,6 +195,13 @@ public final class MiningService implements Mining {
 			//判断该节点是否已被处理，如果没处理则我来处理
 			processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
 		}
+
+		//获取我的时段开始时间
+		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
+		
+		if(miningInfos == null) {
+			return;
+		}
 		
 		//广播区块
 		Block block = new Block(network);
@@ -173,7 +210,7 @@ public final class MiningService implements Mining {
 		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
 		block.setTime(miningInfos.getEndTime());
 		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
-		block.setTxCount(transactionList.size());
+		block.setTxCount(transactionList.size()); 
 		block.setTxs(transactionList);
 		block.setMerkleHash(block.buildMerkleHash());
 		block.setPeriodCount(miningInfos.getPeriodCount());
@@ -187,8 +224,14 @@ public final class MiningService implements Mining {
 
 		try {
 
+			log.info("打包新块： 高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
+			}
+			//是否被强制停止了
+			if(forcedStopModel == 1) {
+				 enterForcedStopModel(transactionList);
+				 return;
 			}
 			
 			//分叉处理 TODO
@@ -211,6 +254,22 @@ public final class MiningService implements Mining {
 	}
 	
 	/*
+	 * 强制停止打包，把交易加回内存池
+	 */
+	private void enterForcedStopModel(List<Transaction> transactionList) {
+		try {
+			if(transactionList == null || transactionList.size() <= 1) {
+				return;
+			}
+			for (int i = 1; i < transactionList.size(); i++) {
+				mempool.add(transactionList.get(i));
+			}
+		} finally {
+			forcedStopModel = 2;
+		}
+	}
+
+	/*
 	 * 处理违规节点
 	 * violationType 违规类型，不同的类型面临的处罚不一样，1代表超时未出块
 	 */
@@ -220,7 +279,7 @@ public final class MiningService implements Mining {
 			if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 				//超时处理
 				NotBroadcastBlockViolationEvidence evidence = new NotBroadcastBlockViolationEvidence(consensusViolation.getHash160(), 
-						consensusViolation.getPreBlockHeight(), consensusViolation.getNextBlockHeight());
+						consensusViolation.getPeriodStartPoint());
 				//判断该节点是否已经被处理过了
 				Sha256Hash evidenceHash = evidence.getEvidenceHash();
 				byte[] txHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());

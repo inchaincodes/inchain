@@ -7,6 +7,7 @@ import org.inchain.Configure;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Result;
+import org.inchain.core.TimeService;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
@@ -46,6 +47,7 @@ public class NewBlockValidator {
 			}
 			//如果返回的是不确定，则通过
 			if(currentInfos.getResult() == ConsensusInfos.RESULT_UNCERTAIN) {
+				log.warn("不确定的时段，做通过处理", block);
 				return new Result(true, "uncertain");
 			}
 			
@@ -55,13 +57,19 @@ public class NewBlockValidator {
 			}
 			
 			//如果时间不同，则应该放入分叉里
-			if(currentInfos.getBeginTime() - Configure.BLOCK_GEN__MILLISECOND_TIME > block.getTime() || 
-					currentInfos.getEndTime() + Configure.BLOCK_GEN__MILLISECOND_TIME < block.getTime()) {
+			if(currentInfos.getBeginTime() > block.getTime() || currentInfos.getEndTime() < block.getTime()) {
 				log.error("新区块时间戳验证出错 : 高度 {} , hash {} , 块时间 {}, 时段 {} - {}", block.getHeight(), block.getHash(),
 						DateUtil.convertDate(new Date(block.getTime())), DateUtil.convertDate(new Date(currentInfos.getBeginTime())), DateUtil.convertDate(new Date(currentInfos.getEndTime())));
 				return new Result(false, "新区块时间戳验证出错");
 			}
-			//TODO
+			
+			//允许块的时间和当前时间不超过1个时段的误差，否则验证不通过
+			//这个条件的判断，会导致时间不准的节点出错，但是不判断则会给系统带来极大风险，是否放宽条件？  TODO
+			long timeDiff = TimeService.currentTimeMillis() - block.getTime();
+			if(Math.abs(timeDiff) > Configure.BLOCK_GEN__MILLISECOND_TIME) {
+				return new Result(false, "新区块时间误差过大，拒绝接收");
+			}
+			
 			BlockHeader bestBlock = networkParams.getBestBlockHeader().getBlockHeader();
 			if(bestBlock.getPeriodStartPoint() == block.getPeriodStartPoint() && bestBlock.getTimePeriod() >= block.getTime()) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");

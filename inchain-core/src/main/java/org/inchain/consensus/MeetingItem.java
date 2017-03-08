@@ -11,7 +11,7 @@ import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
-import org.inchain.core.exception.VerificationException;
+import org.inchain.message.BlockHeader;
 import org.inchain.utils.ByteArrayTool;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
@@ -37,8 +37,6 @@ public class MeetingItem implements Cloneable {
 	
 	//上一轮的偏移
 	private long diffCount;
-	//本轮会议代表的高度，通常和开始高度一致
-	private long height;
 	//本轮对应的开始高度
 	private long startHeight;
 	//本轮对应的结束高度
@@ -46,8 +44,6 @@ public class MeetingItem implements Cloneable {
 	//本轮的共识状态
 	private int status;
 	
-	//收到最新块的时间
-	private long newestTime;
 	//当前轮开始时间
 	private long startTime;
 	//当前轮结束时间
@@ -72,7 +68,6 @@ public class MeetingItem implements Cloneable {
 		this.consensusList = consensusList;
 		this.startHeight = startHeight;
 		this.endHeight = startHeight + consensusList.size();
-		this.height = startHeight;
 	}
 	
 	public byte[] serialize() {
@@ -80,7 +75,6 @@ public class MeetingItem implements Cloneable {
 		ByteArrayTool byteArray = new ByteArrayTool();
 		
 		byteArray.append(status);
-		byteArray.append(height);
 		byteArray.append(startHeight);
 		byteArray.append(endHeight);
 		byteArray.append64(startTime);
@@ -111,8 +105,6 @@ public class MeetingItem implements Cloneable {
 		
 		offset++;
 		//当前轮共识高度
-		height = Utils.readUint32(content, offset);
-		offset += 4;
 		startHeight = Utils.readUint32(content, offset);
 		offset += 4;
 		//下一轮共识高度
@@ -171,7 +163,6 @@ public class MeetingItem implements Cloneable {
 	public void startConsensus(long startTime) {
 		this.startTime = startTime;
 		endTime = startTime + consensusList.size() * Configure.BLOCK_GEN__MILLISECOND_TIME;
-		newestTime = TimeService.currentTimeMillis();
 		
 		Account myAccount = consensusMeeting.getAccount();
 		if(myAccount == null) {
@@ -183,12 +174,8 @@ public class MeetingItem implements Cloneable {
 			ConsensusAccount consensusAccount = consensusList.get(i);
 			if(Arrays.equals(myHash160, consensusAccount.getHash160())) {
 				this.myHash160 = myHash160;
-				myPackageTime = startTime + (i * Configure.BLOCK_GEN__MILLISECOND_TIME) - 1000;
+				myPackageTime = startTime + (i * Configure.BLOCK_GEN__MILLISECOND_TIME);
 				myPackageTimeEnd = myPackageTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
-				
-//				if(TimeService.currentTimeMillis() - Configure.BLOCK_GEN__MILLISECOND_TIME > myPackageTime) {
-//					hasPackage = true;
-//				}
 				
 				index = i;
 				
@@ -197,13 +184,6 @@ public class MeetingItem implements Cloneable {
 		}
 	}
 	
-	/**
-	 * 更新最新信息
-	 */
-	public void updateInfos() {
-		newestTime = TimeService.currentTimeMillis();
-	}
-
 	/**
 	 * 当前是否轮到我打包了
 	 * @return boolean
@@ -214,6 +194,7 @@ public class MeetingItem implements Cloneable {
 		}
 		//优先验证时间，因为这个永远不会错
 		long now = TimeService.currentTimeMillis();
+		
 		if(now > myPackageTime && now < myPackageTimeEnd) {
 			hasPackage = true;
 			return true;
@@ -222,63 +203,22 @@ public class MeetingItem implements Cloneable {
 	}
 
 	/**
-	 * 根据高度来获取打包的人是谁
-	 * @param blockHeight
-	 * @return byte[]
-	 */
-	public byte[] getPackageAccountHash160(long blockHeight) {
-		if(blockHeight < startHeight || blockHeight > endHeight) {
-			return null;
-		}
-		//只有在共识中的状态才能获取
-		if(consensusList == null) {
-			throw new VerificationException("本轮共识还没有开始，获取不到高度对应的共识账户");
-		}
-		int index = (int)(blockHeight - startHeight + diffCount);
-		if(index >= consensusList.size()) {
-			return null;
-		}
-		return consensusList.get(index).getHash160();
-	}
-	
-	/**
-	 * 监控当前论的状态
-	 * @param localBestBlockHeight 
-	 */
-	public void monitor(long localBestBlockHeight) {
-		//当前块的时间
-		if(localBestBlockHeight != height) {
-			height = localBestBlockHeight;
-			updateInfos();
-		}
-		
-		//间隔，如果超过区块间隔时间还没出块，则接管
-		long timeout = (long) (2 * Configure.BLOCK_GEN__MILLISECOND_TIME);
-		if(TimeService.currentTimeMillis() - newestTime >= timeout) {
-			
-			int index = (int) (localBestBlockHeight - startHeight + diffCount);
-			if(index < 0 || index >= consensusList.size()) {
-				log.warn("处理超时出错， size {}, index {}, localheight {}, startheight {}, diffcount {}", consensusList.size(), index, localBestBlockHeight, startHeight, diffCount);
-				return;
-			}
-			ConsensusAccount consensus = consensusList.get(index);
-			if(timeoutList.contains(consensus)) {
-				return;
-			}
-			timeoutList.add(consensus);
-			
-			newestTime = startTime + index * Configure.BLOCK_GEN__MILLISECOND_TIME ;
-			//标记超时
-			diffCount++;
-		}
-	}
-
-	/**
 	 * 获取我的共识时段
 	 * @return int
 	 */
 	public int getTimePeriod() {
-		return index;
+		Account myAccount = consensusMeeting.getAccount();
+		if(myAccount == null) {
+			return -1;
+		}
+		byte[] myHash160 = myAccount.getAddress().getHash160();
+		for (int i = 0; i < consensusList.size(); i++) {
+			ConsensusAccount consensusAccount = consensusList.get(i);
+			if(Arrays.equals(myHash160, consensusAccount.getHash160())) {
+				return i;
+			}
+		}
+		return -1;
 	}
 	
 	/**
@@ -303,10 +243,13 @@ public class MeetingItem implements Cloneable {
 		ConsensusAccount consensusAccount = consensusList.get(timePeriod);
 		
 		byte[] hash160 = consensusAccount.getHash160();
-		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		
+		//这里运行广播的时间段，是该节点的时间段中间值，往后延一个区块出块的时间，意味着只有在这个时间段出块，才会被接受
+		//系统默认的是中间值出块，最大程度保证诚信节点的稳定运行
+		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME + (Configure.BLOCK_GEN__MILLISECOND_TIME / 2);
 		long endTime = beginTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
 		
-		return new ConsensusInfos(height, hash160, beginTime, endTime);
+		return new ConsensusInfos(hash160, beginTime, endTime);
 	}
 
 	/**
@@ -362,17 +305,27 @@ public class MeetingItem implements Cloneable {
 		return false;
 	}
 	
+	/**
+	 * 该块是否是该轮共识的最后一个块
+	 * @param blockHeader
+	 * @return boolean
+	 */
+	public boolean isLastBlock(BlockHeader blockHeader) {
+		if(blockHeader == null) {
+			return false;
+		}
+		if(blockHeader.getPeriodStartPoint() == startHeight && blockHeader.getPeriodCount() == consensusList.size() 
+				&& blockHeader.getTimePeriod() == blockHeader.getPeriodCount() - 1) {
+			return true;
+		}
+		return false;
+	}
+	
 	@Override
 	public MeetingItem clone() throws CloneNotSupportedException {
 		return (MeetingItem) super.clone();
 	}
 	
-	public long getHeight() {
-		return height;
-	}
-	public void setHeight(long height) {
-		this.height = height;
-	}
 	public long getStartHeight() {
 		return startHeight;
 	}

@@ -73,7 +73,7 @@ public final class Configure {
 	/**
 	 * 区块生成间隔时间，单位秒
 	 */
-	public static int BLOCK_GEN_TIME = getProperty("block.gen.time", 10);
+	public static int BLOCK_GEN_TIME = getProperty("block.gen.time", 4);
 	/**
 	 * 区块生成间隔时间，单位豪秒
 	 */

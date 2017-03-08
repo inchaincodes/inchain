@@ -22,4 +22,9 @@ public interface Mining {
 	 * 执行打包
 	 */
 	void mining();
+	
+	/**
+	 * 立刻停止打包，注意不是停止服务
+	 */
+	void stopMining();
 }

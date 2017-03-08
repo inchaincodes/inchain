@@ -81,7 +81,7 @@ public class AntifakeCodeMakeTransactionTest extends TestNetBaseTestCase {
 		Account account = accountKit.getDefaultAccount();
 		account.decryptionTr("inchain123");
 				
-		String productTx = "f7c8a9589ce4a7ccc585a4b1114b5b3d5f3ef04181045d125d883d21a0558a73";
+		String productTx = "f684239e7fb069439504b039add774a0033f8cf2434aa10bdcbf29a503ca5695";
 		Coin reward = Coin.COIN.multiply(3);
 		BroadcastMakeAntifakeCodeResult result = accountKit.makeAntifakeCode(productTx, reward);
 		
@@ -98,7 +98,7 @@ public class AntifakeCodeMakeTransactionTest extends TestNetBaseTestCase {
 		Account account = accountKit.getDefaultAccount();
 		account.decryptionTr("inchain123");
 		
-		Sha256Hash productTx = Sha256Hash.wrap("f7c8a9589ce4a7ccc585a4b1114b5b3d5f3ef04181045d125d883d21a0558a73");
+		Sha256Hash productTx = Sha256Hash.wrap("f684239e7fb069439504b039add774a0033f8cf2434aa10bdcbf29a503ca5695");
 		
 		AntifakeCodeMakeTransaction tx = new AntifakeCodeMakeTransaction(network, productTx);
 		

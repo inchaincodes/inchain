@@ -32,6 +32,7 @@ public class DataNotFoundMessage extends Message {
 	@Override
 	protected void parse() throws ProtocolException {
 		hash = readHash();
+		length = cursor - offset;
 	}
 	
 	@Override

@@ -12,10 +12,8 @@ import org.inchain.utils.Utils;
  */
 public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	
-	/** 上一块 **/
-	private long preBlockHeight;
-	/** 下一块 **/
-	private long nextBlockHeight;
+	/** 时段开始点 **/
+	private long periodStartPoint;
 	
 	public NotBroadcastBlockViolationEvidence(byte[] content) {
 		super(content);
@@ -25,19 +23,17 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 		super(content, offset);
 	}
 	
-	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long preBlockHeight, long nextBlockHeight) {
+	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long periodStartPoint) {
 		super(VIOLATION_TYPE_NOT_BROADCAST_BLOCK, audienceHash160);
 		
-		this.preBlockHeight = preBlockHeight;
-		this.nextBlockHeight = nextBlockHeight;
+		this.periodStartPoint = periodStartPoint;
 	}
 	
 	@Override
 	public byte[] serialize() {
 		
 		ByteArrayTool byteArray = new ByteArrayTool();
-		byteArray.append(preBlockHeight);
-		byteArray.append(nextBlockHeight);
+		byteArray.append(periodStartPoint);
 		evidence = byteArray.toArray();
 		
 		return super.serialize();
@@ -46,24 +42,15 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	@Override
 	public void parse(byte[] content, int offset) {
 		super.parse(content, offset);
-		preBlockHeight = Utils.readUint32(evidence, 0);
-		nextBlockHeight = Utils.readUint32(evidence, 4);
+		periodStartPoint = Utils.readUint32(evidence, 0);
 	}
 
-	public long getPreBlockHeight() {
-		return preBlockHeight;
+	public long getPeriodStartPoint() {
+		return periodStartPoint;
 	}
 
-	public void setPreBlockHeight(long preBlockHeight) {
-		this.preBlockHeight = preBlockHeight;
-	}
-
-	public long getNextBlockHeight() {
-		return nextBlockHeight;
-	}
-
-	public void setNextBlockHeight(long nextBlockHeight) {
-		this.nextBlockHeight = nextBlockHeight;
+	public void setPeriodStartPoint(long periodStartPoint) {
+		this.periodStartPoint = periodStartPoint;
 	}
 	
 }

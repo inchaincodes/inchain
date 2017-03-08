@@ -8,11 +8,10 @@ import org.inchain.Configure;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.consensus.MeetingItem;
+import org.inchain.consensus.MiningService;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
-import org.inchain.core.TimeService;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -37,6 +36,9 @@ import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -47,6 +49,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TransactionValidator {
+	
+	private final static Logger log = LoggerFactory.getLogger(TransactionValidator.class);
 	
 	@Autowired
 	private NetworkParams network;
@@ -348,37 +352,36 @@ public class TransactionValidator {
 				NotBroadcastBlockViolationEvidence notBroadcastBlock = (NotBroadcastBlockViolationEvidence) violationEvidence;
 				//验证逻辑
 				byte[] hash160 = notBroadcastBlock.getAudienceHash160();
-				long preHeight = notBroadcastBlock.getPreBlockHeight();
-				long nextHeight = notBroadcastBlock.getNextBlockHeight();
+				long periodStartPoint = notBroadcastBlock.getPeriodStartPoint();
 				
 				//原本应该打包的上一个块
-				BlockHeaderStore preBlockHeaderStore = blockStoreProvider.getHeaderByHeight(preHeight);
-				if(preBlockHeaderStore == null || preBlockHeaderStore.getBlockHeader() == null) {
+				BlockHeaderStore startBlockHeaderStore = blockStoreProvider.getHeaderByHeight(periodStartPoint);
+				if(startBlockHeaderStore == null || startBlockHeaderStore.getBlockHeader() == null) {
 					result.setResult(false, "违规证据中的上一区块不存在");
 					return validatorResult;
 				}
-				BlockHeader preBlockHeader = preBlockHeaderStore.getBlockHeader();
+				BlockHeader startBlockHeader = startBlockHeaderStore.getBlockHeader();
 				
 				//获取该区块的时段
-				int index = getConsensusPeriod(hash160, preBlockHeader.getPeriodStartPoint());
+				int index = getConsensusPeriod(hash160, startBlockHeader.getPeriodStartPoint());
 				if(index == -1) {
 					result.setResult(false, "证据不成立，该人不在共识列表中");
 					return validatorResult;
 				}
 				while(true) {
-					if(preBlockHeader.getTimePeriod() == index) {
+					if(startBlockHeader.getTimePeriod() == index) {
 						result.setResult(false, "证据不成立");
 						return validatorResult;
 					}
-					if(preBlockHeader.getTimePeriod() < index) {
-						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(preBlockHeader.getHeight() + 1);
+					if(startBlockHeader.getTimePeriod() < index) {
+						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
 						
 						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
-								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartPoint() != preBlockHeader.getPeriodStartPoint()) {
+								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartPoint() != startBlockHeader.getPeriodStartPoint()) {
 							break;
 						}
 						
-						preBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
+						startBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
 					} else {
 						break;
 					}
@@ -475,16 +478,15 @@ public class TransactionValidator {
 	 */
 	public int getConsensusPeriod(byte[] hash160, long startPoint) {
 		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(startPoint);
+		log.info("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
 		//获取位置
-		int index = -1;
 		for (int i = 0; i < consensusList.size(); i++) {
 			ConsensusAccount consensusAccount = consensusList.get(i);
 			if(Arrays.equals(hash160, consensusAccount.getHash160())) {
-				index = i;
-				break;
+				return i;
 			}
 		}
-		return index;
+		return -1;
 	}
 
 }

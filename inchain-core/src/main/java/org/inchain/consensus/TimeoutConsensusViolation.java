@@ -13,14 +13,12 @@ public class TimeoutConsensusViolation {
 	
 	private byte[] hash160;
 	
-	private long preBlockHeight;
-	private long nextBlockHeight;
+	private long periodStartPoint;
 	
-	public TimeoutConsensusViolation(byte[] hash160, long preBlockHeight, long nextBlockHeight) {
+	public TimeoutConsensusViolation(byte[] hash160, long periodStartPoint) {
 		super();
 		this.hash160 = hash160;
-		this.preBlockHeight = preBlockHeight;
-		this.nextBlockHeight = nextBlockHeight;
+		this.periodStartPoint = periodStartPoint;
 	}
 	public byte[] getHash160() {
 		return hash160;
@@ -28,27 +26,20 @@ public class TimeoutConsensusViolation {
 	public void setHash160(byte[] hash160) {
 		this.hash160 = hash160;
 	}
-	public long getPreBlockHeight() {
-		return preBlockHeight;
+	
+	public long getPeriodStartPoint() {
+		return periodStartPoint;
 	}
-	public void setPreBlockHeight(long preBlockHeight) {
-		this.preBlockHeight = preBlockHeight;
-	}
-	public long getNextBlockHeight() {
-		return nextBlockHeight;
-	}
-	public void setNextBlockHeight(long nextBlockHeight) {
-		this.nextBlockHeight = nextBlockHeight;
+	public void setPeriodStartPoint(long periodStartPoint) {
+		this.periodStartPoint = periodStartPoint;
 	}
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("TimeoutConsensusViolation [hash160=");
 		builder.append(Hex.encode(hash160));
-		builder.append(", preBlockHeight=");
-		builder.append(preBlockHeight);
-		builder.append(", nextBlockHeight=");
-		builder.append(nextBlockHeight);
+		builder.append(", periodStartPoint=");
+		builder.append(periodStartPoint);
 		builder.append("]");
 		return builder.toString();
 	}
