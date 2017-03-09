@@ -9,6 +9,7 @@ import org.inchain.wallet.entity.Point;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -58,7 +59,7 @@ public class DailogUtil {
 	 * @param hideTime
 	 */
 	public static void showTip(String message, Stage stage, long hideTime) {
-		Point point = getDailogPoint(100, 30);
+		Point point = getDailogPoint(100, 300);
 		showTip(message, stage, hideTime, point.getX(), point.getY());
 	}
 	
@@ -71,7 +72,12 @@ public class DailogUtil {
 	public static void showTip(String message, double x, double y) {
 		showTip(message, Context.getMainStage(), DEFAULT_HIDE_TIME, x, y);
 	}
-	
+	/**
+	 * 弹出框中间位置提示消息
+	 * */
+	public static void showTipDailogCenter(String message, Stage stage) {
+		showTip(message,stage,DEFAULT_HIDE_TIME,stage.getX()+stage.getWidth()/3,stage.getY()+stage.getHeight()/3);
+	}
 	/**
 	 * 自定义的提示消息
 	 * @param message
@@ -122,8 +128,8 @@ public class DailogUtil {
 	 */
 	public static Point getDailogPoint(double dailogWidth, double dailogHeight) {
 		Stage mainStage = Context.getMainStage();
-		double x = mainStage.getX()+ 113 + (mainStage.getWidth() - dailogWidth) / 2;
-    	double y = mainStage.getY() + 25 + (mainStage.getHeight() - dailogHeight) / 2;
+		double x = mainStage.getX() + 60 + (mainStage.getWidth() - dailogWidth) / 2;
+    	double y = mainStage.getY() + (mainStage.getHeight() - dailogHeight) / 2;
     	return new Point(x, y);
 	}
 	
@@ -175,6 +181,39 @@ public class DailogUtil {
 			controller.setCallback(callback);
 			controller.setPageId(dailogContent.getId());
 			
+			window.showAndWait();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * 显示弹出层
+	 * @param content
+	 * @param title
+	 */
+	public static void showDailog(Node node, String title) {
+		try {
+			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
+			FXMLLoader loader =  new FXMLLoader(url);
+			Pane ui = loader.load();
+			DailogDecorationController dailogDecorationController = loader.getController();
+			
+			dailogDecorationController.getDailogContent().getChildren().add(node);
+			
+			Stage window = new Stage(StageStyle.TRANSPARENT);
+			dailogDecorationController.setStage(window);
+			dailogDecorationController.setTitle(title);
+			Point point = getDailogPoint(ui.getPrefWidth(), ui.getPrefHeight());
+			window.setX(point.getX());
+			window.setY(point.getY());
+			//设置程序标题
+			window.setTitle(title);
+			window.initModality(Modality.APPLICATION_MODAL);
+			//设置程序图标
+			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
+			Scene scene = new Scene(ui);
+			window.setScene(scene);
+			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
 			window.showAndWait();
 		} catch (Exception e) {
 			e.printStackTrace();

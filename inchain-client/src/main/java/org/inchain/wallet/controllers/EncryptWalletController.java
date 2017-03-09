@@ -46,15 +46,15 @@ public class EncryptWalletController extends DailogController {
 		String passwordRepeat = repeatId.getText();
 		if(StringUtils.isEmpty(password)) {
 			passwordId.requestFocus();
-			DailogUtil.showTip("密码不能为空", getThisStage());
+			DailogUtil.showTipDailogCenter("密码不能为空", getThisStage());
 			return;
 		} else if(!password.equals(passwordRepeat)) {
 			repeatId.requestFocus();
-			DailogUtil.showTip("两次输入的密码不一致", getThisStage());
+			DailogUtil.showTipDailogCenter("两次输入的密码不一致", getThisStage());
 			return;
 		} else if(!validPassword(password)) {
 			passwordId.requestFocus();
-			DailogUtil.showTip("输入的密码需6位或以上，且包含字母和数字", getThisStage());
+			DailogUtil.showTipDailogCenter("输入的密码需6位或以上，且包含字母和数字", getThisStage());
 			return;
 		}
 		
@@ -62,11 +62,11 @@ public class EncryptWalletController extends DailogController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	Result result = accountKit.encryptWallet(password);
 		if(result.isSuccess()) {
-    		DailogUtil.showTip(result.getMessage());
+    		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
     		resetAndclose();
 		} else {
 			log.error("加密钱包失败,{}", result);
-			DailogUtil.showTip("加密钱包失败," + result.getMessage(), getThisStage());
+			DailogUtil.showTipDailogCenter("加密钱包失败," + result.getMessage(), getThisStage());
 		}
 		
 	}

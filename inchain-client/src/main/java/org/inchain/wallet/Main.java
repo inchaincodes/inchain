@@ -180,7 +180,6 @@ public class Main extends Decoration implements ActionListener {
                 if(SystemTray.isSupported()) {
             		//隐藏，可双击托盘恢复
             		hide();
-            		System.out.println("=====hidetip"+hideTip);
             		if(!hideTip) {
             			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
             			if(trayIcons != null && trayIcons.length > 0) {

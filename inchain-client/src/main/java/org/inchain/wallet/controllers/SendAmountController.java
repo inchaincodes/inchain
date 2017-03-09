@@ -11,6 +11,7 @@ import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
+import org.inchain.utils.Hex;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,10 +97,12 @@ public class SendAmountController implements SubPageController {
      * 发送交易
      */
     protected void sendAmount() {
+    	
 
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	NetworkParams network = InchainInstance.getInstance().getAppKit().getNetwork();
     	
+    	log.info("hash160 {}", Hex.encode(accountKit.getDefaultAccount().getAddress().getHash160()));
     	//接收地址
     	String address = receiveAddressId.getText();
     	//验证接收地址

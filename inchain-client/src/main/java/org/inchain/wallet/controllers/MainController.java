@@ -180,6 +180,9 @@ public class MainController {
 					if(pageId.equals(currentPageId)) {
 						pageController.onHide();
 					} else if(pageId.equals(id)) {
+						
+						pageController.initDatas();
+						
 						pageController.onShow();
 					}
 				}

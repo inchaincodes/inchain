@@ -41,11 +41,11 @@ public class DecryptWalletController extends DailogController {
 		String password = passwordId.getText();
 		if(StringUtils.isEmpty(password)) {
 			passwordId.requestFocus();
-			DailogUtil.showTip("密码不能为空", getThisStage());
+			DailogUtil.showTipDailogCenter("密码不能为空", getThisStage());
 			return;
 		} else if(!validPassword(password)) {
 			passwordId.requestFocus();
-			DailogUtil.showTip("密码错误", getThisStage());
+			DailogUtil.showTipDailogCenter("密码错误", getThisStage());
 			return;
 		}
 		
@@ -56,7 +56,7 @@ public class DecryptWalletController extends DailogController {
     		resetAndclose();
 		} else {
 			log.error("解密钱包失败,{}", result);
-			DailogUtil.showTip(result.getMessage(), getThisStage());
+			DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 		}
 		
 	}

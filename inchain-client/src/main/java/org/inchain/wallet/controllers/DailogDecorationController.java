@@ -22,6 +22,7 @@ public class DailogDecorationController {
 	private Rectangle2D primaryScreenBounds = Screen.getPrimary().getVisualBounds();
 	
 	public void initialize(){
+
 		if (dragbar != null) {
 			
             dragbar.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {

@@ -19,3 +19,12 @@
     -fx-background-image: url("/images/dailogCloseHL_bg.png");
     -fx-background-repeat: no-repeat;
 }
+Label{
+	-fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-padding:0 0 10 20;
+}
+.title{
+	-fx-padding:0;
+}

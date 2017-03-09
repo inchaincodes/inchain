@@ -21,5 +21,10 @@ public final class Constant {
 	 * 图标
 	 */
 	public static final String APP_ICON = "/images/icon.png";
+	
+	/**
+	 * 交易确认数
+	 * */
+	public static final Long CONFIRM_NUMBER = (long) 6;
 
 }

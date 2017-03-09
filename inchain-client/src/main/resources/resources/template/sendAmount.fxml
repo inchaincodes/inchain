@@ -63,11 +63,11 @@
             </HBox>
             <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="94.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="106.0">
                <children>
-                  <Label text="发送金额">
+                  <Label text="转账金额">
                      <font>
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font></Label>
-                  <TextField fx:id="sendAmountId" prefHeight="28.0" prefWidth="250.0" promptText="请输入发送金额">
+                  <TextField fx:id="sendAmountId" prefHeight="28.0" prefWidth="250.0" promptText="请输入转账金额">
                      <HBox.margin>
                         <Insets left="30.0" />
                      </HBox.margin>

@@ -1,6 +1,9 @@
 package org.inchain.wallet.controllers;
 
+import java.awt.SystemTray;
 import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.awt.TrayIcon.MessageType;
 import java.awt.datatransfer.StringSelection;
 
 import org.inchain.wallet.utils.DailogUtil;
@@ -34,7 +37,7 @@ public class DecorationController {
     @FXML protected Region neEdge;
 
     @FXML protected AnchorPane root;
-    @FXML protected HBox detail;
+    @FXML protected HBox detail,detailFixed;
     private Rectangle2D bounds;
     private boolean isMaximized;
     @FXML public Button iconified,close;
@@ -56,14 +59,14 @@ public class DecorationController {
                     //双击最大化
                     if(isMaximized) {
                     	setNewPosition();
-                		setDetailPosition(bounds.getWidth()/3);
+                		setDetailPosition(bounds.getWidth());
                     } else {
                     	markWindowPosition();
                     	stage.setX(primaryScreenBounds.getMinX());
                     	stage.setY(primaryScreenBounds.getMinY());
                     	stage.setWidth(primaryScreenBounds.getWidth());
                     	stage.setHeight(primaryScreenBounds.getHeight());
-                    	setDetailPosition(primaryScreenBounds.getWidth()/3);
+                    	setDetailPosition(primaryScreenBounds.getWidth());
                     }
                     isMaximized = !isMaximized;
                     event.consume();
@@ -181,11 +184,18 @@ public class DecorationController {
     	 * */
     	close.addEventHandler(MouseEvent.MOUSE_PRESSED, event ->{
     		stage.close();
+    		 if(SystemTray.isSupported()) {
+         		//隐藏，可双击托盘恢复
+     			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
+     			if(trayIcons != null && trayIcons.length > 0) {
+     				trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
+     			} 
+    		 }
     	});
     }
 
 	private void setDetailPosition(Double position) {
-		root.setLeftAnchor(detail,position);
+		root.setLeftAnchor(detail,position*1/3);
 	}
 
 	private void eEdgeDragged(MouseEvent event) {
@@ -193,7 +203,7 @@ public class DecorationController {
 		double newWidth = newX+ bounds.getWidth();
 		if(newWidth >= stage.getMinWidth()){
 			stage.setWidth(newWidth);
-			setDetailPosition(newWidth/3);
+			setDetailPosition(newWidth);
 		}
 	}
 	private void wEdgeDragged(MouseEvent event) {
@@ -202,7 +212,7 @@ public class DecorationController {
 		if (newWidth >= stage.getMinWidth()){
 			stage.setWidth(newWidth);
 			stage.setX(newX);
-			setDetailPosition(newWidth/3);
+			setDetailPosition(newWidth);
 		}
 	}
 

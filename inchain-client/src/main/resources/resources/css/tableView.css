@@ -55,4 +55,10 @@ table-row-cell .table-cell {
 }
  .table-row-cell:empty .table-cell {  
     -fx-border-width: 0px;
-} 
+}
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:empty:hover{
+	 -fx-background-color: transparent;
+}
+.table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover{
+	 -fx-background-color: #183556;
+}

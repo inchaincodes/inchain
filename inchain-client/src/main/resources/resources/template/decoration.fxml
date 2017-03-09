@@ -59,9 +59,9 @@
                </image></ImageView>
          </children>
       </AnchorPane>
-      <HBox fx:id="detail" prefHeight="55.0" AnchorPane.leftAnchor="297.0" AnchorPane.topAnchor="0.0">
+      <HBox fx:id="detail" alignment="CENTER" AnchorPane.leftAnchor="297.0" AnchorPane.topAnchor="15.0">
          <children>
-            <HBox alignment="CENTER_LEFT" prefHeight="55.0" spacing="10.0">
+            <HBox alignment="CENTER_LEFT" mouseTransparent="true" spacing="10.0">
                <children>
                   <Label text="余额：" textFill="WHITE">
                      <font>
@@ -83,9 +83,9 @@
                   </Label>
                </children>
             </HBox>
-            <HBox alignment="CENTER_LEFT" prefHeight="55.0" spacing="10.0">
+            <HBox alignment="CENTER_LEFT" spacing="10.0">
                <children>
-                  <Label text="地址：" textFill="WHITE">
+                  <Label mouseTransparent="true" text="地址：" textFill="WHITE">
                      <font>
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font>
@@ -102,15 +102,16 @@
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font>
                   </Label>
-                  <Button id="copy-button" fx:id="copyAccountAddressId" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#onCopy" prefHeight="27.0" prefWidth="42.0" styleClass="copy-button" text="复制" textFill="WHITE">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
                </children>
                <HBox.margin>
                   <Insets left="50.0" />
                </HBox.margin>
             </HBox>
+            <Button id="copy-button" fx:id="copyAccountAddressId" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#onCopy" prefHeight="27.0" prefWidth="42.0" styleClass="copy-button" text="复制" textFill="WHITE">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+            </Button>
          </children>
       </HBox>
       <HBox alignment="TOP_CENTER" prefHeight="55.0" spacing="10.0" AnchorPane.rightAnchor="20.0" AnchorPane.topAnchor="0.0">

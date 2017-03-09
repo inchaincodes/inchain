@@ -2,6 +2,7 @@ package org.inchain.wallet.entity;
 
 import java.io.ByteArrayInputStream;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -22,6 +23,8 @@ public class DetailValueCell extends TableCell<TransactionEntity, DetailValue> {
 			return;
 		}
 		VBox box = new VBox(3);
+		Insets padding= new Insets(10,10,10,10);
+		box.setPadding(padding);
 		box.setAlignment(Pos.CENTER_LEFT);
 		if(detailValue.getImg() != null) {
 			ImageView imageView = new ImageView(new Image(new ByteArrayInputStream(detailValue.getImg())));

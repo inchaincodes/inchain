@@ -33,6 +33,7 @@ import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Utils;
+import org.inchain.wallet.Constant;
 import org.inchain.wallet.entity.DetailValue;
 import org.inchain.wallet.entity.DetailValueCell;
 import org.inchain.wallet.entity.TransactionEntity;
@@ -41,12 +42,15 @@ import org.slf4j.LoggerFactory;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.text.Font;
 import javafx.util.Callback;
 
 /**
@@ -69,10 +73,36 @@ public class TransactionRecordController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
-    	Image imageDecline = new Image(getClass().getResourceAsStream("/images/block_icon.png"));  
-    	
     	status.setCellValueFactory(new PropertyValueFactory<TransactionEntity, Long>("status"));
-    	status.setGraphic(new ImageView(imageDecline));
+    	status.setCellFactory(new Callback<TableColumn<TransactionEntity,Long>, TableCell<TransactionEntity,Long>>() {
+			public TableCell<TransactionEntity, Long> call(TableColumn<TransactionEntity, Long> param) {
+				return new TableCell<TransactionEntity, Long>(){
+					
+					protected void updateItem(Long item, boolean empty) {
+						super.updateItem(item, empty);
+						Label status_icon = new Label();
+						Image icon;
+						Tooltip tip = new Tooltip();
+					
+						if (item == null) {
+							return ;
+						} 
+						if (item.longValue() >= Constant.CONFIRM_NUMBER) {
+							icon = new Image("/images/confirmed.png");
+							tip = new Tooltip("已确认交易\n"+"确认数为"+item);
+						} else {
+							icon = new Image("/images/unconfirmed.png");
+							tip = new Tooltip("交易待确认\n"+"经过"+ item +"次确认");
+						}
+						tip.setFont(Font.font(14));
+						tip.setWrapText(true);
+						status_icon = new Label(null, new ImageView(icon));
+						status_icon.setTooltip(tip);
+						setGraphic(status_icon);
+					}
+				};
+			}
+		});
     	type.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("type"));
     	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, DetailValue>("detail"));
     	detail.setCellFactory(new Callback<TableColumn<TransactionEntity, DetailValue>, TableCell<TransactionEntity, DetailValue>>() {
@@ -135,7 +165,11 @@ public class TransactionRecordController implements SubPageController {
 				if(tx.getType() == Definition.TYPE_COINBASE || 
 						tx.getType() == Definition.TYPE_PAY) {
 					
-					type = "转入";
+					if(tx.getType() == Definition.TYPE_COINBASE) {
+						type = "共识奖励";
+					}else {
+						type = "转入";
+					}
 					
 					//是否是转出
 					boolean isSendout = false;

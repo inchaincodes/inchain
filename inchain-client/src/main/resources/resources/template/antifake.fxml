@@ -11,14 +11,6 @@
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0">
          <children>
-            <HBox alignment="CENTER" fillHeight="false" prefHeight="56.0" prefWidth="500.0">
-               <children>
-                  <Label text="在此输入防伪码" textFill="WHITE">
-                     <font>
-                        <Font name="Microsoft YaHei" size="20.0" />
-                     </font></Label>
-               </children>
-            </HBox>
             <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
                <children>
                   <TextArea fx:id="antifakeCodeId" prefHeight="200.0" prefWidth="200.0" promptText="请输入验证码" wrapText="true">
@@ -46,6 +38,9 @@
                </padding>
             </HBox>
          </children>
+         <StackPane.margin>
+            <Insets top="30.0" />
+         </StackPane.margin>
       </VBox>
    </children>
    <padding>

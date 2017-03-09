@@ -53,7 +53,7 @@
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
          </columnResizePolicy>
         <columns>
-          <TableColumn fx:id="status" maxWidth="60" minWidth="60" resizable="true" sortable="false" text="状态" />
+          <TableColumn fx:id="status" maxWidth="60" minWidth="0" resizable="true" sortable="false" />
           <TableColumn fx:id="address" resizable="true" sortable="false" text="地址" />
           <TableColumn fx:id="cert" maxWidth="100" minWidth="100" resizable="true" sortable="false" text="信用" />
           <TableColumn fx:id="time" maxWidth="200" minWidth="200" resizable="true" sortable="false" text="注册时间" />

@@ -58,7 +58,7 @@ public class BusinessRecordController implements SubPageController {
 	 *  FXMLLoader 调用的初始化
 	 */
     public void initialize() {
-    	status.setCellValueFactory(new PropertyValueFactory<BusinessEntity, Integer>("status"));
+    	//status.setCellValueFactory(new PropertyValueFactory<BusinessEntity, Integer>("status"));
     	logo.setCellValueFactory(new PropertyValueFactory<BusinessEntity, byte[]>("logo"));
     	logo.setCellFactory(new Callback<TableColumn<BusinessEntity, byte[]>, TableCell<BusinessEntity, byte[]>>() {
     		@Override 

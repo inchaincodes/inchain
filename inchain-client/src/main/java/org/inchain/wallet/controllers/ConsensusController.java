@@ -63,7 +63,7 @@ public class ConsensusController implements SubPageController {
 	 */
     public void initialize() {
     	
-    	status.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Integer>("status"));
+    	//status.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Integer>("status"));
     	address.setCellValueFactory(new PropertyValueFactory<ConensusEntity, String>("address"));
     	cert.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Long>("cert") {
     		@Override
