@@ -11,6 +11,7 @@ import org.inchain.core.Result;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
+import org.inchain.store.AccountStore;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
@@ -90,11 +91,14 @@ public class AccountInfoController implements SubPageController {
     		}
     		//设置内页的余额
     		final Address address = account.getAddress();
+    		//自己的共识信息
+	    	AccountStore accountStore = accountKit.getAccountInfo();
     		Platform.runLater(new Runnable() {
 			    @Override
 			    public void run() {
 			    	canUseBlanaceId.setText(address.getBalance().toText());
 			    	canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
+			    	certId.setText(String.valueOf(accountStore.getCert()));
 			    }
 			});
     	}
