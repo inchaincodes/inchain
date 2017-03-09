@@ -107,4 +107,11 @@ public interface ConsensusMeeting {
 	 * 停止共识
 	 */
 	void stopConsensus();
+	
+	/**
+	 * 共识会议是否进行中，所有的节点都会参加会议，有权限的（共识节点）才会发言
+	 * 所以外部接受新块，必须保证顺利加入会议，否则接收新块会出错
+	 * 当调用此方法时，会阻塞，知道meetingStatus = 2 ，也就是初始化完成
+	 */
+	boolean waitMeeting();
 }

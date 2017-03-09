@@ -1,5 +1,7 @@
 package org.inchain.msgprocess;
 
+import java.io.IOException;
+import java.nio.channels.NotYetConnectedException;
 import java.util.List;
 
 import org.inchain.consensus.ConsensusMeeting;
@@ -63,22 +65,32 @@ public class GetDatasMessageProcess implements MessageProcess {
 				//获取区块数据
 				BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
 				if(blockStore == null) {
-					peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+					sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
 					continue;
 				}
-				peer.sendMessage(blockStore.getBlock());
+				sendMessage(peer, blockStore.getBlock());
 			} else if(inventoryItem.getType() == InventoryItem.Type.Consensus) {
 				//共识消息
 				ConsensusMessage consensusMessage = consensusMeeting.getMeetingMessage(inventoryItem.getHash());
 				if(consensusMessage == null) {
-					peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+					sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
 					continue;
 				}
-				peer.sendMessage(consensusMessage);
+				sendMessage(peer, consensusMessage);
 			}
 		}
 		
 		return null;
+	}
+
+	private void sendMessage(Peer peer, Message message) {
+		try {
+			peer.sendMessage(message);
+		} catch (NotYetConnectedException | IOException e) {
+			if(log.isDebugEnabled()) {
+				log.debug("发送消息出错，可能原因是连接已关闭", e.getMessage());
+			}
+		}
 	}
 
 	/**
@@ -94,13 +106,13 @@ public class GetDatasMessageProcess implements MessageProcess {
 			TransactionStore ts = blockStoreProvider.getTransaction(inventoryItem.getHash().getBytes());
 			if(ts == null || ts.getTransaction() == null) {
 				//数据没找到，回应notfound
-				peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+				sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
 				return;
 			} else {
 				tx = ts.getTransaction();
 			}
 		}
-		peer.sendMessage(tx);
+		sendMessage(peer, tx);
 	}
 
 	/*
@@ -109,10 +121,10 @@ public class GetDatasMessageProcess implements MessageProcess {
 	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
 		BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
 		if(blockStore == null) {
-			peer.sendMessage(new DataNotFoundMessage(network, inventoryItem.getHash()));
+			sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
 			return;
 		}
-		peer.sendMessage(new NewBlockMessage(peer.getNetwork(), blockStore.getBlock().baseSerialize()));
+		sendMessage(peer, new NewBlockMessage(peer.getNetwork(), blockStore.getBlock().baseSerialize()));
 	}
 
 }

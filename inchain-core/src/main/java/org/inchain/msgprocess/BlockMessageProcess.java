@@ -20,6 +20,7 @@ import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
 import org.inchain.validator.ValidatorResult;
@@ -158,7 +159,9 @@ public class BlockMessageProcess implements MessageProcess {
 			}
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
-		if(!coinbaseFee.equals(fee)) {
+		//获取该高度的奖励
+		Coin rewardCoin = ConsensusRewardCalculationUtil.calculat(block.getHeight());
+		if(!coinbaseFee.equals(fee.add(rewardCoin))) {
 			log.warn("the fee error");
 			return false;
 		}

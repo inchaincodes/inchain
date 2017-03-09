@@ -1,5 +1,7 @@
 package org.inchain.core;
 
+import java.io.IOException;
+import java.nio.channels.NotYetConnectedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -93,7 +95,11 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
             
             //通过随机选择的对等体进行广播
 			for (Peer peer : peers) {
-				peer.sendMessage(sendMessage);
+				try {
+					peer.sendMessage(sendMessage);
+				} catch (NotYetConnectedException | IOException e) {
+					log.warn("广播消息出错，可能原因是该节点连接已关闭, {}", e.getMessage());
+				}
 			}
 			
 			//不需要等待的消息类型，直接响应
@@ -137,8 +143,12 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 		if(peerKit.canBroadcast()) {
 			for (Peer peer : peerKit.findAvailablePeers()) {
 				if(excludePeer == null || (excludePeer!= null && !peer.equals(excludePeer))) {
-					peer.sendMessage(message);
-					successCount ++;
+					try {
+						peer.sendMessage(message);
+						successCount ++;
+					} catch (NotYetConnectedException | IOException e) {
+						log.warn("广播消息出错，可能原因是该节点连接已关闭, {}", e.getMessage());
+					}
 				}
 			}
 			return successCount;

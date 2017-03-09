@@ -18,18 +18,19 @@ import org.inchain.core.TimeService;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.Mempool;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.ScriptBuilder;
-import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
@@ -41,6 +42,7 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
@@ -80,6 +82,8 @@ public final class MiningService implements Mining {
 	private DataSynchronizeHandler dataSynchronizeHandler;
 	@Autowired
 	private TransactionValidator transactionValidator;
+	@Autowired
+	private InventoryFilter filter;
 
 	//运行状态
 	private boolean runing;
@@ -148,8 +152,7 @@ public final class MiningService implements Mining {
 					if(res) {
 						//交易费
 						//只有pay交易才有交易费
-						if(tx.getType() == Definition.TYPE_PAY
-								|| tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+						if(tx.isPaymentTransaction()) {
 							fee = fee.add(getTransactionFee(tx));
 						}
 						transactionList.add(tx);
@@ -181,20 +184,23 @@ public final class MiningService implements Mining {
 		}
 		
 		//本地最新区块
-		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+		BlockHeader bestBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
 		
+		long currentHeight = bestBlockHeader.getHeight() + 1;
 		//coinbase交易
 		//coinbase交易获取手续费
 		Transaction coinBaseTx = new Transaction(network);
 		coinBaseTx.setVersion(Definition.VERSION);
 		coinBaseTx.setType(Definition.TYPE_COINBASE);
-		coinBaseTx.setLockTime(bestBlockHeader.getBlockHeader().getHeight() + 1 + Configure.MINING_MATURE_COUNT);	//冻结区块数
+		coinBaseTx.setLockTime(currentHeight + Configure.MINING_MATURE_COUNT);	//冻结区块数
 		
 		TransactionInput input = new TransactionInput();
 		coinBaseTx.addInput(input);
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
-		coinBaseTx.addOutput(fee, accountKit.getAccountList().get(0).getAddress());
+		//获得当前高度的奖励
+		Coin consensusRreward = ConsensusRewardCalculationUtil.calculat(currentHeight);
+		coinBaseTx.addOutput(fee.add(consensusRreward), accountKit.getAccountList().get(0).getAddress());
 		coinBaseTx.verifyScript();
 		
 		//加入coinbase交易到交易列表
@@ -211,15 +217,11 @@ public final class MiningService implements Mining {
 		//获取我的时段开始时间
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
 		
-		if(miningInfos == null) {
-			return;
-		}
-		
 		//广播区块
 		Block block = new Block(network);
 
-		block.setHeight(bestBlockHeader.getBlockHeader().getHeight()+1);
-		block.setPreHash(bestBlockHeader.getBlockHeader().getHash());
+		block.setHeight(currentHeight);
+		block.setPreHash(bestBlockHeader.getHash());
 		block.setTime(miningInfos.getEndTime());
 		block.setVersion(network.getProtocolVersionNum(ProtocolVersion.CURRENT));
 		block.setTxs(transactionList);
@@ -262,6 +264,9 @@ public final class MiningService implements Mining {
 			InventoryMessage invMessage = new InventoryMessage(network, item);
 			peerKit.broadcastMessage(invMessage);
 			
+			//加入Inv过滤列表
+			filter.insert(block.getHash().getBytes());
+			
 			if(peerKit.getBlockChangedListener() != null) {
 				peerKit.getBlockChangedListener().onChanged(block.getHeight(), block.getHeight(), block.getHash(), block.getHash());
 			}
@@ -273,6 +278,9 @@ public final class MiningService implements Mining {
 	private void verifyBlockTx(Block block) {
 		List<Transaction> txs = block.getTxs();
 		
+		//被退回的手续费
+		Coin refunedFee = Coin.ZERO;
+		
 		Iterator<Transaction> it = txs.iterator();
 		while(it.hasNext()) {
 			Transaction tx = it.next();
@@ -280,8 +288,18 @@ public final class MiningService implements Mining {
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
 			if(!rs.getResult().isSuccess()) {
 				it.remove();
+				
+				if(tx.isPaymentTransaction()) {
+					//有金额的交易，计算该笔的手续费
+					refunedFee = refunedFee.add(getTransactionFee(tx));
+				}
 				mempool.add(tx);
 			}
+		}
+		
+		if(refunedFee.isGreaterThan(Coin.ZERO)) {
+			TransactionOutput coinbaseOutput = (TransactionOutput)txs.get(0).getOutput(0);
+			coinbaseOutput.setValue(coinbaseOutput.getValue() - refunedFee.value);
 		}
 	}
 	
@@ -513,6 +531,10 @@ public final class MiningService implements Mining {
 	public void reset() {
 		new Thread() {
 			public void run() {
+				
+				//马上停止打包
+				stopMining();
+				
 				consensusMeeting.setAccount(null);
 				while(true && runing) {
 					//监控自己是否成功成为共识节点

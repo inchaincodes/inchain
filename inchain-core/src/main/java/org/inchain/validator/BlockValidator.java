@@ -3,14 +3,14 @@ package org.inchain.validator;
 import java.util.Arrays;
 import java.util.Date;
 
-import org.inchain.Configure;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Result;
-import org.inchain.core.TimeService;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
+import org.inchain.store.BlockHeaderStore;
+import org.inchain.store.BlockStoreProvider;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +31,8 @@ public class BlockValidator {
 	private ConsensusMeeting consensusMeeting;
 	@Autowired
 	private NetworkParams networkParams;
+	@Autowired
+	private BlockStoreProvider blockStoreProvider;
 
 	public Result doVal(Block block) {
 		try {
@@ -65,14 +67,20 @@ public class BlockValidator {
 			
 			//允许块的时间和当前时间不超过1个时段的误差，否则验证不通过
 			//这个条件的判断，会导致时间不准的节点出错，但是不判断则会给系统带来极大风险，是否放宽条件？  TODO
-			long timeDiff = TimeService.currentTimeMillis() - block.getTime();
-			if(Math.abs(timeDiff) > Configure.BLOCK_GEN__MILLISECOND_TIME) {
-				return new Result(false, "新区块时间误差过大，拒绝接收");
-			}
+//			long timeDiff = TimeService.currentTimeMillis() - block.getTime();
+//			if(Math.abs(timeDiff) > Configure.BLOCK_GEN__MILLISECOND_TIME) {
+//				return new Result(false, "新区块时间误差过大，拒绝接收");
+//			}
 			
 			BlockHeader bestBlock = networkParams.getBestBlockHeader().getBlockHeader();
 			if(bestBlock.getPeriodStartPoint() == block.getPeriodStartPoint() && bestBlock.getTimePeriod() >= block.getTime()) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");
+			}
+			
+			//新的区块不能是已有的区块
+			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(block.getHash().getBytes());
+			if(blockHeaderStore != null) {
+				return new Result(false, "区块已经存在，禁止接收");
 			}
 			
 		} catch (Exception e) {

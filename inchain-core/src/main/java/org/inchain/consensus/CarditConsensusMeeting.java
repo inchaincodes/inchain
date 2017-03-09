@@ -1,5 +1,7 @@
 package org.inchain.consensus;
 
+import java.io.IOException;
+import java.nio.channels.NotYetConnectedException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -475,7 +477,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			ConsensusMessage consensusMessage = new ConsensusMessage(message.getNetwork(), account.getAddress().getHash160(), localBestBlockHeight, byteArray.toArray());
 			consensusMessage.sign(account);
 			
-			message.getPeer().sendMessage(consensusMessage);
+			try {
+				message.getPeer().sendMessage(consensusMessage);
+			} catch (NotYetConnectedException | IOException e) {
+				e.printStackTrace();
+			}
 		} finally {
 			messageLocker.unlock();
 		}
@@ -623,8 +629,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	@Override
 	public void setAccount(Account account) {
 		this.account = account;
+		
+		waitMeeting();
+		
 		//开始共识的时候，重新记轮次
 		meetingRound = new AtomicInteger();
+		currentMetting.setMyPackageTime(0);
+		currentMetting.setMyPackageTimeEnd(0);
 	}
 	
 	public Account getAccount() {
@@ -685,31 +696,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	@Override
 	public MiningInfos getMineMiningInfos() {
 		//判断是否已经被切换
-		if(Math.abs(TimeService.currentTimeMillis() - currentMetting.getMyPackageTimeEnd()) >= (Configure.BLOCK_GEN__MILLISECOND_TIME / 2)) {
-			//有两种情况，一种是轮次已被切换，另外一种就是超时
-			if(previousMetting.getTimePeriod() == previousMetting.getPeriodCount() - 1) {
-				//被切换
-				MiningInfos infos = new MiningInfos();
-				infos.setHash160(previousMetting.getMyHash160());
-				infos.setTimePeriod(previousMetting.getTimePeriod());
-				infos.setPeriodCount(previousMetting.getPeriodCount());
-				infos.setBeginTime(previousMetting.getMyPackageTime());
-				infos.setEndTime(previousMetting.getMyPackageTimeEnd());
-
-				return infos;
-			} else {
-				//其它情况，就乖乖的不广播了吧
-				return null;
-			}
-		} else {
-			MiningInfos infos = new MiningInfos();
-			infos.setHash160(currentMetting.getMyHash160());
-			infos.setTimePeriod(currentMetting.getTimePeriod());
-			infos.setPeriodCount(currentMetting.getPeriodCount());
-			infos.setBeginTime(currentMetting.getMyPackageTime());
-			infos.setEndTime(currentMetting.getMyPackageTimeEnd());
-			return infos;
-		}
+		MiningInfos infos = new MiningInfos();
+		infos.setHash160(currentMetting.getMyHash160());
+		infos.setTimePeriod(currentMetting.getTimePeriod());
+		infos.setPeriodCount(currentMetting.getPeriodCount());
+		infos.setBeginTime(currentMetting.getMyPackageTime());
+		infos.setEndTime(currentMetting.getMyPackageTimeEnd());
+		return infos;
 	}
 
 	/**
@@ -728,5 +721,17 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			return previousMetting;
 		}
 		return null;
+	}
+
+	@Override
+	public boolean waitMeeting() {
+		while(meetingStatus != 2) {
+			try {
+				Thread.sleep(10l);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		return true;
 	}
 }

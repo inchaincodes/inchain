@@ -19,6 +19,7 @@ import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.message.BlockHeader;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.network.NetworkParams;
+import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,8 @@ public class DataSynchronizeHandler implements Runnable {
 	private NetworkParams network;
 	@Autowired
 	private PeerKit peerKit;
+	@Autowired
+	private BlockStoreProvider blockStoreProvider;
 	
 	private int synchronousStatus = -1; //0等待同步，1同步中，2同步完成
 	private boolean initSynchronous = true; //是否初始同步，也就是第一次程序启动的同步
@@ -158,7 +161,7 @@ public class DataSynchronizeHandler implements Runnable {
 					newestPeers.add(peer);
 				}
 			}
-			
+			List<Boolean> results = new ArrayList<Boolean>();
 			for (Peer peer : newestPeers) {
 				try {
 					while(true) {
@@ -170,13 +173,32 @@ public class DataSynchronizeHandler implements Runnable {
 						Sha256Hash startHash = blockHeader.getHash();
 						Sha256Hash stopHash = Sha256Hash.ZERO_HASH;
 						peer.sendMessage(new GetBlocksMessage(network, startHash, stopHash));
-						peer.waitBlockDownComplete();
+						boolean result = peer.waitBlockDownComplete(startHash);
+						results.add(result);
+						if(!result) {
+							break;
+						}
 					}
 				} catch (Exception e) {
+					results.add(false);
 					log.warn("下载区块出错，更换节点下载", e);
 				}
 			}
 			
+			//如果都失败了，说明我本地的最新区块是分叉块，需要更换处理
+			boolean fail = true;
+			for (Boolean result : results) {
+				if(result) {
+					fail = false;
+					break;
+				}
+			}
+			if(fail) {
+				log.error("同步区块出错：本地最新块可能是分叉块");
+				//TODO
+				//撤销本地最新块重试
+				blockStoreProvider.revokedNewestBlock();
+			}
 			initSynchronous = false;
 			startSynchronous();
 			

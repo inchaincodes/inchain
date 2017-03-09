@@ -256,7 +256,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						System.arraycopy(id.getBytes(), 0, key, 0, key.length - 1);
 						key[key.length - 1] = (byte) index;
 						
-						chainstateStoreProvider.put(key, new byte[]{1});
+						chainstateStoreProvider.put(key, new byte[]{ TransactionStore.STATUS_UNUSE});
 					}
 					//特殊业务交易处理
 					if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
@@ -708,6 +708,38 @@ public class BlockStoreProvider extends BaseStoreProvider {
 
 	public void addTransactionListener(TransactionListener transactionListener) {
 		this.transactionListener = transactionListener;
+	}
+
+	/**
+	 * 撤销本地最新块，放入分叉块中，目前先放到状态存储中
+	 */
+	public void revokedNewestBlock() {
+		Block bestBlock = getBestBlock().getBlock();
+		
+		Sha256Hash bestBlockHash = bestBlock.getHash();
+		
+		chainstateStoreProvider.put(bestBlock.getHash().getBytes(), bestBlock.baseSerialize());
+		
+		//回滚块信息
+		db.delete(bestBlockHash.getBytes());
+		
+		byte[] heightBytes = new byte[4]; 
+		Utils.uint32ToByteArrayBE(bestBlock.getHeight(), heightBytes, 0);
+		
+		db.delete(heightBytes);
+		
+		//更新最新区块
+		db.put(bestBlockKey, bestBlock.getPreHash().getBytes());
+		
+		//更新上一区块的指针
+		if(!Sha256Hash.ZERO_HASH.equals(bestBlock.getPreHash())) {
+			BlockHeaderStore preBlockHeader = getHeader(bestBlock.getPreHash().getBytes());
+			preBlockHeader.setNextHash(Sha256Hash.ZERO_HASH);
+			db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
+		}
+		
+		//回滚交易
+		//TODO
 	}
 
 //	@PostConstruct

@@ -12,6 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.PreDestroy;
 
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.BroadcastContext;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.DataSynchronizeHandler;
@@ -59,6 +60,8 @@ public class InventoryMessageProcess implements MessageProcess {
 	private InventoryFilter filter;
 	@Autowired
 	private DataSynchronizeHandler dataSynchronizeHandler;
+	@Autowired
+	private ConsensusMeeting consensusMeeting;
 
 //	private Sha256Hash monitorBlockDownload;
 	
@@ -177,6 +180,8 @@ public class InventoryMessageProcess implements MessageProcess {
 	private void newBlockInventory(final InventoryItem inventoryItem, Peer peer) {
 		newBlockLocker.lock();
 		try {
+			consensusMeeting.waitMeeting();
+			
 			peer.addAndGetBestBlockHeight();
 			if(!dataSynchronizeHandler.hasComplete() || filter.contains(inventoryItem.getHash().getBytes())) {
 				if(!dataSynchronizeHandler.hasComplete()) {

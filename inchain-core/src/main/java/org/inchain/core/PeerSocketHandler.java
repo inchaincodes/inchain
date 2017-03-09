@@ -64,7 +64,7 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
         close();
     }
 
-    public void sendMessage(Message message) throws NotYetConnectedException {
+    public void sendMessage(Message message) throws NotYetConnectedException, IOException {
     	if(!handshake && !(message instanceof VersionMessage || message instanceof
 				VerackMessage|| message instanceof PingMessage || message instanceof PongMessage)) {
     		log.warn("handshake {} {} 节点还没有握手完成，不能通讯 {}", handshake, peerAddress, message);
@@ -86,7 +86,7 @@ public abstract class PeerSocketHandler extends AbstractTimeoutHandler implement
             writeTarget.writeBytes(out.toByteArray());
         } catch (IOException e) {
         	close();
-        	log.info(" - " + e.getMessage());
+        	throw e;
         }
     }
 

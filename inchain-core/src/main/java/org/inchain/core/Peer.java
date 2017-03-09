@@ -1,6 +1,8 @@
 package org.inchain.core;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.NotYetConnectedException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -13,6 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
+import org.inchain.message.DataNotFoundMessage;
 import org.inchain.message.GetDatasMessage;
 import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
@@ -65,6 +68,9 @@ public class Peer extends PeerSocketHandler {
 	private Sha256Hash monitorBlockDownload;
 	
 	private SettableListenableFuture<Boolean> downloadFuture;
+
+	//区块同步开始的hash
+	private Sha256Hash synchronizeDataStartHash;
 	
 	public Peer(NetworkParams network, InetSocketAddress address) {
 		this(network, new PeerAddress(address));
@@ -109,7 +115,11 @@ public class Peer extends PeerSocketHandler {
 		handleAfterProcess(message, result);
 		//如果需要回应，那么这里发送回复消息
 		if(result.getReplyMessage() != null) {
-			sendMessage(result.getReplyMessage());
+			try {
+				sendMessage(result.getReplyMessage());
+			} catch (NotYetConnectedException | IOException e) {
+				e.printStackTrace();
+			}
 		}
 		//是否成功
 		if(!result.isSuccess()) {
@@ -135,6 +145,13 @@ public class Peer extends PeerSocketHandler {
 			if(futures != null) {
 				pingFutures.remove(nonce);
 				futures.set(true);
+			}
+		} else if(message instanceof DataNotFoundMessage) {
+			if(synchronizeDataStartHash != null && synchronizeDataStartHash.equals(result.getHash())) {
+				//代表要下载的块对方没有
+				if(downloadFuture != null) {
+					downloadFuture.set(false);
+				}
 			}
 		}
 		if(hash == null) {
@@ -165,7 +182,12 @@ public class Peer extends PeerSocketHandler {
         Preconditions.checkArgument(getdata.getInvs().size() == 1);
         SettableListenableFuture<GetDataResult> future = new SettableListenableFuture<GetDataResult>();
         downDataFutures.put(getdata.getInvs().get(0).getHash(), future);
-        sendMessage(getdata);
+        try {
+        	sendMessage(getdata);
+        } catch (IOException e) {
+        	future.set(new GetDataResult(false));
+        	downDataFutures.remove(getdata.getInvs().get(0));
+		}
         return future;
     }
 	
@@ -175,12 +197,14 @@ public class Peer extends PeerSocketHandler {
 
 	/**
 	 * 等待区块下载完成
+	 * @param startHash 
 	 * @throws Exception 
 	 */
-	public void waitBlockDownComplete() throws Exception {
+	public boolean waitBlockDownComplete(Sha256Hash startHash) throws Exception {
 		 downloadFuture = new SettableListenableFuture<Boolean>();
+		 synchronizeDataStartHash = startHash;
 		 try {
-			downloadFuture.get(120, TimeUnit.SECONDS);
+			return downloadFuture.get(120, TimeUnit.SECONDS);
 		} catch (InterruptedException | ExecutionException e) {
 			throw e;
 		}
@@ -254,7 +278,12 @@ public class Peer extends PeerSocketHandler {
 		SettableListenableFuture<Boolean> pingFuture = new SettableListenableFuture<Boolean>();
 		long nonce = RandomUtil.randomLong();
 		pingFutures.put(nonce, pingFuture);
-		sendMessage(new PingMessage(nonce));
+		try {
+			sendMessage(new PingMessage(nonce));
+		} catch (NotYetConnectedException | IOException e) {
+			pingFuture.set(false);
+			pingFutures.remove(nonce);
+		}
 		return pingFuture;
 	}
 	

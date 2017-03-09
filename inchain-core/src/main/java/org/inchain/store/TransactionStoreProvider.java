@@ -354,6 +354,13 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				continue;
 			}
 			
+			//如果交易不可用，则标记
+			boolean txAvailable = true;
+			if(tx.getLockTime() == -1l || (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight) ||
+					(tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis())) {
+				txAvailable = false;
+			}
+			
 			byte[] key = tx.getHash().getBytes();
 			byte[] status = transactionStore.getStatus();
 			
@@ -379,8 +386,8 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					}
 					//本笔输出是否可用
 					long lockTime = output.getLockTime();
-					if(lockTime == -1l || (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
-							(lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())
+					if(!txAvailable || lockTime == -1l || (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight) ||
+							(lockTime >= Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeMillis())
 							|| (i == 0 && transactionStore.getHeight() == -1l)) {
 						unconfirmedBalance = unconfirmedBalance.add(Coin.valueOf(output.getValue()));
 					} else {

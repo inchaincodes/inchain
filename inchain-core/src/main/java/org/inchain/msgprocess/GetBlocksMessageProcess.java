@@ -1,14 +1,18 @@
 package org.inchain.msgprocess;
 
+import java.io.IOException;
+import java.nio.channels.NotYetConnectedException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.inchain.core.Peer;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.message.DataNotFoundMessage;
 import org.inchain.message.GetBlocksMessage;
 import org.inchain.message.InventoryItem;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
+import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
@@ -27,7 +31,9 @@ public class GetBlocksMessageProcess implements MessageProcess {
 	private final static int MAX_COUNT = 1000;
 
 	private Logger log = LoggerFactory.getLogger(getClass());
-	
+
+	@Autowired
+	private NetworkParams network;
 	//区块提供器
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
@@ -52,6 +58,16 @@ public class GetBlocksMessageProcess implements MessageProcess {
 		
 		//验证
 		BlockHeaderStore startBlockHeader = blockStoreProvider.getHeader(startHash.getBytes());
+		//如果开始的块没有找到，则返回DataNotFound消息
+		if(startBlockHeader == null) {
+			try {
+				peer.sendMessage(new DataNotFoundMessage(network, startHash));
+			} catch (NotYetConnectedException | IOException e) {
+				e.printStackTrace();
+			}
+			return null;
+		}
+		
 		BlockHeaderStore stopBlockHeader = null;
 		
 		if(!Sha256Hash.ZERO_HASH.equals(stopHash)) {
@@ -79,7 +95,11 @@ public class GetBlocksMessageProcess implements MessageProcess {
 			count ++;
 			startBlockHeader = blockStoreProvider.getHeader(startBlockHeader.getNextHash().getBytes());
 		}
-		peer.sendMessage(new InventoryMessage(peer.getNetwork(), list));
+		try {
+			peer.sendMessage(new InventoryMessage(peer.getNetwork(), list));
+		} catch (NotYetConnectedException | IOException e) {
+			e.printStackTrace();
+		}
 		
 		return null;
 	}
