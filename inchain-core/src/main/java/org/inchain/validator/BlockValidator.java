@@ -6,6 +6,7 @@ import java.util.Date;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Result;
+import org.inchain.filter.InventoryFilter;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
@@ -33,6 +34,8 @@ public class BlockValidator {
 	private NetworkParams networkParams;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private InventoryFilter filter;
 
 	public Result doVal(Block block) {
 		try {
@@ -80,6 +83,7 @@ public class BlockValidator {
 			//新的区块不能是已有的区块
 			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(blockHeaderStore != null) {
+				filter.insert(block.getHash().getBytes());
 				return new Result(false, "区块已经存在，禁止接收");
 			}
 			

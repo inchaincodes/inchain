@@ -2,6 +2,7 @@ package org.inchain.consensus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -11,6 +12,7 @@ import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.BlockHeader;
 import org.inchain.utils.ByteArrayTool;
 import org.inchain.utils.DateUtil;
@@ -68,6 +70,21 @@ public class MeetingItem implements Cloneable {
 		this.consensusList = consensusList;
 		this.startHeight = startHeight;
 		this.endHeight = startHeight + consensusList.size();
+		
+		//这里打乱共识的顺序，运用每个节点都统一的startHeight属性，来重新排序consensusList
+		//排序
+		consensusList.sort(new Comparator<ConsensusAccount>() {
+			@Override
+			public int compare(ConsensusAccount o1, ConsensusAccount o2) {
+				if(o1.getSortValue() == null) {
+					o1.setSortValue(Sha256Hash.twiceOf((startHeight + o1.getHash160Hex()).getBytes()));
+				}
+				if(o2.getSortValue() == null) {
+					o2.setSortValue(Sha256Hash.twiceOf((startHeight + o2.getHash160Hex()).getBytes()));
+				}
+				return o1.getSortValue().compareTo(o2.getSortValue());
+			}
+		});
 	}
 	
 	public byte[] serialize() {

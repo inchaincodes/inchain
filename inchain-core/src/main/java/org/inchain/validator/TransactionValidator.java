@@ -8,7 +8,6 @@ import org.inchain.Configure;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.consensus.MiningService;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
@@ -386,80 +385,6 @@ public class TransactionValidator {
 						break;
 					}
 				}
-				
-				//下一个块
-//				BlockHeaderStore nextBlockHeaderStore = blockStoreProvider.getHeaderByHeight(nextHeight);
-//				if(nextBlockHeaderStore == null || nextBlockHeaderStore.getBlockHeader() == null) {
-//					//特殊情况，下一个区块还没有出来，说明当前的块在对本轮没有出块的节点进行惩罚
-//					//获取被惩罚的节点的时段，和现在的时段进行对比
-//					MeetingItem meetingItem = consensusMeeting.getMeetingItem(preBlockHeader.getPeriodStartPoint());
-//					
-//					if(meetingItem == null) {
-//						result.setResult(true, "共识会议没有找到，不能验证");
-//						return validatorResult;
-//					}
-//					//这个账户的时段
-//					int period = meetingItem.getPeriod(hash160);
-//					if(preBlockHeader.getTimePeriod() < period && (TimeService.currentTimeMillis() - meetingItem.getStartTime()) / Configure.BLOCK_GEN__MILLISECOND_TIME > period + 1) {
-//						result.setResult(true, "success");
-//						return validatorResult;
-//					} else {
-//						result.setResult(false, "证据不成立，验证时段不通过!");
-//						return validatorResult;
-//					}
-//				}
-				
-				
-				
-				
-//				BlockHeader nextBlockHeader = nextBlockHeaderStore.getBlockHeader();
-//				
-//				//两个块是否相连接
-//				if(!nextBlockHeader.getPreHash().equals(preBlockHeader.getHash())) {
-//					result.setResult(false, "违规证据中两个区块不连续");
-//					return validatorResult;
-//				}
-//				
-//				//获取该区块的时段
-//				boolean inPreRound = false;
-//				int index = getConsensusPeriod(hash160, preBlockHeader.getPeriodStartPoint());
-//				if(index == -1) {
-//					//可能在下一轮中
-//					if(preBlockHeader.getPeriodStartPoint() == nextBlockHeader.getPeriodStartPoint()) {
-//						result.setResult(false, "证据不成立，该人不在共识列表中.");
-//						return validatorResult;
-//					}
-//					index = getConsensusPeriod(hash160, nextBlockHeader.getPeriodStartPoint());
-//					if(index == -1) {
-//						result.setResult(false, "证据不成立，该人不在共识列表中");
-//						return validatorResult;
-//					}
-//				} else {
-//					inPreRound = true;
-//				}
-//				
-//				//如果两个区块的开始点不一样，代表一轮的最后块缺失
-//				//这种情况只需要获取上一轮共识的列表，并判断该节点是否未出块
-//				if(preBlockHeader.getPeriodStartPoint() == nextBlockHeader.getPeriodStartPoint()) {
-//					//同一轮中，时段在前后之间，则代表通过
-//					if(!(index > preBlockHeader.getTimePeriod() && index < nextBlockHeader.getTimePeriod())) {
-//						result.setResult(false, "证据不成立，验证时段不通过11");
-//						return validatorResult;
-//					}
-//				} else {
-//					//不一样，有可能是前一轮结束，有可能是后一轮开始缺失
-//					if(inPreRound) {
-//						if(preBlockHeader.getTimePeriod() >= index) {
-//							result.setResult(false, "证据不成立，验证时段不通过   pre timePeriod "+preBlockHeader.getTimePeriod()+","+preBlockHeader.getPeriodStartPoint()+" , next timePeriod "+nextBlockHeader.getTimePeriod()+","+nextBlockHeader.getPeriodStartPoint()+" , index "+index);
-//							return validatorResult;
-//						}
-//					} else {
-//						if(nextBlockHeader.getTimePeriod() <= index) {
-//							result.setResult(false, "证据不成立，验证时段不通过3");
-//							return validatorResult;
-//						}
-//					}
-//				}
 			}
 			
 		}
@@ -478,7 +403,9 @@ public class TransactionValidator {
 	 */
 	public int getConsensusPeriod(byte[] hash160, long startPoint) {
 		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(startPoint);
-		log.info("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
+		if(log.isDebugEnabled()) {
+			log.debug("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
+		}
 		//获取位置
 		for (int i = 0; i < consensusList.size(); i++) {
 			ConsensusAccount consensusAccount = consensusList.get(i);

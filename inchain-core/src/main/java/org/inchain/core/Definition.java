@@ -48,6 +48,8 @@ public final class Definition {
 	public static final int TYPE_REG_CONSENSUS = 3;				//注册成为共识节点
 	public static final int TYPE_REM_CONSENSUS = 4;				//注销共识节点
 	public static final int TYPE_VIOLATION = 5;					// 违规事件处理
+	/** 信用累积 **/
+	public static final int TYPE_CREDIT = 6;
 	
 	public static final int TYPE_CERT_ACCOUNT_REGISTER = 11;	//认证账户注册
 	public static final int TYPE_CERT_ACCOUNT_UPDATE = 12;		//认证账户修改信息
@@ -64,11 +66,15 @@ public final class Definition {
 	/** 防伪码验证 **/
 	public static final int TYPE_ANTIFAKE_CODE_VERIFY = 24;
 	
-	public static final int TYPE_INIT_CREDIT = 99;				//初始化信用，只在创世块里有用
-	
 	
 	public static final int TX_VERIFY_MG = 1;				//脚本认证，账户管理类
 	public static final int TX_VERIFY_TR = 2;				//脚本认证，交易类
+	
+
+	/** 转账获得信用值 **/
+	public static final int CREDIT_TYPE_PAY = 1;
+	/** 持续在线获得信用值 **/
+	public static final int CREDIT_TYPE_ONLINE = 2;
 	
 	/**
 	 * 判断传入的交易是否跟代币有关
@@ -113,6 +119,7 @@ public final class Definition {
     	PROCESS_FACTORYS.put(RegConsensusTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RemConsensusTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(ViolationTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(CreditTransaction.class, "transactionMessageProcess");
     	
     	//业务消息处理器 
     	PROCESS_FACTORYS.put(ProductTransaction.class, "transactionMessageProcess");
@@ -142,6 +149,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(ViolationTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(CreditTransaction.class, "tx");
 
     	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
@@ -156,14 +164,14 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_REM_CONSENSUS, RemConsensusTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_REGISTER, CertAccountRegisterTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_UPDATE, CertAccountUpdateTransaction.class);
-		TRANSACTION_RELATION.put(TYPE_INIT_CREDIT, CreditTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_VIOLATION, ViolationTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_CREDIT, CreditTransaction.class);
 		
 		//业务交易
 		TRANSACTION_RELATION.put(TYPE_CREATE_PRODUCT, ProductTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_GENERAL_ANTIFAKE, GeneralAntifakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_MAKE, AntifakeCodeMakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
-		TRANSACTION_RELATION.put(TYPE_VIOLATION, ViolationTransaction.class);
 		
     	//===========================-分割线=============================//
     	

@@ -131,9 +131,8 @@ public class MakeTestNetGengsisBlock {
 				account.setEcKey(key);
 				account.setMgPubkeys(new byte[][]{ key.getPubKey()});
 				
-				//注册账户授予信用积分
-				CreditTransaction creditTx = new CreditTransaction(network);
-				creditTx.setCredit(999999l);
+				//注册账户授予信用值
+				CreditTransaction creditTx = new CreditTransaction(network, address.getHash160(), 9999999l, 0, Sha256Hash.ZERO_HASH);
 				creditTx.sign(account);
 				
 				txs.add(creditTx);

@@ -30,7 +30,9 @@ import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
+import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
+import org.inchain.service.CreditCollectionService;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
@@ -41,9 +43,11 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Hex;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
 import org.inchain.validator.ValidatorResult;
@@ -84,6 +88,8 @@ public final class MiningService implements Mining {
 	private TransactionValidator transactionValidator;
 	@Autowired
 	private InventoryFilter filter;
+	@Autowired
+	private CreditCollectionService creditCollectionService;
 
 	//运行状态
 	private boolean runing;
@@ -280,6 +286,8 @@ public final class MiningService implements Mining {
 		
 		//被退回的手续费
 		Coin refunedFee = Coin.ZERO;
+
+		List<CreditTransaction> creditTxs = new ArrayList<CreditTransaction>();
 		
 		Iterator<Transaction> it = txs.iterator();
 		while(it.hasNext()) {
@@ -293,10 +301,27 @@ public final class MiningService implements Mining {
 					//有金额的交易，计算该笔的手续费
 					refunedFee = refunedFee.add(getTransactionFee(tx));
 				}
-				mempool.add(tx);
+//				mempool.add(tx);
+			} else if(tx.getType() == Definition.TYPE_PAY) {
+				//发放信用
+				//每笔交易有多个输入，根据系统的单账户模式设计，只发放给第一个
+				try {
+					Input input = tx.getInput(0);
+					Script script = input.getFromScriptSig();
+					byte[] hash160 = script.getPubKeyHash();
+					if(creditCollectionService.verification(Definition.CREDIT_TYPE_PAY, hash160, block.getTime())) {
+						CreditTransaction creditTx = new CreditTransaction(network, hash160, Configure.CERT_CHANGE_PAY, Definition.CREDIT_TYPE_PAY, tx.getHash());
+						creditTx.sign(account);
+						creditTxs.add(creditTx);
+					}
+				} catch (Exception e) {
+					log.error("发放信用出错", e);
+				}
 			}
 		}
-		
+		if(creditTxs.size() > 0) {
+			txs.addAll(creditTxs);
+		}
 		if(refunedFee.isGreaterThan(Coin.ZERO)) {
 			TransactionOutput coinbaseOutput = (TransactionOutput)txs.get(0).getOutput(0);
 			coinbaseOutput.setValue(coinbaseOutput.getValue() - refunedFee.value);
@@ -547,8 +572,17 @@ public final class MiningService implements Mining {
 								
 								log.info("开始共识，本地最新高度 {}", network.getBestBlockHeight());
 								
-								consensusMeeting.setAccount(account);
-								MiningService.this.account = account;
+								try {
+									MiningService.this.account = Account.parse(account.serialize(), network);
+									//放到consensusMeeting里面的账户，去掉密钥，因为里面用不到，这是为了安全
+									Account tempAccount = Account.parse(account.serialize(), network);
+									tempAccount.setMgEckeys(null);
+									tempAccount.setTrEckeys(null);
+									tempAccount.setEcKey(null);
+									consensusMeeting.setAccount(tempAccount);
+								} catch (IOException e) {
+									log.error("初始化共识时，设置共识账户出错:", e);
+								}
 								break;
 							}
 						}

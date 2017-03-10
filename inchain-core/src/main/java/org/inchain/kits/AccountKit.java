@@ -1619,7 +1619,9 @@ public class AccountKit {
 		for (int i = 0; i < certAccounts.length; i+=Address.LENGTH) {
 			byte[] hash160 = Arrays.copyOfRange(certAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-			certAccountList.add(accountStore);
+			if(accountStore != null) {
+				certAccountList.add(accountStore);
+			}
 		}
 		return certAccountList;
 	}

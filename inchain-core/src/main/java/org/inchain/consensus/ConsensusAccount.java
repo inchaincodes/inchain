@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.inchain.account.Address;
 import org.inchain.core.VarInt;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.utils.ByteArrayTool;
 import org.inchain.utils.Hex;
 
@@ -19,6 +20,7 @@ public class ConsensusAccount {
 	
 	private int length;
 	private String hash160Hex;
+	private Sha256Hash sortValue;
 	
 	public ConsensusAccount(byte[] hash160, byte[][] pubkeys) {
 		this.hash160 = hash160;
@@ -98,7 +100,13 @@ public class ConsensusAccount {
 		}
 		return hash160Hex;
 	}
-	
+	public Sha256Hash getSortValue() {
+		return sortValue;
+	}
+	public void setSortValue(Sha256Hash sortValue) {
+		this.sortValue = sortValue;
+	}
+
 	@Override
 	public String toString() {
 		return "ConsensusAccount [hash160=" + Hex.encode(hash160) + "]";

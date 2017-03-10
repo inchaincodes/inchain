@@ -1607,7 +1607,17 @@ public class Script {
         		chunks.get(7).equalsOpCode(OP_CHECKSIG);
 	}
 	
-
+	/**
+	 * 获取认证账户的账户信息对应的交易
+	 * @return Sha256Hash
+	 */
+	public Sha256Hash getCertAccountTxHash() {
+		if(isCertAccount()) {
+			return Sha256Hash.of(chunks.get(1).data);
+		} else {
+			return null;
+		}
+	}
 	
 	/**
      * 是否是防伪验证输入脚本

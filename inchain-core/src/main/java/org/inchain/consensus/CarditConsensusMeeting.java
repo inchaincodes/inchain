@@ -37,6 +37,7 @@ import org.inchain.store.BlockStoreProvider;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.ByteArrayTool;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
@@ -389,15 +390,21 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 							break;
 						}
 					}
-				} else if(transaction.getType() == Definition.TYPE_REM_CONSENSUS) {
+				} else if(transaction.getType() == Definition.TYPE_REM_CONSENSUS || transaction.getType() == Definition.TYPE_VIOLATION) {
 					//删除掉的，新增进去
-					RemConsensusTransaction remTx = (RemConsensusTransaction) transaction;
-					if(remTx.isCertAccount()) {
-						//认证账户 TODO
-						
+					byte[] hash160 = null;
+					
+					if(transaction.getType() == Definition.TYPE_REM_CONSENSUS) {
+						//主动退出共识
+						RemConsensusTransaction remTx = (RemConsensusTransaction) transaction;
+						hash160 = remTx.getHash160();
 					} else {
-						consensusList.add(new ConsensusAccount(remTx.getHash160(), new byte[][] {remTx.getPubkey()}));
+						//违规惩罚交易
+						ViolationTransaction vtx = (ViolationTransaction) transaction;
+						hash160 = vtx.getViolationEvidence().getAudienceHash160();
 					}
+					//这里面用不到公钥，所以不用设置
+					consensusList.add(new ConsensusAccount(hash160, null));
 				}
 			}
 			
@@ -412,7 +419,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		consensusList.sort(new Comparator<ConsensusAccount>() {
 			@Override
 			public int compare(ConsensusAccount o1, ConsensusAccount o2) {
-				return o1.getHash160Hex().compareTo(o2.getHash160Hex());
+				if(o1.getSortValue() == null) {
+					o1.setSortValue(Sha256Hash.twiceOf((startPoint + o1.getHash160Hex()).getBytes()));
+				}
+				if(o2.getSortValue() == null) {
+					o2.setSortValue(Sha256Hash.twiceOf((startPoint + o2.getHash160Hex()).getBytes()));
+				}
+				return o1.getSortValue().compareTo(o2.getSortValue());
 			}
 		});
 		return consensusList;
@@ -648,13 +661,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 
 	@Override
 	public ConsensusMessage getMeetingMessage(Sha256Hash msid) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public boolean messageHasReceived(Sha256Hash msid) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -670,14 +681,27 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			//可能原因，还没有同步完？
 			return ConsensusInfos.UNCERTAIN;
 		}
+		ConsensusInfos result = getConsensusInfos(startPoint, timePeriod);
+		if(result == null) {
+			//错误的区，如果接收，会引起灾难
+			try {
+				Thread.sleep(1000l);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			return getConsensusInfos(startPoint, timePeriod);
+		} else {
+			return result;
+		}
+	}
+
+	private ConsensusInfos getConsensusInfos(long startPoint, int timePeriod) {
 		if(currentMetting.getStartHeight() == startPoint) {
 			return currentMetting.getCurrentConsensusInfos(timePeriod);
 		} else if(previousMetting != null && previousMetting.getStartHeight() == startPoint) {
 			return previousMetting.getCurrentConsensusInfos(timePeriod);
-		} else {
-			//错误的区，如果接收，会引起灾难
-			return null;
 		}
+		return null;
 	}
 
 	/**
@@ -727,7 +751,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	public boolean waitMeeting() {
 		while(meetingStatus != 2) {
 			try {
-				Thread.sleep(10l);
+				Thread.sleep(100l);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

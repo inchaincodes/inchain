@@ -37,51 +37,45 @@ public final class Configure {
 	/**
 	 * 运行模式，1主网， 2 测试网络，3 单元测试
 	 */
-	public static int RUN_MODE = getProperty("run.mode", 2);
+	public final static int RUN_MODE = getProperty("run.mode", 2);
 
 	/**
 	 * p2p 端口
 	 */
-	public static int PORT = getProperty("port", 8631);
+	public final static int PORT = getProperty("port", 8631);
 	
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
-	public static int DEFAULT_PORT = 6888;
+	public final static int DEFAULT_PORT = 6888;
 	
 	/**
 	 * 是否挖矿
 	 */
-	public static boolean MINING = getProperty("mining", false);
-	
-	/**
-	 * 参与共识所需的信用点
-	 */
-	//TODO 临时设置为0
-	public static final long CONSENSUS_CREDIT = 0;
+	public final static boolean MINING = getProperty("mining", false);
 	
 	/**
 	 * 最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	 */
-	public static int MIN_CONNECT_COUNT = getProperty("min.connect.count", 1);
+	public final static int MIN_CONNECT_COUNT = getProperty("min.connect.count", 1);
 	
 	/**
 	 * 最大允许节点连接数
 	 */
-	public static int MAX_CONNECT_COUNT = getProperty("max.connect.count", 10);
+	public final static int MAX_CONNECT_COUNT = getProperty("max.connect.count", 10);
 	
 	/**
 	 * 区块生成间隔时间，单位秒
 	 */
-	public static int BLOCK_GEN_TIME = getProperty("block.gen.time", 6);
+	public final static int BLOCK_GEN_TIME = getProperty("block.gen.time", 6);
 	/**
 	 * 区块生成间隔时间，单位豪秒
 	 */
-	public static long BLOCK_GEN__MILLISECOND_TIME = BLOCK_GEN_TIME * 1000;
+	public final static long BLOCK_GEN__MILLISECOND_TIME = BLOCK_GEN_TIME * 1000;
 	/**
 	 * 挖矿奖励冻结区块数
 	 */
-	public static int MINING_MATURE_COUNT = getProperty("block.gen.time", 10);
+	public final static int MINING_MATURE_COUNT = getProperty("block.gen.time", 10);
 	/**
 	 * 数据存储目录
 	 */
@@ -103,7 +97,7 @@ public final class Configure {
 	 */
 	public static String DATA_TRANSACTION = DATA_DIR + File.separator + "transaction";
 	
-/*************  RPC 相关配置  begin  *****************/
+	/*************  RPC 相关配置  begin  *****************/
 	
 	/**
 	 * RPC 端口
@@ -120,6 +114,28 @@ public final class Configure {
 	public static boolean ACCOUNT_AUTO_INIT = getProperty("account.auto.init", false);
 	
 	/*************  账户相关配置   end  *****************/
+
+	/**
+	 * 参与共识所需的信用点
+	 */
+	//TODO 临时设置为0
+	public final static long CONSENSUS_CREDIT = 0;
+	
+	/**
+	 * 转账获得信用点数
+	 */
+	public final static long CERT_CHANGE_PAY = 1;
+	
+	/**
+	 * 转账获得信用点数 - 间隔时间 ， 毫秒数
+	 */
+	public final static long CERT_CHANGE_PAY_INTERVAL = 24 * 60 * 60 * 1000l;
+	
+	/**
+	 * 超时未出块惩罚信用点数
+	 */
+	public final static long CERT_CHANGE_TIME_OUT = -1;
+	
 	
 
 	/*************  交易相关配置   begin  *****************/
@@ -129,7 +145,7 @@ public final class Configure {
 	 * 1 以交易数据小优先，该种机制尽量选择一笔输入
 	 * 2 优先使用零钱
 	 */
-	public static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
+	public final static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
 	
 	/*************  交易相关配置   end  *****************/
 	

@@ -87,6 +87,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			put(accountInfo.getHash160(), accountInfo.baseSerialize());
 			return true;
 		} catch (Exception e) {
+			log.error("保存账户信息出错：", e);
 			return false;
 		}
 	}
