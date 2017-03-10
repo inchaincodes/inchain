@@ -23,8 +23,4 @@ Label{
 	-fx-text-fill:WHITE;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
-    -fx-padding:0 0 10 20;
-}
-.title{
-	-fx-padding:0;
 }

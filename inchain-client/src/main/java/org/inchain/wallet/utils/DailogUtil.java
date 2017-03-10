@@ -15,6 +15,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -89,7 +90,6 @@ public class DailogUtil {
 		Tooltip tip = new Tooltip(message);
 		tip.setFont(Font.font("宋体", 14));
 		tip.show(stage, x, y);
-		
 		hideDailog(tip, hideTime);
 	}
 
