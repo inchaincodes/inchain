@@ -123,14 +123,6 @@ public class BlockMessageProcess implements MessageProcess {
 	 * 验证区块的合法性，如果验证不通过，则抛出验证异常
 	 */
 	private boolean verifyBlock(Block block) {
-		//获取区块的最新高度
-		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
-		//必需衔接
-		if(!block.getPreHash().equals(bestBlockHeader.getBlockHeader().getHash()) ||
-				block.getHeight() != bestBlockHeader.getBlockHeader().getHeight() + 1) {
-			log.warn("block info warn");
-			return false;
-		}
 		//验证区块签名
 		block.verifyScript();
 		
@@ -179,6 +171,15 @@ public class BlockMessageProcess implements MessageProcess {
 		Coin rewardCoin = ConsensusRewardCalculationUtil.calculat(block.getHeight());
 		if(!coinbaseFee.equals(fee.add(rewardCoin))) {
 			log.warn("the fee error");
+			return false;
+		}
+		//获取区块的最新高度
+		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+		//必需衔接
+		if(!block.getPreHash().equals(bestBlockHeader.getBlockHeader().getHash()) ||
+				block.getHeight() != bestBlockHeader.getBlockHeader().getHeight() + 1) {
+			log.warn("block info warn");
+			blockForkService.addBlockFork(block);
 			return false;
 		}
 		return true;

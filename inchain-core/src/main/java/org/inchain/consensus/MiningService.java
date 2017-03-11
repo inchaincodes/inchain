@@ -221,6 +221,15 @@ public final class MiningService implements Mining {
 		
 		//处理违规情况的节点，目前只处理超时的
 		Set<TimeoutConsensusViolation> timeoutList = consensusMeeting.getTimeoutList();
+
+//		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) {
+			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
+				log.info("超时的节点： {}" , consensusViolation);
+				//判断该节点是否已被处理，如果没处理则我来处理
+				processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
+			}
+//		}
+
 		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) { 
 			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
 				log.info("超时的节点： {}" , consensusViolation);
@@ -263,6 +272,7 @@ public final class MiningService implements Mining {
 
 		try {
 
+			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			}
@@ -609,6 +619,7 @@ public final class MiningService implements Mining {
 						if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
 								(!account.isCertAccount() && account.isEncrypted()))) {
 							try {
+								log.info("开始共识：{}", network.getBestBlockHeight());
 								MiningService.this.account = account.clone();
 								//放到consensusMeeting里面的账户，去掉密钥，因为里面用不到，这是为了安全
 								Account tempAccount = account.clone();

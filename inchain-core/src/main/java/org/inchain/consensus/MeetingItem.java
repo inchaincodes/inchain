@@ -186,6 +186,8 @@ public class MeetingItem implements Cloneable {
 		
 		init = true;
 		
+		init = true;
+		
 		Account myAccount = consensusMeeting.getAccount();
 		if(myAccount == null) {
 			index = -1;
@@ -271,7 +273,12 @@ public class MeetingItem implements Cloneable {
 		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME;
 		long endTime = beginTime + 2 * Configure.BLOCK_GEN__MILLISECOND_TIME;
 		
-		return new ConsensusInfos(hash160, beginTime, endTime);
+		ConsensusInfos result = new ConsensusInfos(hash160, beginTime, endTime);
+		
+		result.setStartHeight(startHeight);
+		result.setIndex(index);
+		
+		return result;
 	}
 
 	/**

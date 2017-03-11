@@ -36,6 +36,8 @@ public class ConsensusInfos {
 	private byte[] hash160;
 	private long beginTime;	//当前共识人的块周期开始时间
 	private long endTime;	//当前共识人的块周期结束时间
+	private long startHeight;
+	private int index;
 	
 	public byte[] getHash160() {
 		return hash160;
@@ -66,10 +68,26 @@ public class ConsensusInfos {
 		this.endTime = endTime;
 	}
 
+	public long getStartHeight() {
+		return startHeight;
+	}
+
+	public void setStartHeight(long startHeight) {
+		this.startHeight = startHeight;
+	}
+
+	public int getIndex() {
+		return index;
+	}
+
+	public void setIndex(int index) {
+		this.index = index;
+	}
+
 	@Override
 	public String toString() {
-		return "ConsensusInfos [result=" + result + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
-				+ ", beginTime=" + beginTime + ", endTime=" + endTime + "]";
+		return "ConsensusInfos [result=" + result + ", startHeight=" + startHeight + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
+				+ ", beginTime=" + beginTime + ", endTime=" + endTime + ", index=" + index + "]";
 	}
 	
 	
