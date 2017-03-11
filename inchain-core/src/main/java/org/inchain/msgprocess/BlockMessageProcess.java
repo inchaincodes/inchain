@@ -16,6 +16,7 @@ import org.inchain.message.Block;
 import org.inchain.message.Message;
 import org.inchain.message.RejectMessage;
 import org.inchain.network.NetworkParams;
+import org.inchain.service.BlockForkService;
 import org.inchain.service.CreditCollectionService;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
@@ -64,6 +65,8 @@ public class BlockMessageProcess implements MessageProcess {
 	private ChainstateStoreProvider chainstateStoreProvider;
 	@Autowired
 	private TransactionValidator transactionValidator;
+	@Autowired
+	protected BlockForkService blockForkService;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
@@ -78,7 +81,6 @@ public class BlockMessageProcess implements MessageProcess {
 		lock.lock();
 		
 		Block block = (Block) message;
-		block.verifyScript();
 		
 		try {
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
@@ -89,6 +91,9 @@ public class BlockMessageProcess implements MessageProcess {
 			
 			//验证区块消息的合法性
 			if(!verifyBlock(block)) {
+				
+				blockForkService.addBlockFork(block);
+				
 				return replyRejectMessage(block);
 			}
 			
@@ -105,6 +110,7 @@ public class BlockMessageProcess implements MessageProcess {
 				peerKit.getBlockChangedListener().onChanged(block.getHeight(), -1l, block.getHash(), null);
 			}
 		} catch (Exception e) {
+			blockForkService.addBlockFork(block);
 			log.error(e.getMessage(), e);
 			return replyRejectMessage(block);
 		} finally {
@@ -126,7 +132,7 @@ public class BlockMessageProcess implements MessageProcess {
 			return false;
 		}
 		//验证区块签名
-		//TODO
+		block.verifyScript();
 		
 		//验证梅克尔树根是否正确
 		if(!block.buildMerkleHash().equals(block.getMerkleHash())) {

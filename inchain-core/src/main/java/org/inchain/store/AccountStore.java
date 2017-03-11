@@ -66,7 +66,7 @@ public class AccountStore extends Store {
 		Utils.int64ToByteStreamLE(balance, stream);
 		Utils.int64ToByteStreamLE(lastModifyTime, stream);
 		Utils.int64ToByteStreamLE(createTime, stream);
-		Utils.uint32ToByteStreamLE(cert, stream);
+		Utils.int64ToByteStreamLE(cert, stream);
 		stream.write(accountBody.serialize());
 	}
 	
@@ -88,7 +88,7 @@ public class AccountStore extends Store {
 		balance = readInt64();
 		lastModifyTime = readInt64();
 		createTime = readInt64();
-		cert = readUint32();
+		cert = readInt64();
 		
 		if(cursor < payload.length) {
 			accountBody = new AccountBody(Arrays.copyOfRange(payload, cursor, payload.length));

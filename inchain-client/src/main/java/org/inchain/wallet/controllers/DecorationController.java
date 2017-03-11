@@ -1,13 +1,12 @@
 package org.inchain.wallet.controllers;
 
-import java.awt.SystemTray;
 import java.awt.Toolkit;
-import java.awt.TrayIcon;
-import java.awt.TrayIcon.MessageType;
 import java.awt.datatransfer.StringSelection;
 
+import org.inchain.wallet.listener.WindowCloseEvent;
 import org.inchain.wallet.utils.DailogUtil;
 
+import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;
@@ -183,14 +182,7 @@ public class DecorationController {
     	 * 关闭窗体
     	 * */
     	close.addEventHandler(MouseEvent.MOUSE_PRESSED, event ->{
-    		stage.close();
-    		 if(SystemTray.isSupported()) {
-         		//隐藏，可双击托盘恢复
-     			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
-     			if(trayIcons != null && trayIcons.length > 0) {
-     				trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
-     			} 
-    		 }
+    		stage.fireEvent(new WindowCloseEvent());
     	});
     }
 

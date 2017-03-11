@@ -8,9 +8,11 @@ import java.util.Date;
 import java.util.List;
 
 import org.inchain.Configure;
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
-import org.inchain.core.Result;
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Definition;
+import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
@@ -156,10 +158,11 @@ public class ConsensusController implements SubPageController {
 						@Override
 						public void run() {
 							if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+								int type = 0;
 								try {
-									doAction(accountKit, consensusStatus);
+									type = doAction(accountKit, consensusStatus);
 								} finally {
-									accountKit.resetKeys();
+									resetAccount(accountKit, type);
 								}
 							}
 						}
@@ -172,24 +175,47 @@ public class ConsensusController implements SubPageController {
     	dailog.show();
     }
 
-    /**
+    /*
+     * 重置账户
+     */
+    private void resetAccount(AccountKit accountKit, int type) {
+		//如果是注册共识，那么延迟重置账户
+		if(type == 0) {
+			accountKit.resetKeys();
+		} else {
+			new Thread() {
+				public void run() {
+					//延迟重置账户
+					ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+					consensusMeeting.waitMining();
+					accountKit.resetKeys();
+				};
+			}.start();
+		}
+	}
+    
+    /*
      * 参与或者退出共识
      * @param accountKit
      * @param consensusStatus
+     * @return int 0取消共识，1注册共识
      */
-    private void doAction(AccountKit accountKit, boolean consensusStatus) {
+    private int doAction(AccountKit accountKit, boolean consensusStatus) {
     	Result result = null;
+    	int type = 0;
 		if(consensusStatus) {
 			//取消共识(退出共识)
 			result = accountKit.quitConsensus();
 		} else {
 			//注册共识
 			result = accountKit.registerConsensus();
+			type = 1;
 		}
 		DailogUtil.showTip(result.getMessage(), Context.getMainStage());
 		if(result.isSuccess()) {
 			initDatas();
 		}
+		return type;
 	}
     
 	private List<ConensusEntity> tx2Entity() {

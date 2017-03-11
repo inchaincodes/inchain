@@ -55,9 +55,15 @@ public class InchainInstance {
 			throw new RuntimeException("netType error");
 		}
 
-		springContext = new ClassPathXmlApplicationContext(xmls);
+		try {
+			springContext = new ClassPathXmlApplicationContext(xmls);
+			springContext.start();
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("核心程序启动失败 {}", e.getMessage());
+			return;
+		}
 
-		springContext.start();
 		
 //		try {
 //			Thread.sleep(1000l);

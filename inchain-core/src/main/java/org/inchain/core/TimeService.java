@@ -3,10 +3,8 @@ package org.inchain.core;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.kits.PeerKit;
-import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,9 +21,17 @@ public final class TimeService {
 	private PeerKit peerKit;
 	
 	/*
+	 * 网络时间初始化标志
+	 */
+	private volatile static boolean netTimeInit;
+	/*
 	 * 模拟网络时钟 
 	 */
 	private volatile static Date mockTime;
+	/*
+	 * 网络时间与本地时间的偏移
+	 */
+	private static long netTimeOffset;
 	
 	/*
 	 * 系统启动时间
@@ -40,28 +46,35 @@ public final class TimeService {
 	 * 异步启动时间服务
 	 */
 	private void startSyn() {
-		new Thread() {
-			public void run() {
-				try {
-					Thread.sleep(2000l);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				TimeService.this.start();
-			};
-		}.start();
-	}
-	
-	private void start() {
-		//监听节点变化
-		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
+		Thread monitorThread = new Thread() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
-				//计算连接的对等体与本地时差
-				//TODO
+			public void run() {
+				monitorTimeChange();
 			}
-		});
+		};
+		monitorThread.setName("time change monitor");
+		monitorThread.start();
+	}
+
+	/**
+	 * 启动一个服务，监控本地时间的变化
+	 * 如果本地时间有变化，则设置 TimeService.netTimeOffset;
+	 */
+	public void monitorTimeChange() {
+		long startTime = System.currentTimeMillis();
+		long lastTime = startTime;
+		while(true) {
+			long newTime = System.currentTimeMillis();
+			if(Math.abs(newTime - lastTime) > 500) {
+				System.out.println("本地时间调整了："+((newTime - lastTime)));
+				TimeService.netTimeOffset -= (newTime - lastTime);
+			}
+			lastTime = newTime;
+			try {
+				Thread.sleep(200l);
+			} catch (InterruptedException e) {
+			}
+		}
 	}
 	
 	/**
@@ -108,7 +121,7 @@ public final class TimeService {
 	 * @return long
 	 */
     public static long currentTimeMillis() {
-        return mockTime != null ? mockTime.getTime() : System.currentTimeMillis();
+        return System.currentTimeMillis() + netTimeOffset;
     }
 	
 	/**
@@ -153,5 +166,27 @@ public final class TimeService {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	/**
+	 * 初始化网络时间
+	 * 规则：
+	 * 	1、只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
+	 * 	2、当所有连接的节点时间偏移超过2s，则取多数时间相近的节点时间作为网络时间
+	 * @return
+	 */
+	public static boolean netTimeHasInit() {
+		return netTimeInit;
+	}
+	public static void initNetTime() {
+		netTimeInit = true;
+	}
+
+	/**
+	 * 设置网络偏移时间
+	 * @param netTimeOffset
+	 */
+	public static void setNetTimeOffset(long netTimeOffset) {
+		TimeService.netTimeOffset = netTimeOffset;
 	}
 }

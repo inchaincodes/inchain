@@ -614,6 +614,7 @@ public class AccountKit {
 			if(success) {
 				//广播结果
 				try {
+					log.info("交易大小：{}", tx.baseSerialize().length);
 					broadcastResult = peerKit.broadcast(tx);
 					//等待广播回应
 					broadcastResult.get();
@@ -1639,6 +1640,9 @@ public class AccountKit {
 		for (int i = 0; i < consensusAccounts.length; i+=Address.LENGTH) {
 			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountStore == null) {
+				continue;
+			}
 			consensusAccountList.add(accountStore);
 		}
 		return consensusAccountList;

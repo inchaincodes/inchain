@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.inchain.Configure;
 import org.inchain.service.CreditCollectionService;
-import org.inchain.utils.Hex;
 import org.springframework.stereotype.Service;
 
 /**
@@ -53,17 +52,13 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 		return false;
 	}
 
-	class ByteHash {
+	static class ByteHash {
 		byte[] hash;
 
 		public ByteHash(byte[] hash) {
 			this.hash = hash;
 		}
 		
-		@Override
-		public String toString() {
-			return Hex.encode(hash);
-		}
 		@Override
 		public boolean equals(Object obj) {
 			if(obj == null || !(obj instanceof ByteHash)) {
@@ -75,10 +70,10 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 			}
 			return Arrays.equals(hash, temp.hash);
 		}
+		
 		@Override
 		public int hashCode() {
-			return Hex.encode(hash).hashCode();
+			return Arrays.hashCode(hash);
 		}
 	}
-
 }

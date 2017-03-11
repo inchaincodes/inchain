@@ -37,7 +37,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	@Autowired
 	private PeerKit peerKit;
 	@Autowired
-	private BlockValidator newBlockValidator;
+	private BlockValidator blockValidator;
 	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
@@ -45,14 +45,17 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
 
+		try {
 		Block block = (Block) message;
 
 		log.info("new block : 时间{} ,  哈希 {}, 高度 {}, 打包人 {} ， 开始位置 {} ，当前位置 {}", block.getTime(), block.getHash(), block.getHeight(), Hex.encode(block.getHash160()), block.getPeriodStartPoint(), block.getTimePeriod());
 		
 		//验证新区块
-		Result valResult = newBlockValidator.doVal(block);
+		Result valResult = blockValidator.doVal(block);
 		if(!valResult.isSuccess()) {
 			log.warn("新区块{} 验证失败： {}", block.getHash(), valResult.getMessage());
+			
+			blockForkService.addBlockFork(block);
 			
 			return new MessageProcessResult(block.getHash(), false);
 		}
@@ -95,7 +98,10 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		InventoryItem item = new InventoryItem(Type.NewBlock, hash);
 		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
 		peerKit.broadcastMessage(invMessage, peer);
-		
 		return result;
+		} catch (Exception e) {
+			log.error("处理新块时出错", e);
+		}
+		return null;
 	}
 }

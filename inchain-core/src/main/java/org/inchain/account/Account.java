@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
  * @author ln
  *
  */
-public class Account {
+public class Account implements Cloneable {
 	
 	private static Logger log = LoggerFactory.getLogger(Account.class);
 	
@@ -519,6 +519,11 @@ public class Account {
 	 */
 	public void setAccountTransaction(Transaction accountTransaction) {
 		this.accountTransaction = accountTransaction;
+	}
+	
+	@Override
+	public Account clone() throws CloneNotSupportedException {
+		return (Account) super.clone();
 	}
 	
 	public Address getAddress() {

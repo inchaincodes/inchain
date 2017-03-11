@@ -54,7 +54,7 @@ public class CreditTransaction extends CommonlyTransaction {
 		super.parse();
 		
 		ownerHash160 = readBytes(Address.LENGTH);
-		credit = readUint32();
+		credit = readInt64();
 		reasonType = readBytes(1)[0] & 0XFF;
 		reason = readHash();
 		
@@ -68,7 +68,7 @@ public class CreditTransaction extends CommonlyTransaction {
 		super.serializeToStream(stream);
 		
 		stream.write(ownerHash160);
-		Utils.uint32ToByteStreamLE(credit, stream);
+		Utils.int64ToByteStreamLE(credit, stream);
 		stream.write(reasonType);
 		
 		if(reason == null) {

@@ -177,7 +177,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			try {
 				Thread.sleep(20);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				if(log.isDebugEnabled()) {
+					log.debug("{}", e.getMessage());
+				}
 			}
 		}
 		try {
@@ -226,7 +228,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				try {
 					Thread.sleep(100l);
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					if(log.isDebugEnabled()) {
+						log.debug("{}", e.getMessage());
+					}
 				}
 			}
 		}
@@ -282,29 +286,18 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			currentMetting.startConsensus();
 			return;
 		}
+		log.info(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), DateUtil.convertDate(new Date(startBlockHeader.getBlockHeader().getTime())));
 		if(log.isDebugEnabled()) {
-			log.debug(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), startBlockHeader.getBlockHeader().getTime());
+			log.debug(" start block {} {} {} {}", startBlockHeader.getBlockHeader().getHeight(), startBlockHeader.getBlockHeader().getPeriodCount(), startBlockHeader.getBlockHeader().getTimePeriod(), DateUtil.convertDate(new Date(startBlockHeader.getBlockHeader().getTime())));
 		}
 		
 		long newStartTime = startBlockHeader.getBlockHeader().getTime() + Configure.BLOCK_GEN__MILLISECOND_TIME * (startBlockHeader.getBlockHeader().getPeriodCount() - startBlockHeader.getBlockHeader().getTimePeriod() - 1);
-		
-		if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME >= startBlockHeader.getBlockHeader().getPeriodCount()) {
+		if((TimeService.currentTimeMillis() - newStartTime) / Configure.BLOCK_GEN__MILLISECOND_TIME > startBlockHeader.getBlockHeader().getPeriodCount()) {
 			currentMetting.startConsensus();
 		} else {
 			currentMetting.startConsensus(newStartTime);
 		}
-		
-//		//拉取一次共识状态，拉取后的信息会通过consensusMeeting.receiveMeetingMessage接收
-//		long height = getLocalBestBlockHeight();
-//		
-//		//content格式第一位为type,1为拉取共识状态信息
-//		byte[] content = new byte[] { 1 };
-//		
-//		ConsensusMessage message = new ConsensusMessage(network, account.getAddress().getHash160(), height, content);
-//		//签名共识消息
-//		message.sign(account);
-//		broadcastMessage(message);
-//		log.info(" send message {} ", message);
+		log.info("start metting : {}", currentMetting);
 	}
 	
 	/**
@@ -630,15 +623,82 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	public void stop() {
 		executor.shutdownNow();
 	}
-
+	
 	/**
-	 * 停止共识
+	 * 从下一轮开始共识
+	 * @param block 从该块开始
 	 */
-	@Override
-	public void stopConsensus() {
-		account = null;
+	public void startConsensusOnNextRound(Block block) {
+		//判断该块是否是最后一个块，如果是，则检查我有没有加进共识
+		long bestBlockHeight = network.getBestHeight();
+		//传入的块要是网络最新的块，则做相应的处理
+		if(bestBlockHeight == block.getHeight() && block.getPeriodCount() - 1 == block.getTimePeriod()) {
+			if(currentMetting.getStartHeight() != block.getPeriodStartPoint() && currentMetting.getTimePeriod() == -1) {
+				if(account == null) {
+					//异步监控超时处理
+					waitAccountNotNull(block);
+				} else {
+					resetMeeting(block);
+				}
+			}
+		}
 	}
 
+	/*
+	 * 等待启动共识，设置共识账户，超时时间为一个区块时段
+	 */
+	private void waitAccountNotNull(Block block) {
+		new Thread() {
+			public void run() {
+				//超时处理
+				long nowTime = TimeService.currentTimeMillis();
+				while(true) {
+					if(TimeService.currentTimeMillis() - nowTime > Configure.BLOCK_GEN__MILLISECOND_TIME) {
+						break;
+					}
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {
+						if(log.isDebugEnabled()) {
+							log.debug("{}", e.getMessage());
+						}
+					}
+				}
+				resetMeeting(block);
+			}
+		}.start();
+	}
+	
+	/*
+	 * 重新设置会议
+	 */
+	private void resetMeeting(Block block) {
+		currentMetting = new MeetingItem(CarditConsensusMeeting.this, block.getHeight() + 1, consensusPool.listSnapshots());
+		initNewMeetingRound(block);
+		meetingRound.set(meetingRound.get() - 1);
+	}
+	
+	/**
+	 * 从下一轮开始停止共识
+	 * @param block 从该块开始
+	 */
+	public void stopConsensusOnNextRound(Block block) {
+		
+		//判断该块是否是最后一个块，如果是，则检查我有没有加进共识
+		long bestBlockHeight = network.getBestHeight();
+		//传入的块要是网络最新的块，则做相应的处理
+		if(bestBlockHeight == block.getHeight() && block.getPeriodCount() - 1 == block.getTimePeriod()
+				&& currentMetting.getStartHeight() != block.getPeriodStartPoint() && currentMetting.getTimePeriod() != -1) {
+			setAccount(null);
+			mining.reset(true);
+			initNewMeetingRound(block);
+			meetingRound.set(meetingRound.get() - 1);
+		} else {
+			setAccount(null);
+			mining.reset(false);
+		}
+	}
+	
 	@Override
 	public void setAccount(Account account) {
 		this.account = account;
@@ -685,9 +745,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(result == null) {
 			//错误的区，如果接收，会引起灾难
 			try {
-				Thread.sleep(1000l);
+				Thread.sleep(300l);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				if(log.isDebugEnabled()) {
+					log.debug("{}", e.getMessage());
+				}
 			}
 			return getConsensusInfos(startPoint, timePeriod);
 		} else {
@@ -697,6 +759,16 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 
 	private ConsensusInfos getConsensusInfos(long startPoint, int timePeriod) {
 		if(currentMetting.getStartHeight() == startPoint) {
+			//如果当前轮没有初始化完成，则等待
+			while(!currentMetting.isInit()) {
+				try {
+					Thread.sleep(10l);
+				} catch (InterruptedException e) {
+					if(log.isDebugEnabled()) {
+						log.debug("{}", e.getMessage());
+					}
+				}
+			}
 			return currentMetting.getCurrentConsensusInfos(timePeriod);
 		} else if(previousMetting != null && previousMetting.getStartHeight() == startPoint) {
 			return previousMetting.getCurrentConsensusInfos(timePeriod);
@@ -747,15 +819,53 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		return null;
 	}
 
+	/**
+	 * 共识会议是否进行中，所有的节点都会参加会议，有权限的（共识节点）才会发言
+	 * 所以外部接受新块，必须保证顺利加入会议，否则接收新块会出错
+	 * 当调用此方法时，会阻塞，知道meetingStatus = 2 ，也就是初始化完成
+	 */
 	@Override
 	public boolean waitMeeting() {
 		while(meetingStatus != 2) {
 			try {
 				Thread.sleep(100l);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				if(log.isDebugEnabled()) {
+					log.debug("{}", e.getMessage());
+				}
 			}
 		}
 		return true;
+	}
+	
+	/**
+	 * 等待参与会议，即申请了共识，等待打包
+	 * 申请共识时，调用此方法，可知道是否成功进入到了共识模式
+	 * 阻塞的方法，知道成功共识或者超时
+	 */
+	@Override
+	public boolean waitMining() {
+		long now = TimeService.currentTimeMillis();
+		while(account == null) {
+			if(TimeService.currentTimeMillis() - now >= 60000l) {
+				return false;
+			}
+			try {
+				Thread.sleep(100l);
+			} catch (InterruptedException e) {
+				if(log.isDebugEnabled()) {
+					log.debug("{}", e.getMessage());
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * 获取当前会议参与人数
+	 * @return int
+	 */
+	public int getCurrentMeetingPeriodCount() {
+		return currentMetting.getPeriodCount();
 	}
 }

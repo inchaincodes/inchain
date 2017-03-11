@@ -4,10 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.UnknownHostException;
 
-import org.inchain.core.PeerAddress;
-import org.inchain.core.TimeService;
 import org.inchain.core.exception.ProtocolException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.utils.Utils;
 

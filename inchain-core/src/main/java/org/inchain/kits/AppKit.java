@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.inchain.Configure;
 import org.inchain.consensus.Mining;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.Listener;
@@ -157,7 +158,12 @@ public class AppKit {
 	 */
 	private void checkPoint() {
 		//TODO
-		
+//		BlockStore block = blockStoreProvider.getBlockByHeight(1672l);
+//		block.getBlock().buildMerkleHash();
+//		while(!block.getNextHash().equals(Sha256Hash.ZERO_HASH)) {
+//			block = blockStoreProvider.getBlock(block.getNextHash().getBytes());
+//			log.info("{}", block);
+//		}
 	}
 
 	/*

@@ -3,6 +3,7 @@ package org.inchain.msgprocess;
 import java.util.Locale;
 
 import org.inchain.core.Peer;
+import org.inchain.core.TimeService;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
@@ -47,7 +48,7 @@ public class VersionMessageProcess implements MessageProcess {
         }
         
         try {
-        	peer.sendMessage(new VerackMessage(peer.getNetwork(), versionMessage.getTime(), versionMessage.getNonce()));
+        	peer.sendMessage(new VerackMessage(peer.getNetwork(), TimeService.currentTimeMillis(), versionMessage.getNonce()));
         } catch (Exception e) {
         	peer.close();
 		}

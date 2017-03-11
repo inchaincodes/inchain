@@ -13,7 +13,6 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.consensus.MiningService;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.ViolationEvidence;
@@ -64,8 +63,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	//共识缓存器
 	@Autowired
 	private ConsensusPool consensusPool;
-	@Autowired
-	private MiningService mining;
 	@Autowired
 	private ConsensusMeeting consensusMeeting;
 	@Autowired
@@ -158,6 +155,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					byte[][] pubkeys = accountInfo.getPubkeys();
 					//添加到共识缓存器里
 					consensusPool.add(regTransaction.getHash160(), pubkeys);
+					//下一轮开始打包
+					consensusMeeting.startConsensusOnNextRound(block);
+
 				} else if(tx instanceof RemConsensusTransaction || tx instanceof ViolationTransaction) {
 					//退出共识
 					byte[] hash160 = null;
@@ -177,28 +177,36 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - Address.LENGTH];
 					
 					//找出位置在哪里
+					//判断在列表里面才更新，否则就被清空了
+					boolean hashExist = false;
 					for (int j = 0; j < consensusAccountHash160s.length; j += Address.LENGTH) {
 						byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
 						if(Arrays.equals(addressHash160, hash160)) {
+							hashExist = true;
 							System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
 							System.arraycopy(consensusAccountHash160s, j + Address.LENGTH, newConsensusHash160s, j, consensusAccountHash160s.length - j - Address.LENGTH);
 						}
 					}
-					chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+					if(hashExist) {
+						chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+					}
 					//从共识缓存器里中移除
 					consensusPool.delete(hash160);
+
+					//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
+					Account consensusAccount = consensusMeeting.getAccount();
+					if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), hash160)) {
+						//下一轮停止共识
+						consensusMeeting.stopConsensusOnNextRound(block);
+					}
 					
 					//退出的账户
-					byte[] remHash160 = null;
-					
 					if(tx instanceof ViolationTransaction) {
 						//违规被提出共识，增加规则证据到状态里，以便查证
 						ViolationTransaction vtx = (ViolationTransaction)tx;
 						ViolationEvidence violationEvidence = vtx.getViolationEvidence();
 						Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
 						chainstateStoreProvider.put(evidenceHash.getBytes(), tx.getHash().getBytes());
-						
-						remHash160 = vtx.getViolationEvidence().getAudienceHash160();
 						
 						//减去相应的信用值
 						AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
@@ -210,15 +218,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						accountInfo.setCert(accountInfo.getCert() + certChange);
 						
 						chainstateStoreProvider.saveAccountInfo(accountInfo);
-					} else {
-						remHash160 = hash160;
-					}
-					if(remHash160 != null) {
-						//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
-						Account consensusAccount = consensusMeeting.getAccount();
-						if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), remHash160)) {
-							mining.reset();
-						}
 					}
 				} else if(tx instanceof CreditTransaction) {
 					//信用值的增减
@@ -247,7 +246,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					accountInfo.setCert(accountInfo.getCert() + creditTransaction.getCredit());
 					chainstateStoreProvider.saveAccountInfo(accountInfo);
 					
-					creditCollectionService.addCredit(creditTransaction.getReasonType(), creditTransaction.getHash160(), block.getTime());
+					creditCollectionService.addCredit(creditTransaction.getReasonType(), creditTransaction.getOwnerHash160(), block.getTime());
 				} else if(tx.isPaymentTransaction()) {
 					
 					//转账交易
@@ -705,6 +704,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		
 		byte[] bestBlockHash = null;
 		try {
+			if(db == null) {
+				return null;
+			}
 			bestBlockHash = db.get(bestBlockKey);
 		} finally {
 			blockLock.unlock();

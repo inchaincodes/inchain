@@ -84,7 +84,8 @@ public class TransactionRecordController implements SubPageController {
 						Image icon;
 						Tooltip tip = new Tooltip();
 					
-						if (item == null) {
+						if (item == null || empty) {
+							setGraphic(null);
 							return ;
 						} 
 						if (item.longValue() >= Constant.CONFIRM_NUMBER) {
@@ -118,7 +119,7 @@ public class TransactionRecordController implements SubPageController {
      * 初始化
      */
     public void initDatas() {
-    	
+//    	if(1==1)return;
     	if(log.isDebugEnabled()) {
     		log.debug("加载交易数据···");
     	}

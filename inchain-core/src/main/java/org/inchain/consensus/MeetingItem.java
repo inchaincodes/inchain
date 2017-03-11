@@ -60,6 +60,9 @@ public class MeetingItem implements Cloneable {
 	private long myPackageTimeEnd;
 	private int index;
 	
+	//是否初始化完成
+	private boolean init;
+	
 	//没按规定时间出块的节点
 	private List<ConsensusAccount> timeoutList;
 	//违规节点，尝试分叉，出多个块，不打包共识消息的节点，接受双花的节点
@@ -180,6 +183,8 @@ public class MeetingItem implements Cloneable {
 	public void startConsensus(long startTime) {
 		this.startTime = startTime;
 		endTime = startTime + consensusList.size() * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		
+		init = true;
 		
 		Account myAccount = consensusMeeting.getAccount();
 		if(myAccount == null) {
@@ -379,9 +384,6 @@ public class MeetingItem implements Cloneable {
 	public long getStartTime() {
 		return startTime;
 	}
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
-	}
 	public long getEndTime() {
 		return endTime;
 	}
@@ -403,7 +405,9 @@ public class MeetingItem implements Cloneable {
 	public byte[] getMyHash160() {
 		return myHash160;
 	}
-
+	public boolean isInit() {
+		return init;
+	}
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();

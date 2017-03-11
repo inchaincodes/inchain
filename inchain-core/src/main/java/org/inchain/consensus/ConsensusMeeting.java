@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.inchain.account.Account;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 
 /**
@@ -94,6 +95,12 @@ public interface ConsensusMeeting {
 	MeetingItem getMeetingItem(long startPoint);
 	
 	/**
+	 * 获取当前会议参与人数
+	 * @return int
+	 */
+	int getCurrentMeetingPeriodCount();
+	
+	/**
 	 * 异步启动
 	 */
 	void startSyn();
@@ -104,9 +111,16 @@ public interface ConsensusMeeting {
 	void stop();
 	
 	/**
-	 * 停止共识
+	 * 从下一轮开始共识
+	 * @param block 从该块开始
 	 */
-	void stopConsensus();
+	void startConsensusOnNextRound(Block block);
+	
+	/**
+	 * 从下一轮开始停止共识
+	 * @param block 从该块开始
+	 */
+	void stopConsensusOnNextRound(Block block);
 	
 	/**
 	 * 共识会议是否进行中，所有的节点都会参加会议，有权限的（共识节点）才会发言
@@ -114,4 +128,11 @@ public interface ConsensusMeeting {
 	 * 当调用此方法时，会阻塞，知道meetingStatus = 2 ，也就是初始化完成
 	 */
 	boolean waitMeeting();
+	
+	/**
+	 * 等待参与会议，即申请了共识，等待打包
+	 * 申请共识时，调用此方法，可知道是否成功进入到了共识模式
+	 * 阻塞的方法，知道成功共识或者超时
+	 */
+	boolean waitMining();
 }

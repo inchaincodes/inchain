@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -121,7 +122,9 @@ public final class MiningService implements Mining {
 					try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
-						e.printStackTrace();
+						if(log.isDebugEnabled()) {
+							log.debug("{}", e.getMessage());
+						}
 					}
 				}
 			};
@@ -138,8 +141,10 @@ public final class MiningService implements Mining {
 		//临时处理，延迟1s，解决内存池来不及移除新块交易的问题
 		try {
 			Thread.sleep(1000l);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
+		} catch (InterruptedException e) {
+			if(log.isDebugEnabled()) {
+				log.debug("{}", e.getMessage());
+			}
 		}
 		
 		//被打包的交易列表
@@ -185,7 +190,9 @@ public final class MiningService implements Mining {
 			try {
 				Thread.sleep(10l);
 			} catch (InterruptedException e) {
-				log.error("mining wait err", e);
+				if(log.isDebugEnabled()) {
+					log.debug("{}", e.getMessage());
+				}
 			}
 		}
 		
@@ -214,14 +221,21 @@ public final class MiningService implements Mining {
 		
 		//处理违规情况的节点，目前只处理超时的
 		Set<TimeoutConsensusViolation> timeoutList = consensusMeeting.getTimeoutList();
-		for (TimeoutConsensusViolation consensusViolation : timeoutList) {
-			log.info("超时的节点： {}" , consensusViolation);
-			//判断该节点是否已被处理，如果没处理则我来处理
-			processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
+		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) { 
+			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
+				log.info("超时的节点： {}" , consensusViolation);
+				//判断该节点是否已被处理，如果没处理则我来处理
+				processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
+			}
 		}
 
 		//获取我的时段开始时间
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
+		
+		//遵守系统规则，如果出现特殊情况，当前网络时间超过了我的时段，停止广播，等待处罚
+		if(miningInfos.getEndTime() + Configure.BLOCK_GEN__MILLISECOND_TIME / 2 < TimeService.currentTimeMillis() ) {
+			return;
+		}
 		
 		//广播区块
 		Block block = new Block(network);
@@ -238,7 +252,7 @@ public final class MiningService implements Mining {
 		block.setPeriodStartPoint(consensusMeeting.getPeriodStartPoint());
 		
 		verifyBlockTx(block);
-		block.setTxs(transactionList);
+		
 		block.setTxCount(transactionList.size()); 
 		block.setMerkleHash(block.buildMerkleHash());
 		
@@ -249,7 +263,6 @@ public final class MiningService implements Mining {
 
 		try {
 
-			log.info("打包新块： 高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			}
@@ -263,8 +276,12 @@ public final class MiningService implements Mining {
 			
 			blockStoreProvider.saveBlock(blockStore);
 			if(log.isDebugEnabled()) {
-				log.debug("broadcast new block {}", blockStore);
+				log.debug("broadcast new block hash {}, height {}, tx size {}, merkle hash {}", blockStore.getBlock().getHash(), blockStore.getBlock().getHeight(),
+						blockStore.getBlock().getTxs().size(), blockStore.getBlock().getMerkleHash());
 			}
+			
+			blockStore =	blockStoreProvider.getBlockByHeight(block.getHeight());
+			
 			//广播
 			InventoryItem item = new InventoryItem(Type.NewBlock, block.getHash());
 			InventoryMessage invMessage = new InventoryMessage(network, item);
@@ -289,6 +306,9 @@ public final class MiningService implements Mining {
 
 		List<CreditTransaction> creditTxs = new ArrayList<CreditTransaction>();
 		
+		//已发放的账户，不能在同一区块多次发放
+		Set<String> creditAccounts = new HashSet<String>();
+		
 		Iterator<Transaction> it = txs.iterator();
 		while(it.hasNext()) {
 			Transaction tx = it.next();
@@ -308,11 +328,15 @@ public final class MiningService implements Mining {
 				try {
 					Input input = tx.getInput(0);
 					Script script = input.getFromScriptSig();
+					
 					byte[] hash160 = script.getPubKeyHash();
-					if(creditCollectionService.verification(Definition.CREDIT_TYPE_PAY, hash160, block.getTime())) {
+					String hash160AsHex = Hex.encode(hash160);
+					
+					if(creditCollectionService.verification(Definition.CREDIT_TYPE_PAY, hash160, block.getTime()) && !creditAccounts.contains(hash160AsHex)) {
 						CreditTransaction creditTx = new CreditTransaction(network, hash160, Configure.CERT_CHANGE_PAY, Definition.CREDIT_TYPE_PAY, tx.getHash());
 						creditTx.sign(account);
 						creditTxs.add(creditTx);
+						creditAccounts.add(hash160AsHex);
 					}
 				} catch (Exception e) {
 					log.error("发放信用出错", e);
@@ -533,7 +557,7 @@ public final class MiningService implements Mining {
 			//是否可进行广播，并且本地区块已经同步到最新，并且钱包没有加密
 			if(peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
 				consensusMeeting.startSyn();
-				reset();
+				reset(false);
 				break;
 			} else {
 				try {
@@ -552,45 +576,51 @@ public final class MiningService implements Mining {
 		consensusMeeting.stop();
 	}
 	
+	/**
+	 * 重置共识
+	 * @param stopNow 如果正在共识，是否马上停止
+	 */
 	@Override
-	public void reset() {
+	public void reset(boolean stopNow) {
 		new Thread() {
 			public void run() {
 				
-				//马上停止打包
-				stopMining();
+				if(stopNow) {
+					//马上停止打包
+					stopMining();
+				}
 				
 				consensusMeeting.setAccount(null);
-				while(true && runing) {
-					//监控自己是否成功成为共识节点
-					Account account = accountKit.getDefaultAccount();
-					if(account != null) {
-						if(consensusPool.contains(account.getAddress().getHash160())) {
-							//账户是否已解密
-							if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
-									(account.isCertAccount() && account.isEncrypted()))) {
-								
-								log.info("开始共识，本地最新高度 {}", network.getBestBlockHeight());
-								
-								try {
-									MiningService.this.account = Account.parse(account.serialize(), network);
-									//放到consensusMeeting里面的账户，去掉密钥，因为里面用不到，这是为了安全
-									Account tempAccount = Account.parse(account.serialize(), network);
-									tempAccount.setMgEckeys(null);
-									tempAccount.setTrEckeys(null);
-									tempAccount.setEcKey(null);
-									consensusMeeting.setAccount(tempAccount);
-								} catch (IOException e) {
-									log.error("初始化共识时，设置共识账户出错:", e);
-								}
-								break;
-							}
-						}
-					}
+				while(runing) {
 					try {
 						Thread.sleep(1000l);
 					} catch (InterruptedException e) {
-						e.printStackTrace();
+						if(log.isDebugEnabled()) {
+							log.debug("{}", e.getMessage());
+						}
+					}
+					//监控自己是否成功成为共识节点
+					Account account = accountKit.getDefaultAccount();
+					if(account == null) {
+						continue;
+					}
+					if(consensusPool.contains(account.getAddress().getHash160())) {
+						//账户是否已解密
+						if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
+								(!account.isCertAccount() && account.isEncrypted()))) {
+							try {
+								MiningService.this.account = account.clone();
+								//放到consensusMeeting里面的账户，去掉密钥，因为里面用不到，这是为了安全
+								Account tempAccount = account.clone();
+								tempAccount.setMgEckeys(null);
+								tempAccount.setTrEckeys(null);
+								tempAccount.setEcKey(null);
+								consensusMeeting.setAccount(tempAccount);
+							} catch (CloneNotSupportedException e) {
+								log.error("初始化共识时，设置共识账户出错:", e);
+							}
+							break;
+						}
 					}
 				}
 			};

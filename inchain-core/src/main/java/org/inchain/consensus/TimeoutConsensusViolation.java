@@ -46,7 +46,7 @@ public class TimeoutConsensusViolation {
 
 	@Override
 	public int hashCode() {
-		return Hex.encode(hash160).hashCode();
+		return Arrays.hashCode(hash160);
 	}
 	
 	@Override

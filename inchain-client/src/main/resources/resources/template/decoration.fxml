@@ -26,7 +26,7 @@
          <cursor>
             <Cursor fx:constant="S_RESIZE" />
          </cursor></Region>
-        <Region fx:id="wEdge" prefWidth="7.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="-5.0" AnchorPane.topAnchor="0.0">
+        <Region fx:id="wEdge" prefWidth="7.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="-1.0" AnchorPane.topAnchor="0.0">
          <cursor>
             <Cursor fx:constant="W_RESIZE" />
          </cursor></Region>
@@ -50,7 +50,7 @@
          <cursor>
             <Cursor fx:constant="SW_RESIZE" />
          </cursor></Region>
-      <AnchorPane fx:id="mainContent" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="3.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="50.0" />
+      <AnchorPane fx:id="mainContent" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="50.0" />
       <AnchorPane id="headBar" fx:id="headBar" maxHeight="53.0" minHeight="53.0" mouseTransparent="true" prefHeight="53.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
             <ImageView fitHeight="49.0" fitWidth="128.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="0.0">

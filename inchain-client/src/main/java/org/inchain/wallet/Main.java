@@ -17,18 +17,17 @@ import org.inchain.kit.InchainInstance;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
+import org.inchain.wallet.listener.WindowCloseEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.stage.WindowEvent;
  
 /**
  * 印链桌面客户端（钱包）
@@ -174,25 +173,25 @@ public class Main extends Decoration implements ActionListener {
      */
 	private void initListener() {
 		//当点击"X"关闭窗口按钮时，如果系统支持托盘，则最小化到托盘，否则关闭
-		stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-            @Override
-            public void handle(WindowEvent event) {
-                if(SystemTray.isSupported()) {
-            		//隐藏，可双击托盘恢复
-            		hide();
-            		if(!hideTip) {
-            			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
-            			if(trayIcons != null && trayIcons.length > 0) {
-            				trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
-            			}
-            			hideTip = true;
-            		}
-            	} else {
-            		//退出程序
-            		exit();
-            	}
-            }
-        });
+		stage.addEventHandler(WindowCloseEvent.ACTION, event -> {
+			if(!(event instanceof WindowCloseEvent)) {
+				return;
+			}
+            if(SystemTray.isSupported()) {
+        		//隐藏，可双击托盘恢复
+        		hide();
+        		if(!hideTip) {
+        			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
+        			if(trayIcons != null && trayIcons.length > 0) {
+        				trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
+        			}
+        			hideTip = true;
+        		}
+        	} else {
+        		//退出程序
+        		exit();
+        	}
+		});
 	}
 
 	/*

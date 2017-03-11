@@ -403,6 +403,7 @@ public class TransactionValidator {
 	 */
 	public int getConsensusPeriod(byte[] hash160, long startPoint) {
 		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(startPoint);
+		log.info("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
 		if(log.isDebugEnabled()) {
 			log.debug("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
 		}

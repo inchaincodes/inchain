@@ -167,7 +167,7 @@ public class BlockHeader extends Message {
 		}
 
 		//是否加密
-		if(account.isEncrypted()) {
+		if(!account.isCertAccount() && account.isEncrypted()) {
 			throw new AccountEncryptedException();
 		}
 		

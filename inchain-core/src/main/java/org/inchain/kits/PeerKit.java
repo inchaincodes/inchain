@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -16,6 +17,8 @@ import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
 import org.inchain.core.PeerAddress;
 import org.inchain.core.TimeService;
+import org.inchain.core.DataSynchronizeHandler.Item;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.EnoughAvailablePeersListener;
@@ -44,6 +47,9 @@ public class PeerKit {
 
 	//默认最大节点连接数，这里指单向连接，被动连接的数量
 	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
+	
+	//时间偏移差距触发点，超过该值会导致本地时间重设，单位毫秒
+	private static final int TIME_OFFSET_BOUNDARY = 2000;
 	
 	private static final Set<String> LOCAL_ADDRESS = IpUtil.getIps();
 	
@@ -451,13 +457,32 @@ public class PeerKit {
 		}
         return results;
 	}
+	
+	/**
+	 * 已连接并完成握手的节点数量
+	 * @return int
+	 */
+	public int getAvailablePeersCount() {
+		int count = 0;
+		for (Peer peer : inPeers) {
+			if(peer.isHandshake()) {
+				count++;
+			}
+		}
+		for (Peer peer : outPeers) {
+			if(peer.isHandshake()) {
+				count++;
+			}
+		}
+		return count;
+	}
 
 	/**
 	 * 获取最小的广播连接数
 	 * @return int
 	 */
 	public int getBroadcasterMinConnectionCount() {
-		int nowCount = getConnectedCount();
+		int nowCount = getAvailablePeersCount();
 		if(nowCount <= 1) {
 			return 1;
 		} else {
@@ -471,6 +496,120 @@ public class PeerKit {
 	 */
 	public int getConnectedCount() {
         return inPeers.size() + outPeers.size();
+	}
+	
+	/**
+	 * 处理时间偏移
+	 * 本地时间和已连接的时间对比 
+	 * 只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
+	 * 当所有连接的节点时间偏移超过2s，则取多数时间相近的节点时间作为网络时间
+	 * 
+	 * @param time
+	 * @param timeOffset
+	 */
+	public void processTimeOffset(long time, long timeOffset) {
+		//当完成连接的节点数量小于2时，以本地时间为准
+		if(getAvailablePeersCount() < 2) {
+			return;
+		}
+		//是否存在时间相似节点
+		boolean existsSimilar = false;
+		for (Peer peer : inPeers) {
+			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TIME_OFFSET_BOUNDARY) {
+				existsSimilar = true;
+				break;
+			}
+		}
+		for (Peer peer : outPeers) {
+			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TIME_OFFSET_BOUNDARY) {
+				existsSimilar = true;
+				break;
+			}
+		}
+		if(existsSimilar) {
+			TimeService.initNetTime();
+			return;
+		}
+		//所有节点的时间偏移都大于零界点，重设本地时间
+		long mostTimeOffset = getNetTimeOffsetFromPeers();
+		
+		TimeService.setNetTimeOffset(mostTimeOffset);
+		TimeService.initNetTime();
+	}
+	
+	/**
+	 * 大多数时间相近节点的时间偏移
+	 * @param peers
+	 * @return long
+	 */
+	private long getNetTimeOffsetFromPeers() {
+		List<Peer> peers = findAvailablePeers();
+		
+		List<TimeItem> list = new ArrayList<TimeItem>();
+		
+		for (Peer peer : peers) {
+			boolean exist = false;
+			for (TimeItem item : list) {
+				//偏差在设定的 TIME_OFFSET_BOUNDARY 内，则认为相近
+				if(Math.abs(item.getTimeOffset() - peer.getTimeOffset()) <= TIME_OFFSET_BOUNDARY) {
+					item.addCount();
+					exist = true;
+					break;
+				}
+			}
+			if(!exist) {
+				list.add(new TimeItem(peer.getTimeOffset()).addCount());
+			}
+		}
+		
+		list.sort(new Comparator<TimeItem>() {
+			@Override
+			public int compare(TimeItem o1, TimeItem o2) {
+				return o1.getCount() < o2.getCount() ? 1:-1;
+			}
+		});
+		return list.get(0).getTimeOffset();
+	}
+	
+	public static class TimeItem {
+		private long timeOffset;
+		private int count;
+		
+		public TimeItem(long timeOffset) {
+			this.timeOffset = timeOffset;
+		}
+
+		public TimeItem addCount() {
+			count++;
+			return this;
+		}
+
+		public long getTimeOffset() {
+			return timeOffset;
+		}
+
+		public void setTimeOffset(long timeOffset) {
+			this.timeOffset = timeOffset;
+		}
+
+		public int getCount() {
+			return count;
+		}
+
+		public void setCount(int count) {
+			this.count = count;
+		}
+
+		@Override
+		public String toString() {
+			StringBuilder builder = new StringBuilder();
+			builder.append("TimeItem [timeOffset=");
+			builder.append(timeOffset);
+			builder.append(", count=");
+			builder.append(count);
+			builder.append("]");
+			return builder.toString();
+		}
 	}
 	
 	public BlockChangedListener getBlockChangedListener() {

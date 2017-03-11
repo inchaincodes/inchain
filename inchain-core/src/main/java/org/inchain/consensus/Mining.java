@@ -13,8 +13,9 @@ public interface Mining {
 	
 	/**
 	 * 重置共识
+	 * @param stopNow 如果正在共识，是否马上停止
 	 */
-	void reset();
+	void reset(boolean stopNow);
 	
 	int status();
 	

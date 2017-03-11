@@ -63,6 +63,8 @@ public class Peer extends PeerSocketHandler {
 	private VersionMessage peerVersionMessage;
 	//节点最新高度
 	private AtomicLong bestBlockHeight;
+	//节点时间偏移
+	private long timeOffset;
 	
 	//监控下载完成的区块
 	private Sha256Hash monitorBlockDownload;
@@ -309,5 +311,13 @@ public class Peer extends PeerSocketHandler {
 
 	public void setHandshake(boolean handshake) {
 		this.handshake = handshake;
+	}
+
+	public long getTimeOffset() {
+		return timeOffset;
+	}
+
+	public void setTimeOffset(long timeOffset) {
+		this.timeOffset = timeOffset;
 	}
 }

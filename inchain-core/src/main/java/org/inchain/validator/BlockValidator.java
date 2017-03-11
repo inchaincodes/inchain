@@ -52,8 +52,8 @@ public class BlockValidator {
 			}
 			//如果返回的是不确定，则通过
 			if(currentInfos.getResult() == ConsensusInfos.RESULT_UNCERTAIN) {
-				log.warn("不确定的时段，做通过处理", block);
-				return new Result(true, "uncertain");
+				log.warn("不确定的时段", block);
+				return new Result(false, "uncertain");
 			}
 			
 			if(!Arrays.equals(currentInfos.getHash160(), block.getHash160())) {
