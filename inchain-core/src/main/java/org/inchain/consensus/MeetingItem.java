@@ -35,7 +35,7 @@ public class MeetingItem implements Cloneable {
 	//本轮的所有就绪消息队列
 	private final List<ConsensusAccount> consensusList;
 
-	private CarditConsensusMeeting consensusMeeting;
+	private ConsensusMeeting consensusMeeting;
 	
 	//上一轮的偏移
 	private long diffCount;
@@ -68,7 +68,7 @@ public class MeetingItem implements Cloneable {
 	//违规节点，尝试分叉，出多个块，不打包共识消息的节点，接受双花的节点
 	private List<ConsensusAccount> violationList;
 	
-	public MeetingItem(CarditConsensusMeeting consensusMeeting, long startHeight, List<ConsensusAccount> consensusList) {
+	public MeetingItem(ConsensusMeeting consensusMeeting, long startHeight, List<ConsensusAccount> consensusList) {
 		this.consensusMeeting = consensusMeeting;
 		this.consensusList = consensusList;
 		this.startHeight = startHeight;

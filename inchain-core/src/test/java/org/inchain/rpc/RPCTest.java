@@ -1,7 +1,6 @@
 package org.inchain.rpc;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 
 public class RPCTest {
 	 
@@ -17,7 +16,7 @@ public class RPCTest {
                 }
             }
         }).start();
-        RPCService service = RPCClient.getRemoteProxyObj(RPCService.class, new InetSocketAddress("localhost", 8036));
+//        RPCService service = RPCClient.getRemoteProxyObj(RPCService.class, new InetSocketAddress("localhost", 8036));
 //        System.out.println(service.sayHi("test"));
     }
 }

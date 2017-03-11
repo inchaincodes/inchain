@@ -369,12 +369,15 @@ public class BlockStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 撤销本地最新块，放入分叉块中，目前先放到状态存储中
+	 * 注意块的撤销，只能重最新块依次处理
+	 * 需要有出错回滚事务 TODO
 	 */
-	public void revokedNewestBlock() {
+	public Block revokedNewestBlock() {
 		Block bestBlock = getBestBlock().getBlock();
 		
 		if(bestBlock.getHash().equals(network.getGengsisBlock().getBlock().getHash())) {
-			return;
+			//创世块，禁止
+			return null;
 		}
 		
 		Sha256Hash bestBlockHash = bestBlock.getHash();
@@ -464,6 +467,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				}
 			}
 		}
+		return bestBlock;
 	}
 
 	/**

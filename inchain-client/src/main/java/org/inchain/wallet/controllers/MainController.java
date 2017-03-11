@@ -264,6 +264,7 @@ public class MainController {
 		}
 	}
 
+	private long localHeight,netHeight;
 	/*
 	 * 初始化数据变化监听器
 	 */
@@ -281,6 +282,8 @@ public class MainController {
 				    	if(localNewestHeight != -1l) {
 					    	localNewestHeightId.setText(String.valueOf(localNewestHeight));
 					    	localNewestHeightId.getTooltip().setText(String.format("本地最新高度 %d", localNewestHeight));
+					    	
+					    	localHeight = localNewestHeight;
 				    	}
 				    	if(netNewestHeight != -1l) {
 				    		if(!blockHeightSeparator.isVisible()) {
@@ -289,6 +292,12 @@ public class MainController {
 				    		}
 					    	netNewestHeightId.setText(String.valueOf(netNewestHeight));
 					    	netNewestHeightId.getTooltip().setText(String.format("网络最新高度 %d", netNewestHeight));
+					    	
+					    	netHeight = netNewestHeight;
+				    	}
+				    	if(localHeight > netHeight) {
+				    		netNewestHeightId.setText(String.valueOf(localHeight));
+					    	netNewestHeightId.getTooltip().setText(String.format("网络最新高度 %d", localHeight));
 				    	}
 				    }
 				});

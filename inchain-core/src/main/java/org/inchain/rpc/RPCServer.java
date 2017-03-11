@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.inchain.Configure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,18 +42,14 @@ public class RPCServer implements Server {
 	 */
 	private static ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-	private static final HashMap<String, Class> serviceRegistry = new HashMap<String, Class>();
-
 	private static boolean isRunning = false;
-
-	private static int port;
 
 	public void start() throws IOException {
 		ServerSocket server = new ServerSocket();
-		server.bind(new InetSocketAddress(port));
+		server.bind(new InetSocketAddress(Configure.RPC_SERVER_PORT));
 		log.debug("start server");
 		try {
-			while (true) {
+			while (isRunning) {
 				// 1.监听客户端的TCP连接，接到TCP连接后将其封装成task，由线程池执行
 				executor.execute(new RPCHanlder(server.accept()));
 			}
@@ -61,4 +58,7 @@ public class RPCServer implements Server {
 		}
 	}
 
+	public void stop() {
+		isRunning = false;
+	}
 }
