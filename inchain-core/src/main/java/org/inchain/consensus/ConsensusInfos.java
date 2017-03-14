@@ -1,5 +1,8 @@
 package org.inchain.consensus;
 
+import java.util.Date;
+
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 
 /**
@@ -15,6 +18,13 @@ public class ConsensusInfos {
 	public final static int RESULT_SUCCESS = 1;
 	
 	public static ConsensusInfos UNCERTAIN = new ConsensusInfos(RESULT_UNCERTAIN);
+
+	private int result;
+	private byte[] hash160;
+	private long beginTime;	//当前共识人的块周期开始时间
+	private long endTime;	//当前共识人的块周期结束时间
+	private long periodStartTime;	//当前轮开始的时间
+	private int index;
 	
 	public ConsensusInfos(int result) {
 		this.result = result;
@@ -31,13 +41,6 @@ public class ConsensusInfos {
 		this.beginTime = beginTime;
 		this.endTime = endTime;
 	}
-
-	private int result;
-	private byte[] hash160;
-	private long beginTime;	//当前共识人的块周期开始时间
-	private long endTime;	//当前共识人的块周期结束时间
-	private long startHeight;
-	private int index;
 	
 	public byte[] getHash160() {
 		return hash160;
@@ -68,12 +71,12 @@ public class ConsensusInfos {
 		this.endTime = endTime;
 	}
 
-	public long getStartHeight() {
-		return startHeight;
+	public long getPeriodStartTime() {
+		return periodStartTime;
 	}
 
-	public void setStartHeight(long startHeight) {
-		this.startHeight = startHeight;
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
 	}
 
 	public int getIndex() {
@@ -86,7 +89,7 @@ public class ConsensusInfos {
 
 	@Override
 	public String toString() {
-		return "ConsensusInfos [result=" + result + ", startHeight=" + startHeight + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
+		return "ConsensusInfos [result=" + result + ", periodStartTime=" + DateUtil.convertDate(new Date(periodStartTime*1000)) + ", hash160=" + (hash160 == null?"":Hex.encode(hash160))
 				+ ", beginTime=" + beginTime + ", endTime=" + endTime + ", index=" + index + "]";
 	}
 	

@@ -1,7 +1,11 @@
 package org.inchain.msgprocess;
 
+import java.util.Date;
+
+import org.inchain.account.Address;
 import org.inchain.core.Peer;
 import org.inchain.core.Result;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
@@ -11,7 +15,10 @@ import org.inchain.message.InventoryItem.Type;
 import org.inchain.message.InventoryMessage;
 import org.inchain.message.Message;
 import org.inchain.message.VersionMessage;
+import org.inchain.network.NetworkParams;
+import org.inchain.store.BlockHeaderStore;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.validator.BlockValidator;
 import org.slf4j.Logger;
@@ -35,6 +42,8 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
 	@Autowired
+	private NetworkParams network;
+	@Autowired
 	private PeerKit peerKit;
 	@Autowired
 	private BlockValidator blockValidator;
@@ -45,10 +54,14 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
 
-		try {
 		Block block = (Block) message;
-
-		log.info("new block : 时间{} ,  哈希 {}, 高度 {}, 打包人 {} ， 开始位置 {} ，当前位置 {}", block.getTime(), block.getHash(), block.getHeight(), Hex.encode(block.getHash160()), block.getPeriodStartPoint(), block.getTimePeriod());
+		
+		if(log.isDebugEnabled()) {
+			log.debug("new block : {}", block.getHash());
+		}
+		log.info("new block : 当前时间{}, 时间偏移{}, 出块时间{}, 哈希 {}, 高度 {}, 打包人 {}, 开始时间 {}, 当前位置 {}",
+				DateUtil.convertDate(new Date(TimeService.currentTimeMillis())), TimeService.getNetTimeOffset(), DateUtil.convertDate(new Date(block.getTime() * 1000)), 
+				block.getHash(), block.getHeight(), new Address(network, block.getHash160()).getBase58(), DateUtil.convertDate(new Date(block.getPeriodStartTime()*1000)), block.getTimePeriod());
 		
 		//验证新区块
 		Result valResult = blockValidator.doVal(block);
@@ -60,10 +73,13 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 			return new MessageProcessResult(block.getHash(), false);
 		}
 		
+		//最值该节点的最新高度
 		peer.getNetwork().setBestHeight(block.getHeight());
 		
-		if(log.isDebugEnabled()) {
-			log.debug("new block : {}", block.getHash());
+		//区块不能喝已有的重复
+		BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(block.getHash().getBytes());
+		if(blockHeaderStore != null) {
+			return new MessageProcessResult(block.getHash(), false);
 		}
 		
 		MessageProcessResult result = super.process(message, peer);
@@ -99,9 +115,5 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
 		peerKit.broadcastMessage(invMessage, peer);
 		return result;
-		} catch (Exception e) {
-			log.error("处理新块时出错", e);
-		}
-		return null;
 	}
 }

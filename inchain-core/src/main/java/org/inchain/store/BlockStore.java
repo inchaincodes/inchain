@@ -66,12 +66,12 @@ public class BlockStore extends Store {
 			Utils.uint32ToByteStreamLE(block.getVersion(), stream);
 			stream.write(block.getPreHash().getBytes());
 			stream.write(block.getMerkleHash().getBytes());
-			Utils.int64ToByteStreamLE(block.getTime(), stream);
+			Utils.uint32ToByteStreamLE(block.getTime(), stream);
 			Utils.uint32ToByteStreamLE(block.getHeight(), stream);
 
 			stream.write(new VarInt(block.getPeriodCount()).encode());
 			stream.write(new VarInt(block.getTimePeriod()).encode());
-			Utils.uint32ToByteStreamLE(block.getPeriodStartPoint(), stream);
+			Utils.uint32ToByteStreamLE(block.getPeriodStartTime(), stream);
 
 			stream.write(new VarInt(block.getScriptBytes().length).encode());
 			stream.write(block.getScriptBytes());

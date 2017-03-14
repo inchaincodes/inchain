@@ -207,7 +207,7 @@ public final class Coin implements Comparable<Coin>, Serializable {
     }
 
     public String toText() {
-		return new BigDecimal(value).divide(BigDecimal.valueOf(Coin.COIN.value)).toString();
+		return new BigDecimal(value).divide(BigDecimal.valueOf(Coin.COIN.value)).toPlainString();
     }
     
     @Override

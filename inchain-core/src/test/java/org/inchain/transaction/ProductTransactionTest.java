@@ -97,7 +97,6 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		List<KeyValuePair> contents = new ArrayList<KeyValuePair>();
 		contents.add(new KeyValuePair(ProductType.NAME, "印链-闪迪U盘"));
 		contents.add(new KeyValuePair(ProductType.DESCRIPTION, "64G"));
-		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
 		contents.add(new KeyValuePair(ProductType.PRODUCTION_DATE, "2017-02-27"));
 		contents.add(new KeyValuePair(ProductType.CREATE_TIME, TimeService.currentTimeMillisOfBytes()));
 		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));

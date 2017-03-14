@@ -232,4 +232,9 @@ public class SendAmountController implements SubPageController {
 	@Override
 	public void onHide() {
 	}
+
+	@Override
+	public boolean refreshData() {
+		return false;
+	}
 }

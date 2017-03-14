@@ -13,7 +13,7 @@ import org.inchain.utils.Utils;
 public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	
 	/** 时段开始点 **/
-	private long periodStartPoint;
+	private long periodStartTime;
 	
 	public NotBroadcastBlockViolationEvidence(byte[] content) {
 		super(content);
@@ -23,17 +23,17 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 		super(content, offset);
 	}
 	
-	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long periodStartPoint) {
+	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long periodStartTime) {
 		super(VIOLATION_TYPE_NOT_BROADCAST_BLOCK, audienceHash160);
 		
-		this.periodStartPoint = periodStartPoint;
+		this.periodStartTime = periodStartTime;
 	}
 	
 	@Override
 	public byte[] serialize() {
 		
 		ByteArrayTool byteArray = new ByteArrayTool();
-		byteArray.append(periodStartPoint);
+		byteArray.append(periodStartTime);
 		evidence = byteArray.toArray();
 		
 		return super.serialize();
@@ -42,15 +42,15 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	@Override
 	public void parse(byte[] content, int offset) {
 		super.parse(content, offset);
-		periodStartPoint = Utils.readUint32(evidence, 0);
+		periodStartTime = Utils.readUint32(evidence, 0);
 	}
 
-	public long getPeriodStartPoint() {
-		return periodStartPoint;
+	public long getPeriodStartTime() {
+		return periodStartTime;
 	}
 
-	public void setPeriodStartPoint(long periodStartPoint) {
-		this.periodStartPoint = periodStartPoint;
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
 	}
-	
+
 }

@@ -45,11 +45,11 @@ public interface ConsensusMeeting {
 	
 	/**
 	 * 获取区块高度对应的打包人信息，只适用于新区快的验证
-	 * @param startPoint 开始高度
+	 * @param periodStartTime 一轮开始的时间点，毫秒数
 	 * @param timePeriod 区块时段
 	 * @return ConsensusInfos
 	 */
-	ConsensusInfos getCurrentConsensusInfos(long startPoint, int timePeriod);
+	ConsensusInfos getCurrentConsensusInfos(long periodStartTime, int timePeriod);
 
 	/**
 	 * 打包信息，轮到我打包时，根据共识会议，获取我的打包信息
@@ -70,23 +70,24 @@ public interface ConsensusMeeting {
 	Account getAccount();
 	
 	/**
-	 * 获取本轮共识的开始点，也就是开始高度
+	 * 获取本轮共识的开始时间点，单位（秒）
 	 * @return long
 	 */
-	long getPeriodStartPoint();
+	long getPeriodStartTime();
 	
 	/**
-	 * 获取本轮和上一轮超时的违规信息
+	 * 获取传入的共识轮和上一轮超时的账号
+	 * @return Set<TimeoutConsensusViolation>
 	 */
 	Set<TimeoutConsensusViolation> getTimeoutList();
 	
 	/**
 	 * 获取某论的共识快照，从最新的内存映射倒推
 	 * TODO 可以考虑做一个内存映射，每次分析计算量太大 ？
-	 * @param startPoint
+	 * @param periodStartTime
 	 * @return List<ConsensusAccount>
 	 */
-	List<ConsensusAccount> analysisSnapshotsByStartPoint(long startPoint);
+	List<ConsensusAccount> analysisConsensusSnapshots(long periodStartTime);
 
 	/**
 	 * 获取以startPoint开始的会议详情
@@ -135,4 +136,12 @@ public interface ConsensusMeeting {
 	 * 阻塞的方法，知道成功共识或者超时
 	 */
 	boolean waitMining();
+	
+	/**
+	 * 重置当前轮共识会议，置为最新区块的状态
+	 * 一般发生在处理分叉链成功之后，当前最新区块发生了变化，相应的会议也会发生变化
+	 * 如果我在当前轮共识中，那么需要立即停止，并重新检测，重置之后的会议，如果错过了，那么则本轮不打包
+	 * @return boolean
+	 */
+	boolean resetCurrentMeetingItem();
 }

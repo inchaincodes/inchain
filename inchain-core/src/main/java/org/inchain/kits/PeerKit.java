@@ -17,8 +17,6 @@ import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
 import org.inchain.core.PeerAddress;
 import org.inchain.core.TimeService;
-import org.inchain.core.DataSynchronizeHandler.Item;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.EnoughAvailablePeersListener;
@@ -47,9 +45,6 @@ public class PeerKit {
 
 	//默认最大节点连接数，这里指单向连接，被动连接的数量
 	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
-	
-	//时间偏移差距触发点，超过该值会导致本地时间重设，单位毫秒
-	private static final int TIME_OFFSET_BOUNDARY = 2000;
 	
 	private static final Set<String> LOCAL_ADDRESS = IpUtil.getIps();
 	
@@ -515,18 +510,19 @@ public class PeerKit {
 		//是否存在时间相似节点
 		boolean existsSimilar = false;
 		for (Peer peer : inPeers) {
-			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TIME_OFFSET_BOUNDARY) {
+			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TimeService.TIME_OFFSET_BOUNDARY) {
 				existsSimilar = true;
 				break;
 			}
 		}
 		for (Peer peer : outPeers) {
-			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TIME_OFFSET_BOUNDARY) {
+			if(peer.isHandshake() && Math.abs(peer.getTimeOffset()) < TimeService.TIME_OFFSET_BOUNDARY) {
 				existsSimilar = true;
 				break;
 			}
 		}
 		if(existsSimilar) {
+			log.info("====================不设置网络时间偏移====================");
 			TimeService.initNetTime();
 			return;
 		}
@@ -535,6 +531,7 @@ public class PeerKit {
 		
 		TimeService.setNetTimeOffset(mostTimeOffset);
 		TimeService.initNetTime();
+		log.info("====================设置了网络时间偏移====================");
 	}
 	
 	/**
@@ -551,7 +548,7 @@ public class PeerKit {
 			boolean exist = false;
 			for (TimeItem item : list) {
 				//偏差在设定的 TIME_OFFSET_BOUNDARY 内，则认为相近
-				if(Math.abs(item.getTimeOffset() - peer.getTimeOffset()) <= TIME_OFFSET_BOUNDARY) {
+				if(Math.abs(item.getTimeOffset() - peer.getTimeOffset()) <= TimeService.TIME_OFFSET_BOUNDARY) {
 					item.addCount();
 					exist = true;
 					break;

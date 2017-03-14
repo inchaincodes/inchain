@@ -11,6 +11,8 @@ public class MiningInfos {
 	private int timePeriod;
 	//当前时段总数，也就是参与共识的人数
 	private int periodCount;
+	//当前轮开始时间
+	private long periodStartTime;
 	//我的账户hash
 	private byte[] hash160;
 	//我的时段开始时间
@@ -47,5 +49,11 @@ public class MiningInfos {
 	}
 	public void setEndTime(long endTime) {
 		this.endTime = endTime;
+	}
+	public long getPeriodStartTime() {
+		return periodStartTime;
+	}
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
 	}
 }

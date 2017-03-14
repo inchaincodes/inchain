@@ -4,9 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
-import org.inchain.kits.PeerKit;
 import org.inchain.utils.Utils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,8 +15,8 @@ import org.springframework.stereotype.Service;
 @Service
 public final class TimeService {
 
-	@Autowired
-	private PeerKit peerKit;
+	/** 时间偏移差距触发点，超过该值会导致本地时间重设，单位毫秒 **/
+	public static final long TIME_OFFSET_BOUNDARY = 2000l;
 	
 	/*
 	 * 网络时间初始化标志
@@ -61,17 +59,21 @@ public final class TimeService {
 	 * 如果本地时间有变化，则设置 TimeService.netTimeOffset;
 	 */
 	public void monitorTimeChange() {
-		long startTime = System.currentTimeMillis();
-		long lastTime = startTime;
+		long lastTime = System.currentTimeMillis();
 		while(true) {
+			//动态调整网络时间
+//			if(currentTimeMillis() - () > TIME_OFFSET_BOUNDARY) {
+//				
+//			}
+			
 			long newTime = System.currentTimeMillis();
-			if(Math.abs(newTime - lastTime) > 500) {
+			if(Math.abs(newTime - lastTime) > 800) {
 				System.out.println("本地时间调整了："+((newTime - lastTime)));
 				TimeService.netTimeOffset -= (newTime - lastTime);
 			}
 			lastTime = newTime;
 			try {
-				Thread.sleep(200l);
+				Thread.sleep(500l);
 			} catch (InterruptedException e) {
 			}
 		}
@@ -173,7 +175,7 @@ public final class TimeService {
 	 * 规则：
 	 * 	1、只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
 	 * 	2、当所有连接的节点时间偏移超过2s，则取多数时间相近的节点时间作为网络时间
-	 * @return
+	 * @return boolean
 	 */
 	public static boolean netTimeHasInit() {
 		return netTimeInit;
@@ -188,5 +190,8 @@ public final class TimeService {
 	 */
 	public static void setNetTimeOffset(long netTimeOffset) {
 		TimeService.netTimeOffset = netTimeOffset;
+	}
+	public static long getNetTimeOffset() {
+		return netTimeOffset;
 	}
 }

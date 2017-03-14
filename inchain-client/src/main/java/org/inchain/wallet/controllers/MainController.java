@@ -155,6 +155,37 @@ public class MainController {
     	initListeners();
     	//加载完成
     	startupListener.onComplete();
+    	
+    	//刷新当前显示页面的数据
+    	refreshCurrentPageData();
+	}
+
+	/*
+	 * 刷新当前页面显示的数据
+	 */
+	private void refreshCurrentPageData() {
+		Thread t = new Thread() {
+			public void run() {
+				while(true) {
+					SubPageController controller = subPageControllerMaps.get(currentPageId);
+					
+					if(controller.refreshData()) {
+						Platform.runLater(new Runnable() {
+						    @Override
+						    public void run() {
+						    	controller.initDatas();
+						    }
+						});
+					}
+					try {
+						Thread.sleep(1000l);
+					} catch (InterruptedException e) {
+					}
+				}
+			}
+		};
+		t.setName("refresh current page data service");
+		t.start();
 	}
 
 	/*

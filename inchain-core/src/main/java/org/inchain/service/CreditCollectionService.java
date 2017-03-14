@@ -26,6 +26,15 @@ public interface CreditCollectionService {
 	boolean addCredit(int type, byte[] hash160, long time);
 	
 	/**
+	 * 移除曾经增加的信用记录，用于处理分叉区块时，主链上的块回滚时调用
+	 * @param type		类型，参考 Definition 里的定义
+	 * @param hash160	信用获得人
+	 * @param time			凭证所在的区块时间
+	 * @return boolean
+	 */
+	boolean removeCredit(int type, byte[] hash160, long time);
+	
+	/**
 	 * 系统启动初始加载
 	 * 会阻塞直到加载完成
 	 * @return boolean

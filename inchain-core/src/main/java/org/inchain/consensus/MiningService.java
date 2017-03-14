@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
+import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
@@ -222,17 +223,9 @@ public final class MiningService implements Mining {
 		//处理违规情况的节点，目前只处理超时的
 		Set<TimeoutConsensusViolation> timeoutList = consensusMeeting.getTimeoutList();
 
-//		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) {
-			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
-				log.info("超时的节点： {}" , consensusViolation);
-				//判断该节点是否已被处理，如果没处理则我来处理
-				processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
-			}
-//		}
-
 		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) { 
 			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
-				log.info("超时的节点： {}" , consensusViolation);
+				log.info("超时的节点： {} , periodStartTime: {}" , new Address(network, consensusViolation.getHash160()).getBase58(), DateUtil.convertDate(new Date(consensusViolation.getPeriodStartTime() * 1000)));
 				//判断该节点是否已被处理，如果没处理则我来处理
 				processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
 			}
@@ -242,7 +235,8 @@ public final class MiningService implements Mining {
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
 		
 		//遵守系统规则，如果出现特殊情况，当前网络时间超过了我的时段，停止广播，等待处罚
-		if(miningInfos.getEndTime() + Configure.BLOCK_GEN__MILLISECOND_TIME / 2 < TimeService.currentTimeMillis() ) {
+		if(miningInfos.getEndTime() + Configure.BLOCK_GEN_TIME / 2 < TimeService.currentTimeSeconds() ) {
+			log.info("打包高度为 {} 的块时超时，停止广播，我的开始时间{}, 结束时间{}, 当前时间{}", currentHeight, DateUtil.convertDate(new Date(miningInfos.getBeginTime() * 1000)), DateUtil.convertDate(new Date(miningInfos.getEndTime() * 1000)), DateUtil.convertDate(new Date(TimeService.currentTimeMillis())));
 			return;
 		}
 		
@@ -258,7 +252,7 @@ public final class MiningService implements Mining {
 //		block.setMerkleHash(block.buildMerkleHash());
 		block.setPeriodCount(miningInfos.getPeriodCount());
 		block.setTimePeriod(miningInfos.getTimePeriod());
-		block.setPeriodStartPoint(consensusMeeting.getPeriodStartPoint());
+		block.setPeriodStartTime(miningInfos.getPeriodStartTime());
 		
 		verifyBlockTx(block);
 		
@@ -272,13 +266,16 @@ public final class MiningService implements Mining {
 
 		try {
 
-			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
+			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime() * 1000)), transactionList.size(), fee);
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			}
 			//是否被强制停止了
 			if(forcedStopModel == 1) {
 				 enterForcedStopModel(transactionList);
+				 log.info("=======================================");
+				 log.info("=============被强行停止了，不广播=============");
+				 log.info("=======================================");
 				 return;
 			}
 			
@@ -325,6 +322,7 @@ public final class MiningService implements Mining {
 			
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
 			if(!rs.getResult().isSuccess()) {
+				log.info("移除交易： {} , {}", rs.getResult().getMessage(), tx);
 				it.remove();
 				
 				if(tx.isPaymentTransaction()) {
@@ -357,8 +355,10 @@ public final class MiningService implements Mining {
 			txs.addAll(creditTxs);
 		}
 		if(refunedFee.isGreaterThan(Coin.ZERO)) {
-			TransactionOutput coinbaseOutput = (TransactionOutput)txs.get(0).getOutput(0);
+			Transaction coinbaseTx = txs.get(0);
+			TransactionOutput coinbaseOutput = (TransactionOutput)coinbaseTx.getOutput(0);
 			coinbaseOutput.setValue(coinbaseOutput.getValue() - refunedFee.value);
+			coinbaseTx.setHash(null);
 		}
 	}
 	
@@ -388,7 +388,7 @@ public final class MiningService implements Mining {
 			if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 				//超时处理
 				NotBroadcastBlockViolationEvidence evidence = new NotBroadcastBlockViolationEvidence(consensusViolation.getHash160(), 
-						consensusViolation.getPeriodStartPoint());
+						consensusViolation.getPeriodStartTime());
 				//判断该节点是否已经被处理过了
 				Sha256Hash evidenceHash = evidence.getEvidenceHash();
 				byte[] txHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());

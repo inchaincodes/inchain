@@ -48,7 +48,7 @@ public class AntifakeCode {
 	 */
 	public static AntifakeCode base58Decode(String content) throws VerificationException {
 		try {
-			return parse(Base58.decode(content));
+			return parse(Base58.decode(content.trim()));
 		} catch (Exception e) {
 			throw new VerificationException("防伪码不正确");
 		}

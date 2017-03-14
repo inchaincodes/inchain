@@ -21,4 +21,10 @@ public interface SubPageController {
 	 * 页面隐藏/关闭事件
 	 */
 	void onHide();
+	
+	/**
+	 * 当处于该页面时，是否动态刷新该页面的数据
+	 * @return boolean
+	 */
+	boolean refreshData();
 }

@@ -444,6 +444,15 @@ public class Transaction extends Message {
 	public boolean isPaymentTransaction() {
 		return Definition.isPaymentTransaction(type);
 	}
+
+	/**
+	 * 获取交易的交易费
+	 * @return Coin
+	 */
+	public Coin getFee() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
     @Override
     public String toString() {

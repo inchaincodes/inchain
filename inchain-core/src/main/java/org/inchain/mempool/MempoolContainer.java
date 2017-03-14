@@ -64,7 +64,7 @@ public class MempoolContainer implements Mempool {
 						for (Input input2 : inputs) {
 							TransactionInput ti2 = (TransactionInput) input2;
 							TransactionOutput preOutput2 = ti2.getFrom();
-							if(preOutput2.getParent().getHash().equals(preOutput.getParent().getHash()) && 
+							if(preOutput2 != null && preOutput2.getParent().getHash().equals(preOutput.getParent().getHash()) && 
 									preOutput2.getIndex() == preOutput.getIndex()) {
 								return false;
 							}

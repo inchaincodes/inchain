@@ -17,7 +17,6 @@ import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
 import org.inchain.store.ChainstateStoreProvider;
-import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +54,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 			log.debug("====================");
 			log.debug("加载已有的{}个共识", container.size());
 			for (Entry<byte[], byte[][]> entry : container.entrySet()) {
-				log.debug(Hex.encode(entry.getKey()));
+				log.debug(new Address(network, entry.getKey()).getBase58());
 			}
 			log.debug("====================");
 		}

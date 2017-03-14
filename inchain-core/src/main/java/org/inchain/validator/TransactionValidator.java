@@ -2,9 +2,11 @@ package org.inchain.validator;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.inchain.Configure;
+import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
@@ -35,7 +37,7 @@ import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
-import org.inchain.utils.Hex;
+import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -351,18 +353,30 @@ public class TransactionValidator {
 				NotBroadcastBlockViolationEvidence notBroadcastBlock = (NotBroadcastBlockViolationEvidence) violationEvidence;
 				//验证逻辑
 				byte[] hash160 = notBroadcastBlock.getAudienceHash160();
-				long periodStartPoint = notBroadcastBlock.getPeriodStartPoint();
+				long periodStartTime = notBroadcastBlock.getPeriodStartTime();
+				
+				BlockHeader startBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
+				//取得当前轮的最后一个块
+				while(true) {
+					BlockHeaderStore lastHeaderStore = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
+					if(lastHeaderStore != null) {
+						BlockHeader lastHeader = lastHeaderStore.getBlockHeader();
+						if(lastHeader.getPeriodStartTime() >= periodStartTime && !Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
+							startBlockHeader = lastHeader;
+						} else {
+							break;
+						}
+					}
+				}
 				
 				//原本应该打包的上一个块
-				BlockHeaderStore startBlockHeaderStore = blockStoreProvider.getHeaderByHeight(periodStartPoint);
-				if(startBlockHeaderStore == null || startBlockHeaderStore.getBlockHeader() == null) {
+				if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != periodStartTime)) {
 					result.setResult(false, "违规证据中的上一区块不存在");
 					return validatorResult;
 				}
-				BlockHeader startBlockHeader = startBlockHeaderStore.getBlockHeader();
 				
 				//获取该区块的时段
-				int index = getConsensusPeriod(hash160, startBlockHeader.getPeriodStartPoint());
+				int index = getConsensusPeriod(hash160, periodStartTime);
 				if(index == -1) {
 					result.setResult(false, "证据不成立，该人不在共识列表中");
 					return validatorResult;
@@ -376,7 +390,7 @@ public class TransactionValidator {
 						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
 						
 						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
-								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartPoint() != startBlockHeader.getPeriodStartPoint()) {
+								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != periodStartTime) {
 							break;
 						}
 						
@@ -398,14 +412,14 @@ public class TransactionValidator {
 	 * 获取某个账号在某轮共识中的时段
 	 * 如果没有找到则返回-1
 	 * @param hash160
-	 * @param startPoint
+	 * @param periodStartTime
 	 * @return int
 	 */
-	public int getConsensusPeriod(byte[] hash160, long startPoint) {
-		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(startPoint);
-		log.info("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
+	public int getConsensusPeriod(byte[] hash160, long periodStartTime) {
+		List<ConsensusAccount> consensusList = consensusMeeting.analysisConsensusSnapshots(periodStartTime);
+		log.info("被处理人： {} , 开始时间： {} ,  列表： {}", new Address(network, hash160).getBase58(), DateUtil.convertDate(new Date(periodStartTime*1000)), consensusList);
 		if(log.isDebugEnabled()) {
-			log.debug("被处理人： {} , 高度： {} ,  列表： {}", Hex.encode(hash160), startPoint, consensusList);
+			log.debug("被处理人： {} , 开始时间： {} ,  列表： {}", new Address(network, hash160).getBase58(), DateUtil.convertDate(new Date(periodStartTime*1000)), consensusList);
 		}
 		//获取位置
 		for (int i = 0; i < consensusList.size(); i++) {

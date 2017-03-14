@@ -251,4 +251,9 @@ public class ConsensusController implements SubPageController {
 	public void onHide() {
 		
 	}
+
+	@Override
+	public boolean refreshData() {
+		return true;
+	}
 }

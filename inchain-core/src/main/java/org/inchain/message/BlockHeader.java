@@ -35,7 +35,7 @@ public class BlockHeader extends Message {
 	protected Sha256Hash preHash;
 	//梅克尔树根节点hash
 	protected Sha256Hash merkleHash;
-	//时间戳
+	//时间戳，单位（秒）
 	protected long time;
 	//区块高度
 	protected long height;
@@ -43,10 +43,10 @@ public class BlockHeader extends Message {
 	protected long txCount;
 	//该时段共识人数
 	protected int periodCount;
+	//本轮开始的时间点，单位（秒）
+	protected long periodStartTime;
 	//时段，一轮共识中的第几个时间段，可验证对应的共识人
 	protected int timePeriod;
-	//段开始点
-	protected long periodStartPoint;
 	//签名脚本，包含共识打包人信息和签名，签名是对以上信息的签名
 	protected byte[] scriptBytes;
 	protected Script scriptSig;
@@ -69,11 +69,11 @@ public class BlockHeader extends Message {
 		version = readUint32();
 		preHash = Sha256Hash.wrap(readBytes(32));
 		merkleHash = Sha256Hash.wrap(readBytes(32));
-		time = readInt64();
+		time = readUint32();
 		height = readUint32();
 		periodCount = (int) readVarInt();
 		timePeriod = (int) readVarInt();
-		periodStartPoint = readUint32();
+		periodStartTime = readUint32();
 		scriptBytes = readBytes((int) readVarInt());
 		
 		scriptSig = new Script(scriptBytes);
@@ -96,12 +96,12 @@ public class BlockHeader extends Message {
 		Utils.uint32ToByteStreamLE(version, stream);
 		stream.write(preHash.getBytes());
 		stream.write(merkleHash.getBytes());
-		Utils.int64ToByteStreamLE(time, stream);
+		Utils.uint32ToByteStreamLE(time, stream);
 		Utils.uint32ToByteStreamLE(height, stream);
 		
 		stream.write(new VarInt(periodCount).encode());
 		stream.write(new VarInt(timePeriod).encode());
-		Utils.uint32ToByteStreamLE(periodStartPoint, stream);
+		Utils.uint32ToByteStreamLE(periodStartTime, stream);
 
 		stream.write(new VarInt(scriptBytes.length).encode());
 		stream.write(scriptBytes);
@@ -311,19 +311,15 @@ public class BlockHeader extends Message {
 	public void setScriptSig(Script scriptSig) {
 		this.scriptSig = scriptSig;
 	}
-
-	public long getPeriodStartPoint() {
-		return periodStartPoint;
+	public long getPeriodStartTime() {
+		return periodStartTime;
 	}
-
-	public void setPeriodStartPoint(long periodStartPoint) {
-		this.periodStartPoint = periodStartPoint;
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
 	}
-
 	public int getPeriodCount() {
 		return periodCount;
 	}
-
 	public void setPeriodCount(int periodCount) {
 		this.periodCount = periodCount;
 	}

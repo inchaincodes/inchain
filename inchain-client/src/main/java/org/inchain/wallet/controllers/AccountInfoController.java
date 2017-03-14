@@ -238,4 +238,9 @@ public class AccountInfoController implements SubPageController {
 			log.error("加密钱包出错" ,e);
 		}
 	}
+
+	@Override
+	public boolean refreshData() {
+		return true;
+	}
 }

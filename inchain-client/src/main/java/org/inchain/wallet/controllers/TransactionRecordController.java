@@ -7,16 +7,19 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
+import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody.ContentType;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.KeyValuePair;
+import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.Product;
 import org.inchain.core.Product.ProductType;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.core.TimeService;
+import org.inchain.core.ViolationEvidence;
 import org.inchain.kit.InchainInstance;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
@@ -29,8 +32,10 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Utils;
 import org.inchain.wallet.Constant;
@@ -134,8 +139,8 @@ public class TransactionRecordController implements SubPageController {
     	datas.sort(new Comparator<TransactionEntity>() {
 			@Override
 			public int compare(TransactionEntity o1, TransactionEntity o2) {
-				if(o1.getTime() == null || o2.getTime() == null) {
-					return 0;
+				if(o1.getTime() == null || o2.getTime() == null || o2.getTime().equals(o1.getTime())) {
+					return o2.getTxHash().compareTo(o1.getTxHash());
 				} else {
 					return o2.getTime().compareTo(o1.getTime());
 				}
@@ -379,6 +384,31 @@ public class TransactionRecordController implements SubPageController {
 						detail += "\r\n";
 						detail += "附带验证奖励 " + atx.getRewardCoin().toText() + " INS";
 					}
+				} else if(tx.getType() == Definition.TYPE_CREDIT) {
+					CreditTransaction ctx = (CreditTransaction) tx;
+					
+					type = "增加信用";
+					
+					String reason = "初始化";
+					if(ctx.getReasonType() == Definition.CREDIT_TYPE_PAY) {
+						reason = String.format("%s小时内第一笔转账", Configure.CERT_CHANGE_PAY_INTERVAL/3600000l);
+					}
+					detail += "信用 +" + ctx.getCredit() + " 原因：" + reason;
+				} else if(tx.getType() == Definition.TYPE_VIOLATION) {
+					ViolationTransaction vtx = (ViolationTransaction) tx;
+					
+					type = "违规处罚";
+					
+					ViolationEvidence evidence = vtx.getViolationEvidence();
+					int violationType = evidence.getViolationType();
+					String reason = "";
+					long credit = 0;
+					if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+						NotBroadcastBlockViolationEvidence nbve = (NotBroadcastBlockViolationEvidence) evidence;
+						reason = String.format("共识过程中，开始时间为%s的轮次超时未出块", DateUtil.convertDate(new Date(nbve.getPeriodStartTime() * 1000)));
+						credit = Configure.CERT_CHANGE_TIME_OUT;
+					}
+					detail += "信用 " + credit + " 原因：" + reason;
 				}
 				
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {
@@ -387,7 +417,7 @@ public class TransactionRecordController implements SubPageController {
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss");
 				
 				detailValue.setValue(detail);
-				list.add(new TransactionEntity(bestBlockHeight - txs.getHeight() + 1, type, detailValue, amount, time));
+				list.add(new TransactionEntity(tx.getHash(), bestBlockHeight - txs.getHeight() + 1, type, detailValue, amount, time));
 			}
 		}
 	}
@@ -398,5 +428,10 @@ public class TransactionRecordController implements SubPageController {
 
 	@Override
 	public void onHide() {
+	}
+
+	@Override
+	public boolean refreshData() {
+		return false;
 	}
 }

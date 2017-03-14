@@ -15,6 +15,7 @@ import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MeetingItem;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
@@ -43,6 +44,8 @@ public class BlockForkServiceImpl implements BlockForkService {
 
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private PeerKit peerKit;
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 	@Autowired
@@ -99,8 +102,8 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private void monitor() {
 		while(running) {
 			try {
-				Thread.sleep(3000l);
-//				scanning();
+				Thread.sleep(1000l);
+				scanning();
 			} catch (Exception e) {
 				log.error("处理分叉块出错", e);
 			}
@@ -146,6 +149,10 @@ public class BlockForkServiceImpl implements BlockForkService {
 		
 		//应该丢弃的块
 		try {
+			if(!block.verify()) {
+				discardBlock(blockForkStore);
+				return false;
+			}
 			block.verifyScript();
 		} catch (Exception e) {
 			//签名不正确，丢弃块
@@ -191,14 +198,9 @@ public class BlockForkServiceImpl implements BlockForkService {
 		
 		//块时段和共识人验证通过，但是父块不对应，有可能本地最新块是分叉块
 		//分析时段信息
-		BlockHeaderStore startBlockHeader = blockStoreProvider.getHeaderByHeight(block.getPeriodStartPoint());
-		if(startBlockHeader == null) {
-			return false;
-		}
-		long startTime = startBlockHeader.getBlockHeader().getTime();
-		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(block.getPeriodStartPoint());
-		MeetingItem meeting = new MeetingItem(consensusMeeting, block.getPeriodStartPoint(), consensusList);
-		meeting.startConsensus(startTime);
+		List<ConsensusAccount> consensusList = consensusMeeting.analysisConsensusSnapshots(block.getPeriodStartTime());
+		MeetingItem meeting = new MeetingItem(consensusMeeting, block.getPeriodStartTime(), consensusList);
+		meeting.startConsensus();
 		
 		//已经连上整条链，验证不通过则抛弃
 		//验证共识人是否合法
@@ -243,7 +245,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 			}
 			
 			//加入新链
-			for (int i = blockForkChains.size() - 1; i >= 0; i++) {
+			for (int i = blockForkChains.size() - 1; i >= 0; i--) {
 				BlockForkStore blockFork = blockForkChains.get(i);
 				processSuccessForkBlock(blockFork);
 				
@@ -257,7 +259,13 @@ public class BlockForkServiceImpl implements BlockForkService {
 			}
 			
 			//重新设置共识会议
-			//TODO
+			consensusMeeting.resetCurrentMeetingItem();
+			
+			//重新通知最新区块信息
+			if(peerKit.getBlockChangedListener() != null) {
+				Block newBestBlock = blockForkChains.get(0).getBlock();
+				peerKit.getBlockChangedListener().onChanged(newBestBlock.getHeight(), newBestBlock.getHeight(), newBestBlock.getHash(), newBestBlock.getHash());
+			}
 			
 			log.info("已成功添加一条分叉链到主链：{}", blockForkStore.getBlock());
 			return true;
@@ -283,6 +291,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private void discardBlock(BlockForkStore blockForkStore) {
 		blockForkStore.setStatus(1);
 		chainstateStoreProvider.put(blockForkStore.getBlock().getHash().getBytes(), blockForkStore.baseSerialize());
+		blockForks.remove(blockForkStore);
 	}
 
 	/*
@@ -291,17 +300,18 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private void processSuccessForkBlock(BlockForkStore blockForkStore) {
 		blockForkStore.setStatus(3);
 		chainstateStoreProvider.put(blockForkStore.getBlock().getHash().getBytes(), blockForkStore.baseSerialize());
+		blockForks.remove(blockForkStore);
 	}
 	
 	/**
 	 * 获取某个账号在某轮共识中的时段
 	 * 如果没有找到则返回-1
 	 * @param hash160
-	 * @param startPoint
+	 * @param periodStartTime
 	 * @return int
 	 */
-	public int getConsensusPeriod(byte[] hash160, long startPoint) {
-		List<ConsensusAccount> consensusList = consensusMeeting.analysisSnapshotsByStartPoint(startPoint);
+	public int getConsensusPeriod(byte[] hash160, long periodStartTime) {
+		List<ConsensusAccount> consensusList = consensusMeeting.analysisConsensusSnapshots(periodStartTime);
 		//获取位置
 		for (int i = 0; i < consensusList.size(); i++) {
 			ConsensusAccount consensusAccount = consensusList.get(i);

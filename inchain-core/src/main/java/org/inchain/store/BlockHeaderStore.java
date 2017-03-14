@@ -34,7 +34,7 @@ public class BlockHeaderStore extends Store {
 		blockHeader = new BlockHeader(network, payload);
 		cursor = blockHeader.getLength();
 		nextHash = Sha256Hash.wrap(readBytes(32));
-		length = cursor;
+		length = cursor - offset;
 	}
 
 	/**

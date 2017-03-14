@@ -65,6 +65,8 @@ public class Peer extends PeerSocketHandler {
 	private AtomicLong bestBlockHeight;
 	//节点时间偏移
 	private long timeOffset;
+	//发送版本信息的时间，会根据回应计算该节点网络时间偏差
+	private long sendVersionMessageTime;
 	
 	//监控下载完成的区块
 	private Sha256Hash monitorBlockDownload;
@@ -245,6 +247,8 @@ public class Peer extends PeerSocketHandler {
 		try {
 			VersionMessage versionMessage = new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress());
 			sendMessage(versionMessage);
+			//记录发送版本的时间
+			sendVersionMessageTime = System.currentTimeMillis();
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error("发送版本信息出错：{}" , e.getMessage());
@@ -319,5 +323,12 @@ public class Peer extends PeerSocketHandler {
 
 	public void setTimeOffset(long timeOffset) {
 		this.timeOffset = timeOffset;
+	}
+
+	public void setSendVersionMessageTime(long sendVersionMessageTime) {
+		this.sendVersionMessageTime = sendVersionMessageTime;
+	}
+	public long getSendVersionMessageTime() {
+		return sendVersionMessageTime;
 	}
 }

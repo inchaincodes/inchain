@@ -1466,18 +1466,35 @@ public class AccountKit {
 		try {
 			for (Account account : accountList) {
 				Address address = account.getAddress();
-				//查询可用余额和等待中的余额
-				Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(address.getHash160());
-				
-				address.setBalance(balances[0]);
-				address.setUnconfirmedBalance(balances[1]);
+				loadAddressBalance(address);
 			}
 		}catch (Exception e) {
 			log.error(e.getMessage(), e);
 		}
 	}
+
+	//加载单个地址的余额信息
+	private void loadAddressBalance(Address address) {
+		//查询可用余额和等待中的余额
+		Coin[] balances = transactionStoreProvider.getBalanceAndUnconfirmedBalance(address.getHash160());
+		
+		address.setBalance(balances[0]);
+		address.setUnconfirmedBalance(balances[1]);
+	}
 	
+	/**
+	 * 获取账户列表，其中包含了余额信息
+	 * 如果有冻结余额，那么重新加载一次，因为冻结的余额由可能发生变法
+	 * @return
+	 */
 	public List<Account> getAccountList() {
+		//如果某个账户有冻结余额，则重新加载
+		for (Account account : accountList) {
+			Address address = account.getAddress();
+			if(address.getUnconfirmedBalance().isGreaterThan(Coin.ZERO)) {
+				loadAddressBalance(address);
+			}
+		}
 		return accountList;
 	}
 	

@@ -9,6 +9,7 @@ import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
+import org.inchain.core.TimeService;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
@@ -50,7 +51,8 @@ public class MakeTestNetGengsisBlock {
 			
 			gengsisBlock.setPreHash(Sha256Hash.wrap(Hex.decode("0000000000000000000000000000000000000000000000000000000000000000")));
 			gengsisBlock.setHeight(0);
-			gengsisBlock.setTime(1478070769l);
+			gengsisBlock.setTime(TimeService.currentTimeSeconds());
+			gengsisBlock.setPeriodStartTime(gengsisBlock.getTime());
 	
 			//交易列表
 			List<Transaction> txs = new ArrayList<Transaction>();
@@ -185,6 +187,7 @@ public class MakeTestNetGengsisBlock {
 			System.out.println("the block hash is: "+ Hex.encode(gengsisBlock.getHash().getBytes()));
 			
 			System.out.println(Hex.encode(gengsisBlock.baseSerialize()));
+
 			
 			Block block = new Block(network, gengsisBlock.baseSerialize());
 			block.buildMerkleHash();

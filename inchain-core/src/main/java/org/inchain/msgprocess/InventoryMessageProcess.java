@@ -159,12 +159,13 @@ public class InventoryMessageProcess implements MessageProcess {
 				
 				//获取下载结果，超时后切换
 				GetDataResult result = resultFuture.get(3, TimeUnit.SECONDS);
+
+				filter.insert(inventoryItem.getHash().getBytes());
 				
 				if(result.isSuccess()) {
 					if(log.isDebugEnabled()) {
 						log.debug("交易{}获取成功", inventoryItem.getHash());
 					}
-					filter.insert(inventoryItem.getHash().getBytes());
 				}
 			}
 		} catch (Exception e) {
@@ -196,11 +197,12 @@ public class InventoryMessageProcess implements MessageProcess {
 			
 			//获取下载结果，有超时时间
 			GetDataResult result = resultFuture.get(3, TimeUnit.SECONDS);
+
+			filter.insert(inventoryItem.getHash().getBytes());
 			
 			if(result.isSuccess()) {
 				Block block = (Block) result.getData();
 				
-				filter.insert(inventoryItem.getHash().getBytes());
 				if(log.isDebugEnabled()) {
 					log.debug("新区块:高度 {} hash{} 同步成功", block.getHeight(), inventoryItem.getHash());
 				}

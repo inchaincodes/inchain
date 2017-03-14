@@ -115,7 +115,6 @@ public class ConsensusAccount {
 	@Override
 	public boolean equals(Object obj) {
 		if(obj instanceof ConsensusAccount) {
-			
 			return Arrays.equals(hash160, ((ConsensusAccount)obj).hash160);
 		} else {
 			return false;

@@ -4,8 +4,6 @@ import java.net.URL;
 import java.util.Date;
 import java.util.List;
 
-import javax.swing.GroupLayout.Alignment;
-
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.core.AntifakeCode;
@@ -47,7 +45,6 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
@@ -57,7 +54,6 @@ import javafx.scene.layout.Background;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
 
 /**
  * 防伪测试控制器
@@ -328,5 +324,10 @@ public class AntifakeController implements SubPageController {
 
 	@Override
 	public void onHide() {
+	}
+
+	@Override
+	public boolean refreshData() {
+		return false;
 	}
 }

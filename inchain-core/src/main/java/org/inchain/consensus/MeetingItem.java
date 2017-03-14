@@ -1,12 +1,9 @@
 package org.inchain.consensus;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
@@ -18,8 +15,6 @@ import org.inchain.utils.ByteArrayTool;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * 一轮完整的会议纪要，从就绪，到顺序共识，到结束，都有数据记录
@@ -28,10 +23,6 @@ import org.slf4j.LoggerFactory;
  */
 public class MeetingItem implements Cloneable {
 
-	private static final Logger log = LoggerFactory.getLogger(MeetingItem.class);
-
-	private final Lock locker = new ReentrantLock();
-	
 	//本轮的所有就绪消息队列
 	private final List<ConsensusAccount> consensusList;
 
@@ -39,17 +30,12 @@ public class MeetingItem implements Cloneable {
 	
 	//上一轮的偏移
 	private long diffCount;
-	//本轮对应的开始高度
-	private long startHeight;
-	//本轮对应的结束高度
-	private long endHeight;
+	//本轮对应的开始时间点，单位秒
+	private long periodStartTime;
+	//当前轮结束时间，单位秒
+	private long periodEndTime;
 	//本轮的共识状态
 	private int status;
-	
-	//当前轮开始时间
-	private long startTime;
-	//当前轮结束时间
-	private long endTime;
 	
 	//我是否已经打过包了
 	private boolean hasPackage;
@@ -63,16 +49,11 @@ public class MeetingItem implements Cloneable {
 	//是否初始化完成
 	private boolean init;
 	
-	//没按规定时间出块的节点
-	private List<ConsensusAccount> timeoutList;
-	//违规节点，尝试分叉，出多个块，不打包共识消息的节点，接受双花的节点
-	private List<ConsensusAccount> violationList;
-	
-	public MeetingItem(ConsensusMeeting consensusMeeting, long startHeight, List<ConsensusAccount> consensusList) {
+	public MeetingItem(ConsensusMeeting consensusMeeting, long startTime, List<ConsensusAccount> consensusList) {
 		this.consensusMeeting = consensusMeeting;
 		this.consensusList = consensusList;
-		this.startHeight = startHeight;
-		this.endHeight = startHeight + consensusList.size();
+		this.periodStartTime = startTime;
+		this.periodEndTime = periodStartTime + consensusList.size() * Configure.BLOCK_GEN_TIME;
 		
 		//这里打乱共识的顺序，运用每个节点都统一的startHeight属性，来重新排序consensusList
 		//排序
@@ -80,10 +61,10 @@ public class MeetingItem implements Cloneable {
 			@Override
 			public int compare(ConsensusAccount o1, ConsensusAccount o2) {
 				if(o1.getSortValue() == null) {
-					o1.setSortValue(Sha256Hash.twiceOf((startHeight + o1.getHash160Hex()).getBytes()));
+					o1.setSortValue(Sha256Hash.twiceOf((startTime + o1.getHash160Hex()).getBytes()));
 				}
 				if(o2.getSortValue() == null) {
-					o2.setSortValue(Sha256Hash.twiceOf((startHeight + o2.getHash160Hex()).getBytes()));
+					o2.setSortValue(Sha256Hash.twiceOf((startTime + o2.getHash160Hex()).getBytes()));
 				}
 				return o1.getSortValue().compareTo(o2.getSortValue());
 			}
@@ -95,10 +76,8 @@ public class MeetingItem implements Cloneable {
 		ByteArrayTool byteArray = new ByteArrayTool();
 		
 		byteArray.append(status);
-		byteArray.append(startHeight);
-		byteArray.append(endHeight);
-		byteArray.append64(startTime);
-		byteArray.append64(endTime);
+		byteArray.append(periodStartTime);
+		byteArray.append(periodStartTime);
 		byteArray.append(diffCount);
 		
 		//当前共识列表快照
@@ -122,20 +101,13 @@ public class MeetingItem implements Cloneable {
 	public void parse(byte[] content, int offset) {
 		//当前共识状态
 		status = content[offset];
-		
 		offset++;
-		//当前轮共识高度
-		startHeight = Utils.readUint32(content, offset);
-		offset += 4;
-		//下一轮共识高度
-		endHeight = Utils.readUint32(content, offset);
-		offset += 4;
 
-		startTime = Utils.readInt64(content, offset);
-		offset += 8;
+		periodStartTime = Utils.readUint32(content, offset);
+		offset += 4;
 		
-		endTime = Utils.readInt64(content, offset);
-		offset += 8;
+		periodStartTime = Utils.readUint32(content, offset);
+		offset += 4;
 		
 		diffCount = Utils.readUint32(content, offset);
 		offset += 4;
@@ -174,20 +146,8 @@ public class MeetingItem implements Cloneable {
 	 * 开始共识，这时根据队列数量决定结束的区块高度
 	 */
 	public void startConsensus() {
-		startConsensus(TimeService.currentTimeMillis());
-	}
-	
-	/**
-	 * 开始共识，这时根据队列数量决定结束的区块高度
-	 */
-	public void startConsensus(long startTime) {
-		this.startTime = startTime;
-		endTime = startTime + consensusList.size() * Configure.BLOCK_GEN__MILLISECOND_TIME;
 		
 		init = true;
-		
-		init = true;
-		
 		Account myAccount = consensusMeeting.getAccount();
 		if(myAccount == null) {
 			index = -1;
@@ -198,11 +158,10 @@ public class MeetingItem implements Cloneable {
 			ConsensusAccount consensusAccount = consensusList.get(i);
 			if(Arrays.equals(myHash160, consensusAccount.getHash160())) {
 				this.myHash160 = myHash160;
-				myPackageTime = startTime + (i * Configure.BLOCK_GEN__MILLISECOND_TIME);
-				myPackageTimeEnd = myPackageTime + Configure.BLOCK_GEN__MILLISECOND_TIME;
+				myPackageTime = periodStartTime + (i * Configure.BLOCK_GEN_TIME);
+				myPackageTimeEnd = myPackageTime + Configure.BLOCK_GEN_TIME;
 				
 				index = i;
-				
 				break;
 			}
 		}
@@ -217,7 +176,7 @@ public class MeetingItem implements Cloneable {
 			return false;
 		}
 		//优先验证时间，因为这个永远不会错
-		long now = TimeService.currentTimeMillis();
+		long now = TimeService.currentTimeSeconds();
 		
 		if(now > myPackageTime && now < myPackageTimeEnd) {
 			hasPackage = true;
@@ -270,12 +229,12 @@ public class MeetingItem implements Cloneable {
 		
 		//这里运行广播的时间段，是该节点的时间段中间值，往后延一个区块出块的时间，意味着只有在这个时间段出块，才会被接受
 		//系统默认的是中间值出块，最大程度保证诚信节点的稳定运行
-		long beginTime = startTime + timePeriod * Configure.BLOCK_GEN__MILLISECOND_TIME;
-		long endTime = beginTime + 2 * Configure.BLOCK_GEN__MILLISECOND_TIME;
+		long beginTime = periodStartTime + timePeriod * Configure.BLOCK_GEN_TIME;
+		long endTime = beginTime + Configure.BLOCK_GEN_TIME;
 		
 		ConsensusInfos result = new ConsensusInfos(hash160, beginTime, endTime);
 		
-		result.setStartHeight(startHeight);
+		result.setPeriodStartTime(periodStartTime);
 		result.setIndex(index);
 		
 		return result;
@@ -288,21 +247,10 @@ public class MeetingItem implements Cloneable {
 	 * @return boolean
 	 */
 	public boolean canEnd() {
-		if(TimeService.currentTimeMillis() >= endTime) {
+		if(TimeService.currentTimeSeconds() >= periodEndTime) {
 			return true;
 		}
 		return false;
-	}
-	
-	/**
-	 * 新增超时没有出块的共识账户
-	 * @param index
-	 */
-	public void addTimeout(int index) {
-		if(timeoutList == null) {
-			timeoutList = new ArrayList<ConsensusAccount>();
-		}
-		timeoutList.add(consensusList.get(index));
 	}
 	
 	/**
@@ -343,7 +291,7 @@ public class MeetingItem implements Cloneable {
 		if(blockHeader == null) {
 			return false;
 		}
-		if(blockHeader.getPeriodStartPoint() == startHeight && blockHeader.getPeriodCount() == consensusList.size() 
+		if(blockHeader.getPeriodStartTime() == periodStartTime && blockHeader.getPeriodCount() == consensusList.size() 
 				&& blockHeader.getTimePeriod() == blockHeader.getPeriodCount() - 1) {
 			return true;
 		}
@@ -355,47 +303,14 @@ public class MeetingItem implements Cloneable {
 		return (MeetingItem) super.clone();
 	}
 	
-	public long getStartHeight() {
-		return startHeight;
-	}
-	public void setStartHeight(long startHeight) {
-		this.startHeight = startHeight;
-	}
-	public long getEndHeight() {
-		return endHeight;
-	}
-	public void setEndHeight(long endHeight) {
-		this.endHeight = endHeight;
-	}
 	public int getStatus() {
 		return status;
 	}
 	public void setStatus(int status) {
 		this.status = status;
 	}
-	public List<ConsensusAccount> getTimeoutList() {
-		return timeoutList;
-	}
-	public void setTimeoutList(List<ConsensusAccount> timeoutList) {
-		this.timeoutList = timeoutList;
-	}
-	public List<ConsensusAccount> getViolationList() {
-		return violationList;
-	}
-	public void setViolationList(List<ConsensusAccount> violationList) {
-		this.violationList = violationList;
-	}
 	public List<ConsensusAccount> getConsensusList() {
 		return consensusList;
-	}
-	public long getStartTime() {
-		return startTime;
-	}
-	public long getEndTime() {
-		return endTime;
-	}
-	public void setEndTime(long endTime) {
-		this.endTime = endTime;
 	}
 	public long getMyPackageTime() {
 		return myPackageTime;
@@ -415,20 +330,31 @@ public class MeetingItem implements Cloneable {
 	public boolean isInit() {
 		return init;
 	}
+	public long getPeriodStartTime() {
+		return periodStartTime;
+	}
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
+	}
+	public long getPeriodEndTime() {
+		return periodEndTime;
+	}
+	public void setPeriodEndTime(long periodEndTime) {
+		this.periodEndTime = periodEndTime;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("MeetingItem [");
-		builder.append("startHeight=");
-		builder.append(startHeight);
-		builder.append(", endHeight=");
-		builder.append(endHeight);
-		builder.append(", startTime=");
-		builder.append(DateUtil.convertDate(new Date(startTime)));
-		builder.append(", endTime=");
-		builder.append(DateUtil.convertDate(new Date(endTime)));
+		builder.append("periodStartTime=");
+		builder.append(DateUtil.convertDate(new Date(periodStartTime * 1000)));
+		builder.append(", periodEndTime=");
+		builder.append(DateUtil.convertDate(new Date(periodEndTime * 1000)));
 		builder.append(", myPackageTime=");
-		builder.append(DateUtil.convertDate(new Date(myPackageTime)));
+		builder.append(DateUtil.convertDate(new Date(myPackageTime * 1000)));
+		builder.append(", myPackageTimeEnd=");
+		builder.append(DateUtil.convertDate(new Date(myPackageTimeEnd * 1000)));
 		builder.append(", hasPackage=");
 		builder.append(hasPackage);
 		builder.append(", myHash160=");
@@ -439,8 +365,6 @@ public class MeetingItem implements Cloneable {
 		}
 		builder.append(", index=");
 		builder.append(index);
-		builder.append(", timeoutList=");
-		builder.append(timeoutList);
 		builder.append("]");
 		return builder.toString();
 	}

@@ -1,7 +1,9 @@
 package org.inchain.consensus;
 
 import java.util.Arrays;
+import java.util.Date;
 
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 
 /**
@@ -13,12 +15,12 @@ public class TimeoutConsensusViolation {
 	
 	private byte[] hash160;
 	
-	private long periodStartPoint;
+	private long periodStartTime;
 	
-	public TimeoutConsensusViolation(byte[] hash160, long periodStartPoint) {
+	public TimeoutConsensusViolation(byte[] hash160, long periodStartTime) {
 		super();
 		this.hash160 = hash160;
-		this.periodStartPoint = periodStartPoint;
+		this.periodStartTime = periodStartTime;
 	}
 	public byte[] getHash160() {
 		return hash160;
@@ -26,20 +28,19 @@ public class TimeoutConsensusViolation {
 	public void setHash160(byte[] hash160) {
 		this.hash160 = hash160;
 	}
-	
-	public long getPeriodStartPoint() {
-		return periodStartPoint;
+	public long getPeriodStartTime() {
+		return periodStartTime;
 	}
-	public void setPeriodStartPoint(long periodStartPoint) {
-		this.periodStartPoint = periodStartPoint;
+	public void setPeriodStartTime(long periodStartTime) {
+		this.periodStartTime = periodStartTime;
 	}
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("TimeoutConsensusViolation [hash160=");
 		builder.append(Hex.encode(hash160));
-		builder.append(", periodStartPoint=");
-		builder.append(periodStartPoint);
+		builder.append(", periodStartTime=");
+		builder.append(DateUtil.convertDate(new Date(periodStartTime * 1000)));
 		builder.append("]");
 		return builder.toString();
 	}

@@ -5,11 +5,15 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,11 +62,11 @@ public class Block extends BlockHeader {
 		version = readUint32();
 		preHash = Sha256Hash.wrap(readBytes(32));
 		merkleHash = Sha256Hash.wrap(readBytes(32));
-		time = readInt64();
+		time = readUint32();
 		height = readUint32();
 		periodCount = (int) readVarInt();
 		timePeriod = (int) readVarInt();
-		periodStartPoint = readUint32();
+		periodStartTime = readUint32();
 		scriptBytes = readBytes((int) readVarInt());
 		scriptSig = new Script(scriptBytes);
 		txCount = readVarInt();
@@ -125,6 +129,48 @@ public class Block extends BlockHeader {
 		return id;
 	}
 	
+	/**
+	 * 对区块做基本的验证
+	 * 梅克尔树是否正确，coinbase交易是否正确
+	 * @return boolean
+	 */
+	public boolean verify() {
+		//验证梅克尔树根是否正确
+		if(!buildMerkleHash().equals(getMerkleHash())) {
+			throw new VerificationException("block merkle hash error");
+		}
+		
+		//验证交易是否合法
+		Coin coinbaseFee = Coin.ZERO; //coinbase 交易包含的金额，主要是手续费
+		
+		//每个区块只能包含一个coinbase交易，并且只能是第一个
+		boolean coinbase = false;
+		
+		List<Transaction> txs = getTxs();
+		for (Transaction tx : txs) {
+			//区块的第一个交易必然是coinbase交易，除第一个之外的任何交易都不应是coinbase交易，否则出错
+			if(!coinbase) {
+				if(tx.getType() != Definition.TYPE_COINBASE) {
+					throw new VerificationException("区块的第一个交易必须是coinbase交易");
+				}
+				coinbaseFee = Coin.valueOf(tx.getOutput(0).getValue());
+				coinbase = true;
+				continue;
+			} else if(tx.getType() == Definition.TYPE_COINBASE) {
+				throw new VerificationException("一个块只允许一个coinbase交易");
+			}
+		}
+		//验证金额，coinbase交易的费用必须等于交易手续费
+		//获取该高度的奖励
+		Coin rewardCoin = ConsensusRewardCalculationUtil.calculat(getHeight());
+		//不小于奖励，不大于总量
+		if(coinbaseFee.isLessThan(rewardCoin) || coinbaseFee.isGreaterThan(Coin.MAX)) {
+			log.warn("the fee error");
+			return false;
+		}
+		return true;
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -145,7 +191,7 @@ public class Block extends BlockHeader {
 		builder.append(", timePeriod=");
 		builder.append(timePeriod);
 		builder.append(", periodStartPoint=");
-		builder.append(periodStartPoint);
+		builder.append(periodStartTime);
 		builder.append("]");
 		return builder.toString();
 	}

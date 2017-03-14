@@ -1,14 +1,18 @@
 package org.inchain.wallet.entity;
 
+import org.inchain.crypto.Sha256Hash;
+
 public class TransactionEntity {
 
+	private Sha256Hash txHash;
 	private long status;
 	private String type;  
     private DetailValue detail;
     private String amount;
     private String time;
     
-	public TransactionEntity(long status, String type, DetailValue detail, String amount, String time) {
+	public TransactionEntity(Sha256Hash txHash, long status, String type, DetailValue detail, String amount, String time) {
+		this.txHash = txHash;
 		this.status = status;
 		this.type = type;
 		this.detail = detail;
@@ -48,7 +52,9 @@ public class TransactionEntity {
 	public void setTime(String time) {
 		this.time = time;
 	}
-
+	public Sha256Hash getTxHash() {
+		return txHash;
+	}
 	@Override
 	public String toString() {
 		return "TransactionEntity [status=" + status + ", type=" + type + ", detail=" + detail + ", amount=" + amount

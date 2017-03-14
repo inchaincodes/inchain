@@ -5,6 +5,7 @@ import java.util.Locale;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
@@ -48,8 +49,19 @@ public class VersionMessageProcess implements MessageProcess {
         }
         
         try {
+        	//响应
         	peer.sendMessage(new VerackMessage(peer.getNetwork(), TimeService.currentTimeMillis(), versionMessage.getNonce()));
+        	
+        	//回应自己的版本信息
+        	if(!peer.isHandshake()) {
+	            BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
+	            
+				VersionMessage replyMessage = new VersionMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress());
+				peer.sendMessage(replyMessage);
+				peer.setSendVersionMessageTime(System.currentTimeMillis());
+        	}
         } catch (Exception e) {
+        	log.error("回应版本信息出错", e);
         	peer.close();
 		}
 		return null;
