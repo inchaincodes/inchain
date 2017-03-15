@@ -1,13 +1,13 @@
 package org.inchain.rpc;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
-import java.net.Socket;
-
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.inchain.core.Coin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * RPC命令分发处理
@@ -42,59 +42,144 @@ import org.slf4j.LoggerFactory;
  * @author ln
  *
  */
-public class RPCHanlder implements Runnable {
+@Service
+public class RPCHanlder {
+	
 	private final static Logger log = LoggerFactory.getLogger(RPCHanlder.class);
 
-	Socket clent = null;
-
-	public RPCHanlder(Socket client) {
-		this.clent = client;
+	@Autowired
+	private RPCService rpcService;
+	
+	/**
+	 * 处理命令
+	 * @param commandInfos
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject hanlder(JSONObject commandInfos) throws JSONException {
+		return hanlder(commandInfos, null);
 	}
 
-	public void run() {
-		ObjectInputStream input = null;
-		ObjectOutputStream output = null;
-		try {
-			// 2.将客户端发送的码流反序列化成对象，反射调用服务实现者，获取执行结果
-			input = new ObjectInputStream(clent.getInputStream());
-			String serviceName = input.readUTF();
-			String methodName = input.readUTF();
-			Class<?>[] parameterTypes = (Class<?>[]) input.readObject();
-			Object[] arguments = (Object[]) input.readObject();
-			Class serviceClass = RPCService.class;
-			if (serviceClass == null) {
-				throw new ClassNotFoundException(serviceName + " not found");
-			}
-			Method method = serviceClass.getMethod(methodName, parameterTypes);
-			Object result = method.invoke(serviceClass.newInstance(), arguments);
-
-			// 3.将执行结果反序列化，通过socket发送给客户端
-			output = new ObjectOutputStream(clent.getOutputStream());
-			output.writeObject(result);
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			if (output != null) {
-				try {
-					output.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if (clent != null) {
-				try {
-					clent.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
+	public JSONObject hanlder(JSONObject commandInfos, JSONObject inputInfos) throws JSONException {
+		String command = commandInfos.getString("command");
+		
+		String password = null;
+		if(inputInfos != null) {
+			password = inputInfos.getString("input");
+		}
+		
+		JSONObject result = new JSONObject();
+		switch (command) {
+		
+		case "getblockcount":  {
+			result.put("success", true);
+			result.put("blockcount", rpcService.getBlockCount());
+			
+			return result;
+		}
+		
+		case "getbestblockheight": {
+			result.put("success", true);
+			result.put("bestblockheight", rpcService.getBestBlockHeight());
+			
+			return result;
+		}
+		
+		case "getbestblockhash": {
+			result.put("success", true);
+			result.put("bestblockhash", rpcService.getBestBlockHash());
+			
+			return result;
+		}
+		
+		case "getblockhash": {
+			result.put("success", true);
+			result.put("blockhash", rpcService.getBlockHashByHeight(Long.parseLong(commandInfos.getJSONArray("params").getString(0))));
+			
+			return result;
+		}
+		
+		case "getblockheader": {
+			result.put("success", true);
+			result.put("blockheader", rpcService.getBlockHeader(commandInfos.getJSONArray("params").getString(0)));
+			
+			return result;
+		}
+		
+		case "getblock": {
+			result.put("success", true);
+			result.put("blockheader", rpcService.getBlock(commandInfos.getJSONArray("params").getString(0)));
+			
+			return result;
+		}
+		
+		case "getblanace": {
+			Coin[] blanaces = rpcService.getAccountBalanace();
+			
+			result.put("success", true);
+			result.put("blanace", blanaces[0].add(blanaces[1]).value);
+			result.put("canUseBlanace", blanaces[0].value);
+			result.put("cannotUseBlanace", blanaces[1].value);
+			
+			return result;
+		}
+		
+		case "getcredit": {
+			long credit = rpcService.getAccountCredit();
+			
+			result.put("success", true);
+			result.put("credit", credit);
+			
+			return result;
+		}
+		
+		case "getaccountinfo": {
+			result = rpcService.getAccountInfo();
+			
+			result.put("success", true);
+			
+			return result;
+		}
+		
+		case "gettx": {
+			result = rpcService.getTx(commandInfos.getJSONArray("params").getString(0));
+			
+			result.put("success", true);
+			
+			return result;
+		}
+		
+		case "gettransaction": {
+			JSONArray txs = rpcService.getTransaction();
+			
+			result.put("success", true);
+			result.put("txs", txs);
+			
+			return result;
+		}
+		
+		case "getconsensus": {
+			JSONArray consensus = rpcService.getConsensus();
+			
+			result.put("success", true);
+			result.put("consensus", consensus);
+			
+			return result;
+		}
+		
+		case "regconsensus": {
+			result = rpcService.regConsensus(password);
+			return result;
+		}
+		
+		case "remconsensus": {
+			result = rpcService.remConsensus(password);
+			return result;
+		}
+		
+		default:
+			result.put("success", false).put("message", "没有找到的命令" + command);
+			return result;
 		}
 	}
 }    

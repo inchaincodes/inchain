@@ -617,7 +617,8 @@ public final class MiningService implements Mining {
 					if(consensusPool.contains(account.getAddress().getHash160())) {
 						//账户是否已解密
 						if(!((account.isCertAccount() && account.isEncryptedOfTr()) || 
-								(!account.isCertAccount() && account.isEncrypted()))) {
+								(!account.isCertAccount() && account.isEncrypted()))
+								&& peerKit.canBroadcast() && dataSynchronizeHandler.hasComplete()) {
 							try {
 								log.info("开始共识：{}", network.getBestBlockHeight());
 								MiningService.this.account = account.clone();

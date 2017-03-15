@@ -1,5 +1,10 @@
 package org.inchain.rpc;
 
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.inchain.core.Coin;
+
 /**
  * RPCService
 /**
@@ -33,25 +38,114 @@ package org.inchain.rpc;
  * @author ln
  *
  */
-public interface RPCService {  
-	  //--- 区块相关
-	String   getblockcount(); 				//获取区块的数量
-	String   getnewestblockheight();  		//获取最新区块的高度 
-	String   getnewestblockhash(); 			//获取最新区块的hash
-	String   getblockheader  (String  height);	//通过区块的hash或者高度获取区块的头信息
-	String   getblock	(String  hash);	//通过区块的hash或者高度获取区块的完整信息
+public interface RPCService {
+	
+	/**
+	 * 获取区块的数量
+	 * @return String
+	 */
+	long getBlockCount();
+	
+	/**
+	 * 获取最新区块的高度 
+	 * @return String
+	 */
+	long getBestBlockHeight();
+	
+	/**
+	 * 获取最新区块的hash
+	 * @return String
+	 */
+	String getBestBlockHash();
+	
+	/**
+	 * 通过高度获取区块hash
+	 * @param height
+	 * @return String
+	 */
+	String getBlockHashByHeight(long height);
+	
+	/**
+	 * 通过区块的hash或者高度获取区块的头信息
+	 * @param hashOrHeight
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject getBlockHeader(String hashOrHeight) throws JSONException;
+	
+	/**
+	 * 通过区块的hash或者高度获取区块的完整信息
+	 * @param hashOrHeight
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject getBlock	(String hashOrHeight) throws JSONException;
+	
 	// --- 内存池
-	String   getmempoolinfo (String count);		//获取内存里的count条交易
+	String getmempoolinfo (String count);		//获取内存里的count条交易
 	 // --- 帐户
-	String   newaccount (String mgpw, String trpw);	//，同时必需指定帐户管理密码和交易密码
-	String   getaccountaddress();		//获取帐户的地址
-	String   getaccountpubkeys();			//获取帐户的公钥
-	String   dumpprivateseed();				//备份私钥种子，同时显示帐户的hash160
-	String   getblanace();					//获取帐户的余额
-	String   gettransaction();				//获取帐户的交易记录
-	  
-	  //---交易相关
-	 // TODO ···
-   
-  
+	String newaccount (String mgpw, String trpw);	//，同时必需指定帐户管理密码和交易密码
+	String getaccountaddress();		//获取帐户的地址
+	String getaccountpubkeys();			//获取帐户的公钥
+	String dumpprivateseed();				//备份私钥种子，同时显示帐户的hash160
+	
+	/**
+	 * 获取账户的余额
+	 * @return Coin[]
+	 */
+	Coin[] getAccountBalanace();
+	
+
+	/**
+	 * 获取账户的信用
+	 * @return long
+	 */
+	long getAccountCredit();
+	
+	/**
+	 * 获取账户的详细信息
+	 * @return long
+	 * @throws JSONException 
+	 */
+	JSONObject getAccountInfo() throws JSONException;
+	
+	/**
+	 * 获取帐户的交易记录
+	 * @return JSONArray
+	 * @throws JSONException 
+	 */
+	JSONArray getTransaction() throws JSONException;
+
+	/**
+	 * 通过交易hash获取条交易详情
+	 * @param txid
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject getTx(String txid) throws JSONException;
+
+	/**
+	 * 获取共识节点列表
+	 * @return JSONArray
+	 * @throws JSONException 
+	 */
+	JSONArray getConsensus() throws JSONException;
+
+	/**
+	 * 注册共识
+	 * @param password
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject regConsensus(String password) throws JSONException;
+
+	/**
+	 * 退出共识
+	 * @param password
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject remConsensus(String password) throws JSONException;
+	
+	
 }

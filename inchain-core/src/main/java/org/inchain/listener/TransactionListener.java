@@ -27,6 +27,13 @@ public abstract class TransactionListener {
 	}
 	
 	/**
+	 * 回滚交易
+	 * @param txs
+	 */
+	public void revokedTransaction(TransactionStore txs) {
+	}
+	
+	/**
 	 * 刷新新交易列表
 	 * @param mineTxList
 	 */

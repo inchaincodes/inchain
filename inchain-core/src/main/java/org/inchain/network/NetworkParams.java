@@ -1,6 +1,7 @@
 package org.inchain.network;
 
 import org.inchain.Configure;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.MessageSerializer;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
@@ -119,8 +120,12 @@ public abstract class NetworkParams {
 	 * 获取最新区块头信息
 	 * @return long
 	 */
-	public BlockHeaderStore getBestBlockHeader() {
-		return blockStoreProvider.getBestBlockHeader();
+	public BlockHeader getBestBlockHeader() {
+		BlockHeaderStore bestBlockHeaderStore = blockStoreProvider.getBestBlockHeader();
+		if(bestBlockHeaderStore == null) {
+			return getGengsisBlock().getBlock();
+		}
+		return bestBlockHeaderStore.getBlockHeader();
 	}
 	
 	/**

@@ -15,6 +15,7 @@ import javax.annotation.PostConstruct;
 
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
+import org.inchain.listener.BlockDownendListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.message.BlockHeader;
 import org.inchain.message.GetBlocksMessage;
@@ -43,6 +44,8 @@ public class DataSynchronizeHandler implements Runnable {
 	
 	//所有已连接的节点
 	private CopyOnWriteArrayList<Peer> peers = new CopyOnWriteArrayList<Peer>();
+	//区块同步完成监听器
+	private List<BlockDownendListener> blockDownendListeners = new CopyOnWriteArrayList<BlockDownendListener>();
 		
 	@Autowired
 	private NetworkParams network;
@@ -130,6 +133,10 @@ public class DataSynchronizeHandler implements Runnable {
 			if(log.isDebugEnabled()) {
 				log.debug("区块同步完成！");
 			}
+			//触发监听器
+			for (BlockDownendListener blockDownendListener : blockDownendListeners) {
+				blockDownendListener.downend(localHeight);
+			}
 		} else {
 			synchronousStatus = 1;
 			startDownload(bestHeight);
@@ -146,7 +153,7 @@ public class DataSynchronizeHandler implements Runnable {
 				log.debug("开始同步区块...........");
 			}
 			
-			BlockHeader blockHeader = network.getBestBlockHeader().getBlockHeader();
+			BlockHeader blockHeader = network.getBestBlockHeader();
 			if(bestHeight == blockHeader.getHeight()) {
 				initSynchronous = false;
 				startSynchronous();
@@ -165,7 +172,7 @@ public class DataSynchronizeHandler implements Runnable {
 			for (Peer peer : newestPeers) {
 				try {
 					while(true) {
-						blockHeader = network.getBestBlockHeader().getBlockHeader();
+						blockHeader = network.getBestBlockHeader();
 						if((initSynchronous && peer.getPeerVersionMessage().getBestHeight() <= blockHeader.getHeight()) ||
 								(!initSynchronous && peer.getBestBlockHeight() <= blockHeader.getHeight())) {
 							break;
@@ -215,6 +222,13 @@ public class DataSynchronizeHandler implements Runnable {
 		return synchronousStatus == 2;
 	}
 
+	/**
+	 * 重置下载服务
+	 */
+	public void reset() {
+		synchronousStatus = 0;
+	}
+	
 	/**
 	 * 大多数节点一致的高度
 	 * @param peers
@@ -276,6 +290,23 @@ public class DataSynchronizeHandler implements Runnable {
 		});
 		return list.get(0).getHeight();
 	}
+	
+	/**
+	 * 添加区块同步完成监听器
+	 * @param blockDownendListener
+	 */
+	public void addblockDownendListener(BlockDownendListener blockDownendListener) {
+		blockDownendListeners.add(blockDownendListener);
+	}
+	
+	/**
+	 * 删除区块同步完成监听器
+	 * @param blockDownendListener
+	 */
+	public void removeblockDownendListener(BlockDownendListener blockDownendListener) {
+		blockDownendListeners.remove(blockDownendListener);
+	}
+	
 	
 	public static class Item {
 		private long height;

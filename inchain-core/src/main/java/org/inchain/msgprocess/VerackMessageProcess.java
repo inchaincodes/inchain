@@ -51,9 +51,7 @@ public class VerackMessageProcess implements MessageProcess {
         	peer.setTimeOffset(timeOffset);
         	
         	//处理本地时间,如果已经处理过了，就不再处理
-        	if(!TimeService.netTimeHasInit()) {
-        		peerKit.processTimeOffset(time, timeOffset);
-        	}
+    		peerKit.processTimeOffset(time, timeOffset);
         	
         	peer.setHandshake(true);
         	

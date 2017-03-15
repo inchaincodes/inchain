@@ -30,8 +30,10 @@ public final class Configure {
 
     private static void oloadProperties() throws IOException {
     	InputStream in = Configure.class.getResourceAsStream("/config.properties");
-    	property.load(in);
-    	in.close();
+		if(in != null) {
+			property.load(in);
+			in.close();
+		}
     }
     
 	/**
@@ -100,12 +102,23 @@ public final class Configure {
 	/*************  RPC 相关配置  begin  *****************/
 	
 	/**
-	 * RPC 端口
+	 * RPC服务默认地址
 	 */
-	public static int RPC_SERVER_PORT = getProperty("rpc.server.port", 8632);
+	public static String RPC_SERVER_HOST = "localhost";
+
+	/**
+	 * RPC 默认端口
+	 */
+	public static int RPC_SERVER_PORT = 8632;
+
+	/**
+	 * RPC 默认用户名
+	 */
+	public static String RPC_SERVER_USER = "user";
 	
 	/*************  RPC 相关配置   end  *****************/
 	
+
 	/*************  账户相关配置  begin  *****************/
 	
 	/**

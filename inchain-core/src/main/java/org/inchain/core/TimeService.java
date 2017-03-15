@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.util.Date;
 
 import org.inchain.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -15,13 +17,11 @@ import org.springframework.stereotype.Service;
 @Service
 public final class TimeService {
 
+	private static final Logger log = LoggerFactory.getLogger(TimeService.class);
+	
 	/** 时间偏移差距触发点，超过该值会导致本地时间重设，单位毫秒 **/
 	public static final long TIME_OFFSET_BOUNDARY = 2000l;
-	
-	/*
-	 * 网络时间初始化标志
-	 */
-	private volatile static boolean netTimeInit;
+
 	/*
 	 * 模拟网络时钟 
 	 */
@@ -59,6 +59,11 @@ public final class TimeService {
 	 * 如果本地时间有变化，则设置 TimeService.netTimeOffset;
 	 */
 	public void monitorTimeChange() {
+		
+		//不监控本地时间变化是最保险的，难免遇到机器卡顿的时候，会把本来正确的时间置为错误的
+		//如果用户在运行过程中自己去调整电脑的时候，这是他的问题，出错也无可厚非
+		if(1==1)return;
+		
 		long lastTime = System.currentTimeMillis();
 		while(true) {
 			//动态调整网络时间
@@ -67,8 +72,10 @@ public final class TimeService {
 //			}
 			
 			long newTime = System.currentTimeMillis();
-			if(Math.abs(newTime - lastTime) > 800) {
-				System.out.println("本地时间调整了："+((newTime - lastTime)));
+			if(Math.abs(newTime - lastTime) > TIME_OFFSET_BOUNDARY) {
+				
+				log.info("本地时间调整了：{}", newTime - lastTime);
+				
 				TimeService.netTimeOffset -= (newTime - lastTime);
 			}
 			lastTime = newTime;
@@ -168,20 +175,6 @@ public final class TimeService {
 				e.printStackTrace();
 			}
 		}
-	}
-
-	/**
-	 * 初始化网络时间
-	 * 规则：
-	 * 	1、只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
-	 * 	2、当所有连接的节点时间偏移超过2s，则取多数时间相近的节点时间作为网络时间
-	 * @return boolean
-	 */
-	public static boolean netTimeHasInit() {
-		return netTimeInit;
-	}
-	public static void initNetTime() {
-		netTimeInit = true;
 	}
 
 	/**

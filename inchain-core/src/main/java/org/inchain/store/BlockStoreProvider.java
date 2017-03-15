@@ -566,6 +566,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					
 					creditCollectionService.removeCredit(creditTransaction.getReasonType(), creditTransaction.getOwnerHash160(), bestBlock.getTime());
 				}
+				
+				//交易是否与我有关
+				checkIsMineAndRevoked(txs);
 			}
 			return bestBlock;
 		} finally {
@@ -613,6 +616,21 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				accountInfo.setPubkeys(new byte[][] { tx.getPubkey() });
 			}
 			chainstateStoreProvider.saveAccountInfo(accountInfo);
+		}
+	}
+	
+	/**
+	 * 检查交易是否与我有关，并且回滚交易状态
+	 * @param txs
+	 */
+	private void checkIsMineAndRevoked(TransactionStore txs) {
+		Transaction transaction = txs.getTransaction();
+		
+		boolean isMine = checkTxIsMine(transaction);
+		if(isMine) {
+			if(transactionListener != null) {
+				transactionListener.revokedTransaction(txs);
+			}
 		}
 	}
 	

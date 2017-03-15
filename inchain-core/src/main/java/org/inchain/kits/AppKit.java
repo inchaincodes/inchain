@@ -5,11 +5,12 @@ import java.io.IOException;
 import org.inchain.Configure;
 import org.inchain.consensus.Mining;
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.Listener;
+import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
+import org.inchain.rpc.RPCServer;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
@@ -45,6 +46,8 @@ public class AppKit {
 	//帐户管理 
 	@Autowired
 	private AccountKit accountKit;
+	@Autowired
+	private RPCServer rpcServer;
 	
 	public AppKit() {
 		
@@ -78,6 +81,9 @@ public class AppKit {
 		//初始化挖矿
 		initMining();
 		
+		//初始化rpc服务
+		initRpcService();
+		
 		addShutdownListener();
 		
 		if(initListener != null) {
@@ -87,12 +93,19 @@ public class AppKit {
 		initDataChangeListener();
 	}
 	
+	/*
+	 * 初始化rpc服务
+	 */
+	private void initRpcService() {
+		rpcServer.startSyn();
+	}
+
 	//初始化数据变化监听器
 	private void initDataChangeListener() {
 		//如果设置了区块变化监听器，那么首先通知一次本地的高度
 		if(peerKit.getBlockChangedListener() != null) {
-			BlockHeaderStore blockHeader = network.getBestBlockHeader();
-			peerKit.getBlockChangedListener().onChanged(blockHeader.getBlockHeader().getHeight(), -1, blockHeader.getBlockHeader().getHash(), null);
+			BlockHeader blockHeader = network.getBestBlockHeader();
+			peerKit.getBlockChangedListener().onChanged(blockHeader.getHeight(), -1, blockHeader.getHash(), null);
 		}
 	}
 
@@ -136,6 +149,8 @@ public class AppKit {
 	 * @throws IOException 
 	 */
 	public void stop() throws IOException {
+		rpcServer.stop();
+		
 		peerKit.stop();
 		mining.stop();
 		

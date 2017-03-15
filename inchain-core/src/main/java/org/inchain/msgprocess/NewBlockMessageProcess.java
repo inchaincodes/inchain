@@ -19,7 +19,6 @@ import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.DateUtil;
-import org.inchain.utils.Hex;
 import org.inchain.validator.BlockValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

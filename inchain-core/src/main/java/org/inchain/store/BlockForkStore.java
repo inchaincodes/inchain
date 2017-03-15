@@ -17,6 +17,7 @@ public class BlockForkStore extends Store {
 	//状态
 	private int status;
 	private Block block;
+	private int processCount;
 	
 	public BlockForkStore(NetworkParams network) {
 		super(network);
@@ -64,5 +65,13 @@ public class BlockForkStore extends Store {
 
 	public void setStatus(int status) {
 		this.status = status;
+	}
+
+	public int getProcessCount() {
+		return processCount;
+	}
+
+	public void addProcessCount() {
+		this.processCount++;
 	}
 }

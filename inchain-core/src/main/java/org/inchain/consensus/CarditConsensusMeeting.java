@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,10 +23,12 @@ import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
+import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.InventoryFilter;
 import org.inchain.kits.PeerKit;
+import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.message.ConsensusMessage;
@@ -113,7 +116,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 					log.error("共识会议出错", e);
 				}
 			}
-		}, 1000, 100, TimeUnit.MILLISECONDS);		
+		}, 1000, 100, TimeUnit.MILLISECONDS);
+		
+		//监控节点的情况
+		startPeerMonitor();
 	}
 
 	int count = 0;
@@ -160,7 +166,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				newMeetingRound();
 			} else {
 				//检查高度是否达到结束条件
-				BlockHeader bestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+				BlockHeader bestBlockHeader = network.getBestBlockHeader();
 				if(bestBlockHeader.getPeriodStartTime() == currentMetting.getPeriodStartTime() && bestBlockHeader.getTimePeriod() == currentMetting.getPeriodCount() - 1) {
 					newMeetingRound();
 				}
@@ -193,7 +199,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		initNewMeetingRound();
 		
 		//判断最新的块，是否已是上一轮的最后一个，如果不是，则延迟设置新一轮的信息，如果是，则马上设置
-		BlockHeader bestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		
 		//如果已经是最新的，马上开始新一轮共识
 		if(previousMetting.isLastBlock(bestBlockHeader)) {
@@ -215,7 +221,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				break;
 			}
 			//最新区块
-			bestBlockHeader = network.getBestBlockHeader().getBlockHeader();
+			bestBlockHeader = network.getBestBlockHeader();
 			//如果已是最新区块，则开始
 			if(previousMetting.isLastBlock(bestBlockHeader)) {
 				//有变化
@@ -520,7 +526,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(meetingRound.get() < 3) {
 			return timeoutList;
 		}
-		BlockHeader lastHeader = network.getBestBlockHeader().getBlockHeader();
+		BlockHeader lastHeader = network.getBestBlockHeader();
 		
 		long periodStartTime = currentMetting.getPeriodStartTime();
 		//分析当前轮的超时情况
@@ -883,5 +889,32 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		init();
 		return true;
+	}
+	
+	/*
+	 * 监控节点的情况，如果发现所有连接都断开了，可能是本地断网掉线了，这时如果在共识列表中，应该立即停止，避免单机运行下去，就和网络分叉了
+	 * 停止之后也会继续监控状态，如果恢复，则继续（如果我还在共识列表中的话）
+	 * 
+	 */
+	private void startPeerMonitor() {
+		//监控节点变化
+		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
+			@Override
+			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers) {
+				//当连接的节点数量为0时，停止
+				if(inCount + outCount == 0) {
+					//判断当前是否正在共识中
+					if(currentMetting != null && currentMetting.getTimePeriod() != -1) {
+						//停止
+						packageing = false;
+						mining.reset(true);
+						
+						//重置
+						init();
+					}
+				}
+			}
+		});
 	}
 }

@@ -1568,6 +1568,20 @@ public class Script {
 	}
 	
 	/**
+	 * 根据签名脚本，获取账户的base58地址
+	 * @return byte[]
+	 */
+	public String getAccountBase58(NetworkParams network) {
+		if(isSystemAccount()) {
+			return new Address(network, network.getSystemAccountVersion(), chunks.get(3).data).getBase58();
+		} else if(isCertAccount()) {
+			return new Address(network, network.getCertAccountVersion(), chunks.get(3).data).getBase58();
+		} else {
+			throw new VerificationException("不适用的脚本");
+		}
+	}
+	
+	/**
 	 * 根据签名脚本，获取普通系统账户的公钥
 	 * @return byte[]
 	 */

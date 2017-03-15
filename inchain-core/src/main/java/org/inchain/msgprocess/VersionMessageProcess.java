@@ -54,7 +54,7 @@ public class VersionMessageProcess implements MessageProcess {
         	
         	//回应自己的版本信息
         	if(!peer.isHandshake()) {
-	            BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader().getBlockHeader();
+	            BlockHeader bestBlockHeader = peer.getNetwork().getBestBlockHeader();
 	            
 				VersionMessage replyMessage = new VersionMessage(peer.getNetwork(), bestBlockHeader.getHeight(), bestBlockHeader.getHash(), peer.getPeerAddress());
 				peer.sendMessage(replyMessage);

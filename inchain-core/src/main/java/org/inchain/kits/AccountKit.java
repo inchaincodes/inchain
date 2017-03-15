@@ -1485,7 +1485,7 @@ public class AccountKit {
 	/**
 	 * 获取账户列表，其中包含了余额信息
 	 * 如果有冻结余额，那么重新加载一次，因为冻结的余额由可能发生变法
-	 * @return
+	 * @return List<Account>
 	 */
 	public List<Account> getAccountList() {
 		//如果某个账户有冻结余额，则重新加载

@@ -57,6 +57,8 @@ public class PeerKit {
 	private int maxConnectionCount = Configure.MAX_CONNECT_COUNT;
 	//连接变化监听器
 	private CopyOnWriteArrayList<ConnectionChangedListener> connectionChangedListeners = new CopyOnWriteArrayList<ConnectionChangedListener>();
+	//是否初始化网络时间
+	private boolean initTimeOffset;
 	
 	//区块变化监听器
 	private BlockChangedListener blockChangedListener;
@@ -494,6 +496,18 @@ public class PeerKit {
 	}
 	
 	/**
+	 * 初始化网络时间
+	 * 规则：
+	 * 	1、只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
+	 * 	2、当所有连接的节点时间偏移超过2s，则取多数时间相近的节点时间作为网络时间
+	 * @return boolean
+	 */
+	public boolean hasInitTimeOffset() {
+		return initTimeOffset;
+	}
+	
+	
+	/**
 	 * 处理时间偏移
 	 * 本地时间和已连接的时间对比 
 	 * 只要有一个节点的时间和本地时间差距不超过2s，则以本地时间为准，这样能有效的防止恶意节点的欺骗
@@ -504,7 +518,7 @@ public class PeerKit {
 	 */
 	public void processTimeOffset(long time, long timeOffset) {
 		//当完成连接的节点数量小于2时，以本地时间为准
-		if(getAvailablePeersCount() < 2) {
+		if(initTimeOffset || getAvailablePeersCount() < 1) {
 			return;
 		}
 		//是否存在时间相似节点
@@ -523,14 +537,14 @@ public class PeerKit {
 		}
 		if(existsSimilar) {
 			log.info("====================不设置网络时间偏移====================");
-			TimeService.initNetTime();
+			initTimeOffset = true;
 			return;
 		}
 		//所有节点的时间偏移都大于零界点，重设本地时间
 		long mostTimeOffset = getNetTimeOffsetFromPeers();
 		
 		TimeService.setNetTimeOffset(mostTimeOffset);
-		TimeService.initNetTime();
+		initTimeOffset = true;
 		log.info("====================设置了网络时间偏移====================");
 	}
 	

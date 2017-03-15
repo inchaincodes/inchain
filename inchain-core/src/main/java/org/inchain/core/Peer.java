@@ -243,7 +243,8 @@ public class Peer extends PeerSocketHandler {
 			log.debug("peer {} connectionOpened ", this);
 		}
 		//发送版本信息
-		BlockHeader bestBlock = network.getBestBlockHeader().getBlockHeader();
+		
+		BlockHeader bestBlock = network.getBestBlockHeader();
 		try {
 			VersionMessage versionMessage = new VersionMessage(network, bestBlock.getHeight(), bestBlock.getHash(), getPeerAddress());
 			sendMessage(versionMessage);

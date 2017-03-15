@@ -9,10 +9,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MeetingItem;
+import org.inchain.core.DataSynchronizeHandler;
+import org.inchain.core.TimeService;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
@@ -25,6 +28,7 @@ import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
+import org.inchain.validator.BlockValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,8 +56,18 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private ConsensusMeeting consensusMeeting;
+	@Autowired
+	private BlockValidator blockValidator;
+	@Autowired
+	private DataSynchronizeHandler dataSynchronizeHandler;
 	
 	private boolean running;
+	//本地最新高度hash
+	private Sha256Hash localBestHash;
+	//本地最新高度hash更新时间
+	private long localBestHashLastTime;
+	//是否重置
+	private boolean hasReset;
 
 	@PostConstruct
 	public void init() {
@@ -87,6 +101,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 	public void addBlockFork(Block block) {
 		//过滤重复的
 		for (BlockForkStore blockForkStore : blockForks) {
+			//找出同一轮中同一个人的多个块，并交给miningService做出相应的处罚 TODO
 			if(blockForkStore.getBlock().getHash().equals(block.getHash())) {
 				return;
 			}
@@ -124,8 +139,37 @@ public class BlockForkServiceImpl implements BlockForkService {
 	 * 3、同一时段的多个块，根据新块选择最长的链，其它的做丢弃处理
 	 */
 	private void scanning() {
+		
+		//如果本地的最新高度1分钟都没有变化，那么则认为本地已经与外界不同步
+		//出现这样的情况，说明分叉也解决不了的，所需可能需要同步最新的网络数据
+		//最简单的处理方法就是断开所有连接，然后重新初始化网络
+		
+		BlockHeader bestBlockHeader = network.getBestBlockHeader();
+		
+		if(!bestBlockHeader.getHash().equals(localBestHash)) {
+			localBestHash = bestBlockHeader.getHash();
+			localBestHashLastTime = TimeService.currentTimeMillis();
+			hasReset = false;
+		} else {
+			//是否到达1分钟没有变化的条件
+			if(TimeService.currentTimeMillis() - localBestHashLastTime > 60000l && !hasReset) {
+				//达到条件，触发
+				dataSynchronizeHandler.reset();
+				hasReset = true;
+				
+				log.info("触发了1分钟本地高度没改变的条件，重置网络");
+				return;
+			}
+		}
+		
 		for (BlockForkStore blockForkStore : blockForks) {
-			processForkBlock(blockForkStore, null);
+			//最多分析60次，就丢弃掉
+			if(blockForkStore.getProcessCount() > 60) {
+				discardBlock(blockForkStore);
+			} else {
+				blockForkStore.addProcessCount();
+				processForkBlock(blockForkStore, null);
+			}
 		}
 	}
 
@@ -140,12 +184,17 @@ public class BlockForkServiceImpl implements BlockForkService {
 		Block block = blockForkStore.getBlock();
 
 		//本地最新块
-		BlockHeader localBestBlock = network.getBestBlockHeader().getBlockHeader();
-		//丢弃离最新高度超过30的分叉块
-		if(localBestBlock.getHeight() - blockForkStore.getBlock().getHeight() > 30) {
+		BlockHeader localBestBlock = network.getBestBlockHeader();
+		
+		//这里做一个处理，保证整个网络不被欺骗，一般来说非人为因素的分叉，无非是网络同步快慢的原因
+		//有的节点同步很快，有的同步慢，造成衔接不一致，这样的分叉一般在1-3个块即可处理完成，达成一致
+		//拜占庭节点的欺骗数据，则不允许进入处理
+		//当接收到的分叉块，和本地最新的块，差距过大（目前暂定20个块，这里应该设置得更小 TODO ）时，直接丢弃掉
+		if(Math.abs(localBestBlock.getHeight() - block.getHeight()) > 20) {
 			discardBlock(blockForkStore);
 			return false;
 		}
+		
 		
 		//应该丢弃的块
 		try {
@@ -220,11 +269,36 @@ public class BlockForkServiceImpl implements BlockForkService {
 		}
 
 		//验证交易合法性，保证没有双花
-		//TODO
+		//这里有多种情况需要处理
+		if(preBlock.getHash().equals(network.getBestBlockHeader().getHash())) {
+			//1、上一个块是最新块，这种情况最好处理，直接把当前块当做最新块来验证即可
+			try {
+				boolean veriSuccess = blockValidator.verifyBlock(block);
+				if(!veriSuccess) {
+					log.info("分叉块 高度：{}， hash： {}, 打包人： {} 验证失败，丢弃", block.getHeight(), block.getHash(), new Address(network, block.getHash160()).getBase58());
+					//验证失败
+					discardBlock(blockForkStore);
+					return false;
+				}
+			} catch (Exception e) {
+				//验证错误
+				log.info("分叉块 高度：{}， hash： {}, 打包人： {} 验证错误：{}，丢弃", block.getHeight(), block.getHash(), new Address(network, block.getHash160()).getBase58(), e.getMessage());
+				discardBlock(blockForkStore);
+				return false;
+			}
+		} else {
+			//2、上一个块不是最新块，也就是从之前的分叉了，这时候的交易验证就要复杂一些，因为不能受后面块的影响
+			//TODO 暂时先做丢弃处理
+			if(localBestBlock.getHeight() - block.getHeight() > 3) {
+				log.info("分叉块不是最新的块，丢弃处理， 高度：{}， hash： {}, 打包人： {}", block.getHeight(), block.getHash(), new Address(network, block.getHash160()).getBase58());
+				discardBlock(blockForkStore);
+				return false;
+			}
+		}
 		
 		//判断该链是否最优，也就是超过当前的主链没有，如果超过，则可重置主链为当前链
 		//再次查询本地最新高度
-		localBestBlock = network.getBestBlockHeader().getBlockHeader();
+		localBestBlock = network.getBestBlockHeader();
 		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight()) {
 			//回滚主链上的块，知道最新块为preBlock
 			while(true) {

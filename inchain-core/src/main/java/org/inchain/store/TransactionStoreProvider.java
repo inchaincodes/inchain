@@ -2,6 +2,7 @@ package org.inchain.store;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -96,33 +97,84 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		//绑定新交易监听器
 		blockStoreProvider.addTransactionListener(new TransactionListener() {
 			@Override
-			public void newTransaction(TransactionStore ts) {
-				processNewTransaction(ts);
+			public void newTransaction(TransactionStore txs) {
+				processNewTransaction(txs);
+			}
+			@Override
+			public void revokedTransaction(TransactionStore txs) {
+				processRevokedTransaction(txs);
 			}
 		});
 	}
 	
 	/**
-	 * 处理新交易
-	 * @param ts
+	 * 回滚交易
+	 * @param txs
 	 */
-	public void processNewTransaction(TransactionStore ts) {
+	public void processRevokedTransaction(TransactionStore txs) {
+		
+		Transaction tx = txs.getTransaction();
+		
+		if(tx.isPaymentTransaction()) {
+			//更新交易状态
+			List<Input> inputs = tx.getInputs();
+			if(inputs != null) {
+				for (Input input : inputs) {
+					TransactionInput txInput = (TransactionInput) input;
+					if(txInput.getFrom() == null) {
+						continue;
+					}
+					Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
+					
+					for (TransactionStore transactionStore : mineTxList) {
+						if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+							//更新内存
+							byte[] ftxStatus = transactionStore.getStatus();
+							ftxStatus[txInput.getFrom().getIndex()] = TransactionStore.STATUS_UNUSE;
+							transactionStore.setStatus(ftxStatus);
+							//更新存储
+							put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		delete(tx.getHash().getBytes());
+		
+		//从内存中删除
+		Iterator<TransactionStore> it = mineTxList.iterator();
+		while(it.hasNext()) {
+			TransactionStore t = it.next();
+			if(t.getTransaction().getHash().equals(tx.getHash())) {
+				it.remove();
+				break;
+			}
+		}
+	}
+
+	/**
+	 * 处理新交易
+	 * @param txs
+	 */
+	public void processNewTransaction(TransactionStore txs) {
 		boolean hasUpdate = false;
 		//交易是否已经存在
 		for (TransactionStore transactionStore : mineTxList) {
 			//如果存在，则更新高度
-			if(transactionStore.getTransaction().getHash().equals(ts.getTransaction().getHash())) {
-				transactionStore.setHeight(ts.getHeight());
-				ts = transactionStore;
+			if(transactionStore.getTransaction().getHash().equals(txs.getTransaction().getHash())) {
+				transactionStore.setHeight(txs.getHeight());
+				txs = transactionStore;
 				hasUpdate = true;
 				break;
 			}
 		}
-		Transaction tx = ts.getTransaction();
+		Transaction tx = txs.getTransaction();
 		
 		if(!hasUpdate) {
 			//如果不存在，则新增
-			mineTxList.add(ts);
+			mineTxList.add(txs);
 			
 			if(tx.isPaymentTransaction()) {
 				//更新交易状态
@@ -165,7 +217,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					}
 				}
 				//设置交易存储状态
-				ts.setStatus(status);
+				txs.setStatus(status);
 			}
 			
 			if(noticeListener != null) {
@@ -189,21 +241,21 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			}
 		} else {
 			//交易状态变化
-			if(noticeListener != null && ts.getHeight() != -1l) {
+			if(noticeListener != null && txs.getHeight() != -1l) {
 				if(tx.isPaymentTransaction()) {
-					noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), ts.getHeight()));
+					noticeListener.onNotice("交易确认", String.format("交易 %s 已被收录至高度为 %d 的块", tx.getHash().toString(), txs.getHeight()));
 				} else {
 					BaseCommonlyTransaction commonlyTx = (BaseCommonlyTransaction) tx;
 					if(blockStoreProvider.getAccountFilter().contains(commonlyTx.getHash160())) {
-						noticeListener.onNotice("交易已确认", String.format("您的交易 %s 已成功收录进高度为 %d 的块", commonlyTx.getHash(), ts.getHeight()));
+						noticeListener.onNotice("交易已确认", String.format("您的交易 %s 已成功收录进高度为 %d 的块", commonlyTx.getHash(), txs.getHeight()));
 					}
 				}
 			}
 		}
 		
-		put(ts.getTransaction().getHash().getBytes(), ts.baseSerialize());
+		put(txs.getTransaction().getHash().getBytes(), txs.baseSerialize());
 		
-		newConfirmTransaction(ts);
+		newConfirmTransaction(txs);
 	}
 
 	//提醒接收到付款

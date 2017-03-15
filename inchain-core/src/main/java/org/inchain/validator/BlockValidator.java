@@ -89,7 +89,7 @@ public class BlockValidator {
 				return new Result(false, "新区块时间误差过大，拒绝接收");
 			}
 			
-			BlockHeader bestBlock = networkParams.getBestBlockHeader().getBlockHeader();
+			BlockHeader bestBlock = networkParams.getBestBlockHeader();
 			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && bestBlock.getTimePeriod() >= block.getTime()) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");
 			}
