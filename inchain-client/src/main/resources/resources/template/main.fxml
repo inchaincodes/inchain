@@ -102,11 +102,12 @@
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor></Button>
-            <Button fx:id="antifakeId" maxHeight="53.0" maxWidth="188.0" minHeight="53.0" minWidth="188.0" mnemonicParsing="false" prefHeight="53.0" prefWidth="188.0" text="防伪测试">
+            <Button fx:id="systemSettingsId" maxHeight="53.0" maxWidth="188.0" minHeight="53.0" minWidth="188.0" mnemonicParsing="false" prefHeight="53.0" prefWidth="188.0" text="系统信息">
                <cursor>
                   <Cursor fx:constant="HAND" />
-               </cursor></Button>
-            <Button fx:id="systemSettingsId" maxHeight="53.0" maxWidth="188.0" minHeight="53.0" minWidth="188.0" mnemonicParsing="false" prefHeight="53.0" prefWidth="188.0" text="系统设置">
+               </cursor>
+            </Button>
+            <Button fx:id="antifakeId" maxHeight="53.0" maxWidth="188.0" minHeight="53.0" minWidth="188.0" mnemonicParsing="false" prefHeight="53.0" prefWidth="188.0" text="防伪测试">
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor>
