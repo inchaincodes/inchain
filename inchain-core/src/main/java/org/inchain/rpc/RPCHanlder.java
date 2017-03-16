@@ -64,13 +64,30 @@ public class RPCHanlder {
 		String command = commandInfos.getString("command");
 		
 		String password = null;
+		String newPassword = null;
 		if(inputInfos != null) {
-			password = inputInfos.getString("input");
+			if(inputInfos.has("password")) {
+				password = inputInfos.getString("password");
+				if(inputInfos.has("newPassword")) {
+					newPassword = inputInfos.getString("newPassword");
+				}
+			} else if(inputInfos.has("newPassword")) {
+				password = inputInfos.getString("newPassword");
+			}
 		}
 		
 		JSONObject result = new JSONObject();
 		switch (command) {
 		
+		//获取本地区块数量
+		case "help":  {
+			result.put("success", true);
+			result.put("commands", getHelpCommands());
+			
+			return result;
+		}
+		
+		//获取本地区块数量
 		case "getblockcount":  {
 			result.put("success", true);
 			result.put("blockcount", rpcService.getBlockCount());
@@ -78,13 +95,15 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//获取最新区块高度
 		case "getbestblockheight": {
 			result.put("success", true);
 			result.put("bestblockheight", rpcService.getBestBlockHeight());
 			
 			return result;
 		}
-		
+	
+		//获取最新区块hash
 		case "getbestblockhash": {
 			result.put("success", true);
 			result.put("bestblockhash", rpcService.getBestBlockHash());
@@ -92,6 +111,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//通过高度获取区块hash
 		case "getblockhash": {
 			result.put("success", true);
 			result.put("blockhash", rpcService.getBlockHashByHeight(Long.parseLong(commandInfos.getJSONArray("params").getString(0))));
@@ -99,6 +119,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//通过高度或者hash获取区块头信息
 		case "getblockheader": {
 			result.put("success", true);
 			result.put("blockheader", rpcService.getBlockHeader(commandInfos.getJSONArray("params").getString(0)));
@@ -106,6 +127,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//通过hash或者高度获取一个完整的区块信息
 		case "getblock": {
 			result.put("success", true);
 			result.put("blockheader", rpcService.getBlock(commandInfos.getJSONArray("params").getString(0)));
@@ -113,8 +135,9 @@ public class RPCHanlder {
 			return result;
 		}
 		
-		case "getblanace": {
-			Coin[] blanaces = rpcService.getAccountBalanace();
+		//获取余额
+		case "getbalance": {
+			Coin[] blanaces = rpcService.getAccountBalance();
 			
 			result.put("success", true);
 			result.put("blanace", blanaces[0].add(blanaces[1]).value);
@@ -124,6 +147,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//获取账户信用
 		case "getcredit": {
 			long credit = rpcService.getAccountCredit();
 			
@@ -133,6 +157,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//获取账户信息
 		case "getaccountinfo": {
 			result = rpcService.getAccountInfo();
 			
@@ -141,6 +166,19 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//加密钱包
+		case "encryptwallet": {
+			result = rpcService.encryptWallet(password);
+			return result;
+		}
+		
+		//修改密码
+		case "password": {
+			result = rpcService.changePassword(password, newPassword);
+			return result;
+		}
+		
+		//通过hash获取一笔交易详情
 		case "gettx": {
 			result = rpcService.getTx(commandInfos.getJSONArray("params").getString(0));
 			
@@ -149,6 +187,7 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//获取账户交易
 		case "gettransaction": {
 			JSONArray txs = rpcService.getTransaction();
 			
@@ -158,6 +197,15 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//转账
+		case "send": {
+			if(commandInfos.getJSONArray("params").length() > 3 && password == null) {
+				password = commandInfos.getJSONArray("params").getString(0);
+			}
+			return rpcService.sendMoney(commandInfos.getJSONArray("params").getString(0), commandInfos.getJSONArray("params").getString(1), commandInfos.getJSONArray("params").getString(2), password);
+		}
+		
+		//获取共识列表
 		case "getconsensus": {
 			JSONArray consensus = rpcService.getConsensus();
 			
@@ -167,20 +215,79 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//注册共识
 		case "regconsensus": {
+			if(commandInfos.getJSONArray("params").length() > 0 && password == null) {
+				password = commandInfos.getJSONArray("params").getString(0);
+			}
 			result = rpcService.regConsensus(password);
 			return result;
 		}
 		
+		//退出共识
 		case "remconsensus": {
+			if(commandInfos.getJSONArray("params").length() > 0 && password == null) {
+				password = commandInfos.getJSONArray("params").getString(0);
+			}
 			result = rpcService.remConsensus(password);
 			return result;
 		}
+		
+		//获取连接节点信息
+		case "getpeers": {
+			result = rpcService.getPeers();
+			
+			result.put("success", true);
+			return result;
+		}
+		
+		
 		
 		default:
 			result.put("success", false).put("message", "没有找到的命令" + command);
 			return result;
 		}
+	}
+
+	/*
+	 * 获取帮助命令
+	 */
+	private String getHelpCommands() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("命令列表\n");
+		sb.append("\n");
+		sb.append(" --- 区块相关 --- \n");
+		sb.append("  getblockcount                   获取区块的数量\n");
+		sb.append("  getbestblockheight              获取最新区块的高度\n");
+		sb.append("  getbestblockhash                获取最新区块的hash\n");
+		sb.append("  getblockhash                    通过高度获取区块hash\n");
+		sb.append("  getblockheader [param] (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
+		sb.append("  getblock [param] (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
+		sb.append("\n");
+		sb.append(" --- 帐户相关 --- \n");
+		sb.append("  getbalance                      获取账户的余额\n");
+		sb.append("  getcredit                       获取账户的信用\n");
+		sb.append("  getaccountinfo                  获取账户的详细信息\n");
+		sb.append("  gettransaction                  获取帐户的交易记录\n");
+		sb.append("  encryptwallet                   加密钱包\n");
+		sb.append("  password                        修改钱包密码\n");
+		sb.append("\n");
+		sb.append(" --- 交易相关 --- \n");
+		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
+		sb.append("  send [to address] [money] [fee]     转账\n");
+		sb.append("\n");
+		sb.append(" --- 共识相关 --- \n");
+		sb.append("  getconsensus                    获取共识节点列表\n");
+		sb.append("  regconsensus                    注册共识\n");
+		sb.append("  remconsensus                    退出共识\n");
+		sb.append("\n");
+		sb.append(" --- 节点相关 --- \n");
+		sb.append("  getpeers                        获取连接节点信息\n");
+		
+		sb.append("\n");
+		
+		return sb.toString();
 	}
 }    
    

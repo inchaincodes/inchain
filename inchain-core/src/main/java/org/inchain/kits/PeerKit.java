@@ -518,7 +518,7 @@ public class PeerKit {
 	 */
 	public void processTimeOffset(long time, long timeOffset) {
 		//当完成连接的节点数量小于2时，以本地时间为准
-		if(initTimeOffset || getAvailablePeersCount() < 1) {
+		if(initTimeOffset || getAvailablePeersCount() < 2) {
 			return;
 		}
 		//是否存在时间相似节点

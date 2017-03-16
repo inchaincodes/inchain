@@ -15,10 +15,12 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.AccountBody.ContentType;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.KeyValuePair;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
+import org.inchain.core.Peer;
 import org.inchain.core.Product;
 import org.inchain.core.Product.ProductType;
 import org.inchain.core.Result;
@@ -51,6 +53,7 @@ import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
+import org.inchain.utils.StringUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,7 +263,7 @@ public class RPCServiceImpl implements RPCService {
 	 * @return Coin[]
 	 */
 	@Override
-	public Coin[] getAccountBalanace() {
+	public Coin[] getAccountBalance() {
 		Coin[] balances = new Coin[2];
 		balances[0] = accountKit.getCanUseBalance();
 		balances[1] = accountKit.getCanNotUseBalance();
@@ -288,7 +291,7 @@ public class RPCServiceImpl implements RPCService {
 		json.put("type", info.getType());
 		json.put("adderss", new Address(network, info.getType(), info.getHash160()).getBase58());
 		
-		Coin[] blanaces = getAccountBalanace();
+		Coin[] blanaces = getAccountBalance();
 		json.put("blanace", blanaces[0].add(blanaces[1]).value);
 		json.put("canUseBlanace", blanaces[0].value);
 		json.put("cannotUseBlanace", blanaces[1].value);
@@ -312,6 +315,86 @@ public class RPCServiceImpl implements RPCService {
 			
 			json.put("trpubkey", trarrays);
 		}
+		
+		return json;
+	}
+	
+	/**
+	 * 加密钱包
+	 * @param password 
+	 * @return JSONObject
+	 */
+	public JSONObject encryptWallet(String password) throws JSONException {
+		
+		JSONObject json = new JSONObject();
+		
+		//判断账户是否已经加密
+		if(accountKit.accountIsEncrypted()) {
+			json.put("success", false);
+			json.put("message", "钱包已经加密,如果需要修改密码,请使用password命令");
+			return json;
+		}
+		
+		//是否输入密码
+		if(StringUtil.isEmpty(password)) {
+			json.put("needInput", true);
+			json.put("inputType", 2);	//设置密码
+			json.put("inputTip", "输入钱包密码");
+			return json;
+		}
+		//输入的密码是否合法
+		if(!StringUtil.validPassword(password)) {
+			json.put("success", false);
+			json.put("message", "密码不合法,必须是6位以上,且包含数字和字母,请重新加密");
+			return json;
+		}
+		
+		Result result = accountKit.encryptWallet(password);
+		json.put("success", result.isSuccess());
+		json.put("message", result.getMessage());
+		
+		return json;
+	}
+
+	/**
+	 * 修改密码
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject changePassword(String oldPassword, String newPassword) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		//判断账户是否已经加密
+		if(!accountKit.accountIsEncrypted()) {
+			json.put("success", false);
+			json.put("message", "钱包尚未加密，请使用encryptwallet命令对钱包加密");
+			return json;
+		}
+		
+		//是否输入旧密码
+		if(StringUtil.isEmpty(oldPassword) || StringUtil.isEmpty(newPassword)) {
+			json.put("needInput", true);
+			json.put("inputType", 3);	//设置密码
+			return json;
+		}
+		//输入的密码是否合法
+		if(!StringUtil.validPassword(oldPassword)) {
+			json.put("success", false);
+			json.put("message", "钱包旧密码不正确");
+			return json;
+		}
+		
+		//输入的密码是否合法
+		if(!StringUtil.validPassword(newPassword)) {
+			json.put("success", false);
+			json.put("message", "新密码不合法,必须是6位以上,且包含数字和字母,请重新加密");
+			return json;
+		}
+		
+		Result result = accountKit.changeWalletPassword(oldPassword, newPassword);
+		
+		json.put("success", result.isSuccess());
+		json.put("message", result.getMessage());
 		
 		return json;
 	}
@@ -351,6 +434,67 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 		return txConver(txs);
+	}
+	
+	/**
+	 * 发送交易
+	 * @param toAddress
+	 * @param money
+	 * @param fee
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject sendMoney(String toAddress, String money, String fee, String password) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money) ||
+				StringUtil.isEmpty(fee)) {
+			json.put("success", false);
+			json.put("message", "params error");
+			return json;
+		}
+		
+		Coin moneyCoin = null;
+		Coin feeCoin = null;
+		try {
+			moneyCoin = Coin.parseCoin(money);
+			feeCoin = Coin.parseCoin(fee);
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", "金额不正确");
+			return json;
+		}
+		
+		//账户是否加密
+		if(accountKit.accountIsEncrypted()) {
+			if(StringUtil.isEmpty(password)) {
+				json.put("needInput", true);
+				json.put("inputType", 1);	//输入密码
+				json.put("inputTip", "输入钱包密码进行转账");
+				return json;
+			} else {
+				Result re = accountKit.decryptWallet(password);
+				if(!re.isSuccess()) {
+					json.put("success", false);
+					json.put("message", re.getMessage());
+					return json;
+				}
+			}
+		}
+		try {
+			BroadcastResult br = accountKit.sendMoney(toAddress, moneyCoin, feeCoin);
+			
+			json.put("success", br.isSuccess());
+			json.put("message", br.getMessage());
+			
+			return json;
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+			return json;
+		} finally {
+			accountKit.resetKeys();
+		}
 	}
 	
 	/**
@@ -405,6 +549,7 @@ public class RPCServiceImpl implements RPCService {
 		//判断账户是否加密
 		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
+			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
 			return json;
 		}
@@ -436,7 +581,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		json.put("success", true);
-		json.put("message", "已成功申请共识");
+		json.put("message", "已成功申请");
 		
 		return json;
 	}
@@ -463,6 +608,7 @@ public class RPCServiceImpl implements RPCService {
 		//判断账户是否加密
 		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
+			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码退出共识");
 			return json;
 		}
@@ -491,7 +637,36 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 	
-	
+	/**
+	 * 获取连接节点信息
+	 * @return JSONObject
+	 */
+	@Override
+	public JSONObject getPeers() throws JSONException {
+		List<Peer> peerList = peerKit.findAvailablePeers();
+		JSONArray array = new JSONArray();
+		
+		for (Peer peer : peerList) {
+			JSONObject peerJson = new JSONObject();
+			
+			peerJson.put("host", peer.getAddress().getAddr().getHostAddress());
+			peerJson.put("port", peer.getAddress().getPort());
+			peerJson.put("version", peer.getPeerVersionMessage().getSubVer());
+			peerJson.put("bestBlockHeight", peer.getBestBlockHeight());
+			peerJson.put("time", DateUtil.convertDate(new Date(peer.getSendVersionMessageTime())));
+			peerJson.put("timeOffset", peer.getTimeOffset());
+			peerJson.put("timeLength", new Date().getTime() - peer.getSendVersionMessageTime());
+			
+			array.put(peerJson);
+		}
+		
+		JSONObject json = new JSONObject();
+		
+		json.put("count", array.length());
+		json.put("peers", array);
+		
+		return json;
+	}
 	
 	/*
 	 * 转换tx为json

@@ -93,7 +93,7 @@ public interface RPCService {
 	 * 获取账户的余额
 	 * @return Coin[]
 	 */
-	Coin[] getAccountBalanace();
+	Coin[] getAccountBalance();
 	
 
 	/**
@@ -146,6 +146,37 @@ public interface RPCService {
 	 * @throws JSONException 
 	 */
 	JSONObject remConsensus(String password) throws JSONException;
+
+	/**
+	 * 获取连接节点信息
+	 * @return JSONObject
+	 */
+	JSONObject getPeers() throws JSONException;
+
+	/**
+	 * 加密钱包
+	 * @param password 
+	 * @return JSONObject
+	 */
+	JSONObject encryptWallet(String password) throws JSONException;
+
+	/**
+	 * 修改密码
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject changePassword(String oldPassword, String newPassword) throws JSONException;
+
+	/**
+	 * 发送交易
+	 * @param toAddress
+	 * @param money
+	 * @param fee
+	 * @param password 
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject sendMoney(String toAddress, String money, String fee, String password) throws JSONException;
 	
 	
 }

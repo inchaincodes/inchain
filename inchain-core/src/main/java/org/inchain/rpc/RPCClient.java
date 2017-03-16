@@ -2,6 +2,7 @@ package org.inchain.rpc;
 
 import java.io.BufferedReader;
 import java.io.Console;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -48,17 +49,19 @@ public class RPCClient {
 	private PrintWriter pw;
 	
 	public static void main(String[] args) throws IOException, JSONException {
-		args = new String[10];
-		args[0] = "-rpc_host";
-		args[1] = "localhost";
-		args[2] = "-rpc_port";
-		args[3] = "8632";
-		args[4] = "-rpc_user";
-		args[5] = "user";
-		args[6] = "-rpc_password";
-		args[7] = "klJZKtyloogQzZRTHPKj";
-		args[8] = "regconsensus";
-		args[9] = "ff979ba615fc4817ae0d3d0dde3007eecb3eed14ebceb49e721a0e49c40442d1";
+//		args = new String[12];
+//		args[0] = "-rpc_host";
+//		args[1] = "localhost";
+//		args[2] = "-rpc_port";
+//		args[3] = "8632";
+//		args[4] = "-rpc_user";
+//		args[5] = "user";
+//		args[6] = "-rpc_password";
+//		args[7] = "klJZKtyloogQzZRTHPKj";
+//		args[8] = "help";
+//		args[9] = "tb1LkNUTGgtPBhu5MNGoK8Hdfp3tJi7nKa";
+//		args[10] = "5.111";
+//		args[11] = "0";
 		
 		String result = new RPCClient().processCmd(args);
 		printMsg(result);
@@ -79,24 +82,42 @@ public class RPCClient {
 			return helpInfos();
 		}
 
-		//rpc参数
-		JSONObject optionsInfos = new JSONObject();
-		//发送到服务端的命令
-		JSONObject remoteCommandsInfos = new JSONObject();
-		
-		//分析命令
-		analysisCommands(commands, optionsInfos, remoteCommandsInfos);
-		
-		//初始化rpc服务器信息
-		initServer(optionsInfos);
-		
-		//发送钱包命令到rpc服务器
-		sendCommands(remoteCommandsInfos);
-		
-		//接收服务器响应
-		JSONObject result = receiveResult();
-		
-		//判断是否需要输入信息才能继续
+		try {
+			//rpc参数
+			JSONObject optionsInfos = new JSONObject();
+			//发送到服务端的命令
+			JSONObject remoteCommandsInfos = new JSONObject();
+			
+			//分析命令
+			analysisCommands(commands, optionsInfos, remoteCommandsInfos);
+			
+			//帮助命令，直接打印
+			if("help".equals(remoteCommandsInfos.getString("command"))) {
+				return getHelpCommands();
+			}
+			
+			//初始化rpc服务器信息
+			initServer(optionsInfos);
+			
+			//发送钱包命令到rpc服务器
+			sendCommands(remoteCommandsInfos);
+			
+			//接收服务器响应
+			JSONObject result = receiveResult();
+			
+			//判断是否需要输入信息才能继续
+			result = processInput(result);
+			return result.toString(6).toString();
+		} finally {
+			close();
+		}
+	}
+
+	/*
+	 * 处理需要输入信息才能继续的命令
+	 * 主要是密码相关
+	 */
+	private JSONObject processInput(JSONObject result) throws IOException {
 		try {
 			if(result.has("needInput") && result.getBoolean("needInput")) {
 				Console console = System.console();
@@ -105,19 +126,68 @@ public class RPCClient {
 				}
 				JSONObject inputInfos = new JSONObject();
 				
+				int type = result.getInt("inputType");
+				
+				//只输一次的密码
+				if(type == 1) {
 //				inputInfos.put("input", new String(console.readPassword("*")));
-				Scanner sc = new Scanner(System.in);
-				inputInfos.put("input", sc.nextLine());
+					Scanner sc = new Scanner(System.in);
+					inputInfos.put("password", sc.nextLine());
+					sc.close();
+				} else if(type == 2) {
+					//输2次密码，并且两次要一致，不一致就退出
+					Scanner sc2 = new Scanner(System.in);
+					
+					String p1 = sc2.nextLine();
+					
+					System.out.println("再次确认密码");
+					
+					String p2 = sc2.nextLine();
+					
+					if(!p1.equals(p2)) {
+						System.out.println("两次输入的密码不一致");
+						closeAndExit();
+					}
+					
+					inputInfos.put("newPassword", p1);
+					sc2.close();
+					
+				} else if(type == 3) {
+					
+					System.out.println("请输入钱包旧密码");
+					
+					Scanner sc = new Scanner(System.in);
+					inputInfos.put("password", sc.nextLine());
+					
+					System.out.println("请输入钱包新密码");
+					//修改密码，输1次原密码，2次新密码，并且两次要一致，不一致就退出
+					
+					String p1 = sc.nextLine();
+					
+					System.out.println("再次确认新密码");
+					
+					String p2 = sc.nextLine();
+					
+					if(!p1.equals(p2)) {
+						System.out.println("两次输入的新密码不一致");
+						closeAndExit();
+					}
+					
+					inputInfos.put("newPassword", p1);
+					sc.close();
+				}
 				
 				sendCommands(inputInfos);
 				result = receiveResult();
+				
+				//是否需要再次输入
+				JSONObject newResult = processInput(result);
+				return newResult;
 			}
 		} catch (Exception e) {
-			return result.toString();
-		} finally {
-			close();
+			return result;
 		}
-		return result.toString(6).toString();
+		return result;
 	}
 
 	/*
@@ -148,16 +218,27 @@ public class RPCClient {
 		
 		//rpc参数配置
 		Properties property = new Properties();
-		InputStream in = RPCClient.class.getResourceAsStream("/rpc_config.properties");
-		if(in != null) {
-			property.load(in);
-			in.close();
+		if(optionsInfos.has("config")) {
+			try {
+				FileInputStream in = new FileInputStream(optionsInfos.getString("config"));
+				property.load(in);
+				in.close();
+			} catch (Exception e) {
+				printError("配置文件错误");
+				closeAndExit();
+			}
+		} else {
+			InputStream in = RPCClient.class.getResourceAsStream("/rpc_config.properties");
+			if(in != null) {
+				property.load(in);
+				in.close();
+			}
 		}
 		
 		//没有的情况，就直接读取配置文件
 		if((optionsInfos == null || optionsInfos.length() == 0) && property.isEmpty()) {
 			printError("缺少rpc认证参数");
-			System.exit(0);
+			closeAndExit();
 		}
 		if(optionsInfos.has(RPC_HOST_KEY)) {
 			property.put(RPC_HOST_KEY, optionsInfos.get(RPC_HOST_KEY));
@@ -176,14 +257,14 @@ public class RPCClient {
 		if(!property.containsKey(RPC_HOST_KEY) || !property.containsKey(RPC_PORT_KEY) 
 				|| !property.containsKey(RPC_USER_KEY) || !property.containsKey(RPC_PASSWORD_KEY)) {
 			printError("rpc参数不齐全");
-			System.exit(0);
+			closeAndExit();
 		}
 		//连接并认证
 		try {
 			socket = new Socket(property.getProperty(RPC_HOST_KEY), Integer.parseInt(property.getProperty(RPC_PORT_KEY)));
 		} catch (Exception e) {
 			printError("连接不成功");
-			System.exit(0);
+			closeAndExit();
 		}
 		this.br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		this.pw = new PrintWriter(socket.getOutputStream());
@@ -197,7 +278,7 @@ public class RPCClient {
 		
 		if(!result.getBoolean("success")) {
 			System.out.println(result.toString());
-			System.exit(0);
+			closeAndExit();
 		}
 	}
 
@@ -257,8 +338,54 @@ public class RPCClient {
 		return sb.toString();
 	}
 	
+	/*
+	 * 获取帮助命令
+	 */
+	public static String getHelpCommands() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("命令列表\n");
+		sb.append("\n");
+		sb.append(" --- 区块相关 --- \n");
+		sb.append("  getblockcount                   获取区块的数量\n");
+		sb.append("  getbestblockheight              获取最新区块的高度\n");
+		sb.append("  getbestblockhash                获取最新区块的hash\n");
+		sb.append("  getblockhash                    通过高度获取区块hash\n");
+		sb.append("  getblockheader [param] (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
+		sb.append("  getblock [param] (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
+		sb.append("\n");
+		sb.append(" --- 帐户相关 --- \n");
+		sb.append("  getbalance                      获取账户的余额\n");
+		sb.append("  getcredit                       获取账户的信用\n");
+		sb.append("  getaccountinfo                  获取账户的详细信息\n");
+		sb.append("  gettransaction                  获取帐户的交易记录\n");
+		sb.append("  encryptwallet                   加密钱包\n");
+		sb.append("  password                        修改钱包密码\n");
+		sb.append("\n");
+		sb.append(" --- 交易相关 --- \n");
+		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
+		sb.append("  send [to address] [money] [fee]     转账\n");
+		sb.append("\n");
+		sb.append(" --- 共识相关 --- \n");
+		sb.append("  getconsensus                    获取共识节点列表\n");
+		sb.append("  regconsensus                    注册共识\n");
+		sb.append("  remconsensus                    退出共识\n");
+		sb.append("\n");
+		sb.append(" --- 节点相关 --- \n");
+		sb.append("  getpeers                        获取连接节点信息\n");
+		
+		sb.append("\n");
+		
+		return sb.toString();
+	}
+	
 	private static void printMsg(String msg) {
 		System.out.println(msg);
+	}
+
+	private void closeAndExit() throws IOException {
+		close();
+		System.exit(0);
 	}
 
 	private void close() throws IOException {

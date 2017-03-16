@@ -12,6 +12,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.util.DigestUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * 字符串工具类
@@ -51,7 +52,7 @@ public final class StringUtil {
 	 * 给字符串加密，采用md5加密算法
 	 * 
 	 * @param str
-	 * @return
+	 * @return String
 	 */
 	public static String encryption(String str) {
 		if (str == null) {
@@ -65,7 +66,7 @@ public final class StringUtil {
 	 * 
 	 * @param username
 	 * @param password
-	 * @return
+	 * @return String
 	 */
 	public static String encryption(String username, String password) {
 		String result = null;
@@ -117,7 +118,7 @@ public final class StringUtil {
 	 * sha1加密字符串
 	 * 
 	 * @param str
-	 * @return
+	 * @return String
 	 */
 	public static String sha1(String str) {
 		if (str == null) {
@@ -138,7 +139,7 @@ public final class StringUtil {
 	 * 将字节数组转换成16进制字符串
 	 * 
 	 * @param b
-	 * @return
+	 * @return String
 	 */
 	public static String byte2hex(byte[] b) {
 		StringBuilder sbDes = new StringBuilder();
@@ -157,7 +158,7 @@ public final class StringUtil {
 	 * 默认空格，“，”，“|”
 	 * 
 	 * @param string
-	 * @return
+	 * @return String[]
 	 */
 	public static String[] split(String string) {
 		if (isEmpty(string)) {
@@ -188,8 +189,9 @@ public final class StringUtil {
 	/**
 	 * 随机生成一个字符串
 	 * 
-	 * @param length
-	 * @return
+	 * @param letterLength
+	 * @param numberLength
+	 * @return String
 	 */
 	public static String randStr(int letterLength, int numberLength) {
 		StringBuilder sb = new StringBuilder();
@@ -221,7 +223,7 @@ public final class StringUtil {
 	 * 判断是否是合法的手机号码
 	 * 
 	 * @param mobile
-	 * @return
+	 * @return boolean
 	 */
 	public static boolean isMobileNumber(String mobile) {
 		if (isEmpty(mobile)) {
@@ -239,13 +241,32 @@ public final class StringUtil {
 			return false;
 		}
 	}
+	
+	/**
+	 * 校验密码难度
+	 * @param password
+	 * @return boolean
+	 */
+	public static boolean validPassword(String password) {
+		if(StringUtils.isEmpty(password)){  
+            return false;  
+        } 
+		if(password.length() < 6){  
+            return false;  
+        }  
+        if(password.matches("(.*)[a-zA-z](.*)") && password.matches("(.*)\\d+(.*)")){  
+            return true;  
+        } else {
+        	return false;
+        }
+	}
 
 	/**
 	 * 读取最后一行内容
 	 * 
 	 * @param file
 	 * @param charset
-	 * @return
+	 * @return String
 	 * @throws IOException
 	 */
 	public static String readLastLine(File file, String charset) {

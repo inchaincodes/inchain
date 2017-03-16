@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import org.inchain.core.Definition;
 import org.inchain.core.PeerAddress;
 import org.inchain.core.TimeService;
 import org.inchain.core.VarInt;
@@ -17,16 +18,6 @@ import org.inchain.utils.Utils;
 
 public class VersionMessage extends Message {
 
-	 /**
-     * Inchain 核心程序版本
-     */
-    public static final String INCHAIN_VERSION = "0.1";
-
-    /**
-     * 版本完整信息
-     */
-    public static final String LIBRARY_SUBVER = "/inchain core v" + INCHAIN_VERSION + "/";
-    
     /**
      * 哪个网络服务
      */
@@ -114,7 +105,7 @@ public class VersionMessage extends Message {
         } catch (UnknownHostException e) {
             throw new RuntimeException(e);
         }
-        subVer = LIBRARY_SUBVER;
+        subVer = Definition.LIBRARY_SUBVER;
         this.bestHeight = bestHeight;
         this.bestBlockHash = bestBlockHash;
 	}

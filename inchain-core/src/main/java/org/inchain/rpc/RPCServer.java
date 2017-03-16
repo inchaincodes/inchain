@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Properties;
@@ -87,9 +86,8 @@ public class RPCServer implements Server {
 	public void start() throws IOException {
 		
 		init();
-		
-		ServerSocket server = new ServerSocket();
-		server.bind(new InetSocketAddress(property.getProperty("rpc_host"), Integer.parseInt(property.getProperty("rpc_port"))));
+		log.info("will start rpc service on port {}", Integer.parseInt(property.getProperty("rpc_port")));
+		ServerSocket server = new ServerSocket(Integer.parseInt(property.getProperty("rpc_port")));
 		log.debug("rpc service started");
 		try {
 			isRunning = true;
@@ -155,7 +153,7 @@ public class RPCServer implements Server {
 				}
 			} catch (JSONException | IOException e) {
 				try {
-					writeMessage(false, "rpc命令错误，详情:" + e.getMessage());
+					writeMessage(false, "rpc命令错误,详情:" + e.getMessage());
 				} catch (JSONException e1) {
 					e1.printStackTrace();
 				}
