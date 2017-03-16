@@ -1,0 +1,27 @@
+Button{
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-border-color: #6da9e9;
+    -fx-background-color: #1b346e;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_CENTER;
+}
+
+Button:hover{
+	 -fx-background-color: #2767b5;
+}
+.systemInfoButtonId {
+	-fx-background-radius: 5 0 0 5;
+	-fx-border-radius: 5 0 0 5;
+}
+.nodeInfoButtonId {
+	-fx-background-radius: 0 5 5 0;
+	-fx-border-radius:  0 5 5 0;
+}
+
+.consoleId {
+	-fx-background-radius: 5;
+	-fx-border-radius: 5;
+}

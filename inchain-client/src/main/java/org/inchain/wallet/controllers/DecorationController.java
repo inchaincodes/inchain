@@ -6,7 +6,6 @@ import java.awt.datatransfer.StringSelection;
 import org.inchain.wallet.listener.WindowCloseEvent;
 import org.inchain.wallet.utils.DailogUtil;
 
-import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Parent;

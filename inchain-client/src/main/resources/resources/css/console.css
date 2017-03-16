@@ -1,0 +1,66 @@
+.Dailogdecoration{
+	-fx-background-image: url("/images/popup_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;	
+    -fx-background-size: cover;
+}
+
+#close {
+	-fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-image: url("/images/Dailogclose.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+#close:hover {
+    -fx-background-color: null;
+    -fx-background-image: url("/images/dailogCloseHL_bg.png");
+    -fx-background-repeat: no-repeat;
+}
+Label{
+	-fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+}
+Button{
+	-fx-background-radius: 3;
+    -fx-border-style: null;
+    -fx-background-color: #34538b;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_CENTER;
+}
+
+Button:hover{
+	 -fx-background-color: #5070aa;
+}
+.text-area {
+	-fx-text-fill: #fff;
+    -fx-background-color: transparent;
+    -fx-border-color: #6da9e9;
+    -fx-border-radius: 3;
+}
+.command{
+	-fx-background-radius: 3;
+    -fx-border-style: null;
+    -fx-border-color: #6da9e9;
+    -fx-border-radius: 3;
+    -fx-background-color: transparent;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+}
+.text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.text-area .scroll-pane .viewport{
+    -fx-background-color: transparent;
+}
+
+
+.text-area .scroll-pane .content{
+    -fx-background-color: transparent;
+}

@@ -3,6 +3,7 @@ package org.inchain.wallet.utils;
 import java.net.URL;
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.Context;
+import org.inchain.wallet.controllers.ConsoleController;
 import org.inchain.wallet.controllers.DailogController;
 import org.inchain.wallet.controllers.DailogDecorationController;
 import org.inchain.wallet.entity.Point;
@@ -198,7 +199,6 @@ public class DailogUtil {
 			Pane ui = loader.load();
 			DailogDecorationController dailogDecorationController = loader.getController();
 			
-			dailogDecorationController.getDailogContent().getChildren().add(node);
 			
 			Stage window = new Stage(StageStyle.TRANSPARENT);
 			dailogDecorationController.setStage(window);
@@ -214,6 +214,51 @@ public class DailogUtil {
 			Scene scene = new Scene(ui);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
+			window.showAndWait();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	/**
+	 * 显示控制台弹出层
+	 * @param content
+	 * @param title
+	 * @param callback 关闭时的回调
+	 */
+	public static void showConsoleDailog(FXMLLoader content, String title) {
+		try {
+			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
+			FXMLLoader loader =  new FXMLLoader(url);
+			Pane ui = loader.load();
+			DailogDecorationController dailogDecorationController = loader.getController();
+			Pane dailogContent = content.load();
+			ui.setPrefWidth(800);
+			ui.setPrefHeight(530);
+			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
+			
+			Stage window = new Stage(StageStyle.TRANSPARENT);
+			dailogDecorationController.setStage(window);
+			dailogDecorationController.setTitle(title);
+			Point point = getDailogPoint(ui.getPrefWidth(), ui.getPrefHeight());
+			window.setX(point.getX());
+			window.setY(point.getY());
+			//设置程序标题
+			window.setTitle(title);
+			window.initModality(Modality.APPLICATION_MODAL);
+			//设置程序图标
+			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
+			Scene scene = new Scene(ui);
+			window.setScene(scene);
+			scene.getStylesheets().add("/resources/css/console.css");
+			if(dailogContent.getId() != null) {
+				Context.addStage(dailogContent.getId(), window);
+			}
+			
+			DailogController controller = content.getController();
+			
+			controller.setCallback(null);
+			controller.setPageId(dailogContent.getId());
+			
 			window.showAndWait();
 		} catch (Exception e) {
 			e.printStackTrace();

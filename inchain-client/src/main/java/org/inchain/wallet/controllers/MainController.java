@@ -67,6 +67,7 @@ public class MainController {
 	public Button consensusRecordId;		//共识节点列表
 	public Button sellerRecordId;			//商家列表
 	public Button antifakeId;				//防伪测试
+	public Button systemSettingsId;       //系统设置
 	
 	public ImageView netInfoImageViewId;	//网络信息
 	public ImageView blockInfoImageViewtId;	//区块信息
@@ -114,6 +115,7 @@ public class MainController {
     	addImageToButton(consensusRecordId,"consensusRecord");
     	addImageToButton(sellerRecordId,"sellerRecord");
     	addImageToButton(antifakeId, "antifake");
+    	addImageToButton(systemSettingsId, "settings");
     	
 		buttons.add(accountInfoId);
 		buttons.add(sendAmountId);
@@ -121,6 +123,7 @@ public class MainController {
 		buttons.add(consensusRecordId);
 		buttons.add(sellerRecordId);
 		buttons.add(antifakeId);
+    	buttons.add(systemSettingsId);
     	
 		EventHandler<ActionEvent> buttonEventHandler = getPageEventHandler();
 		for (Button button : buttons) {
@@ -263,6 +266,8 @@ public class MainController {
 				tip = "初始化共识信息";
 			} else if(controller instanceof AccountInfoController) {
 				tip = "初始化商家信息";
+			}else if(controller instanceof SystemSettingsController) {
+				tip = "初始化系统信息";
 			}
 			if(tip != null) {
 				startupOnChange(startupListener, tip, completionRate);
@@ -453,6 +458,10 @@ public class MainController {
 		case "antifakeId":
 			//点击防伪测试按钮
 			fxml = "/resources/template/antifake.fxml";
+			break;
+		case "systemSettingsId":
+			//点击系统设置按钮
+			fxml = "/resources/template/systemSettings.fxml";
 			break;
 		default:
 			break;

@@ -9,6 +9,11 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
+/**
+ * 弹出窗体
+ * @author cj
+ *
+ */
 public class DailogDecorationController {
 
 	private Stage stage;

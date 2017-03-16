@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="420.0" prefWidth="631.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SystemInfoController">
+   <children>
+      <VBox alignment="CENTER" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="10.0">
+         <children>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="信息">
+                     <HBox.margin>
+                        <Insets left="200.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="版本：">
+                     <HBox.margin>
+                        <Insets left="250.0" />
+                     </HBox.margin></Label>
+                  <Label fx:id="version" text="0">
+                     <HBox.margin>
+                        <Insets left="80.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </HBox>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="所在网络：">
+                     <HBox.margin>
+                        <Insets left="250.0" />
+                     </HBox.margin></Label>
+                  <Label fx:id="network" text="测试网络">
+                     <HBox.margin>
+                        <Insets left="58.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </HBox>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="网络端口：">
+                     <HBox.margin>
+                        <Insets left="250.0" />
+                     </HBox.margin></Label>
+                  <Label fx:id="sortId" text="6888">
+                     <HBox.margin>
+                        <Insets left="58.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </HBox>
+         </children>
+      </VBox>
+      <VBox alignment="CENTER" layoutY="106.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="100.0">
+         <children>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="高度">
+                     <HBox.margin>
+                        <Insets left="200.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </HBox>
+            <VBox>
+               <children>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="网络最新高度：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="networkHeight" text="0">
+                           <HBox.margin>
+                              <Insets left="35.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="本地最新高度：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="localHeight" text="0">
+                           <HBox.margin>
+                              <Insets left="35.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="网络链接数：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin>
+                        </Label>
+                        <Label fx:id="networkNumber" text="0">
+                           <HBox.margin>
+                              <Insets left="45.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </VBox>
+         </children>
+      </VBox>
+      <VBox alignment="CENTER_LEFT" layoutY="216.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="200.0">
+         <children>
+            <Label text="时间">
+               <VBox.margin>
+                  <Insets left="200.0" />
+               </VBox.margin>
+            </Label>
+            <VBox>
+               <children>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="网络时间：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="networkTime">
+                           <HBox.margin>
+                              <Insets left="60.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="本地时间：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="localTime">
+                           <HBox.margin>
+                              <Insets left="60.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="时间偏移：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="offsetTime">
+                           <HBox.margin>
+                              <Insets left="65.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </VBox>
+         </children>
+      </VBox>
+      <VBox alignment="CENTER" layoutY="308.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="290.0">
+         <children>
+            <HBox alignment="CENTER_LEFT">
+               <children>
+                  <Label text="共识">
+                     <HBox.margin>
+                        <Insets left="200.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+            </HBox>
+            <VBox alignment="CENTER">
+               <children>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="网络共识节点数：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="consensusNodeNumber" text="0">
+                           <HBox.margin>
+                              <Insets left="20.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets />
+                     </VBox.margin>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="当前共识奖励数：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="consensusBonusNumber" text="0">
+                           <HBox.margin>
+                              <Insets left="20.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="共识状态：">
+                           <HBox.margin>
+                              <Insets left="250.0" />
+                           </HBox.margin></Label>
+                        <Label fx:id="consensusStatus">
+                           <HBox.margin>
+                              <Insets left="60.0" />
+                           </HBox.margin>
+                        </Label>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </HBox>
+               </children>
+               <VBox.margin>
+                  <Insets top="10.0" />
+               </VBox.margin>
+            </VBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

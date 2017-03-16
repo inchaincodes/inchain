@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.NodeInfoController">
+   <children>
+      <HBox AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <Label text="连接节点数：" />
+            <Label fx:id="number" />
+         </children>
+      </HBox>
+      <TableView fx:id="table" layoutX="20.0" layoutY="47.0" style="-fx-background-color: transparent;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
+       	<columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+        <columns>
+            <TableColumn fx:id="ip" minWidth="80" resizable="true" sortable="false" text="ip" />
+         	<TableColumn fx:id="version" maxWidth="100" minWidth="80" resizable="true" sortable="false" text="版本" />
+         	<TableColumn fx:id="sort" maxWidth="100" minWidth="80" sortable="false" text="端口" />
+            <TableColumn fx:id="time" minWidth="150" resizable="true" sortable="false" text="时间" />
+            <TableColumn fx:id="offsetTime" maxWidth="100" minWidth="80" resizable="true" sortable="false" text="时间偏移" />
+            <TableColumn fx:id="duration" maxWidth="100" minWidth="80" resizable="true" sortable="false" text="时长" />
+        </columns>
+      </TableView>
+   </children>
+</AnchorPane>
