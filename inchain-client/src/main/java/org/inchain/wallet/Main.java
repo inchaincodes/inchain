@@ -261,16 +261,15 @@ public class Main extends Decoration implements ActionListener {
 		
 		String command = e.getActionCommand();
         
-        if("db_click_tray".equals(command)) {
+        if("db_click_tray".equals(command) && !stage.isIconified()) {
         	//双击托盘，显示窗体
         	//多次使用显示和隐藏设置false
 			if (stage.isShowing()) {
 				hide();
 			} else {
 				show();
-			}					
+			}
         }
-        
 	}
 	
 	/**
