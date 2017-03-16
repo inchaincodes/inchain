@@ -21,6 +21,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.stage.Modality;
 
 /**
  * 系统设置
@@ -65,7 +66,7 @@ public class SystemSettingsController implements SubPageController{
 		//System.out.println("====");
 		URL url = DailogUtil.class.getClass().getResource("/resources/template/console.fxml");
 		FXMLLoader loader =  new FXMLLoader(url);
-		DailogUtil.showConsoleDailog(loader, "控制台");
+		DailogUtil.showConsoleDailog(loader, "控制台", Modality.WINDOW_MODAL);
 	}
 
 	/*

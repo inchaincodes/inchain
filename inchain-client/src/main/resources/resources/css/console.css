@@ -66,3 +66,19 @@ Button:hover{
 .text-area .scroll-pane .content{
     -fx-background-color: transparent;
 }
+#contentId {
+	-fx-overflow-x:	hidden;
+}
+
+#contentId .scroll-bar:horizontal{ 
+	-fx-color: transparent;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0, 0 0 0 1;  
+    -fx-padding: -1 -1 -1 0;  
+}  
+#contentId .scroll-bar:vertical{
+	-fx-color: #64d3ff;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0, 0 0 0 1;  
+    -fx-padding: -1 -1 -1 0;  
+}

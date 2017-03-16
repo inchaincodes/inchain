@@ -1,5 +1,7 @@
 package org.inchain.wallet.controllers;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,13 +32,19 @@ import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+import javafx.util.Callback;
 
 /**
  * 共识列表页面控制器
@@ -65,8 +73,53 @@ public class ConsensusController implements SubPageController {
 	 */
     public void initialize() {
     	
-    	//status.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Integer>("status"));
+//    	status.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Integer>("status"));
     	address.setCellValueFactory(new PropertyValueFactory<ConensusEntity, String>("address"));
+    	address.setCellFactory(new Callback<TableColumn<ConensusEntity, String>, TableCell<ConensusEntity, String>>() {
+    		@Override 
+    		public TableCell<ConensusEntity, String> call(TableColumn<ConensusEntity, String> tableColumn) {
+    			return new TableCell<ConensusEntity, String>() {
+    				@Override
+    				protected void updateItem(String item, boolean empty) {
+    					super.updateItem(item, empty);
+    					if(item == null) {
+    						setGraphic(null);
+    					} else {
+    						Label label = new Label(item);
+    						label.setOnMouseClicked(new EventHandler<MouseEvent>() {
+								@Override
+								public void handle(MouseEvent e) {
+									StringSelection stsel = new StringSelection(label.getText());
+									Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
+									
+									DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
+									e.consume();
+								}
+							});
+//    						label.setOnMouseEntered(new EventHandler<MouseEvent>() {
+//    						    @Override
+//    						    public void handle(MouseEvent e) {
+//    						    	label.setScaleX(1.1);
+//    						    	label.setScaleY(1.1);
+//    						    	
+//    						    	
+//    						    }
+//    						});
+//
+//    						label.setOnMouseExited(new EventHandler<MouseEvent>() {
+//    						    @Override
+//    						    public void handle(MouseEvent e) {
+//    						    	label.setScaleX(1);
+//    						    	label.setScaleY(1);
+//    						    }
+//    						});
+    						setGraphic(label);
+    					}
+    				}
+    			};
+    		}
+    	});
+    	
     	cert.setCellValueFactory(new PropertyValueFactory<ConensusEntity, Long>("cert") {
     		@Override
     		public ObservableValue<Long> call(CellDataFeatures<ConensusEntity, Long> param) {

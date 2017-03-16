@@ -1,9 +1,9 @@
 package org.inchain.wallet.utils;
 
 import java.net.URL;
+
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.Context;
-import org.inchain.wallet.controllers.ConsoleController;
 import org.inchain.wallet.controllers.DailogController;
 import org.inchain.wallet.controllers.DailogDecorationController;
 import org.inchain.wallet.entity.Point;
@@ -16,7 +16,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
-import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -226,6 +225,16 @@ public class DailogUtil {
 	 * @param callback 关闭时的回调
 	 */
 	public static void showConsoleDailog(FXMLLoader content, String title) {
+		showConsoleDailog(content, title, Modality.APPLICATION_MODAL);
+	}
+	
+	/**
+	 * 显示控制台弹出层
+	 * @param content
+	 * @param title
+	 * @param callback 关闭时的回调
+	 */
+	public static void showConsoleDailog(FXMLLoader content, String title, Modality applicationModal) {
 		try {
 			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
 			FXMLLoader loader =  new FXMLLoader(url);
@@ -244,7 +253,7 @@ public class DailogUtil {
 			window.setY(point.getY());
 			//设置程序标题
 			window.setTitle(title);
-			window.initModality(Modality.APPLICATION_MODAL);
+			window.initModality(applicationModal);
 			//设置程序图标
 			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
 			Scene scene = new Scene(ui);

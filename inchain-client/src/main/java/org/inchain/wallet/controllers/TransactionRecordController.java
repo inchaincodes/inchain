@@ -163,6 +163,9 @@ public class TransactionRecordController implements SubPageController {
 			
 			for (TransactionStore txs : txsList) {
 				
+				//是否是转出
+				boolean isSendout = false;
+				
 				Transaction tx = txs.getTransaction();
 				
 				String type = null, detail = "", amount = null, time = null;
@@ -173,12 +176,12 @@ public class TransactionRecordController implements SubPageController {
 					
 					if(tx.getType() == Definition.TYPE_COINBASE) {
 						type = "共识奖励";
-					}else {
-						type = "转入";
+					} else {
+						type = "现金交易";
 					}
 					
-					//是否是转出
-					boolean isSendout = false;
+					String inputAddress = null;
+					String outputAddress = null;
 					
 					List<Input> inputs = tx.getInputs();
 					if(tx.getType() != Definition.TYPE_COINBASE && inputs != null && inputs.size() > 0) {
@@ -207,21 +210,25 @@ public class TransactionRecordController implements SubPageController {
 							}
 							
 							if(script.isSentToAddress()) {
-								detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(-"+Coin.valueOf(fromOutput.getValue()).toText()+")";
+								inputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+								
+//								detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(-"+Coin.valueOf(fromOutput.getValue()).toText()+")";
 							}
 						}
 					}
 					
-					if(!"".equals(detail)) {
-						detail += "\r\n -> ";
-					}
+//					if(!"".equals(detail)) {
+//						detail += "\r\n -> ";
+//					}
 					
 					List<Output> outputs = tx.getOutputs();
 					
 					for (Output output : outputs) {
 						Script script = output.getScript();
 						if(script.isSentToAddress()) {
-							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
+							outputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+							
+//							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
 							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
 								detail += "(永久锁定)";
 							} else if(((tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis()) ||
@@ -244,7 +251,14 @@ public class TransactionRecordController implements SubPageController {
 					}
 					
 					if(isSendout) {
-						type = "转出";
+						detail = "转给 "+outputAddress+"";
+					} else {
+						//接收，判断是否是共识奖励
+						if(tx.getType() != Definition.TYPE_COINBASE) {
+							detail = "来自 "+inputAddress+"";
+						} else {
+							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")";
+						}
 					}
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
@@ -412,7 +426,13 @@ public class TransactionRecordController implements SubPageController {
 				}
 				
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {
-					amount = Coin.valueOf(tx.getOutput(0).getValue()).toText();
+					
+					if(isSendout) {
+						amount = "-" + Coin.valueOf(tx.getOutput(0).getValue()).toText();
+					} else {
+						amount = "+" + Coin.valueOf(tx.getOutput(0).getValue()).toText();
+						
+					}
 				}
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss");
 				

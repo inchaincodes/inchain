@@ -1,7 +1,13 @@
 package org.inchain.wallet.entity;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.io.ByteArrayInputStream;
 
+import org.inchain.utils.Base58;
+import org.inchain.wallet.utils.DailogUtil;
+
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.ContentDisplay;
@@ -10,6 +16,7 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 
@@ -46,7 +53,50 @@ public class DetailValueCell extends TableCell<TransactionEntity, DetailValue> {
 		values.setTooltip(tooltip);
 		box.getChildren().add(values);
 		
+		final String getAddress = getAddress(content);
+		if(getAddress != null) {
+			values.setOnMouseClicked(new EventHandler<MouseEvent>() {
+				@Override
+				public void handle(MouseEvent e) {
+					StringSelection stsel = new StringSelection(getAddress);
+					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
+					
+					DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
+					e.consume();
+				}
+			});
+		}
+		
 		setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 		setGraphic(box);
+	}
+
+	/*
+	 * 判断内容详情里面是否有地址
+	 */
+	private String getAddress(String content) {
+		
+		String address = null;
+		
+		int count = 0;
+		for (int i = 0; i < content.length(); i++) {
+			char c = content.charAt(i);
+			boolean exist = false;
+			for (char ch : Base58.ALPHABET) {
+				if(c == ch) {
+					exist = true;
+					break;
+				}
+			}
+			if(exist) {
+				count++;
+				if(count >= 34) {
+					address = content.substring(i - count + 1, i + 1);
+				}
+			} else {
+				count = 0;
+			}
+		}
+		return address;
 	}
 }
