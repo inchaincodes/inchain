@@ -6,6 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MiningInfos;
+import org.inchain.core.Definition;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
@@ -49,15 +50,12 @@ public class SystemInfoController implements SubPageController{
 	 * @return 
 	 */
 	public void initialize() {
-		
 		initListeners();
-		startShowTime();
-
 	}
 
 	@Override
 	public void initDatas() {
-		
+		startShowTime();
 	}
 	/*
 	 * 初始化数据变化监听器
@@ -88,64 +86,59 @@ public class SystemInfoController implements SubPageController{
 	 * 开始显示时间，这里显示的是网络时间，并不是本地时间
 	 */
 	private void startShowTime() {
-		new Thread(){
-    		public void run() {
-    			while(true) {
-    				try {
-    					Platform.runLater(new Runnable() {
-    					    @Override
-    					    public void run() {
-    					    	networkTime.setText(DateUtil.convertDate(new Date(TimeService.currentTimeMillis())));
-    					    	localTime.setText(DateUtil.convertDate(new Date()));
-    					    	if(TimeService.getNetTimeOffset() > 0) {
-    					    		offsetTime.setText("落后"+Math.abs(TimeService.getNetTimeOffset())+"毫秒");
-    					    	} else if(TimeService.getNetTimeOffset() < 0) {
-    					    		offsetTime.setText("快"+Math.abs(TimeService.getNetTimeOffset())+"毫秒");
-    					    	} else {
-    					    		offsetTime.setText(""+"0毫秒");
-    					    	}
-    					    	networkHeight.setText(String.valueOf(appKit.getNetwork().getBestHeight()));
-    					    	
-    					    	localHeight.setText(String.valueOf(appKit.getNetwork().getBestBlockHeight()));
-    					    	sortId.setText(String.valueOf(appKit.getNetwork().getPort()));
-    					    	if(appKit.getNetwork().getLocalServices() == 1) {
-    					    		network.setText("主网络");
-    					    	} else if(appKit.getNetwork().getLocalServices() ==2) {
-    					    		network.setText("测试网络");
-    					    	}
-    					    	MiningInfos miningInfo = SpringContextUtils.getBean(ConsensusMeeting.class).getMineMiningInfos();
-    					    	if(accountKit.checkConsensusing()) {
-    					    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000));
-    					    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000));
-    					    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000));
-    					    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
-    					    			
-    					    			consensusStatus.setText("正在等待进入共识队列。");
-    					    		}else if(endTime.compareTo(DateUtil.convertDate(new Date())) <= 0) {
-    					    			consensusStatus.setText("正在等待进入下一轮共识队列。");
-    					    		}else {
-    					    			consensusStatus.setText("正在排队\n当前轮开始时间："+periodStartTime+"\n我的共识开始时间："+beginTime+"\n我的共识结束时间："+endTime);
-    					    		}
-    					    		
-    					    	} else {
-    					    		consensusStatus.setText("未参与共识。");
-    					    	}
-    					    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
-    					    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText());
-    					    }
-    					});
-    					Thread.sleep(1000l);
-    				} catch (Exception e) {
-    					e.printStackTrace();
-    				}
-    			}
-    		};
-    	}.start();
+			try {
+				Platform.runLater(new Runnable() {
+				    @Override
+				    public void run() {
+				    	
+				    	version.setText(Definition.LIBRARY_SUBVER);
+				    	
+				    	networkTime.setText(DateUtil.convertDate(new Date(TimeService.currentTimeMillis())));
+				    	localTime.setText(DateUtil.convertDate(new Date()));
+				    	if(TimeService.getNetTimeOffset() > 0) {
+				    		offsetTime.setText("落后"+Math.abs(TimeService.getNetTimeOffset())+"毫秒");
+				    	} else if(TimeService.getNetTimeOffset() < 0) {
+				    		offsetTime.setText("快"+Math.abs(TimeService.getNetTimeOffset())+"毫秒");
+				    	} else {
+				    		offsetTime.setText(""+"0毫秒");
+				    	}
+				    	networkHeight.setText(String.valueOf(appKit.getNetwork().getBestHeight()));
+				    	
+				    	localHeight.setText(String.valueOf(appKit.getNetwork().getBestBlockHeight()));
+				    	sortId.setText(String.valueOf(appKit.getNetwork().getPort()));
+				    	if(appKit.getNetwork().getLocalServices() == 1) {
+				    		network.setText("主网络");
+				    	} else if(appKit.getNetwork().getLocalServices() ==2) {
+				    		network.setText("测试网络");
+				    	}
+				    	if(accountKit.checkConsensusing()) {
+				    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+				    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
+				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000));
+				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000));
+				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000));
+				    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
+				    			
+				    			consensusStatus.setText("正在等待进入共识队列");
+				    		}else if(endTime.compareTo(DateUtil.convertDate(new Date())) <= 0) {
+				    			consensusStatus.setText("正在等待进入下一轮共识队列");
+				    		}else {
+				    			consensusStatus.setText("正在排队\n当前轮开始时间："+periodStartTime+"\n我的共识开始时间："+beginTime+"\n我的共识结束时间："+endTime);
+				    		}
+				    		
+				    	} else {
+				    		consensusStatus.setText("未参与共识");
+				    	}
+				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
+				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText() +" INS");
+				    }
+				});
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 	}
 	@Override
 	public void onShow() {
-		// TODO Auto-generated method stub
-		
 	}
 
 	@Override
@@ -156,7 +149,6 @@ public class SystemInfoController implements SubPageController{
 
 	@Override
 	public boolean refreshData() {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 }
