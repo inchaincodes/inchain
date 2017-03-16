@@ -669,7 +669,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					//对上一交易的引用以及索引值
 					Sha256Hash fromId = output.getParent().getHash();
 					int index = output.getIndex();
-					output = (TransactionOutput) getTransaction(fromId.getBytes()).getTransaction().getOutput(index);
+					
+					TransactionStore txStore = getTransaction(fromId.getBytes());
+					if(txStore == null) {
+						return false;
+					}
+					output = (TransactionOutput) txStore.getTransaction().getOutput(index);
 					
 					Script script = output.getScript();
 					if(script.isSentToAddress() && accountFilter.contains(script.getChunks().get(2).data)) {

@@ -168,12 +168,21 @@ public class RPCHanlder {
 		
 		//加密钱包
 		case "encryptwallet": {
+			JSONArray params = commandInfos.getJSONArray("params");
+			if(password == null && params.length() >= 1) {
+				password = params.getString(0);
+			}
 			result = rpcService.encryptWallet(password);
 			return result;
 		}
 		
 		//修改密码
 		case "password": {
+			JSONArray params = commandInfos.getJSONArray("params");
+			if(password == null && newPassword == null && params.length() >= 2) {
+				password = params.getString(0);
+				newPassword = params.getString(1);
+			}
 			result = rpcService.changePassword(password, newPassword);
 			return result;
 		}

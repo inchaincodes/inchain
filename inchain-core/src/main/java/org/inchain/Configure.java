@@ -49,7 +49,7 @@ public final class Configure {
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
-	public final static int DEFAULT_PORT = 6888;
+	public final static int DEFAULT_PORT = 11861;
 	
 	/**
 	 * 是否挖矿
@@ -132,7 +132,7 @@ public final class Configure {
 	 * 参与共识所需的信用点
 	 */
 	//TODO 临时设置为0
-	public final static long CONSENSUS_CREDIT = 0;
+	public final static long CONSENSUS_CREDIT = -10;
 	
 	/**
 	 * 转账获得信用点数

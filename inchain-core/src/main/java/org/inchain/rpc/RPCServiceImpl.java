@@ -555,15 +555,16 @@ public class RPCServiceImpl implements RPCService {
 		}
 		
 		//解密钱包
-		Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
-		if(!result.isSuccess()) {
-			json.put("success", false);
-			json.put("message", result.getMessage());
-			return json;
+		if(accountKit.accountIsEncrypted()) {
+			Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+			if(!result.isSuccess()) {
+				json.put("success", false);
+				json.put("message", result.getMessage());
+				return json;
+			}
 		}
-		
 		try {
-			result = accountKit.registerConsensus();
+			Result result = accountKit.registerConsensus();
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -614,14 +615,16 @@ public class RPCServiceImpl implements RPCService {
 		}
 		
 		//解密钱包
-		Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
-		if(!result.isSuccess()) {
-			json.put("success", false);
-			json.put("message", result.getMessage());
-			return json;
+		if(accountKit.accountIsEncrypted()) {
+			Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+			if(!result.isSuccess()) {
+				json.put("success", false);
+				json.put("message", result.getMessage());
+				return json;
+			}
 		}
 		try {
-			result = accountKit.quitConsensus();
+			Result result = accountKit.quitConsensus();
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());

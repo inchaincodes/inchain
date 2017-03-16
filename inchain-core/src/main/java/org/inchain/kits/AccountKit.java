@@ -1713,7 +1713,7 @@ public class AccountKit {
 			for (Account account : accountList) {
 				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
 				if((accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT)
-						|| (Configure.CONSENSUS_CREDIT == 0l && accountStore == null)) {
+						|| (Configure.CONSENSUS_CREDIT <= 0l && accountStore == null)) {
 					RegConsensusTransaction regConsensus = new RegConsensusTransaction(network, Definition.VERSION, TimeService.currentTimeMillis());
 					regConsensus.sign(account);
 					

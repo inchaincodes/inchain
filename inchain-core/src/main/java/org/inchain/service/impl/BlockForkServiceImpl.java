@@ -299,7 +299,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		//判断该链是否最优，也就是超过当前的主链没有，如果超过，则可重置主链为当前链
 		//再次查询本地最新高度
 		localBestBlock = network.getBestBlockHeader();
-		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight()) {
+		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() + 1) {
 			//回滚主链上的块，知道最新块为preBlock
 			while(true) {
 				BlockStore bestBlock = blockStoreProvider.getBestBlock();

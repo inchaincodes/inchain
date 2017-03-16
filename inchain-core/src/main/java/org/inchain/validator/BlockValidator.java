@@ -84,13 +84,13 @@ public class BlockValidator {
 			
 			//允许块的时间和当前时间不超过1个时段的误差，否则验证不通过
 			//这个条件的判断，会导致时间不准的节点出错，但是不判断则会给系统带来极大风险，是否放宽条件？  TODO
-			long timeDiff = TimeService.currentTimeSeconds() - (block.getPeriodStartTime() + block.getTimePeriod() * Configure.BLOCK_GEN_TIME);
-			if(Math.abs(timeDiff) > Configure.BLOCK_GEN__MILLISECOND_TIME * 2) {
+			long timeDiff = TimeService.currentTimeSeconds() - (block.getPeriodStartTime() + (block.getTimePeriod() +1) * Configure.BLOCK_GEN_TIME);
+			if(Math.abs(timeDiff) > Configure.BLOCK_GEN_TIME) {
 				return new Result(false, "新区块时间误差过大，拒绝接收");
 			}
 			
 			BlockHeader bestBlock = networkParams.getBestBlockHeader();
-			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && bestBlock.getTimePeriod() >= block.getTime()) {
+			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && bestBlock.getTimePeriod() >= block.getTimePeriod()) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");
 			}
 			

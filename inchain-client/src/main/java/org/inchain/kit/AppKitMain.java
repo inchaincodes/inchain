@@ -3,7 +3,6 @@ package org.inchain.kit;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -11,8 +10,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
 import org.inchain.kits.AppKit;
-import org.inchain.network.Seed;
-import org.inchain.network.TestNetworkParams;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -23,6 +20,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 public class AppKitMain {
 
 	public static final Log log = LogFactory.getLog(AppKitMain.class);
+	
+	private static final int SERVER_PORT = 13912;
 
 	private static final String START = "start";
 	private static final String STOP = "stop";
@@ -77,7 +76,7 @@ public class AppKitMain {
 			}
 		}.start();
 
-		serverSocket = new ServerSocket(Configure.RPC_SERVER_PORT);
+		serverSocket = new ServerSocket(SERVER_PORT);
 
 		// 等待关闭
 		while (serverSocket != null && !serverSocket.isClosed()) {
@@ -135,7 +134,7 @@ public class AppKitMain {
 			try {
 				server.startup();
 			} catch (IOException e) {
-				System.out.println("监听端口[" + Configure.RPC_SERVER_PORT
+				System.out.println("监听端口[" + SERVER_PORT
 						+ "]打开失败,错误消息:" + e.getLocalizedMessage());
 				System.exit(1);
 			}
@@ -144,7 +143,7 @@ public class AppKitMain {
 			Socket socket = null;
 			OutputStream os = null;
 			try {
-				socket = new Socket("127.0.0.1", Configure.RPC_SERVER_PORT);
+				socket = new Socket("127.0.0.1", SERVER_PORT);
 				os = socket.getOutputStream();
 				os.write(STOP.getBytes());
 			} catch (IOException e) {

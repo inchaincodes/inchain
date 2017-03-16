@@ -26,6 +26,14 @@ else
   exit 1
 fi
 
+for f in $SERVER_HOME/lib/*.jar; do
+  CLASSPATH=${CLASSPATH}:$f;
+done
+
+if [ -d "$SERVER_HOME/conf" ]; then
+  CLASSPATH=${CLASSPATH}:$SERVER_HOME/conf
+fi
+
 # ----- Execute The Requested Command -----------------------------------------
 echo "Using SERVER_HOME:   $SERVER_HOME"
 echo "Using JAVA_HOME:       $JAVA_HOME"

@@ -64,6 +64,8 @@ public class RPCServer implements Server {
 	@Autowired
 	private RPCHanlder rpcHanlder;
 	
+	private ServerSocket server;
+	
 	private boolean isRunning = false;
 	
 	public void startSyn() {
@@ -87,16 +89,12 @@ public class RPCServer implements Server {
 		
 		init();
 		log.info("will start rpc service on port {}", Integer.parseInt(property.getProperty("rpc_port")));
-		ServerSocket server = new ServerSocket(Integer.parseInt(property.getProperty("rpc_port")));
+		server = new ServerSocket(Integer.parseInt(property.getProperty("rpc_port")));
 		log.debug("rpc service started");
-		try {
-			isRunning = true;
-			while (isRunning) {
-				// 1.监听客户端的TCP连接，接到TCP连接后将其封装成task，由线程池执行
-				executor.execute(new RPCRequestCertification(server.accept()));
-			}
-		} finally {
-			server.close();
+		isRunning = true;
+		while (isRunning) {
+			// 1.监听客户端的TCP连接，接到TCP连接后将其封装成task，由线程池执行
+			executor.execute(new RPCRequestCertification(server.accept()));
 		}
 	}
 
@@ -234,5 +232,13 @@ public class RPCServer implements Server {
 
 	public void stop() {
 		isRunning = false;
+
+		try {
+			if(server != null) {
+				server.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
