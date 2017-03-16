@@ -233,7 +233,7 @@ public class DailogUtil {
 			DailogDecorationController dailogDecorationController = loader.getController();
 			Pane dailogContent = content.load();
 			ui.setPrefWidth(800);
-			ui.setPrefHeight(530);
+			ui.setPrefHeight(550);
 			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
 			
 			Stage window = new Stage(StageStyle.TRANSPARENT);

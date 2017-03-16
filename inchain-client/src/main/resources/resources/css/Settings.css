@@ -25,3 +25,7 @@ Button:hover{
 	-fx-background-radius: 5;
 	-fx-border-radius: 5;
 }
+
+.table-cell {
+    -fx-padding: 1em;
+}

@@ -67,11 +67,18 @@ public class NodeInfoController implements SubPageController {
 			startTime = new Date(TimeService.currentTimeMillis());
 			endTime = new Date(peer.getSendVersionMessageTime());
 			long time = (startTime.getTime() - endTime.getTime()) / 1000;
+			String offsetTime = "0";
 			String ipString = peer.getPeerAddress().getAddr().toString().split("/")[1];
+			if(peer.getTimeOffset() > 0) {
+				offsetTime = "快"+Math.abs(peer.getTimeOffset())+"毫秒";
+			} else if(peer.getTimeOffset() < 0) {
+				offsetTime = "慢"+Math.abs(peer.getTimeOffset())+"毫秒";
+			}
+			
 			list.add(new NodeInfoEntity(ipString,
-					"" + peer.getNetwork().getSystemAccountVersion(), "" + peer.getAddress().getPort(),
+					peer.getPeerVersionMessage().getSubVer(), "" + peer.getAddress().getPort(),
 					"" + DateUtil.convertDate(new Date((TimeService.currentTimeSeconds()+peer.getTimeOffset()) * 1000)),
-					"" + peer.getTimeOffset(),DateUtil.analyzeTime(time, false) , ""));
+					offsetTime,DateUtil.analyzeTime(time, false) , ""));
 		}
 		number.setText(list.size()+"个");
 		ObservableList<NodeInfoEntity> datas = FXCollections.observableArrayList(list);

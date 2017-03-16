@@ -8,9 +8,9 @@
 
 <AnchorPane fx:id="Dailogroot" prefHeight="500.0" prefWidth="800.0" styleClass="Dailogdecoration" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.ConsoleController">
    <children>
-      <TextArea layoutX="25.0" layoutY="50.0" prefHeight="423.0" prefWidth="600.0" AnchorPane.bottomAnchor="47.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="0.0" />
-      <Button layoutX="530.0" layoutY="455.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="66.0" text="发送" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="460.0" />
-      <TextField layoutX="14.0" layoutY="455.0" prefHeight="30.0" prefWidth="706.0" style="-fx-background-color: transparent;" styleClass="command" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="84.0" AnchorPane.topAnchor="460.0">
+      <TextArea layoutX="25.0" layoutY="50.0" prefHeight="423.0" prefWidth="600.0" AnchorPane.bottomAnchor="54.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="0.0" />
+      <Button layoutX="530.0" layoutY="455.0" mnemonicParsing="false" prefHeight="30.0" prefWidth="66.0" text="发送" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="30.0" />
+      <TextField layoutX="14.0" layoutY="455.0" prefHeight="30.0" prefWidth="668.0" style="-fx-background-color: transparent;" styleClass="command" AnchorPane.bottomAnchor="14.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="106.0">
          <font>
             <Font name="Microsoft YaHei" size="14.0" />
          </font></TextField>
