@@ -38,6 +38,16 @@ import org.inchain.transaction.business.ViolationTransaction;
 public final class Definition {
 
 
+	/**
+     * Inchain 核心程序版本
+     */
+    public static final String INCHAIN_VERSION = "0.0.1";
+
+    /**
+     * 版本完整信息
+     */
+    public static final String LIBRARY_SUBVER = "inchain core preview version v" + INCHAIN_VERSION + "";
+    
 	public static final long VERSION = 1;
 	
 	//lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒）
