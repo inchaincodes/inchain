@@ -1725,7 +1725,7 @@ public class AccountKit {
 					
 					BroadcastResult broadcastResult = peerKit.broadcast(regConsensus).get();
 					if(broadcastResult.isSuccess()) {
-						return new Result(true, "注册为共识节点请求已成功发送到网络");
+						return new Result(true, "申请共识请求已成功发送到网络,等待网络确认后即可开始共识");
 					} else {
 						MempoolContainer.getInstace().remove(regConsensus.getHash());
 					}
@@ -1757,7 +1757,8 @@ public class AccountKit {
 					
 					BroadcastResult broadcastResult = peerKit.broadcast(remConsensus).get();
 					if(broadcastResult.isSuccess()) {
-						return new Result(true, "退出共识请求已成功发送到网络");
+						//TODO
+						return new Result(true, "退出共识请求已成功发送到网络,预计"+1+"秒后可真正退出共识");
 					} else {
 						MempoolContainer.getInstace().remove(remConsensus.getHash());
 					}

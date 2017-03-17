@@ -123,12 +123,4 @@ public class RemoteSeedManager implements SeedManager {
 	public boolean addDnsSeed(String domain) {
 		return SEED_DOMAINS.add(domain);
 	}
-	
-	public static void main(String[] args) {
-		RemoteSeedManager manager = new RemoteSeedManager();
-		manager.addDnsSeed("test1.seed.inchain.org");
-		manager.addDnsSeed("test2.seed.inchain.org");
-		manager.hasMore();
-		manager.getSeedList(10);
-	}
 }

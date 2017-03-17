@@ -17,9 +17,9 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  * 
  * @author ln
  */
-public class AppKitMain {
+public class InchainKit {
 
-	public static final Log log = LogFactory.getLog(AppKitMain.class);
+	public static final Log log = LogFactory.getLog(InchainKit.class);
 	
 	private static final int SERVER_PORT = 13912;
 
@@ -29,15 +29,15 @@ public class AppKitMain {
 	private ServerSocket serverSocket;
 	private ClassPathXmlApplicationContext springContext;
 
-	public static AppKitMain INSTANCE;
+	public static InchainKit INSTANCE;
 
-	private AppKitMain() {
+	private InchainKit() {
 		// 不允许外部创建实例
 	}
 
-	public static AppKitMain getInstance() {
+	public static InchainKit getInstance() {
 		if (INSTANCE == null) {
-			INSTANCE = new AppKitMain();
+			INSTANCE = new InchainKit();
 		}
 		return INSTANCE;
 	}
@@ -128,7 +128,7 @@ public class AppKitMain {
 
 		String cmd = args[0];
 
-		AppKitMain server = AppKitMain.getInstance();
+		InchainKit server = InchainKit.getInstance();
 
 		if (cmd.equals(START)) {
 			try {

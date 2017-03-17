@@ -55,6 +55,8 @@ public class ConsensusController implements SubPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(ConsensusController.class);
 	
+	private static int consensusStauts = 0;
+	
 	public TableView<ConensusEntity> table;
 	
 	public Label certNumberId;
@@ -264,7 +266,7 @@ public class ConsensusController implements SubPageController {
 			result = accountKit.registerConsensus();
 			type = 1;
 		}
-		DailogUtil.showTip(result.getMessage(), Context.getMainStage());
+		DailogUtil.showTip(result.getMessage(), 3000l);
 		if(result.isSuccess()) {
 			initDatas();
 		}

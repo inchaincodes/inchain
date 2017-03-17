@@ -526,12 +526,19 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(meetingRound.get() < 3) {
 			return timeoutList;
 		}
+		
 		BlockHeader lastHeader = network.getBestBlockHeader();
 		
 		long periodStartTime = currentMetting.getPeriodStartTime();
 		//分析当前轮的超时情况
 		//我的时段
 		int myTimePeriod = currentMetting.getTimePeriod();
+
+		//每轮的第一个和最后一个人，不处理违规情况
+		//这样做的好处是更能有效的避免分叉情况的发生
+		if(myTimePeriod == 0 || myTimePeriod == currentMetting.getPeriodCount() -1) {
+			return timeoutList;
+		}
 		
 		List<ConsensusAccount> list = currentMetting.getConsensusList();
 		
