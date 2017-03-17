@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
@@ -15,8 +16,11 @@
                      <children>
                         <Label text="信息">
                            <HBox.margin>
-                              <Insets left="100.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
+                           <font>
+                              <Font name="Microsoft YaHei" size="14.0" />
+                           </font>
                         </Label>
                      </children>
                      <VBox.margin>
@@ -29,10 +33,13 @@
                            <HBox.margin>
                               <Insets left="110.0" />
                            </HBox.margin>
+                           <font>
+                              <Font size="14.0" />
+                           </font>
                         </Label>
                         <Label fx:id="version" text="0">
                            <HBox.margin>
-                              <Insets left="80.0" />
+                              <Insets left="84.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -49,7 +56,7 @@
                         </Label>
                         <Label fx:id="network" text="测试网络">
                            <HBox.margin>
-                              <Insets left="58.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -66,7 +73,7 @@
                         </Label>
                         <Label fx:id="sortId" text="6888">
                            <HBox.margin>
-                              <Insets left="58.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -82,7 +89,7 @@
                      <children>
                         <Label text="高度">
                            <HBox.margin>
-                              <Insets left="100.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -135,7 +142,7 @@
                               </Label>
                               <Label fx:id="networkNumber" text="0">
                                  <HBox.margin>
-                                    <Insets left="45.0" />
+                                    <Insets left="47.0" />
                                  </HBox.margin>
                               </Label>
                            </children>
@@ -159,7 +166,7 @@
                      <children>
                         <Label text="时间">
                            <HBox.margin>
-                              <Insets left="100.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -178,7 +185,7 @@
                               </Label>
                               <Label fx:id="networkTime">
                                  <HBox.margin>
-                                    <Insets left="60.0" />
+                                    <Insets left="65.0" />
                                  </HBox.margin>
                               </Label>
                            </children>
@@ -192,7 +199,7 @@
                               </Label>
                               <Label fx:id="localTime">
                                  <HBox.margin>
-                                    <Insets left="60.0" />
+                                    <Insets left="65.0" />
                                  </HBox.margin>
                               </Label>
                            </children>
@@ -233,7 +240,7 @@
                      <children>
                         <Label text="共识">
                            <HBox.margin>
-                              <Insets left="100.0" />
+                              <Insets left="65.0" />
                            </HBox.margin>
                         </Label>
                      </children>
@@ -252,7 +259,7 @@
                               </Label>
                               <Label fx:id="consensusNodeNumber" text="0">
                                  <HBox.margin>
-                                    <Insets left="20.0" />
+                                    <Insets left="25.0" />
                                  </HBox.margin>
                               </Label>
                            </children>
@@ -269,7 +276,7 @@
                               </Label>
                               <Label fx:id="consensusBonusNumber" text="0">
                                  <HBox.margin>
-                                    <Insets left="20.0" />
+                                    <Insets left="25.0" />
                                  </HBox.margin>
                               </Label>
                            </children>
@@ -286,7 +293,7 @@
                               </Label>
                               <Label fx:id="consensusStatus">
                                  <HBox.margin>
-                                    <Insets left="60.0" />
+                                    <Insets left="65.0" />
                                  </HBox.margin>
                               </Label>
                            </children>

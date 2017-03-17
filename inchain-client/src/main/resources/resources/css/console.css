@@ -42,7 +42,7 @@ Button:hover{
     -fx-background-color: transparent;
     -fx-border-color: #6da9e9;
     -fx-border-radius: 3;
-    -fx-font-size:20;
+    -fx-font-size:14;
 }
 .command{
 	-fx-background-radius: 3;

@@ -27,6 +27,7 @@ public class ConsoleController extends DailogController{
 	
 	public void initialize() {
 		
+		contentId.setWrapText(true);
 		contentId.setText(RPCClient.getHelpCommands());
 		updateContent();
 		
@@ -81,7 +82,6 @@ public class ConsoleController extends DailogController{
 					result = resultJson.toString(3);
 				}
 				contentId.setText(contentId.getText().trim() + "\n" + command + "\n" + result + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

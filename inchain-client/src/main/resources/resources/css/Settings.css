@@ -26,6 +26,6 @@ Button:hover{
 	-fx-border-radius: 5;
 }
 
-.table-cell {
-    -fx-padding: 1em;
+.table-row-cell {
+    -fx-cell-size: 50px;
 }

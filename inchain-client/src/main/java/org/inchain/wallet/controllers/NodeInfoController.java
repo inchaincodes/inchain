@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -43,6 +44,7 @@ public class NodeInfoController implements SubPageController {
 	List<NodeInfoEntity> list = new ArrayList<NodeInfoEntity>();
 	
 	public void initialize() {
+		
 		ip.setCellValueFactory(new PropertyValueFactory<NodeInfoEntity, String>("ip"));
 		version.setCellValueFactory(new PropertyValueFactory<NodeInfoEntity, String>("version"));
 		sort.setCellValueFactory(new PropertyValueFactory<NodeInfoEntity, String>("sort"));
