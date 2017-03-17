@@ -353,7 +353,8 @@ public class TransactionValidator {
 				NotBroadcastBlockViolationEvidence notBroadcastBlock = (NotBroadcastBlockViolationEvidence) violationEvidence;
 				//验证逻辑
 				byte[] hash160 = notBroadcastBlock.getAudienceHash160();
-				long periodStartTime = notBroadcastBlock.getPeriodStartTime();
+				long currentPeriodStartTime = notBroadcastBlock.getCurrentPeriodStartTime();
+				long previousPeriodStartTime = notBroadcastBlock.getPreviousPeriodStartTime();
 				
 				BlockHeader startBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
 				//取得当前轮的最后一个块
@@ -361,22 +362,53 @@ public class TransactionValidator {
 					BlockHeaderStore lastHeaderStore = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
 					if(lastHeaderStore != null) {
 						BlockHeader lastHeader = lastHeaderStore.getBlockHeader();
-						if(lastHeader.getPeriodStartTime() >= periodStartTime && !Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
+						if(lastHeader.getPeriodStartTime() >= currentPeriodStartTime && !Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
 							startBlockHeader = lastHeader;
 						} else {
+							startBlockHeader = lastHeader;
 							break;
 						}
 					}
 				}
 				
 				//原本应该打包的上一个块
-				if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != periodStartTime)) {
-					result.setResult(false, "违规证据中的上一区块不存在");
+				if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != previousPeriodStartTime)) {
+					result.setResult(false, "违规证据中的两轮次不相连");
 					return validatorResult;
 				}
 				
-				//获取该区块的时段
-				int index = getConsensusPeriod(hash160, periodStartTime);
+				//验证该轮的时段
+				int index = getConsensusPeriod(hash160, currentPeriodStartTime);
+				if(index == -1) {
+					result.setResult(false, "证据不成立，该人不在共识列表中");
+					return validatorResult;
+				}
+				BlockHeaderStore currentStartBlockHeaderStore = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
+				if(currentStartBlockHeaderStore == null) {
+					result.setResult(false, "证据不成立，当前轮还没有打包数据");
+					return validatorResult;
+				}
+				BlockHeader currentStartBlockHeader = currentStartBlockHeaderStore.getBlockHeader();
+				while(true) {
+					if(currentStartBlockHeader.getTimePeriod() == index) {
+						result.setResult(false, "证据不成立");
+						return validatorResult;
+					}
+					if(currentStartBlockHeader.getTimePeriod() < index) {
+						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(currentStartBlockHeader.getHeight() + 1);
+						
+						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
+								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != currentPeriodStartTime) {
+							break;
+						}
+						
+						currentStartBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
+					} else {
+						break;
+					}
+				}
+				//验证上一轮的时段
+				index = getConsensusPeriod(hash160, previousPeriodStartTime);
 				if(index == -1) {
 					result.setResult(false, "证据不成立，该人不在共识列表中");
 					return validatorResult;
@@ -387,10 +419,10 @@ public class TransactionValidator {
 						return validatorResult;
 					}
 					if(startBlockHeader.getTimePeriod() < index) {
-						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
+						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
 						
 						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
-								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != periodStartTime) {
+								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != previousPeriodStartTime) {
 							break;
 						}
 						

@@ -50,7 +50,7 @@ public class BlockValidator {
 	private TransactionValidator transactionValidator;
 	@Autowired
 	private CreditCollectionService creditCollectionService;
-	
+
 	public Result doVal(Block block) {
 		try {
 			//验证新区块打包的人是否合法

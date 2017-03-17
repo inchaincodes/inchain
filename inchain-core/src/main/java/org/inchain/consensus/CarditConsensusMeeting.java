@@ -2,6 +2,7 @@ package org.inchain.consensus;
 
 import java.io.IOException;
 import java.nio.channels.NotYetConnectedException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -96,8 +97,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	private Account account;
 	//当前轮共识信息
 	private MeetingItem currentMetting;
-	//上一轮共识信息
-	private MeetingItem previousMetting;
+	//上几轮的共识信息
+	private List<MeetingItem> oldMettings = new ArrayList<MeetingItem>();
 
 	private boolean packageing;
 	//共识调度器状态，0等待初始化，1初始化中，2初始化成功，共识中，3初始化失败
@@ -116,7 +117,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 					log.error("共识会议出错", e);
 				}
 			}
-		}, 1000, 100, TimeUnit.MILLISECONDS);
+		}, 1000, 1000, TimeUnit.MILLISECONDS);
 		
 		//监控节点的情况
 		startPeerMonitor();
@@ -188,8 +189,14 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				}
 			}
 		}
+		MeetingItem previousMetting = null;
 		try {
 			previousMetting = currentMetting.clone();
+			oldMettings.add(0, previousMetting);
+			
+			if(oldMettings.size() > 5) {
+				oldMettings.remove(5);
+			}
 		} catch (CloneNotSupportedException e) {
 			log.error("备份当前轮次信息失败" , e);
 		}
@@ -281,6 +288,32 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		initNewMeetingRound();
 		
 		log.info("start metting : {}", currentMetting);
+		
+		//加载之前5轮的共识信息
+		for (int i = 0; i < 5; i++) {
+			long startTime = bestBlockHeader.getPeriodStartTime();
+			
+			while(true) {
+				Sha256Hash hash = bestBlockHeader.getPreHash();
+				if(Sha256Hash.ZERO_HASH.equals(hash)) {
+					break;
+				}
+				bestBlockHeader = blockStoreProvider.getHeader(hash.getBytes()).getBlockHeader();
+				
+				if(bestBlockHeader.getPeriodStartTime() != startTime) {
+					break;
+				}
+			}
+			if(startTime == bestBlockHeader.getPeriodStartTime()) {
+				break;
+			}
+			
+			List<ConsensusAccount> oldConsensusList = analysisConsensusSnapshots(bestBlockHeader.getPeriodStartTime());
+			MeetingItem metting = new MeetingItem(this, bestBlockHeader.getPeriodStartTime(), oldConsensusList);
+			metting.startConsensus();
+			oldMettings.add(metting);
+		}
+		log.info("old metting size : {}", oldMettings.size());
 	}
 	
 	/**
@@ -519,15 +552,24 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * @return Set<TimeoutConsensusViolation>
 	 */
 	public Set<TimeoutConsensusViolation> getTimeoutList() {
-		
+		//最终处理结果，取下面两个set的交集
 		Set<TimeoutConsensusViolation> timeoutList = new HashSet<TimeoutConsensusViolation>();
 		
-		//只有共识3轮以上，才开始处理超时账号
-		if(meetingRound.get() < 3) {
+		//如果当前只有一轮的信息，则不做任何处理
+		if(oldMettings.size() == 0) {
 			return timeoutList;
 		}
 		
+		//如果当前轮还没有出块，则不处理
 		BlockHeader lastHeader = network.getBestBlockHeader();
+		if(lastHeader.getPeriodStartTime() != currentMetting.getPeriodStartTime()) {
+			return timeoutList;
+		}
+		
+		//当前轮未出块的节点
+		Set<TimeoutConsensusViolation> currentList = new HashSet<TimeoutConsensusViolation>();
+		//上一轮未出块的节点
+		Set<TimeoutConsensusViolation> previousList = new HashSet<TimeoutConsensusViolation>();
 		
 		long periodStartTime = currentMetting.getPeriodStartTime();
 		//分析当前轮的超时情况
@@ -553,8 +595,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 		}
 		
-		//从我当前位置，的前面2个人开始，查找是否存在该时段的块，如果不存在，则说明没有打包
-		for (int i = myTimePeriod - 2; i >= 0 ; i--) {
+		//轮数不够判断
+		if(Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
+			return timeoutList;
+		}
+		
+		//从我当前位置，的前面1个人开始，查找是否存在该时段的块，如果不存在，则说明没有打包
+		for (int i = myTimePeriod - 1; i >= 0 ; i--) {
 			if(i > list.size() - 1 || i < 0) {
 				continue;
 			}
@@ -574,14 +621,19 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				if(!consensusPool.contains(cus.getHash160())) {
 					continue;
 				}
-				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), currentMetting.getPeriodStartTime());
-				timeoutList.add(violation);
+				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), currentMetting.getPeriodStartTime(), currentMetting.getPeriodStartTime());
+				currentList.add(violation);
 			}
 		}
 		
-		if(previousMetting == null) {
-			return timeoutList;
+		log.info("当前轮超时的人数：{}", currentList.size());
+		for (TimeoutConsensusViolation violation : currentList) {
+			log.info("{}", new Address(network, violation.getHash160()));
 		}
+
+		log.info("================");
+		
+		MeetingItem previousMetting = oldMettings.get(0);
 		
 		//同样的方法，去处理上一个轮次超时的人
 		periodStartTime = previousMetting.getPeriodStartTime();
@@ -599,10 +651,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		List<ConsensusAccount> preConsensusList = previousMetting.getConsensusList();
 		
-		//从我当前位置，的前面2个人开始，查找是否存在该时段的块，如果不存在，则说明没有打包
+		//查找是否存在该时段的块，如果不存在，则说明没有打包
 		for (int i = preConsensusList.size() - 1; i >= 0 ; i--) {
 			//最后搜索的块，大于要判断的时段，那么则继续向前搜索
-			if(lastHeader.getTimePeriod() >= i && lastHeader.getPeriodStartTime() != periodStartTime) {
+			if(lastHeader.getTimePeriod() >= i && lastHeader.getPeriodStartTime() == periodStartTime) {
 				BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(lastHeader.getPreHash().getBytes());
 				//如果没有找到，或者找到了创世块，那么结束
 				if(blockHeaderStore == null || Sha256Hash.ZERO_HASH.equals(blockHeaderStore.getBlockHeader().getPreHash())) {
@@ -617,10 +669,32 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				if(!consensusPool.contains(cus.getHash160())) {
 					continue;
 				}
-				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), previousMetting.getPeriodStartTime());
-				timeoutList.add(violation);
+				TimeoutConsensusViolation violation = new TimeoutConsensusViolation(cus.getHash160(), previousMetting.getPeriodStartTime(), previousMetting.getPeriodStartTime());
+				previousList.add(violation);
 			}
 		}
+		log.info("上轮超时的人数：{}", previousList.size());
+		for (TimeoutConsensusViolation violation : previousList) {
+			log.info("{}", new Address(network, violation.getHash160()));
+		}
+
+		log.info("================");
+		
+		//取交集
+		//连续2轮不出块，则处理
+		for (TimeoutConsensusViolation previousViolation : previousList) {
+			for (TimeoutConsensusViolation currentViolation : currentList) {
+				if(Arrays.equals(currentViolation.getHash160(), previousViolation.getHash160())) {
+					timeoutList.add(new TimeoutConsensusViolation(currentViolation.getHash160(), currentViolation.getCurrentPeriodStartTime(), previousViolation.getPreviousPeriodStartTime()));
+					break;
+				}
+			}
+		}
+		for (TimeoutConsensusViolation violation : timeoutList) {
+			log.info("{}", new Address(network, violation.getHash160()));
+		}
+
+		log.info("================");
 		
 		return timeoutList;
 	}
@@ -682,7 +756,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 重新设置会议
 	 */
 	private void resetMeeting(Block block) {
-		currentMetting = new MeetingItem(CarditConsensusMeeting.this, block.getHeight() + 1, consensusPool.listSnapshots());
+		log.info("======================= 重置了");
+		currentMetting = new MeetingItem(CarditConsensusMeeting.this, block.getPeriodStartTime(), consensusPool.listSnapshots());
 		initNewMeetingRound();
 		meetingRound.set(meetingRound.get() - 1);
 	}
@@ -779,8 +854,12 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				}
 			}
 			return currentMetting.getCurrentConsensusInfos(timePeriod);
-		} else if(previousMetting != null && previousMetting.getPeriodStartTime() == periodStartTime) {
-			return previousMetting.getCurrentConsensusInfos(timePeriod);
+		} else {
+			for (MeetingItem meetingItem : oldMettings) {
+				if(meetingItem.getPeriodStartTime() == periodStartTime) {
+					return meetingItem.getCurrentConsensusInfos(timePeriod);
+				}
+			}
 		}
 		return null;
 	}
@@ -823,8 +902,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(currentMetting.getPeriodStartTime()== periodStartTime) {
 			return currentMetting;
 		}
-		if(previousMetting != null && previousMetting.getPeriodStartTime() == periodStartTime) {
-			return previousMetting;
+		for (MeetingItem meetingItem : oldMettings) {
+			if(meetingItem.getPeriodStartTime() == periodStartTime) {
+				return meetingItem;
+			}
 		}
 		return null;
 	}

@@ -13,7 +13,8 @@ import org.inchain.utils.Utils;
 public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	
 	/** 时段开始点 **/
-	private long periodStartTime;
+	private long currentPeriodStartTime;
+	private long previousPeriodStartTime;
 	
 	public NotBroadcastBlockViolationEvidence(byte[] content) {
 		super(content);
@@ -23,17 +24,19 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 		super(content, offset);
 	}
 	
-	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long periodStartTime) {
+	public NotBroadcastBlockViolationEvidence(byte[] audienceHash160, long currentPeriodStartTime, long previousPeriodStartTime) {
 		super(VIOLATION_TYPE_NOT_BROADCAST_BLOCK, audienceHash160);
 		
-		this.periodStartTime = periodStartTime;
+		this.currentPeriodStartTime = currentPeriodStartTime;
+		this.previousPeriodStartTime = previousPeriodStartTime;
 	}
 	
 	@Override
 	public byte[] serialize() {
 		
 		ByteArrayTool byteArray = new ByteArrayTool();
-		byteArray.append(periodStartTime);
+		byteArray.append(currentPeriodStartTime);
+		byteArray.append(previousPeriodStartTime);
 		evidence = byteArray.toArray();
 		
 		return super.serialize();
@@ -42,15 +45,23 @@ public class NotBroadcastBlockViolationEvidence extends ViolationEvidence {
 	@Override
 	public void parse(byte[] content, int offset) {
 		super.parse(content, offset);
-		periodStartTime = Utils.readUint32(evidence, 0);
+		currentPeriodStartTime = Utils.readUint32(evidence, 0);
+		previousPeriodStartTime = Utils.readUint32(evidence, 4);
 	}
 
-	public long getPeriodStartTime() {
-		return periodStartTime;
+	public long getCurrentPeriodStartTime() {
+		return currentPeriodStartTime;
 	}
 
-	public void setPeriodStartTime(long periodStartTime) {
-		this.periodStartTime = periodStartTime;
+	public void setCurrentPeriodStartTime(long currentPeriodStartTime) {
+		this.currentPeriodStartTime = currentPeriodStartTime;
 	}
 
+	public long getPreviousPeriodStartTime() {
+		return previousPeriodStartTime;
+	}
+
+	public void setPreviousPeriodStartTime(long previousPeriodStartTime) {
+		this.previousPeriodStartTime = previousPeriodStartTime;
+	}
 }

@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusInfos;
@@ -179,7 +180,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 	 */
 	private boolean processForkBlock(BlockForkStore blockForkStore, List<BlockForkStore> blockForkChains) {
 		
-		log.info("分叉块：{}", blockForkStore.getBlock());
+//		log.info("分叉块：{}", blockForkStore.getBlock());
 		
 		Block block = blockForkStore.getBlock();
 
@@ -214,6 +215,11 @@ public class BlockForkServiceImpl implements BlockForkService {
 			discardBlock(blockForkStore);
 			return false;
 		}
+		//如果分叉的块比当前时间还要快很多，则可能是恶意节点在诱导分叉，直接丢弃
+		if(block.getTime() - TimeService.currentTimeSeconds() > 2 * Configure.BLOCK_GEN_TIME) {
+			discardBlock(blockForkStore);
+			return false;
+		}
 		
 		//先找到该块的父块再说，如果找不到，则不处理
 		Sha256Hash preHash = block.getPreHash();
@@ -223,7 +229,6 @@ public class BlockForkServiceImpl implements BlockForkService {
 		if(blockForkChains == null) {
 			blockForkChains = new ArrayList<BlockForkStore>();
 		}
-		blockForkChains.add(blockForkStore);
 		
 		BlockStore preBlockStore = blockStoreProvider.getBlock(preHash.getBytes());
 		if(preBlockStore == null) {
@@ -232,11 +237,13 @@ public class BlockForkServiceImpl implements BlockForkService {
 				return false;
 			}
 			//找到了
-			blockForkChains.add(preBlockForkStore);
+			blockForkChains.add(blockForkStore);
 			//递归处理
 			return processForkBlock(preBlockForkStore, blockForkChains);
 		} else {
 			preBlock = preBlockStore.getBlock();
+			
+			blockForkChains.add(blockForkStore);
 		}
 		
 		//如果上一个块没有找到，则该块有可能是不合法的块，也有可能是还没有接收
@@ -299,7 +306,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		//判断该链是否最优，也就是超过当前的主链没有，如果超过，则可重置主链为当前链
 		//再次查询本地最新高度
 		localBestBlock = network.getBestBlockHeader();
-		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() + 1) {
+		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() && blockForkChains.size() > 1) {
 			//回滚主链上的块，知道最新块为preBlock
 			while(true) {
 				BlockStore bestBlock = blockStoreProvider.getBestBlock();
@@ -324,11 +331,12 @@ public class BlockForkServiceImpl implements BlockForkService {
 				processSuccessForkBlock(blockFork);
 				
 				try {
+					log.info("添加分叉块 {} {} {}", network.getBestBlockHeight(), blockFork.getBlock().getHeight(), blockFork.getBlock().getHash());
 					blockStoreProvider.saveBlock(new BlockStore(network, blockFork.getBlock()));
 				} catch (VerificationException | IOException e) {
 					log.error("添加分叉链到主链失败", e);
 					//回滚事务操作？
-					break;
+					return false;
 				}
 			}
 			

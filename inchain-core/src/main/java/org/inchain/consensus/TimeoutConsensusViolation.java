@@ -15,12 +15,14 @@ public class TimeoutConsensusViolation {
 	
 	private byte[] hash160;
 	
-	private long periodStartTime;
+	private long currentPeriodStartTime;
+	private long previousPeriodStartTime;
 	
-	public TimeoutConsensusViolation(byte[] hash160, long periodStartTime) {
+	public TimeoutConsensusViolation(byte[] hash160, long currentPeriodStartTime, long previousPeriodStartTime) {
 		super();
 		this.hash160 = hash160;
-		this.periodStartTime = periodStartTime;
+		this.currentPeriodStartTime = currentPeriodStartTime;
+		this.previousPeriodStartTime = previousPeriodStartTime;
 	}
 	public byte[] getHash160() {
 		return hash160;
@@ -28,19 +30,27 @@ public class TimeoutConsensusViolation {
 	public void setHash160(byte[] hash160) {
 		this.hash160 = hash160;
 	}
-	public long getPeriodStartTime() {
-		return periodStartTime;
+	public long getCurrentPeriodStartTime() {
+		return currentPeriodStartTime;
 	}
-	public void setPeriodStartTime(long periodStartTime) {
-		this.periodStartTime = periodStartTime;
+	public void setCurrentPeriodStartTime(long currentPeriodStartTime) {
+		this.currentPeriodStartTime = currentPeriodStartTime;
+	}
+	public long getPreviousPeriodStartTime() {
+		return previousPeriodStartTime;
+	}
+	public void setPreviousPeriodStartTime(long previousPeriodStartTime) {
+		this.previousPeriodStartTime = previousPeriodStartTime;
 	}
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("TimeoutConsensusViolation [hash160=");
 		builder.append(Hex.encode(hash160));
-		builder.append(", periodStartTime=");
-		builder.append(DateUtil.convertDate(new Date(periodStartTime * 1000)));
+		builder.append(", currentPeriodStartTime=");
+		builder.append(DateUtil.convertDate(new Date(currentPeriodStartTime * 1000)));
+		builder.append(", previousPeriodStartTime=");
+		builder.append(DateUtil.convertDate(new Date(previousPeriodStartTime * 1000)));
 		builder.append("]");
 		return builder.toString();
 	}

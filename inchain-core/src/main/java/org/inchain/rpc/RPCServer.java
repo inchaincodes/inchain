@@ -75,7 +75,7 @@ public class RPCServer implements Server {
 				try {
 					RPCServer.this.start();
 				} catch (IOException e) {
-					log.error("rpc 服务启动失败，{}", e.getMessage(), e);
+					log.error("rpc 服务报错，{}", e.getMessage(), e);
 				}
 			}
 		};
@@ -94,7 +94,14 @@ public class RPCServer implements Server {
 		isRunning = true;
 		while (isRunning) {
 			// 1.监听客户端的TCP连接，接到TCP连接后将其封装成task，由线程池执行
-			executor.execute(new RPCRequestCertification(server.accept()));
+			try {
+				executor.execute(new RPCRequestCertification(server.accept()));
+			} catch (Exception e) {
+				try {
+					Thread.sleep(100l);
+				} catch (InterruptedException e1) {
+				}
+			}
 		}
 	}
 

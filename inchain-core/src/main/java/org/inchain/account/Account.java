@@ -430,6 +430,7 @@ public class Account implements Cloneable {
 	public boolean isEncrypted() {
 		if(accountType == network.getSystemAccountVersion()) {
 			//普通账户
+			
 			if(ecKey == null) {
 				return false;
 			}

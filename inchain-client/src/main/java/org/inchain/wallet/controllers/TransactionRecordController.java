@@ -419,7 +419,7 @@ public class TransactionRecordController implements SubPageController {
 					long credit = 0;
 					if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 						NotBroadcastBlockViolationEvidence nbve = (NotBroadcastBlockViolationEvidence) evidence;
-						reason = String.format("共识过程中，开始时间为%s的轮次超时未出块", DateUtil.convertDate(new Date(nbve.getPeriodStartTime() * 1000)));
+						reason = String.format("共识过程中，开始时间为%s的轮次超时未出块", DateUtil.convertDate(new Date(nbve.getCurrentPeriodStartTime() * 1000)));
 						credit = Configure.CERT_CHANGE_TIME_OUT;
 					}
 					detail += "信用 " + credit + " 原因：" + reason;

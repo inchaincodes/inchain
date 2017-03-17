@@ -225,7 +225,7 @@ public final class MiningService implements Mining {
 
 		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) { 
 			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
-				log.info("超时的节点： {} , periodStartTime: {}" , new Address(network, consensusViolation.getHash160()).getBase58(), DateUtil.convertDate(new Date(consensusViolation.getPeriodStartTime() * 1000)));
+				log.info("超时的节点： {} , currentPeriodStartTime: {} , previousPeriodStartTime: {}" , new Address(network, consensusViolation.getHash160()).getBase58(), DateUtil.convertDate(new Date(consensusViolation.getCurrentPeriodStartTime() * 1000)), DateUtil.convertDate(new Date(consensusViolation.getPreviousPeriodStartTime() * 1000)));
 				//判断该节点是否已被处理，如果没处理则我来处理
 				processViolationConsensusAccount(ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK, consensusViolation, transactionList);
 			}
@@ -388,7 +388,7 @@ public final class MiningService implements Mining {
 			if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 				//超时处理
 				NotBroadcastBlockViolationEvidence evidence = new NotBroadcastBlockViolationEvidence(consensusViolation.getHash160(), 
-						consensusViolation.getPeriodStartTime());
+						consensusViolation.getCurrentPeriodStartTime(), consensusViolation.getPreviousPeriodStartTime());
 				//判断该节点是否已经被处理过了
 				Sha256Hash evidenceHash = evidence.getEvidenceHash();
 				byte[] txHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
