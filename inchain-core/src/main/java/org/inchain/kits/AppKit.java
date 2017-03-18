@@ -11,6 +11,7 @@ import org.inchain.listener.Listener;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.rpc.RPCServer;
+import org.inchain.service.BlockForkService;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
@@ -48,6 +49,8 @@ public class AppKit {
 	private AccountKit accountKit;
 	@Autowired
 	private RPCServer rpcServer;
+	@Autowired
+	private BlockForkService blockForkService;
 	
 	public AppKit() {
 		
@@ -84,6 +87,9 @@ public class AppKit {
 		//初始化rpc服务
 		initRpcService();
 		
+		//启动分叉块处理服务
+		initBlockForkService();
+		
 		addShutdownListener();
 		
 		if(initListener != null) {
@@ -93,6 +99,10 @@ public class AppKit {
 		initDataChangeListener();
 	}
 	
+	private void initBlockForkService() {
+		blockForkService.startSyn();
+	}
+
 	/*
 	 * 初始化rpc服务
 	 */
@@ -150,6 +160,7 @@ public class AppKit {
 	 */
 	public void stop() throws IOException {
 		rpcServer.stop();
+		blockForkService.stop();
 		
 		peerKit.stop();
 		mining.stop();

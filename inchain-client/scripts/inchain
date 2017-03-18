@@ -47,14 +47,79 @@ for f in $SERVER_HOME/lib/*.jar; do
   CLASSPATH=${CLASSPATH}:$f;
 done
 
-# ----- Execute The Requested Command -----------------------------------------
-echo "Using SERVER_HOME:   $SERVER_HOME"
-echo "Using JAVA_HOME:       $JAVA_HOME"
+APP_MAINCLASS=org.inchain.kit.InchainKit
 
-if [ "$1" = "" ] ; then
-exec "Usage:  inchain ( commands ... )"
-fi
+psid=0
+ 
+checkpid() {
+   javaps=`$JAVA_HOME/bin/jps -l | grep $APP_MAINCLASS`
+ 
+   if [ -n "$javaps" ]; then
+      psid=`echo $javaps | awk '{print $1}'`
+   else
+      psid=0
+   fi
+}
 
-if [ "$1" != "" ] ; then
-exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" org.inchain.kit.InchainKit "$@" &
-fi
+start() {
+	checkpid
+	if [ $psid -ne 0 ]; then
+      echo "================================"
+      echo "warn: inchain already started! (pid=$psid)"
+      echo "================================"
+   	else
+   		echo -n "Starting inchain ..."
+		exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" $APP_MAINCLASS "start" >/dev/null 2>&1 &
+		checkpid
+		if [ $psid -ne 0 ]; then
+		   echo "(pid=$psid) [OK]"
+		else
+		   echo "[Failed]"
+		fi
+	fi
+}
+
+stop() {
+
+	checkpid
+ 
+   if [ $psid -ne 0 ]; then
+   		echo -n "Stopping inchain ...(pid=$psid) "
+		exec "$_RUNJAVA" $JAVA_OPTS -cp "$CLASSPATH" $APP_MAINCLASS "stop" >/dev/null 2>&1 &
+		if [ $? -eq 0 ]; then
+         echo "[OK]"
+      	else
+         	echo "[Failed]"
+      	fi
+ 
+      	while [ $psid -ne 0 ];
+      	do
+	    	checkpid
+        	sleep 1
+      	done
+	else 
+		echo -n "inchain not started"
+	fi
+}
+
+case "$1" in
+   'start')
+      start
+      ;;
+   'stop')
+     stop
+     ;;
+   'restart')
+     stop
+     start
+     ;;
+   'status')
+     status
+     ;;
+   'info')
+     info
+     ;;
+  *)
+     echo "Usage: inchain {start|stop|restart}"
+     exit 1
+esac

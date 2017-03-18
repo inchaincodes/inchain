@@ -6,6 +6,7 @@ import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.listener.Listener;
+import org.inchain.service.impl.VersionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -82,7 +83,9 @@ public class InchainInstance {
 		}
 		appKit.startSyn();
 
-
+		VersionService versionService = springContext.getBean(VersionService.class);
+		versionService.setRunModel(2);
+		
 		peerKit = springContext.getBean(PeerKit.class);
 		accountKit = springContext.getBean(AccountKit.class);
 		

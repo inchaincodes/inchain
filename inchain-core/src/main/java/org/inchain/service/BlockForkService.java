@@ -9,6 +9,8 @@ import org.inchain.message.Block;
  */
 public interface BlockForkService {
 
+	void startSyn();
+	
 	void start();
 	
 	void stop();

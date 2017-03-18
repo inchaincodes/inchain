@@ -6,9 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-
 import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusAccount;
@@ -70,8 +67,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 	//是否重置
 	private boolean hasReset;
 
-	@PostConstruct
-	public void init() {
+	public void startSyn() {
 		Thread t = new Thread() {
 			@Override
 			public void run() {
@@ -80,11 +76,6 @@ public class BlockForkServiceImpl implements BlockForkService {
 		};
 		t.setName("block fork service");
 		t.start();
-	}
-	
-	@PreDestroy
-	public void close() {
-		stop();
 	}
 	
 	@Override
@@ -162,6 +153,12 @@ public class BlockForkServiceImpl implements BlockForkService {
 				return;
 			}
 		}
+		//另外一种情况，一段时间内接收到的新分叉区块打包人数比本地新增区块打包的人数多，说明处在一个分叉的小网络里面，已经脱离主网运行
+		//分叉网络的高度一般落后于主链的，所以只接受新的
+		//可以拟定一个条件，接收到的新分叉块，不能比最新时间快太多，否则就存在欺骗的嫌疑
+		//这时候需要重置网络
+		//TODO
+		
 		
 		for (BlockForkStore blockForkStore : blockForks) {
 			//最多分析60次，就丢弃掉
@@ -316,12 +313,16 @@ public class BlockForkServiceImpl implements BlockForkService {
 				//先存储到分叉状态链上
 				BlockForkStore rockBlockStore = new BlockForkStore(network, bestBlock.getBlock(), 8);
 				chainstateStoreProvider.put(rockBlockStore.getBlock().getHash().getBytes(), rockBlockStore.baseSerialize());
+				//把回滚的块加入内存，以衔接更长的链
+				blockForks.add(rockBlockStore);
+				
 				Block revokedBlock = blockStoreProvider.revokedNewestBlock();
 				//处理并发情况，这里进行回滚的同时，又写入了一个最新的块
 				if(revokedBlock.getHash().equals(bestBlock.getBlock().getHash())) {
 					//回滚的块不是刚刚查询到的最新的块
 					rockBlockStore = new BlockForkStore(network, revokedBlock, 8);
 					chainstateStoreProvider.put(rockBlockStore.getBlock().getHash().getBytes(), rockBlockStore.baseSerialize());
+					blockForks.add(rockBlockStore);
 				}
 			}
 			

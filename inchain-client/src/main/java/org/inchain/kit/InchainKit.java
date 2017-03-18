@@ -10,6 +10,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.inchain.Configure;
 import org.inchain.kits.AppKit;
+import org.inchain.service.impl.VersionService;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -63,6 +64,9 @@ public class InchainKit {
 
 					AppKit appKit = springContext.getBean(AppKit.class);
 					appKit.startSyn();
+					
+					VersionService versionService = springContext.getBean(VersionService.class);
+					versionService.setRunModel(1);
 					
 //					//链接测试节点
 //					TestNetworkParams network = springContext.getBean(TestNetworkParams.class);
