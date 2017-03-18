@@ -626,13 +626,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			}
 		}
 		
-		log.info("当前轮超时的人数：{}", currentList.size());
-		for (TimeoutConsensusViolation violation : currentList) {
-			log.info("{}", new Address(network, violation.getHash160()));
-		}
-
-		log.info("================");
-		
 		MeetingItem previousMetting = oldMettings.get(0);
 		
 		//同样的方法，去处理上一个轮次超时的人
@@ -673,12 +666,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				previousList.add(violation);
 			}
 		}
-		log.info("上轮超时的人数：{}", previousList.size());
-		for (TimeoutConsensusViolation violation : previousList) {
-			log.info("{}", new Address(network, violation.getHash160()));
-		}
-
-		log.info("================");
 		
 		//取交集
 		//连续2轮不出块，则处理
@@ -690,11 +677,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				}
 			}
 		}
-		for (TimeoutConsensusViolation violation : timeoutList) {
-			log.info("{}", new Address(network, violation.getHash160()));
-		}
-
-		log.info("================");
 		
 		return timeoutList;
 	}
