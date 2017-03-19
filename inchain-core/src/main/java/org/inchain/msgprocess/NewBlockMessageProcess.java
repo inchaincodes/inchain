@@ -73,7 +73,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		}
 		
 		//最值该节点的最新高度
-		peer.getNetwork().setBestHeight(block.getHeight());
+		network.setBestHeight(block.getHeight());
 		
 		//区块不能喝已有的重复
 		BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(block.getHash().getBytes());

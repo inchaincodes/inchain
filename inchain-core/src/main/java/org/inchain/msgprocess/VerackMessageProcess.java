@@ -47,7 +47,7 @@ public class VerackMessageProcess implements MessageProcess {
         	long localTime = TimeService.currentTimeMillis();
         	long time = verackMessage.getTime();
         	//设置时间偏移
-        	long timeOffset = (time + peer.getSendVersionMessageTime()) / 2 - localTime;
+        	long timeOffset = (time + (localTime - peer.getSendVersionMessageTime()) / 2) - localTime;
         	peer.setTimeOffset(timeOffset);
         	
         	//处理本地时间,如果已经处理过了，就不再处理

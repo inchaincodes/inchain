@@ -852,6 +852,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				return null;
 			}
 			bestBlockHash = db.get(bestBlockKey);
+		} catch (Exception e) {
+			return null;
 		} finally {
 			blockLock.unlock();
 		}

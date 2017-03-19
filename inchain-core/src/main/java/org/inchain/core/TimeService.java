@@ -4,6 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
+import org.codehaus.jettison.json.JSONObject;
+import org.inchain.utils.RequestUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +22,12 @@ public final class TimeService {
 	private static final Logger log = LoggerFactory.getLogger(TimeService.class);
 	
 	/** 时间偏移差距触发点，超过该值会导致本地时间重设，单位毫秒 **/
-	public static final long TIME_OFFSET_BOUNDARY = 2000l;
+	public static final long TIME_OFFSET_BOUNDARY = 1000l;
+	
+	/*
+	 * 网络时间刷新间隔
+	 */
+	private static final long TIME_REFRESH_TIME = 3600000l;
 
 	/*
 	 * 模拟网络时钟 
@@ -30,11 +37,15 @@ public final class TimeService {
 	 * 网络时间与本地时间的偏移
 	 */
 	private static long netTimeOffset;
+	//网络时间是否通过第一种方式进行了同步，如果没有，则通过第二种方式同步
+	private static boolean netTimeHasSync;
 	
 	/*
 	 * 系统启动时间
 	 */
 	private final static Date systemStartTime = new Date();
+	
+	private long lastInitTime;
 	
 	public TimeService() {
 		startSyn();
@@ -44,6 +55,7 @@ public final class TimeService {
 	 * 异步启动时间服务
 	 */
 	private void startSyn() {
+		initTime();
 		Thread monitorThread = new Thread() {
 			@Override
 			public void run() {
@@ -52,6 +64,43 @@ public final class TimeService {
 		};
 		monitorThread.setName("time change monitor");
 		monitorThread.start();
+	}
+	
+	private void initTime() {
+		
+		String timeServiceUrl = "http://time.inchain.org/now";
+		
+		long nowTime = System.currentTimeMillis();
+		
+		String res = RequestUtil.doGet(timeServiceUrl, null);
+		try {
+			JSONObject resultJson = new JSONObject(res);
+			if(resultJson.getBoolean("success")) {
+				long netTime = resultJson.getLong("time");
+				
+				long newLocalNowTime = System.currentTimeMillis();
+				
+				netTimeOffset = (netTime + (newLocalNowTime - nowTime) / 2) - System.currentTimeMillis();
+
+				initSuccess();
+			} else {
+				initError();
+			}
+		} catch (Exception e) {
+			initError();
+		}
+	}
+	
+	private void initError() {
+		//1分钟后重试
+		lastInitTime = System.currentTimeMillis() - 60000l;
+	}
+	
+	private void initSuccess() {
+		lastInitTime = System.currentTimeMillis();
+		if(!netTimeHasSync) {
+			netTimeHasSync = true;
+		}
 	}
 
 	/**
@@ -62,21 +111,18 @@ public final class TimeService {
 		
 		//不监控本地时间变化是最保险的，难免遇到机器卡顿的时候，会把本来正确的时间置为错误的
 		//如果用户在运行过程中自己去调整电脑的时候，这是他的问题，出错也无可厚非
-		if(1==1)return;
 		
 		long lastTime = System.currentTimeMillis();
 		while(true) {
 			//动态调整网络时间
-//			if(currentTimeMillis() - () > TIME_OFFSET_BOUNDARY) {
-//				
-//			}
 			
 			long newTime = System.currentTimeMillis();
 			if(Math.abs(newTime - lastTime) > TIME_OFFSET_BOUNDARY) {
-				
 				log.info("本地时间调整了：{}", newTime - lastTime);
-				
-				TimeService.netTimeOffset -= (newTime - lastTime);
+				initTime();
+			} else if(lastInitTime - currentTimeMillis() > TIME_REFRESH_TIME) {
+				//每隔1小时更新网络时间
+				initTime();
 			}
 			lastTime = newTime;
 			try {
@@ -182,7 +228,9 @@ public final class TimeService {
 	 * @param netTimeOffset
 	 */
 	public static void setNetTimeOffset(long netTimeOffset) {
-		TimeService.netTimeOffset = netTimeOffset;
+		if(!netTimeHasSync) {
+			TimeService.netTimeOffset = netTimeOffset;
+		}
 	}
 	public static long getNetTimeOffset() {
 		return netTimeOffset;

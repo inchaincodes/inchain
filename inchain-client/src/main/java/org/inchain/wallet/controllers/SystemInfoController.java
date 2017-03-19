@@ -12,6 +12,7 @@ import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
+import org.inchain.kits.PeerKit;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
@@ -43,8 +44,10 @@ public class SystemInfoController implements SubPageController{
 	public Label consensusStatus;	//共识状态
 	public Label sortId;
 	
-	AppKit appKit;
-	AccountKit accountKit;
+	private AppKit appKit;
+	private AccountKit accountKit;
+	private PeerKit peerKit;
+	
 	/**
 	 * FXML初始化调用
 	 * @return 
@@ -65,21 +68,7 @@ public class SystemInfoController implements SubPageController{
     	InchainInstance instance = InchainInstance.getInstance();
     	appKit = instance.getAppKit();
     	accountKit = instance.getAccountKit();
-    	
-    	//网络变化监听器
-    	appKit.addConnectionChangedListener(new ConnectionChangedListener() {
-			@Override
-			public void onChanged(final int inCount, final int outCount, final CopyOnWriteArrayList<Peer> inPeers,
-					final CopyOnWriteArrayList<Peer> outPeers) {
-				Platform.runLater(new Runnable() {
-				    @Override
-				    public void run() {
-						networkNumber.setText(String.valueOf(inCount + outCount));
-				    }
-				});
-			}
-		});
-    	
+    	peerKit = SpringContextUtils.getBean(PeerKit.class);
 	}
 
 	/*
@@ -113,6 +102,7 @@ public class SystemInfoController implements SubPageController{
 				    	}
 				    	if(accountKit.checkConsensusing()) {
 				    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+				    		consensusMeeting.waitMeeting();
 				    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
 				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000));
 				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000));
@@ -131,6 +121,8 @@ public class SystemInfoController implements SubPageController{
 				    	}
 				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
 				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText() +" INS");
+				    	
+				    	networkNumber.setText(String.valueOf(peerKit.getAvailablePeersCount()));
 				    }
 				});
 			} catch (Exception e) {
@@ -143,7 +135,6 @@ public class SystemInfoController implements SubPageController{
 
 	@Override
 	public void onHide() {
-		// TODO Auto-generated method stub
 		
 	}
 
