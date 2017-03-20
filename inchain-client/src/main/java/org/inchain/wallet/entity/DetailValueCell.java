@@ -46,13 +46,13 @@ public class DetailValueCell extends TableCell<TransactionEntity, DetailValue> {
 		
 		String content = detailValue.getValue();
 		Label values = new Label(content);
-		values.setEllipsisString(content.substring(0, content.length() > 100 ? 100 : content.length()));
-		values.setWrapText(true);
+		values.setEllipsisString(content.substring(0, content.length() > 20 ? 20 : content.length()));
 		Tooltip tooltip = new Tooltip(content);
 		tooltip.setFont(Font.font(14));
 		tooltip.setMaxWidth(480);
 		tooltip.setWrapText(true);
 		values.setTooltip(tooltip);
+		values.setWrapText(true);
 		box.getChildren().add(values);
 	
 		final String getAddress = getAddress(content);

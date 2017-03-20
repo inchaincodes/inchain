@@ -454,4 +454,9 @@ public class TransactionRecordController implements SubPageController {
 	public boolean refreshData() {
 		return false;
 	}
+
+	@Override
+	public boolean startupInit() {
+		return true;
+	}
 }

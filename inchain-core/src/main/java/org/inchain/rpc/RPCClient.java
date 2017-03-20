@@ -93,7 +93,7 @@ public class RPCClient {
 			
 			//帮助命令，直接打印
 			if("help".equals(remoteCommandsInfos.getString("command"))) {
-				return getHelpCommands();
+				return RPCHanlder.getHelpCommands();
 			}
 			
 			//初始化rpc服务器信息
@@ -334,47 +334,6 @@ public class RPCClient {
 		sb.append("*  \n");
 		sb.append("*  如需获取钱包命令帮助，使用rpc [-options] help \n");
 		sb.append("*  \n");
-		
-		return sb.toString();
-	}
-	
-	/*
-	 * 获取帮助命令
-	 */
-	public static String getHelpCommands() {
-		StringBuilder sb = new StringBuilder();
-		
-		sb.append("命令列表\n");
-		sb.append("\n");
-		sb.append(" --- 区块相关 --- \n");
-		sb.append("  getblockcount                   获取区块的数量\n");
-		sb.append("  getbestblockheight              获取最新区块的高度\n");
-		sb.append("  getbestblockhash                获取最新区块的hash\n");
-		sb.append("  getblockhash                    通过高度获取区块hash\n");
-		sb.append("  getblockheader [param] (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
-		sb.append("  getblock [param] (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
-		sb.append("\n");
-		sb.append(" --- 帐户相关 --- \n");
-		sb.append("  getbalance                      获取账户的余额\n");
-		sb.append("  getcredit                       获取账户的信用\n");
-		sb.append("  getaccountinfo                  获取账户的详细信息\n");
-		sb.append("  gettransaction                  获取帐户的交易记录\n");
-		sb.append("  encryptwallet                   加密钱包\n");
-		sb.append("  password                        修改钱包密码\n");
-		sb.append("\n");
-		sb.append(" --- 交易相关 --- \n");
-		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
-		sb.append("  send [to address] [money] [fee]     转账\n");
-		sb.append("\n");
-		sb.append(" --- 共识相关 --- \n");
-		sb.append("  getconsensus                    获取共识节点列表\n");
-		sb.append("  regconsensus                    注册共识\n");
-		sb.append("  remconsensus                    退出共识\n");
-		sb.append("\n");
-		sb.append(" --- 节点相关 --- \n");
-		sb.append("  getpeers                        获取连接节点信息\n");
-		
-		sb.append("\n");
 		
 		return sb.toString();
 	}

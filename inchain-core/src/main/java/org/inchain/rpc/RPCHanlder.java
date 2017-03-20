@@ -261,7 +261,7 @@ public class RPCHanlder {
 	/*
 	 * 获取帮助命令
 	 */
-	private String getHelpCommands() {
+	public static String getHelpCommands() {
 		StringBuilder sb = new StringBuilder();
 		
 		sb.append("命令列表\n");

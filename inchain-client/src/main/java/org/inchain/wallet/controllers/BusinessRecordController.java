@@ -213,4 +213,9 @@ public class BusinessRecordController implements SubPageController {
 	public boolean refreshData() {
 		return false;
 	}
+
+	@Override
+	public boolean startupInit() {
+		return false;
+	}
 }

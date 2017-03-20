@@ -238,6 +238,10 @@ public class MainController {
 	private void initDatas(StartupListener startupListener) {
 		int completionRate = (100 - startupListener.getCompletionRate()) / 4;//subPageControllers.size();
 		for (SubPageController controller : subPageControllerMaps.values()) {
+			if(!controller.startupInit()) {
+				continue;
+			}
+			
 			String tip = null;
 			if(controller instanceof AccountInfoController) {
 				//账户信息加载完成之后，设置主界面的余额和地址信息

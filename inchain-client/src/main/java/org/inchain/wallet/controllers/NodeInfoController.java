@@ -103,4 +103,9 @@ public class NodeInfoController implements SubPageController {
 	public boolean refreshData() {
 		return true;
 	}
+
+	@Override
+	public boolean startupInit() {
+		return false;
+	}
 }

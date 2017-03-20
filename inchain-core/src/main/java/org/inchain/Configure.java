@@ -143,6 +143,10 @@ public final class Configure {
 	 * 转账获得信用点数 - 间隔时间 ， 毫秒数
 	 */
 	public final static long CERT_CHANGE_PAY_INTERVAL = 24 * 60 * 60 * 1000l;
+	/**
+	 * 转账获得信用点数 - 间隔时间 ， 秒数
+	 */
+	public final static long CERT_CHANGE_PAY_INTERVAL_SECOND = CERT_CHANGE_PAY_INTERVAL / 1000l;
 	
 	/**
 	 * 超时未出块惩罚信用点数

@@ -3,12 +3,9 @@ package org.inchain.wallet.controllers;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.SpringContextUtils;
-import org.inchain.rpc.RPCClient;
 import org.inchain.rpc.RPCHanlder;
 import org.inchain.utils.StringUtil;
 
-import javafx.beans.InvalidationListener;
-import javafx.beans.Observable;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
@@ -28,7 +25,7 @@ public class ConsoleController extends DailogController{
 	public void initialize() {
 		
 		contentId.setWrapText(true);
-		contentId.setText(RPCClient.getHelpCommands());
+		contentId.setText(RPCHanlder.getHelpCommands());
 		updateContent();
 		
 		commandId.setOnKeyPressed(new EventHandler<KeyEvent>() {
@@ -61,7 +58,7 @@ public class ConsoleController extends DailogController{
 				
 				String result = null;
 				if("help".equals(commands[0])) {
-					result = RPCClient.getHelpCommands();
+					result = RPCHanlder.getHelpCommands();
 				} else {
 					JSONObject commandInfos = new JSONObject();
 					commandInfos.put("command", commands[0]);

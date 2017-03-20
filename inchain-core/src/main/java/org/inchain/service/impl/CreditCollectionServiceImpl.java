@@ -71,7 +71,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 		if(times == null || times.size() == 0) {
 			return true;
 		}
-		if(time - times.get(0) >= Configure.CERT_CHANGE_PAY_INTERVAL) {
+		if(time - times.get(0) >= Configure.CERT_CHANGE_PAY_INTERVAL_SECOND) {
 			return true;
 		}
 		return false;

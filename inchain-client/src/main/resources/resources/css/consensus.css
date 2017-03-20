@@ -1,5 +1,5 @@
-.table-cell {
-	-fx-padding: 20 0 10 0;
+.table-row-cell {
+    -fx-cell-size: 48px;
 }
 Button{
 	-fx-background-radius: 3;

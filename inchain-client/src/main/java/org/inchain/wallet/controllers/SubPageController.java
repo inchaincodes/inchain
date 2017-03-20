@@ -27,4 +27,10 @@ public interface SubPageController {
 	 * @return boolean
 	 */
 	boolean refreshData();
+	
+	/**
+	 * 启动的时候是否初始化数据
+	 * @return boolean
+	 */
+	boolean startupInit();
 }

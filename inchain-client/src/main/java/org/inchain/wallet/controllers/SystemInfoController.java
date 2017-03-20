@@ -1,23 +1,21 @@
 package org.inchain.wallet.controllers;
 
 import java.util.Date;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MiningInfos;
 import org.inchain.core.Definition;
-import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
-import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import javafx.application.Platform;
 import javafx.scene.control.Label;
 
@@ -126,7 +124,7 @@ public class SystemInfoController implements SubPageController{
 				    }
 				});
 			} catch (Exception e) {
-				e.printStackTrace();
+				log.error("", e);
 			}
 	}
 	@Override
@@ -141,5 +139,10 @@ public class SystemInfoController implements SubPageController{
 	@Override
 	public boolean refreshData() {
 		return true;
+	}
+
+	@Override
+	public boolean startupInit() {
+		return false;
 	}
 }

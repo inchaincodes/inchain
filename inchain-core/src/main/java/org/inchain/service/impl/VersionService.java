@@ -137,15 +137,22 @@ public class VersionService {
     					String date = DateUtil.convertDate(startTime, "yyyy/MM/dd");
     					String cmd = "schtasks /create /tn inchain_autoupdate /tr \"" + path + "\" /sc ONCE /st " + time + " /sd " + date + " /F";
     					Runtime.getRuntime().exec(cmd);
+    					
     					log.info("重新启动：{}", cmd);
+    					
+    					while(true) {
+	    		            String seconds = DateUtil.convertDate(new Date(), "ss");
+	    		            int i = Integer.parseInt(seconds);
+	    		            if(i > 50) {
+		    		            //关闭程序
+		    		            System.exit(0);
+	    		            }
+    					}
     				}
     			}
 			} catch (IOException e) {
 				log.error("", e);
 			}
-            
-            //关闭程序
-            System.exit(0);  
 		} else if(!localVersion.has("version")) {
 			//第一次写文件
 			writeToFile(json);

@@ -205,4 +205,9 @@ public class SystemSettingsController implements SubPageController{
 		return true;
 	}
 
+	@Override
+	public boolean startupInit() {
+		return false;
+	}
+
 }

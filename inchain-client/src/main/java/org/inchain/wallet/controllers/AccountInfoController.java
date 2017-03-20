@@ -243,4 +243,9 @@ public class AccountInfoController implements SubPageController {
 	public boolean refreshData() {
 		return true;
 	}
+
+	@Override
+	public boolean startupInit() {
+		return true;
+	}
 }

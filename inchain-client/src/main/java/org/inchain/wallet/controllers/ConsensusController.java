@@ -4,6 +4,7 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -93,6 +94,11 @@ public class ConsensusController implements SubPageController {
 									label.setUnderline(true);
 								}
 							});
+    						label.setOnMouseExited(new EventHandler<Event>() {
+    							public void handle(Event event) {
+    								label.setUnderline(false);
+    							}
+    						});
     						label.setOnMouseClicked(new EventHandler<MouseEvent>() {
 								@Override
 								public void handle(MouseEvent e) {
@@ -103,23 +109,6 @@ public class ConsensusController implements SubPageController {
 									e.consume();
 								}
 							});
-//    						label.setOnMouseEntered(new EventHandler<MouseEvent>() {
-//    						    @Override
-//    						    public void handle(MouseEvent e) {
-//    						    	label.setScaleX(1.1);
-//    						    	label.setScaleY(1.1);
-//    						    	
-//    						    	
-//    						    }
-//    						});
-//
-//    						label.setOnMouseExited(new EventHandler<MouseEvent>() {
-//    						    @Override
-//    						    public void handle(MouseEvent e) {
-//    						    	label.setScaleX(1);
-//    						    	label.setScaleY(1);
-//    						    }
-//    						});
     						setGraphic(label);
     					}
     				}
@@ -153,19 +142,7 @@ public class ConsensusController implements SubPageController {
     	}
     	
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-    	consensusList = accountKit.getConsensusAccounts();
     	
-    	List<ConensusEntity> list = tx2Entity();
-    	
-    	ObservableList<ConensusEntity> datas = FXCollections.observableArrayList(list);
-    	datas.sort(new Comparator<ConensusEntity>() {
-			@Override
-			public int compare(ConensusEntity o1, ConensusEntity o2) {
-				return o2.getTime() > o1.getTime() ? 1 : -1;
-			}
-		});
-    	
-    	table.setItems(datas);
     	//自己的共识信息
     	AccountStore accountStore = accountKit.getAccountInfo();
     	certNumberId.setText(String.valueOf(accountStore.getCert()));
@@ -206,10 +183,45 @@ public class ConsensusController implements SubPageController {
         	}
     	}
     	
+    	List<AccountStore> consensusListTemp = accountKit.getConsensusAccounts();
+    	if(hashChange(consensusListTemp)) {
     	
+    		consensusList = consensusListTemp;
+    		
+	    	List<ConensusEntity> list = tx2Entity();
+	    	
+	    	ObservableList<ConensusEntity> datas = FXCollections.observableArrayList(list);
+	    	datas.sort(new Comparator<ConensusEntity>() {
+				@Override
+				public int compare(ConensusEntity o1, ConensusEntity o2) {
+					return o2.getTime() > o1.getTime() ? 1 : -1;
+				}
+			});
+	    	
+	    	table.setItems(datas);
+    	}
     }
     
-    /**
+    private boolean hashChange(List<AccountStore> consensusListTemp) {
+    	if(consensusListTemp == null || consensusList == null || consensusListTemp.size() != consensusList.size()) {
+    		return true;
+    	}
+    	for (AccountStore accountStore : consensusList) {
+    		boolean exist = false;
+			for (AccountStore accountStoreTemp : consensusListTemp) {
+				if(Arrays.equals(accountStore.getHash160(), accountStoreTemp.getHash160())) {
+					exist = true;
+					break;
+				}
+			}
+			if(!exist) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
      * 参加或者退出共识
      */
     public void addOrDeleteConsensus() {
@@ -332,5 +344,10 @@ public class ConsensusController implements SubPageController {
 	@Override
 	public boolean refreshData() {
 		return true;
+	}
+
+	@Override
+	public boolean startupInit() {
+		return false;
 	}
 }
