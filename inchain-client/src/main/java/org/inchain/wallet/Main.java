@@ -13,11 +13,15 @@ import java.net.URL;
 
 import javax.swing.ImageIcon;
 
+import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
+import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
 import org.inchain.wallet.listener.WindowCloseEvent;
+import org.inchain.wallet.utils.ConfirmDailog;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -301,7 +305,28 @@ public class Main extends Decoration implements ActionListener {
 	 * 程序退出
 	 */
 	public void exit() {
-		SystemTray.getSystemTray().remove(trayIcon);
-		Platform.exit();
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+    	//当前共识状态，是否正在共识中
+    	boolean consensusStatus = accountKit.checkConsensusing();
+    	if(consensusStatus) {
+    		Platform.runLater(new Runnable() {
+				@Override
+				public void run() {
+					ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(),"您当前正在共识中，确认要退出共识吗？",2);
+					dailog.setListener(new Listener() {
+						@Override
+						public void onComplete() {
+							SystemTray.getSystemTray().remove(trayIcon);
+							Platform.exit();
+						}
+					});
+					dailog.show();
+				}
+			});
+    	} else {
+    		SystemTray.getSystemTray().remove(trayIcon);
+			Platform.exit();
+    	}
+
 	}
 }

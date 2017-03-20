@@ -21,11 +21,11 @@
             </VBox>
             <HBox alignment="BOTTOM_CENTER" prefHeight="100.0" prefWidth="200.0" spacing="20.0">
                <children>
-                  <Button fx:id="verifyButId" mnemonicParsing="false" prefHeight="30.0" prefWidth="80.0" text="验证">
+                  <Button fx:id="verifyButId" mnemonicParsing="false" prefHeight="40.0" prefWidth="110.0" text="验证">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></Button>
-                  <Button fx:id="resetButId" mnemonicParsing="false" prefHeight="30.0" prefWidth="80.0" text="重置">
+                  <Button fx:id="resetButId" mnemonicParsing="false" prefHeight="40.0" prefWidth="110.0" text="重置">
                      <HBox.margin>
                         <Insets left="100.0" />
                      </HBox.margin>

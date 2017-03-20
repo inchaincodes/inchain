@@ -79,7 +79,7 @@ public class NodeInfoController implements SubPageController {
 			
 			list.add(new NodeInfoEntity(ipString,
 					peer.getPeerVersionMessage().getSubVer(), "" + peer.getAddress().getPort(),
-					"" + DateUtil.convertDate(new Date((TimeService.currentTimeSeconds()+peer.getTimeOffset()) * 1000)),
+					"" + DateUtil.convertDate(new Date((TimeService.currentTimeMillis() + peer.getTimeOffset()))),
 					offsetTime,DateUtil.analyzeTime(time, false) , ""));
 		}
 		number.setText(list.size()+"个");

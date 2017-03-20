@@ -13,11 +13,11 @@
          <children>
             <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="220.0">
                <children>
-                  <Button fx:id="resetButId" layoutX="247.0" layoutY="15.0" mnemonicParsing="false" prefHeight="35.0" prefWidth="110.0" text="重置" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="10.0">
+                  <Button fx:id="resetButId" layoutX="247.0" layoutY="15.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="120.0" text="重置" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="10.0">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></Button>
-                  <Button fx:id="sendButId" layoutX="50.0" layoutY="10.0" mnemonicParsing="false" prefHeight="35.0" prefWidth="110.0" text="发送" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="10.0">
+                  <Button fx:id="sendButId" layoutX="50.0" layoutY="10.0" mnemonicParsing="false" prefHeight="40.0" prefWidth="120.0" text="发送" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="10.0">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></Button>
@@ -80,7 +80,7 @@
             <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="159.0">
                <children>
                   <Label text="手续费" />
-                  <TextField fx:id="feeId" disable="true" prefWidth="250.0" text="0.1">
+                  <TextField fx:id="feeId" disable="true" prefWidth="250.0" text="0.1 INS">
                      <HBox.margin>
                         <Insets left="42.0" />
                      </HBox.margin>

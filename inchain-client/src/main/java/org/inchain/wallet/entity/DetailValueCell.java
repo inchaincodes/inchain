@@ -7,9 +7,11 @@ import java.io.ByteArrayInputStream;
 import org.inchain.utils.Base58;
 import org.inchain.wallet.utils.DailogUtil;
 
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -52,9 +54,23 @@ public class DetailValueCell extends TableCell<TransactionEntity, DetailValue> {
 		tooltip.setWrapText(true);
 		values.setTooltip(tooltip);
 		box.getChildren().add(values);
-		
+	
 		final String getAddress = getAddress(content);
 		if(getAddress != null) {
+			values.setCursor(Cursor.HAND);
+			values.setOnMouseMoved(new EventHandler<Event>() {
+				@Override
+				public void handle(Event event) {
+					values.setUnderline(true);
+				}
+			});
+			values.setOnMouseExited(new EventHandler<Event>() {
+
+				@Override
+				public void handle(Event event) {
+					values.setUnderline(false);
+				}
+			});
 			values.setOnMouseClicked(new EventHandler<MouseEvent>() {
 				@Override
 				public void handle(MouseEvent e) {

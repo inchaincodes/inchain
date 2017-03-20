@@ -6,7 +6,7 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane prefHeight="411.0" prefWidth="731.0" stylesheets="@../css/Settings.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SystemSettingsController">
+<AnchorPane prefHeight="430.0" prefWidth="731.0" stylesheets="@../css/Settings.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SystemSettingsController">
    <children>
       <HBox alignment="CENTER" layoutX="8.0" layoutY="8.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>

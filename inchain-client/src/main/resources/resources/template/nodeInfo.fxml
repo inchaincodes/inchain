@@ -16,11 +16,11 @@
        	<columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
         <columns>
             <TableColumn fx:id="ip" minWidth="60" resizable="true" sortable="false" text="ip" />
-         	<TableColumn fx:id="version" minWidth="120" resizable="true" sortable="false" text="版本" />
-         	<TableColumn fx:id="sort" maxWidth="100" minWidth="80" sortable="false" text="端口" />
-            <TableColumn fx:id="time" minWidth="120" resizable="true" sortable="false" text="时间" />
-            <TableColumn fx:id="offsetTime" maxWidth="100" minWidth="100" resizable="true" sortable="false" text="时间偏移" />
-            <TableColumn fx:id="duration" maxWidth="100" minWidth="80" resizable="true" sortable="false" text="时长" />
+         	<TableColumn fx:id="version" minWidth="210" resizable="true" sortable="false" text="版本" />
+         	<TableColumn fx:id="sort" maxWidth="100" minWidth="70" sortable="false" text="端口" />
+            <TableColumn fx:id="time" minWidth="110" resizable="true" sortable="false" text="时间" />
+            <TableColumn fx:id="offsetTime" maxWidth="90" minWidth="80" resizable="true" sortable="false" text="时间偏移" />
+            <TableColumn fx:id="duration" minWidth="70" resizable="true" sortable="false" text="时长" />
         </columns>
       </TableView>
    </children>

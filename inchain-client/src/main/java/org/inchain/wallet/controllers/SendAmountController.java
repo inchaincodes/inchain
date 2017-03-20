@@ -122,7 +122,7 @@ public class SendAmountController implements SubPageController {
     	}
     	
     	//手续费
-    	String fee = feeId.getText();
+    	String fee = feeId.getText().replace("INS","");
     	Coin feeCoin = null;
     	//验证手续费
     	try {

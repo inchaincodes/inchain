@@ -172,7 +172,7 @@ public class MainController {
 				while(true) {
 					SubPageController controller = subPageControllerMaps.get(currentPageId);
 					
-					if(controller.refreshData()) {
+					if(controller != null && controller.refreshData()) {
 						Platform.runLater(new Runnable() {
 						    @Override
 						    public void run() {

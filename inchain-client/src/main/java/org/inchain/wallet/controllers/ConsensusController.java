@@ -35,13 +35,13 @@ import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseEvent;
 import javafx.util.Callback;
@@ -54,11 +54,9 @@ import javafx.util.Callback;
 public class ConsensusController implements SubPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(ConsensusController.class);
-	
-	private static int consensusStauts = 0;
-	
+	public static int nowStatus = 0 ; //0 没有参与共识  1 正在等待网络确认参与 2 正在参与共识
 	public TableView<ConensusEntity> table;
-	
+	int type = 0;
 	public Label certNumberId;
 	public Label statusLabelId;
 	public Button buttonId;
@@ -88,6 +86,13 @@ public class ConsensusController implements SubPageController {
     						setGraphic(null);
     					} else {
     						Label label = new Label(item);
+    						label.setCursor(Cursor.HAND);
+    					
+    						label.setOnMouseMoved(new EventHandler<Event>() {
+								public void handle(Event event) {
+									label.setUnderline(true);
+								}
+							});
     						label.setOnMouseClicked(new EventHandler<MouseEvent>() {
 								@Override
 								public void handle(MouseEvent e) {
@@ -161,46 +166,59 @@ public class ConsensusController implements SubPageController {
 		});
     	
     	table.setItems(datas);
-    	
     	//自己的共识信息
     	AccountStore accountStore = accountKit.getAccountInfo();
     	certNumberId.setText(String.valueOf(accountStore.getCert()));
     	
     	//当前共识状态，是否正在共识中
     	boolean consensusStatus = accountKit.checkConsensusing();
-    	if(consensusStatus) {
-    		statusLabelId.setText("您当前正在共识中···");
-    		
-    		buttonId.setText("退出共识");
-			buttonId.setDisable(false);
-    	} else {
-    		if(accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
-    			//可参与共识
-    			statusLabelId.setText("您已达到参与共识所需信用 " + Configure.CONSENSUS_CREDIT + " , 可参与共识");
-    			
-    			buttonId.setText("申请共识");
-    			buttonId.setDisable(false);
-    		} else {
-    			//不可参与共识
-    			statusLabelId.setText("您离共识所需信用 " + Configure.CONSENSUS_CREDIT + " 还差 " + (Configure.CONSENSUS_CREDIT - accountStore.getCert()));
-    			
-    			buttonId.setText("申请共识");
-    			buttonId.setDisable(true);
+    	if (nowStatus == 1) {
+    		if(!consensusStatus && type == 0) {
+    			nowStatus = 0;
     		}
+    		if(consensusStatus && type == 1) {
+    			nowStatus = 2;
+    		}
+    		statusLabelId.setText("等待网络确认···");
+    		buttonId.setDisable(true);
+    	} else {
+    		
+        	if(consensusStatus) {
+            		statusLabelId.setText("您当前正在共识中···");
+            		nowStatus = 2;
+            		buttonId.setText("退出共识");
+            		buttonId.setDisable(false);
+        	} else {
+        		nowStatus = 0;
+        		if(accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
+        			//可参与共识
+        			statusLabelId.setText("您已达到参与共识所需信用 " + Configure.CONSENSUS_CREDIT + " , 可参与共识");
+        			
+        			buttonId.setText("申请共识");
+        			buttonId.setDisable(false);
+        		} else {
+        			//不可参与共识
+        			statusLabelId.setText("您离共识所需信用 " + Configure.CONSENSUS_CREDIT + " 还差 " + (Configure.CONSENSUS_CREDIT - accountStore.getCert()));
+        			
+        			buttonId.setText("申请共识");
+        			buttonId.setDisable(true);
+        		}
+        	}
     	}
+    	
+    	
     }
     
     /**
      * 参加或者退出共识
      */
     public void addOrDeleteConsensus() {
-    	
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	//当前共识状态，是否正在共识中
     	boolean consensusStatus = accountKit.checkConsensusing();
     	
     	String tip = consensusStatus ? "您当前正在共识中，确认要退出共识吗？" : "一旦参与到共识中，对您的本地环境稳定性要求很高，确认参与吗？";
-    	ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(), tip);
+    	ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(), tip,1);
     	dailog.setListener(new Listener() {
 			@Override
 			public void onComplete() {
@@ -213,7 +231,7 @@ public class ConsensusController implements SubPageController {
 						@Override
 						public void run() {
 							if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
-								int type = 0;
+							
 								try {
 									type = doAction(accountKit, consensusStatus);
 								} finally {
@@ -224,6 +242,7 @@ public class ConsensusController implements SubPageController {
 					});
 				} else {
 					doAction(accountKit, consensusStatus);
+					
 				}
 			}
 		});
@@ -257,17 +276,20 @@ public class ConsensusController implements SubPageController {
      */
     private int doAction(AccountKit accountKit, boolean consensusStatus) {
     	Result result = null;
-    	int type = 0;
+    
 		if(consensusStatus) {
 			//取消共识(退出共识)
 			result = accountKit.quitConsensus();
+			type = 0;
 		} else {
 			//注册共识
 			result = accountKit.registerConsensus();
 			type = 1;
-		}
-		DailogUtil.showTip(result.getMessage(), 3000l);
+		}    	
+
+		DailogUtil.showTip(result.getMessage(), Context.getMainStage());
 		if(result.isSuccess()) {
+			nowStatus = 1;
 			initDatas();
 		}
 		return type;
@@ -299,7 +321,7 @@ public class ConsensusController implements SubPageController {
 	
 	@Override
 	public void onShow() {
-		initDatas();
+		//initDatas();
 	}
 
 	@Override

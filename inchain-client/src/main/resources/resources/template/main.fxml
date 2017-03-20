@@ -15,7 +15,7 @@
 
 <AnchorPane maxHeight="Infinity" maxWidth="Infinity" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.MainController">
   <children>
-    <StackPane fx:id="contentId" layoutX="226.0" layoutY="87.0" minHeight="510.0" minWidth="774.0" prefHeight="510.0" prefWidth="774.0" AnchorPane.bottomAnchor="110.0" AnchorPane.leftAnchor="226.0" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="10.0" />
+    <StackPane fx:id="contentId" layoutX="226.0" layoutY="87.0" minHeight="530.0" minWidth="774.0" prefHeight="530.0" prefWidth="774.0" AnchorPane.bottomAnchor="100.0" AnchorPane.leftAnchor="226.0" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="10.0" />
       <HBox alignment="CENTER" layoutX="226.0" layoutY="612.0" prefHeight="36.0" spacing="8.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="226.0">
          <children>
             <ImageView fx:id="nowNetTimeImageViewId" fitHeight="15.0" fitWidth="15.0" pickOnBounds="true" preserveRatio="true">
