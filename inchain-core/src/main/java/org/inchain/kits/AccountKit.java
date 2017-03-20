@@ -18,11 +18,14 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPoolCacher;
+import org.inchain.consensus.MiningInfos;
 import org.inchain.core.AntifakeCode;
 import org.inchain.core.BroadcastMakeAntifakeCodeResult;
 import org.inchain.core.BroadcastResult;
@@ -1757,8 +1760,17 @@ public class AccountKit {
 					
 					BroadcastResult broadcastResult = peerKit.broadcast(remConsensus).get();
 					if(broadcastResult.isSuccess()) {
-						//TODO
-						return new Result(true, "退出共识请求已成功发送到网络,预计"+1+"秒后可真正退出共识");
+						//退出当前轮共识所需要的时间
+						long time = 0;
+			    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+			    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
+			    		Date endTime = new Date(miningInfo.getEndTime()*1000);
+			    		Date nowTime = new Date(TimeService.currentTimeMillis());
+			    		time = (endTime.getTime()-nowTime.getTime())/1000;
+			    		if(time < 0) {
+			    			time = 0;
+			    		}
+						return new Result(true, "退出共识请求已成功发送到网络,预计"+time+"秒后可真正退出共识");
 					} else {
 						MempoolContainer.getInstace().remove(remConsensus.getHash());
 					}
