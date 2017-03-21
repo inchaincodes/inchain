@@ -64,7 +64,6 @@ public class SystemSettingsController implements SubPageController{
 	}
 
 	private void openConsole() {
-		//System.out.println("====");
 		URL url = DailogUtil.class.getClass().getResource("/resources/template/console.fxml");
 		FXMLLoader loader =  new FXMLLoader(url);
 		DailogUtil.showConsoleDailog(loader, "控制台", Modality.WINDOW_MODAL);
@@ -82,7 +81,9 @@ public class SystemSettingsController implements SubPageController{
 					return;
 				}
 				initButtonbg();
-				button.setStyle("-fx-background-color: #3b5aac;");
+				
+				selectButton(button);
+				
 				String id = button.getId();
 				//触发页面显示隐藏事件
 				for (Entry<String, SubPageController> entry : subPageControllerMaps.entrySet()) {
@@ -105,7 +106,7 @@ public class SystemSettingsController implements SubPageController{
 	}
 	protected void initButtonbg() {
 		for (Button button : buttons) {
-			button.setStyle(" -fx-background-color: #4b6bc1;");
+			button.setStyle("");
 		}
 	}
 	/**
@@ -181,9 +182,14 @@ public class SystemSettingsController implements SubPageController{
 		//显示第一个子页面
 		if(buttons.size() > 0) {
 			showPage(buttons.get(0).getId());
-			buttons.get(0).setStyle("-fx-background-color: #3b5aac;");
+			selectButton(buttons.get(0));
 		}
 	}
+	
+	private void selectButton(Button button) {
+		button.setStyle("-fx-background-color: #3b5aac;");
+	}
+	
 	@Override
 	public void initDatas() {
 		for (SubPageController controller : subPageControllerMaps.values()) {
