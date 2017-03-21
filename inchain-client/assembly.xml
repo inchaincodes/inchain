@@ -36,6 +36,10 @@
             </excludes>
             <outputDirectory>conf</outputDirectory>
         </fileSet>
+        <fileSet>
+            <directory>${basedir}/src/test/resources</directory>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
     </fileSets>
     
     
