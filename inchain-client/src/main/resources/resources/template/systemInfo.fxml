@@ -12,11 +12,11 @@
          <children>
             <VBox alignment="CENTER" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
                <children>
-                  <HBox alignment="CENTER_LEFT" prefWidth="480.0" prefHeight="14">
+                  <HBox alignment="CENTER_LEFT" prefWidth="480.0">
                      <children>
                         <Label text="信息">
                            <HBox.margin>
-                              <Insets left="65.0"/>
+                              <Insets left="65.0" />
                            </HBox.margin>
                            <font>
                               <Font name="Microsoft YaHei" size="14.0" />
@@ -24,7 +24,7 @@
                         </Label>
                      </children>
                      <VBox.margin>
-                        <Insets bottom="-2"/>
+                        <Insets bottom="-2" />
                      </VBox.margin>
                   </HBox>
                   <HBox alignment="CENTER_LEFT" prefWidth="480.0">
@@ -85,7 +85,7 @@
             </VBox>
             <VBox alignment="CENTER_LEFT" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
                <children>
-                  <HBox prefWidth="480.0" prefHeight="14">
+                  <HBox prefWidth="480.0">
                      <children>
                         <Label text="时间">
                            <HBox.margin>
@@ -94,7 +94,7 @@
                         </Label>
                      </children>
                      <VBox.margin>
-                        <Insets top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </HBox>
                   <VBox prefWidth="480.0">
@@ -168,7 +168,7 @@
                         </Label>
                      </children>
                      <VBox.margin>
-                        <Insets top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </HBox>
                   <VBox prefWidth="480.0">
@@ -279,7 +279,7 @@
                         </Label>
                      </children>
                      <VBox.margin>
-                        <Insets top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </HBox>
                   <VBox alignment="CENTER" prefWidth="480.0">

@@ -115,7 +115,7 @@ public class SystemInfoController implements SubPageController{
 				    		}else if(endTime.compareTo(DateUtil.convertDate(new Date())) <= 0) {
 				    			consensusStatus.setText("正在等待进入下一轮共识队列");
 				    		}else {
-				    			consensusStatus.setText("正在排队,当前轮开始时间："+periodStartTime+",我的共识时间："+beginTime+" - "+endTime);
+				    			consensusStatus.setText("正在排队\n当前轮开始时间："+periodStartTime+"\n我的共识时间："+beginTime+" - "+endTime);
 				    		}
 				    		
 				    	} else {
