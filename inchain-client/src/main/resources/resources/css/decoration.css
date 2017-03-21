@@ -8,6 +8,9 @@
 	-fx-background-color: #264181;
 }
 .root #menuId {
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center;	
+    -fx-background-size: cover;
 	-fx-background-image:url("/images/menu_bg.png");
 }
 .root #menuId Button{
@@ -19,10 +22,10 @@
     -fx-font-size:14;
     -fx-alignment:CENTER_LEFT;
     -fx-padding:0 0 0 48;
-    -fx-border-color: transparent transparent #6da9e9 transparent;
+    -fx-border-color: transparent transparent #4261b3 transparent;
 }
 .root #menuId  Button:hover{
-	 -fx-background-color: #3b5aac;
+	 -fx-background-color: #1e3c89;
 }
 .root Label{
 	-fx-text-fill:WHITE;

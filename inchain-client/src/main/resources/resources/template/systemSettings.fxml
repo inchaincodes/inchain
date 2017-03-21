@@ -21,7 +21,7 @@
          </children>
       </HBox>
       <StackPane fx:id="contentId" layoutX="14.0" layoutY="65.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="65.0" />
-      <Button fx:id="consoleId" layoutX="612.0" layoutY="49.0" mnemonicParsing="false" styleClass="consoleButtonId" text="控制台" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="0.0">
+      <Button fx:id="consoleId" layoutX="612.0" layoutY="49.0" mnemonicParsing="false" styleClass="consoleButtonId" text="控制台" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="7.0">
          <cursor>
             <Cursor fx:constant="HAND" />
          </cursor>

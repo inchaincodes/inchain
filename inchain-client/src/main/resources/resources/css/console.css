@@ -24,7 +24,7 @@ Label{
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
 }
-Button{
+.consoleSure{
 	-fx-background-radius: 3;
     -fx-border-color:#6585dc;
     -fx-background-color: #4b6bc1;
@@ -34,7 +34,7 @@ Button{
     -fx-alignment:BASELINE_CENTER;
 }
 
-Button:hover{
+.consoleSure:hover{
 	-fx-border-color:#506fc3;
 	-fx-background-color: #3b5aac;
 }

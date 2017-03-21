@@ -1,13 +1,9 @@
 package org.inchain.wallet.controllers;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
-
-import javax.tools.Tool;
 
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
@@ -19,7 +15,6 @@ import org.inchain.kits.AccountKit;
 import org.inchain.store.AccountStore;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.utils.DateUtil;
-import org.inchain.utils.Hex;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.utils.DailogUtil;
@@ -27,16 +22,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
-import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
 
 /**
@@ -56,7 +46,6 @@ public class AccountInfoController implements SubPageController {
 	public Label totalBalanceId;					//总余额
 	public Label canUseBlanaceId;					//可用余额
 	public Label canNotUseBlanaceId;				//不可用余额
-	public Label publicKeyId;						//账户公钥
 	public Label addressId;							//账户地址
 	public Label certId;							//信用
 	public Label transactionNumberId;				//交易数量
@@ -76,17 +65,6 @@ public class AccountInfoController implements SubPageController {
     	addImageToButton(backupWalletId,"backupWallet");
     	addImageToButton(importWalletId,"importWallet");
     	addImageToButton(encryptWalletId,"encryptWallet");
-    	//公钥点击复制
-    	publicKeyId.setCursor(Cursor.HAND);
-    	publicKeyId.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			public void handle(MouseEvent e) {
-				StringSelection stsel = new StringSelection(publicKeyId.getText());
-				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
-				
-				DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
-				e.consume();
-			}
-		});
     	//点击备份钱包事件
     	backupWalletId.setOnAction(e -> backupWallet());
     	//点击导入钱包事件
@@ -133,7 +111,6 @@ public class AccountInfoController implements SubPageController {
 			    	totalBalanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
 			    	canUseBlanaceId.setText(address.getBalance().toText());
 			    	canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
-			    	publicKeyId.setText(String.valueOf(Hex.encode(accountStore.getPubkeys()[0])));
 			    	addressId.setText(address.getBase58());
 			    	certId.setText(String.valueOf(accountStore.getCert()));
 			    	transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));
