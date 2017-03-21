@@ -34,10 +34,6 @@ if [ -d "$SERVER_HOME/conf" ]; then
   CLASSPATH=${CLASSPATH}:$SERVER_HOME/conf
 fi
 
-# ----- Execute The Requested Command -----------------------------------------
-echo "Using SERVER_HOME:   $SERVER_HOME"
-echo "Using JAVA_HOME:       $JAVA_HOME"
-
 if [ "$1" = "" ] ; then
 exec "Usage:  inchain_cli ( commands ... )"
 fi

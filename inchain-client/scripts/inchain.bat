@@ -82,7 +82,7 @@ echo   help             show commands list in a separate window
 goto end
 
 :doExec
-rem %_EXECJAVA%  %_JAVA_OPTS%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %1
-%_EXECJAVA%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %1
+rem %_EXECJAVA%  %_JAVA_OPTS%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %*
+%_EXECJAVA%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %*
 
 :end

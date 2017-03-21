@@ -80,11 +80,12 @@
             <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="159.0">
                <children>
                   <Label text="手续费" />
-                  <TextField fx:id="feeId" disable="true" prefWidth="250.0" text="0.1 INS">
+                  <TextField fx:id="feeId" disable="true" prefWidth="46.0" text="0.1">
                      <HBox.margin>
                         <Insets left="42.0" />
                      </HBox.margin>
                   </TextField>
+                  <Label disable="true" text="INS" />
                </children>
                <padding>
                   <Insets left="50.0" />

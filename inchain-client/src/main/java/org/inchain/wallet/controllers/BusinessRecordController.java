@@ -86,18 +86,18 @@ public class BusinessRecordController implements SubPageController {
 	    	public TableCell<BusinessEntity, List<KeyValuePair>> call(TableColumn<BusinessEntity, List<KeyValuePair>> tableColumn) {
 	    		return new TableCell<BusinessEntity,List<KeyValuePair>>() {
     				@Override
-    				protected void updateItem(List<KeyValuePair> item, boolean empty) {
+    				protected void updateItem(List<KeyValuePair> items, boolean empty) {
     					setTextOverrun(OverrunStyle.CENTER_WORD_ELLIPSIS);
     					
-    					super.updateItem(item, empty);
-    					if(item == null || item.size() == 0) {
+    					super.updateItem(items, empty);
+    					if(items == null || items.size() == 0) {
     						setGraphic(null);
     					} else {
     						VBox box = new VBox(5);
     						box.setPrefHeight(110);
     						Insets padding= new Insets(10,10,10,10);
 							box.setPadding(padding);
-    						for (KeyValuePair keyValuePair : item) {
+    						for (KeyValuePair keyValuePair : items) {
     							String name = keyValuePair.getKeyName();
     							Label nameLabel = new Label(name);
     							nameLabel.setEllipsisString(name.substring(0, name.length() > 4 ? 4 : name.length()));
@@ -211,7 +211,7 @@ public class BusinessRecordController implements SubPageController {
 
 	@Override
 	public boolean refreshData() {
-		return false;
+		return true;
 	}
 
 	@Override

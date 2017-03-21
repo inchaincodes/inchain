@@ -44,12 +44,13 @@ cd ..
 set SERVER_HOME=%cd%
 
 :goReaperHome
-echo %SERVER_HOME%
+
 if exist "%SERVER_HOME%\bin\inchain.bat" goto okReaperHome
 echo The SERVER_HOME environment variable is not defined correctly
 echo This environment variable is needed to run this program
 goto end
 :okReaperHome
+
 
 rem 打印SERVER_HOME变量
 rem echo SERVER_HOME=%SERVER_HOME%
@@ -60,7 +61,14 @@ set _MAINCLASS=org.inchain.rpc.RPCClient
 
 set CLASSPATH=%JAVA_HOME%\lib\tools.jar
 set CLASSPATH=%CLASSPATH%;%SERVER_HOME%\conf
-set CLASSPATH=%CLASSPATH%;%SERVER_HOME%\lib\inchain-core-0.1.jar;%SERVER_HOME%\lib\jackson-core-asl-1.9.4.jar;%SERVER_HOME%\lib\jackson-mapper-asl-1.9.4.jar;%SERVER_HOME%\lib\jettison-1.3.7.jar
+
+rem 设置CLASSPATH
+set CLASSPATH=%JAVA_HOME%\lib\tools.jar
+set CLASSPATH=%CLASSPATH%;%SERVER_HOME%\conf
+set CLASSPATH=%CLASSPATH%;%SERVER_HOME%\inchain-1.0.jar
+for /R %SERVER_HOME%\lib %%f in (*.jar) do echo set CLASSPATH=%%CLASSPATH%%;%%f >>lib.bat
+call lib.bat
+del lib.bat
 
 if ""%1"" == """" goto help
 
@@ -68,7 +76,7 @@ goto doExec
 
 
 :doExec
-rem %_EXECJAVA%  %_JAVA_OPTS%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %1
-%_EXECJAVA%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %1
+rem %_EXECJAVA%  %_JAVA_OPTS%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %*
+%_EXECJAVA%  -classpath  "%CLASSPATH%"  %_MAINCLASS% %*
 
 :end
