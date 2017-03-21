@@ -3,9 +3,9 @@
 }
 
 Button{
-	-fx-background-radius: 3;
-    -fx-border-style: null;
-    -fx-background-color: #34538b;
+	-fx-background-radius: 2;
+	-fx-border-color:#6585dc;
+    -fx-background-color: #4b6bc1;
     -fx-text-fill:WHITE;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
@@ -13,5 +13,13 @@ Button{
 }
 
 Button:hover{
-	 -fx-background-color: #5070aa;
+	-fx-border-color:#506fc3;
+	-fx-background-color: #3b5aac;
+}
+
+.encryptWalletButton {
+	-fx-background-radius: 0;
+	-fx-border-color: transparent;
+    -fx-border-style: null;
+    -fx-background-color: null;
 }

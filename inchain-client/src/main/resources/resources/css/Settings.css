@@ -1,8 +1,8 @@
 Button{
-	-fx-background-radius: 0;
+	-fx-background-radius: 2;
     -fx-border-style: null;
-    -fx-border-color: #6da9e9;
-    -fx-background-color: #1b346e;
+    -fx-border-color: #6585dc;
+    -fx-background-color: #4b6bc1;
     -fx-text-fill:WHITE;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
@@ -10,7 +10,8 @@ Button{
 }
 
 Button:hover{
-	 -fx-background-color: #2767b5;
+	-fx-border-color:#506fc3;
+	-fx-background-color: #3b5aac;
 }
 .systemInfoButtonId {
 	-fx-background-radius: 5 0 0 5;

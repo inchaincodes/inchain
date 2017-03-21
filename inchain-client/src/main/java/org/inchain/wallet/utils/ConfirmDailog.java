@@ -59,7 +59,7 @@ public class ConfirmDailog {
 	public ConfirmDailog(Stage stage, String message, int type) {
 
 		int width = 460;
-		int height = 246;
+		int height = 270;
 
 		Point point = DailogUtil.getDailogPoint(width, height);
 
@@ -76,10 +76,14 @@ public class ConfirmDailog {
 		dialogStage.setResizable(false);
 		BorderPane borderPaneLayout = new BorderPane();
 		borderPaneLayout.getStyleClass().add("root");
-		borderPaneLayout.setStyle("-fx-background-image:url(\"/images/confirm_dailog_bg.png\")");
+		borderPaneLayout.setStyle("-fx-background-image:url(\"/images/popup_bg.png\")");
 		Button confirm = new Button("确认");
+		confirm.setPrefWidth(110);
+		confirm.setPrefHeight(25);
 		confirm.setCursor(Cursor.HAND);
 		Button cancel = new Button("取消");
+		cancel.setPrefWidth(110);
+		cancel.setPrefHeight(25);
 		cancel.setCursor(Cursor.HAND);
 
 		confirm.setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -108,10 +112,12 @@ public class ConfirmDailog {
 
 		VBox vBox = new VBox();
 		text = new Label(message);
-		text.maxWidth(200);
+		text.maxWidth(100);
 		text.setWrapText(true);
 		if (type == 2) {
 			Button wait = new Button("等待共识退出");
+			wait.setPrefWidth(110);
+			wait.setPrefHeight(25);
 			confirm.setText("强制退出");
 			wait.setCursor(Cursor.HAND);
 			wait.setOnMouseClicked(new EventHandler<MouseEvent>() {

@@ -12,7 +12,7 @@
 <?import javafx.scene.effect.Glow?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane id="root" fx:id="root" maxHeight="-1.0" maxWidth="-1.0" minHeight="-1.0" minWidth="-1.0" pickOnBounds="false" prefHeight="735.0" prefWidth="1050.0" snapToPixel="true" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.DecorationController">
+<AnchorPane id="root" fx:id="root" maxHeight="-1.0" maxWidth="-1.0" minHeight="-1.0" minWidth="-1.0" pickOnBounds="false" prefHeight="735.0" prefWidth="1050.0" snapToPixel="true" styleClass="root" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.DecorationController">
     <children>
         <Region id="headBarTop" fx:id="dragbar" prefHeight="61.0" AnchorPane.leftAnchor="-3.0" AnchorPane.rightAnchor="-3.0" AnchorPane.topAnchor="-3.0">
          <cursor>
@@ -53,7 +53,7 @@
       <AnchorPane fx:id="mainContent" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="7.0" AnchorPane.topAnchor="50.0" />
       <AnchorPane id="headBar" fx:id="headBar" maxHeight="53.0" minHeight="53.0" mouseTransparent="true" prefHeight="53.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <ImageView fitHeight="49.0" fitWidth="128.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="30.0" AnchorPane.topAnchor="0.0">
+            <ImageView fitHeight="52.0" fitWidth="169.0" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0">
                <image>
                   <Image url="@../../images/wallet_logo.png" />
                </image></ImageView>

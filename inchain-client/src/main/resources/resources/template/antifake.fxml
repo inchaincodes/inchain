@@ -7,13 +7,13 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<StackPane prefHeight="300.0" prefWidth="500.0" stylesheets="@../css/consensus.css" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AntifakeController">
+<StackPane prefHeight="300.0" prefWidth="600.0" stylesheets="@../css/consensus.css" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AntifakeController">
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0">
          <children>
             <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
                <children>
-                  <TextArea fx:id="antifakeCodeId" prefHeight="200.0" prefWidth="200.0" promptText="请输入验证码" wrapText="true">
+                  <TextArea fx:id="antifakeCodeId" minWidth="600.0" prefHeight="200.0" prefWidth="600.0" promptText="请输入验证码" wrapText="true">
                      <font>
                         <Font name="Microsoft YaHei" size="16.0" />
                      </font></TextArea>
@@ -21,11 +21,11 @@
             </VBox>
             <HBox alignment="BOTTOM_CENTER" prefHeight="100.0" prefWidth="200.0" spacing="20.0">
                <children>
-                  <Button fx:id="verifyButId" mnemonicParsing="false" prefHeight="40.0" prefWidth="110.0" text="验证">
+                  <Button fx:id="verifyButId" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="验证">
                      <cursor>
                         <Cursor fx:constant="HAND" />
                      </cursor></Button>
-                  <Button fx:id="resetButId" mnemonicParsing="false" prefHeight="40.0" prefWidth="110.0" text="重置">
+                  <Button fx:id="resetButId" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="重置">
                      <HBox.margin>
                         <Insets left="100.0" />
                      </HBox.margin>

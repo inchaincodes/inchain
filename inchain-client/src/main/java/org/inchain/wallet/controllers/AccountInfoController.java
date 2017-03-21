@@ -1,10 +1,15 @@
 package org.inchain.wallet.controllers;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
 
+import javax.tools.Tool;
+
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.Result;
@@ -12,7 +17,9 @@ import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.store.AccountStore;
+import org.inchain.store.TransactionStoreProvider;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Hex;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.utils.DailogUtil;
@@ -20,11 +27,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
+import javafx.event.Event;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Cursor;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
 
 /**
@@ -41,9 +53,15 @@ public class AccountInfoController implements SubPageController {
 	//账户信息监听器，加载完账户之后执行
 	private AccountInfoListener accountInfoListener;
 	
+	public Label totalBalanceId;					//总余额
 	public Label canUseBlanaceId;					//可用余额
 	public Label canNotUseBlanaceId;				//不可用余额
+	public Label publicKeyId;						//账户公钥
+	public Label addressId;							//账户地址
 	public Label certId;							//信用
+	public Label transactionNumberId;				//交易数量
+	public Label encryptionStatusId;				//加密状态
+	public Label consensusStatusId;					//当前共识状态
 	
 	public Button backupWalletId;					//备份钱包
 	public Button importWalletId;					//导入钱包
@@ -58,6 +76,17 @@ public class AccountInfoController implements SubPageController {
     	addImageToButton(backupWalletId,"backupWallet");
     	addImageToButton(importWalletId,"importWallet");
     	addImageToButton(encryptWalletId,"encryptWallet");
+    	//公钥点击复制
+    	publicKeyId.setCursor(Cursor.HAND);
+    	publicKeyId.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			public void handle(MouseEvent e) {
+				StringSelection stsel = new StringSelection(publicKeyId.getText());
+				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(stsel, stsel);
+				
+				DailogUtil.showTip("复制成功", e.getScreenX(), e.getScreenY());
+				e.consume();
+			}
+		});
     	//点击备份钱包事件
     	backupWalletId.setOnAction(e -> backupWallet());
     	//点击导入钱包事件
@@ -91,29 +120,48 @@ public class AccountInfoController implements SubPageController {
     		}
     		//设置内页的余额
     		final Address address = account.getAddress();
-    		//自己的共识信息
+    		//自己的账户信息
 	    	AccountStore accountStore = accountKit.getAccountInfo();
+	    	//自己的交易信息
+	    	TransactionStoreProvider transactionStoreProvider = SpringContextUtils.getBean(TransactionStoreProvider.class);
+	    	if(transactionStoreProvider == null) {
+	    		//return;
+	    	}
     		Platform.runLater(new Runnable() {
 			    @Override
 			    public void run() {
+			    	totalBalanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
 			    	canUseBlanaceId.setText(address.getBalance().toText());
 			    	canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
+			    	publicKeyId.setText(String.valueOf(Hex.encode(accountStore.getPubkeys()[0])));
+			    	addressId.setText(address.getBase58());
 			    	certId.setText(String.valueOf(accountStore.getCert()));
+			    	transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));
+			    	if(accountKit.accountIsEncrypted()) {
+			    		encryptionStatusId.setText("已加密");
+			    	} else {
+			    		encryptionStatusId.setText("未加密,为了资金安全,请加密钱包");
+			    	}
+			    	if(accountKit.checkConsensusing()) {
+			    		consensusStatusId.setText("正在共识中");
+			    	} else {
+			    		consensusStatusId.setText("未参与共识");
+			    	}
 			    }
 			});
     	}
     	
 		//判断账户是否加密
-    	Platform.runLater(new Runnable() {
-		    @Override
-		    public void run() {
-				if(accountKit.accountIsEncrypted()) {
-		    		encryptWalletId.setText("修改密码");
-				} else {
-					encryptWalletId.setText("加密钱包");
-				} 
-		    }
-		});
+//    	Platform.runLater(new Runnable() {
+//		    @Override
+//		    public void run() {
+//				if(accountKit.accountIsEncrypted()) {
+//		    		encryptWalletId.setText("修改密码");
+//				} else {
+//					encryptWalletId.setText("加密钱包");
+//				} 
+//		    }
+//		});
     }
 
 	public void setAccountInfoListener(AccountInfoListener accountInfoListener) {
