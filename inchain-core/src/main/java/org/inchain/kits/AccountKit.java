@@ -1686,6 +1686,7 @@ public class AccountKit {
 			accountStore.setHash160(hash160);
 			accountStore.setType(network.getSystemAccountVersion());
 			accountStore.setBalance(getBalance().value);
+			accountStore.setPubkeys(getDefaultAccount().getMgPubkeys());
 		}
 		return accountStore;
 	}

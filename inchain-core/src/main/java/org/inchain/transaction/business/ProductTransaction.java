@@ -77,7 +77,7 @@ public class ProductTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected boolean isCompatible() {
+	public boolean isCompatible() {
 		return true;
 	}
 

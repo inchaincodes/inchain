@@ -97,6 +97,15 @@ public class Transaction extends Message {
 	public Transaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
         super(params, payloadBytes, offset);
     }
+	
+	/**
+	 * 该协议是否新增协议，用于支持旧版本，就版本会解析成为UnkonwTransaction
+	 * 当发布第一个版本之后，后面所有新增的协议，需覆盖该方法，并返回true
+	 * 当需要兼容时，会在type后面带上长度
+	 */
+	public boolean isCompatible() {
+		return false;
+	}
 
 	/**
 	 * 序列化
@@ -122,6 +131,10 @@ public class Transaction extends Message {
 		cursor = offset;
 		
 		type = readBytes(1)[0] & 0XFF;
+		
+		if(isCompatible()) {
+			length = (int) readUint32();
+		}
 		version = readUint32();
 		
 		//交易输入数量

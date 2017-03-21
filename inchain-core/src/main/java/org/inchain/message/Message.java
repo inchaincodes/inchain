@@ -12,6 +12,7 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
+import org.inchain.transaction.Transaction;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
@@ -165,6 +166,20 @@ public abstract class Message {
             // which means another call to bitcoinSerialize is coming.  If we didn't recache then internal
             // serialization would occur a 2nd time and every subsequent time the message is serialized.
             payload = stream.toByteArray();
+            
+            if(this instanceof Transaction) {
+            	Transaction tx = (Transaction) this;
+            	if(tx.isCompatible()) {
+            		//新协议
+            		byte[] newPayload = new byte[payload.length + 4];
+            		System.arraycopy(payload, 0, newPayload, 0, 4);
+            		Utils.uint32ToByteArrayBE(payload.length + 4, newPayload, 4);
+            		System.arraycopy(payload, 4, newPayload, 8, payload.length -4);
+            		
+            		payload = newPayload;
+            	}
+            }
+            
             cursor = cursor - offset;
             offset = 0;
             length = payload.length;
@@ -174,6 +189,20 @@ public abstract class Message {
         // set (except for static length message types).  Setting it makes future streaming more efficient
         // because we can preallocate the ByteArrayOutputStream buffer and avoid resizing.
         byte[] buf = stream.toByteArray();
+        
+        if(this instanceof Transaction) {
+        	Transaction tx = (Transaction) this;
+        	if(tx.isCompatible()) {
+        		//新协议
+        		byte[] newPayload = new byte[buf.length + 4];
+        		System.arraycopy(buf, 0, newPayload, 0, 4);
+        		Utils.uint32ToByteArrayBE(buf.length + 4, newPayload, 4);
+        		System.arraycopy(buf, 4, newPayload, 8, buf.length -4);
+        		
+        		buf = newPayload;
+        	}
+        }
+        
         length = buf.length;
         return buf;
     }

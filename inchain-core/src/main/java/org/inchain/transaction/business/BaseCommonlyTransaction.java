@@ -42,15 +42,6 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	}
 	
 	/**
-	 * 该协议是否新增协议，用于支持旧版本，就版本会解析成为UnkonwTransaction
-	 * 当发布第一个版本之后，后面所以新增的协议，需覆盖该方法，并返回true
-	 * 当需要兼容时，会在type后面带上长度
-	 */
-	protected boolean isCompatible() {
-		return false;
-	}
-	
-	/**
 	 * 序列化
 	 */
 	@Override
