@@ -5,6 +5,7 @@ import java.util.Date;
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MiningInfos;
+import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
@@ -40,6 +41,9 @@ public class SystemInfoController implements SubPageController{
 	public Label consensusNodeNumber;	//共识节点数
 	public Label consensusBonusNumber;	//当前共识奖励数
 	public Label consensusStatus;	//共识状态
+	public Label totalAmount;	//代币总量
+	public Label rewardTotalAmount;	//共识奖励总量
+	public Label rewardAmount;		//已产出奖励数
 	public Label sortId;
 	
 	private AppKit appKit;
@@ -66,7 +70,7 @@ public class SystemInfoController implements SubPageController{
     	InchainInstance instance = InchainInstance.getInstance();
     	appKit = instance.getAppKit();
     	accountKit = instance.getAccountKit();
-    	peerKit = SpringContextUtils.getBean(PeerKit.class);
+    	peerKit = instance.getPeerKit();
 	}
 
 	/*
@@ -102,25 +106,29 @@ public class SystemInfoController implements SubPageController{
 				    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
 				    		consensusMeeting.waitMeeting();
 				    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
-				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000));
-				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000));
-				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000));
+				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
+				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
+				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
 				    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
 				    			
 				    			consensusStatus.setText("正在等待进入共识队列");
 				    		}else if(endTime.compareTo(DateUtil.convertDate(new Date())) <= 0) {
 				    			consensusStatus.setText("正在等待进入下一轮共识队列");
 				    		}else {
-				    			consensusStatus.setText("正在排队\n当前轮开始时间："+periodStartTime+"\n我的共识开始时间："+beginTime+"\n我的共识结束时间："+endTime);
+				    			consensusStatus.setText("正在排队,当前轮开始时间："+periodStartTime+",我的共识时间："+beginTime+" - "+endTime);
 				    		}
 				    		
 				    	} else {
 				    		consensusStatus.setText("未参与共识");
 				    	}
 				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
-				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText() +" INS");
+				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText() + " INS");
 				    	
-				    	networkNumber.setText(String.valueOf(peerKit.getAvailablePeersCount()));
+				    	totalAmount.setText(Coin.MAX.toText() + " INS");
+				    	rewardTotalAmount.setText(ConsensusRewardCalculationUtil.TOTAL_REWARD.toText() + " INS");
+				    	rewardAmount.setText(ConsensusRewardCalculationUtil.calculatTotal(appKit.getNetwork().getBestHeight()).toText() + " INS");
+				    	
+//				    	networkNumber.setText(String.valueOf(peerKit.getAvailablePeersCount()));
 				    }
 				});
 			} catch (Exception e) {

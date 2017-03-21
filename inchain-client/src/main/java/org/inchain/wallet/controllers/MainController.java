@@ -352,8 +352,23 @@ public class MainController {
 				Platform.runLater(new Runnable() {
 				    @Override
 				    public void run() {
-						networkInfosNumId.setText(String.valueOf(inCount + outCount));
-						networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outCount, inCount));
+				    	int inPeerCount = 0;
+				    	int outPeerCount = 0;
+				    	
+				    	for (Peer peer : outPeers) {
+							if(peer.isHandshake()) {
+								outPeerCount++;
+							}
+						}
+				    	
+				    	for (Peer peer : inPeers) {
+				    		if(peer.isHandshake()) {
+				    			inPeerCount++;
+				    		}
+				    	}
+				    	
+						networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount));
+						networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outPeerCount, inPeerCount));
 				    }
 				});
 			}

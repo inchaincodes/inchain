@@ -33,7 +33,7 @@ public class TestNetworkParams extends NetworkParams {
 		
 		id = ID_TESTNET;
 		
-		packetMagic = 669266884l;
+		packetMagic = 669266885l;
 		
 		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}

@@ -21,7 +21,7 @@ public final class Coin implements Comparable<Coin>, Serializable {
     /**
      * 10亿总量
      */
-    public static final Coin MAX = Coin.valueOf(1000000000).multiply(COIN_VALUE);
+    public static final Coin MAX = Coin.valueOf(100000000).multiply(COIN_VALUE);
     
     /**
      * 0个 INS
@@ -207,7 +207,20 @@ public final class Coin implements Comparable<Coin>, Serializable {
     }
 
     public String toText() {
-		return new BigDecimal(value).divide(BigDecimal.valueOf(Coin.COIN.value)).toPlainString();
+    	
+    	BigDecimal amount = new BigDecimal(value).divide(BigDecimal.valueOf(Coin.COIN.value));
+    	
+    	if(amount.longValue() == 0) {
+    		return amount.toPlainString();
+    	} else if(amount.doubleValue() % 100000000 == 0) {
+    		return amount.longValue() / 100000000 + " 亿";
+    	} else if(amount.doubleValue() % 10000000 == 0) {
+    		return amount.longValue() / 10000000 + " 千万";
+    	} else if(amount.doubleValue() % 10000 == 0) {
+    		return amount.longValue() / 10000 + " 万";
+    	} else {
+    		return amount.toPlainString();
+    	}
     }
     
     @Override

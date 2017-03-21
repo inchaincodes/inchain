@@ -138,7 +138,7 @@ public class ConsensusController implements SubPageController {
     public void initDatas() {
     	
     	if(log.isDebugEnabled()) {
-    		log.debug("加载商家列表···");
+    		log.debug("加载共识列表···");
     	}
     	
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
@@ -209,7 +209,7 @@ public class ConsensusController implements SubPageController {
     	for (AccountStore accountStore : consensusList) {
     		boolean exist = false;
 			for (AccountStore accountStoreTemp : consensusListTemp) {
-				if(Arrays.equals(accountStore.getHash160(), accountStoreTemp.getHash160())) {
+				if(Arrays.equals(accountStore.getHash160(), accountStoreTemp.getHash160()) && accountStore.getCert() == accountStoreTemp.getCert()) {
 					exist = true;
 					break;
 				}

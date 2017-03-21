@@ -16,7 +16,11 @@ public final class ConsensusRewardCalculationUtil {
 	/**
 	 * 初始奖励系数，也就是第一个发放奖励的区块开始，奖励多少
 	 */
-	public final static Coin START_REWARD = Coin.COIN.multiply(10);
+	public final static Coin START_REWARD = Coin.COIN;
+	/**
+	 * 最小奖励系数，从第一年开始，每年减半，至少达到最小奖励，后面不变
+	 */
+	public final static Coin MIN_REWARD = START_REWARD.div(10);
 	/**
 	 * 开始发放奖励的区块高度
 	 */
@@ -46,8 +50,8 @@ public final class ConsensusRewardCalculationUtil {
 		while(coefficient-- > 0) {
 			issued = issued.add(coefficientReward.multiply(REWARD_CYCLE));
 			coefficientReward = coefficientReward.div(2);
-			if(coefficientReward.isLessThan(Coin.COIN)) {
-				coefficientReward = Coin.COIN;
+			if(coefficientReward.isLessThan(MIN_REWARD)) {
+				coefficientReward = MIN_REWARD;
 			}
 		}
 		
@@ -64,7 +68,34 @@ public final class ConsensusRewardCalculationUtil {
 		return coefficientReward;
 	}
 	
+	/**
+	 * 计算共识奖励
+	 * 根据传入的区块高度，计算当前已产出的奖励总量
+	 * 
+	 * @param height
+	 * @return Coin
+	 */
+	public final static Coin calculatTotal(long height) {
+		if(height < START_HEIGHT) {
+			return Coin.ZERO;
+		}
+		//奖励周期
+		long realHeight = (height - START_HEIGHT);
+		long coefficient = realHeight / REWARD_CYCLE;
+		//奖励系数
+		Coin coefficientReward = START_REWARD;
+		Coin issued = Coin.ZERO;
+		while(coefficient-- > 0) {
+			issued = issued.add(coefficientReward.multiply(REWARD_CYCLE));
+			coefficientReward = coefficientReward.div(2);
+			if(coefficientReward.isLessThan(MIN_REWARD)) {
+				coefficientReward = MIN_REWARD;
+			}
+		}
+		return issued.add(coefficientReward.multiply(realHeight % REWARD_CYCLE));
+	}
+	
 	public static void main(String[] args) {
-		System.out.println(calculat(REWARD_CYCLE * 16 + 3026900));
+		System.out.println(calculatTotal(REWARD_CYCLE * 16 + 3026900));
 	}
 }
