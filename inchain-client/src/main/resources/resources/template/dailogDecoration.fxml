@@ -6,10 +6,10 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane fx:id="Dailogroot" prefHeight="334.0" prefWidth="463.0" styleClass="Dailogdecoration" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.DailogDecorationController">
+<AnchorPane fx:id="Dailogroot" prefHeight="290.0" prefWidth="460.0" styleClass="Dailogdecoration" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.DailogDecorationController">
    <children>
       <Region fx:id="dragbar" layoutX="297.0" layoutY="13.0" prefHeight="30.0" AnchorPane.leftAnchor="-3.0" AnchorPane.rightAnchor="-3.0" AnchorPane.topAnchor="-3.0" />
-      <Pane fx:id="dailogContent" layoutY="37.0" prefHeight="297.0" prefWidth="463.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="48.0" />
+      <Pane fx:id="dailogContent" layoutY="37.0" prefHeight="242.0" prefWidth="460.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="48.0" />
       <Button id="close" fx:id="close" alignment="CENTER" mnemonicParsing="false" prefHeight="31.0" prefWidth="30.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <cursor>
             <Cursor fx:constant="HAND" />
