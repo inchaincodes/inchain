@@ -25,7 +25,7 @@
             </AnchorPane>
             <VBox AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="账户地址：">
                            <font>
@@ -48,7 +48,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="总余额：">
                            <font>
@@ -71,7 +71,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="可用余额：">
                            <font>
@@ -102,7 +102,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="不可用余额：">
                            <font>
@@ -133,7 +133,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="信用：">
                            <font>
@@ -156,7 +156,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="交易数量：">
                            <font>
@@ -179,7 +179,7 @@
                         <Insets left="20.0" top="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="钱包是否已加密：">
                            <font>
@@ -210,7 +210,7 @@
                         <Insets left="20.0" />
                      </padding>
                   </HBox>
-                  <HBox id="infoItem" prefHeight="53.0" prefWidth="480.0">
+                  <HBox id="infoItem" prefHeight="53.0" prefWidth="500">
                      <children>
                         <Label text="当前共识状态：">
                            <font>
