@@ -34,7 +34,11 @@ public class KeyValuePair {
 		if(value == null) {
 			this.value = new byte[0];
 		} else {
-			this.value = value.getBytes();
+			try {
+				this.value = value.getBytes("utf-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
 		if(type instanceof ContentType) {
 			this.type = TYPE_ACCOUNT;

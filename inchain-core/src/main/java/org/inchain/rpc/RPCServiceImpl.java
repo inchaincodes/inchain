@@ -1,5 +1,8 @@
 package org.inchain.rpc;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -495,6 +498,70 @@ public class RPCServiceImpl implements RPCService {
 		} finally {
 			accountKit.resetKeys();
 		}
+	}
+	
+	/**
+	 * 广播交易
+	 */
+	@Override
+	public JSONObject broadcast(String txContent) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		try {
+			Transaction tx = network.getDefaultSerializer().makeTransaction(Hex.decode(txContent), 0);
+
+			try {
+				MempoolContainer.getInstace().add(tx);
+				
+				BroadcastResult br = peerKit.broadcast(tx).get();
+				
+				json.put("success", br.isSuccess());
+				json.put("message", br.getMessage());
+				
+				return json;
+			} catch (Exception e) {
+				MempoolContainer.getInstace().remove(tx.getHash());
+				
+				json.put("success", false);
+				json.put("message", e.getMessage());
+				return json;
+			}
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+		}
+		
+		return json;
+	}
+	
+	/**
+	 * 广播交易 - 交易内容存放在文件里面
+	 */
+	@Override
+	public JSONObject broadcastfromfile(String filepath) throws JSONException {
+		
+		JSONObject json = new JSONObject();
+		
+		File file = new File(filepath);
+		if(!file.exists()) {
+			json.put("success", false);
+			json.put("message", "文件不存在");
+			return json;
+		}
+		StringBuilder sb = new StringBuilder();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			String line = null;
+			while((line = br.readLine()) != null) {
+				sb.append(line);
+			}
+			br.close();
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", "读取文件错误");
+			return json;
+		}
+		return broadcast(sb.toString());
 	}
 	
 	/**

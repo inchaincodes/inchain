@@ -56,6 +56,7 @@ public class Account implements Cloneable {
 	
 	//认证账户对应最新的交易信息
 	private Transaction accountTransaction;
+	private Sha256Hash txhash;
 	
 	public Account() {
 	}
@@ -622,5 +623,13 @@ public class Account implements Cloneable {
 
 	public void setTrEckeys(ECKey[] trEckeys) {
 		this.trEckeys = trEckeys;
+	}
+
+	public Sha256Hash getTxhash() {
+		return txhash;
+	}
+
+	public void setTxhash(Sha256Hash txhash) {
+		this.txhash = txhash;
 	}
 }

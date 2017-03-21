@@ -10,6 +10,7 @@ import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.ECKey.ECDSASignature;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
@@ -139,7 +140,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 		
 		if(account.isCertAccount()) {
 			//认证账户
-			if(account.getAccountTransaction() == null) {
+			if(account.getAccountTransaction() == null && account.getTxhash() == null) {
 				throw new VerificationException("签名失败，认证账户没有对应的信息交易");
 			}
 			
@@ -160,7 +161,15 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			ecSign = keys[1].sign(hash);
 			byte[] sign2 = ecSign.encodeToDER();
 			
-			scriptSig = ScriptBuilder.createCertAccountScript(type, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, sign2);
+			Sha256Hash txhash = null;
+			
+			if(account.getAccountTransaction() != null) {
+				txhash = account.getAccountTransaction().getHash();
+			} else {
+				txhash = account.getTxhash();
+			}
+			
+			scriptSig = ScriptBuilder.createCertAccountScript(type, txhash, account.getAddress().getHash160(), sign1, sign2);
 		} else {
 			//普通账户
 			ECKey key = account.getEcKey();

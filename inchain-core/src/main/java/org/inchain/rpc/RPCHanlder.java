@@ -209,9 +209,19 @@ public class RPCHanlder {
 		//转账
 		case "send": {
 			if(commandInfos.getJSONArray("params").length() > 3 && password == null) {
-				password = commandInfos.getJSONArray("params").getString(0);
+				password = commandInfos.getJSONArray("params").getString(3);
 			}
 			return rpcService.sendMoney(commandInfos.getJSONArray("params").getString(0), commandInfos.getJSONArray("params").getString(1), commandInfos.getJSONArray("params").getString(2), password);
+		}
+		
+		//广播
+		case "broadcast": {
+			return rpcService.broadcast(commandInfos.getJSONArray("params").getString(0));
+		}
+		
+		//广播交易，交易存于文件里
+		case "broadcastfromfile": {
+			return rpcService.broadcastfromfile(commandInfos.getJSONArray("params").getString(0));
 		}
 		
 		//获取共识列表
@@ -281,10 +291,12 @@ public class RPCHanlder {
 		sb.append("  gettransaction                  获取帐户的交易记录\n");
 		sb.append("  encryptwallet                   加密钱包\n");
 		sb.append("  password                        修改钱包密码\n");
+		
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
 		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
 		sb.append("  send [to address] [money] [fee]     转账\n");
+		sb.append("  broadcast [txcontent]               广播交易\n");
 		sb.append("\n");
 		sb.append(" --- 共识相关 --- \n");
 		sb.append("  getconsensus                    获取共识节点列表\n");
@@ -293,8 +305,14 @@ public class RPCHanlder {
 		sb.append("\n");
 		sb.append(" --- 节点相关 --- \n");
 		sb.append("  getpeers                        获取连接节点信息\n");
-		
 		sb.append("\n");
+//		sb.append(" --- 业务相关 --- \n");
+//		sb.append("  createproduct [productinfo] [password]                               认证账户创建商品[仅适用于认证账户]\n");
+//		sb.append("  makegeneralantifakecode [productinfo|producttxid] [password]         创建普通防伪码[仅适用于认证账户]\n");
+//		sb.append("  makeantifakecode [productinfo] [password]                            创建链上防伪码[仅适用于认证账户]\n");
+//		sb.append("  verifygeneralantifakecode [antifakecode] [password]                  验证普通防伪码[仅适用于普通账户]\n");
+//		sb.append("  verifyantifakecode [antifakecode] [password]                         验证链上防伪码[仅适用于普通账户]\n");
+//		sb.append("\n");
 		
 		return sb.toString();
 	}
