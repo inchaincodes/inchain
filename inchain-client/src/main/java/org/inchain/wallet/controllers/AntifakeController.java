@@ -259,8 +259,9 @@ public class AntifakeController implements SubPageController {
 		ProductTransaction productTransaction = (ProductTransaction) productTxStore.getTransaction();
 		Product product = productTransaction.getProduct();
 		List<KeyValuePair> bodyContents = product.getContents();
+		
 		for (KeyValuePair keyValuePair : bodyContents) {
-
+			
 			HBox item= new HBox();
 			name = new Label(keyValuePair.getKeyName()+":");
 			item.getChildren().add(name);
@@ -281,7 +282,7 @@ public class AntifakeController implements SubPageController {
 			item.setStyle("-fx-padding:0 0 10 10;");
 			content.getChildren().add(item);
 		}
-		content.setStyle("-fx-padding:20 0 0 80;");
+		content.setStyle("-fx-padding:20 0 0 120;");
 		body.getChildren().add(content);
 		DailogUtil.showDailog(body, "验证结果");
 	}

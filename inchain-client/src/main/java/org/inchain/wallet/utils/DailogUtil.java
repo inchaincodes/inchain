@@ -217,6 +217,7 @@ public class DailogUtil {
 			FXMLLoader loader =  new FXMLLoader(url);
 			Pane ui = loader.load();
 			DailogDecorationController dailogDecorationController = loader.getController();
+			dailogDecorationController.getDailogContent().getChildren().add(node);
 			
 			Group root = addShadow(ui);
 			Stage window = new Stage(StageStyle.TRANSPARENT);
@@ -234,6 +235,7 @@ public class DailogUtil {
 			scene.fillProperty().set(Color.TRANSPARENT);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
+
 			window.showAndWait();
 		} catch (Exception e) {
 			e.printStackTrace();
