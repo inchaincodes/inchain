@@ -16,7 +16,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Tooltip;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.effect.Effect;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
@@ -146,21 +145,37 @@ public class DailogUtil {
 	public static void showDailog(FXMLLoader loader, String title) {
 		showDailog(loader, title, null);
 	}
-	
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,final Runnable callback) {
+		showDailog(loader, title,460,280, callback);
+	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,double width,double height) {
+		showDailog(loader, title,width,height, null);
+	}
 	/**
 	 * 显示弹出层
 	 * @param content
 	 * @param title
 	 * @param callback 关闭时的回调
 	 */
-	public static void showDailog(FXMLLoader content, String title, final Runnable callback) {
+	public static void showDailog(FXMLLoader content, String title,double width,double height,final Runnable callback) {
 		try {
 			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
 			FXMLLoader loader =  new FXMLLoader(url);
 			Pane ui = loader.load();
 			DailogDecorationController dailogDecorationController = loader.getController();
 			Pane dailogContent = content.load();
-			
+			ui.setPrefWidth(width);
+			ui.setPrefHeight(height);
 			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
 			Group root = addShadow(ui);
 			

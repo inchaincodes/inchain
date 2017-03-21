@@ -26,5 +26,5 @@ Button:hover{
 }
 
 .encryptWalletButton:hover {
-	    -fx-background-image:url("/images/changepasswordH_icon.png");
+	-fx-background-image:url("/images/changepasswordH_icon.png");
 }

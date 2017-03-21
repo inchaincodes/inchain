@@ -1,3 +1,10 @@
+.root {
+	-fx-background-image:url("/images/dailog_bg.png");
+	-fx-background-repeat: no-repeat;
+    -fx-background-position: center;	
+    -fx-background-size: cover;
+}
+
 Button{
 	-fx-background-radius: 2;
 	-fx-border-color:#6585dc;

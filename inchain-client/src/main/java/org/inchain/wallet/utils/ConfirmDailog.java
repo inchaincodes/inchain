@@ -58,8 +58,8 @@ public class ConfirmDailog {
 	 */
 	public ConfirmDailog(Stage stage, String message, int type) {
 
-		int width = 460;
-		int height = 270;
+		int width = 420;
+		int height = 220;
 
 		Point point = DailogUtil.getDailogPoint(width, height);
 
@@ -76,7 +76,6 @@ public class ConfirmDailog {
 		dialogStage.setResizable(false);
 		BorderPane borderPaneLayout = new BorderPane();
 		borderPaneLayout.getStyleClass().add("root");
-		borderPaneLayout.setStyle("-fx-background-image:url(\"/images/popup_bg.png\")");
 		Button confirm = new Button("确认");
 		confirm.setPrefWidth(110);
 		confirm.setPrefHeight(25);
@@ -112,7 +111,7 @@ public class ConfirmDailog {
 
 		VBox vBox = new VBox();
 		text = new Label(message);
-		text.maxWidth(100);
+		text.maxWidth(80);
 		text.setWrapText(true);
 		if (type == 2) {
 			Button wait = new Button("等待共识退出");
@@ -132,7 +131,7 @@ public class ConfirmDailog {
 						// 解密账户
 						URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 						FXMLLoader loader = new FXMLLoader(location);
-						DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
+						DailogUtil.showDailog(loader, "输入钱包密码",420,250, new Runnable() {
 							@Override
 							public void run() {
 								if (!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
