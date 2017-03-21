@@ -5,9 +5,7 @@
     -fx-background-size: cover;
 }
 #headBar{
-	-fx-background-image:url("/images/headBar.png");
-	-fx-background-repeat: repeat;
-	-fx-background-size: cover;
+	-fx-background-color: #264181;
 }
 .root #menuId {
 	-fx-background-image:url("/images/menu_bg.png");
@@ -24,18 +22,20 @@
     -fx-border-color: transparent transparent #6da9e9 transparent;
 }
 .root #menuId  Button:hover{
-	 -fx-background-color: #183556;
+	 -fx-background-color: #3b5aac;
 }
 .root Label{
 	-fx-text-fill:WHITE;
 }
 .copy-button{
-	-fx-background-color:#34538b;
+	-fx-border-color:#6585dc;
+    -fx-background-color: #4b6bc1;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:12;
 }
 .copy-button:hover{
-	-fx-background-color:#5070aa;
+	-fx-border-color:#506fc3;
+	-fx-background-color: #3b5aac;
 }
 #decoration-button-iconified {
 	-fx-background-radius: 0;

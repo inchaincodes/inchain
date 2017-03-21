@@ -34,12 +34,26 @@ table-row-cell .table-cell {
 }  
 
 .table-view > .virtual-flow > .scroll-bar:vertical{
-	-fx-color: #64d3ff;
+	-fx-color: #a7befb;
     -fx-background-color: transparent;
     -fx-background-insets: 0, 0 0 0 1;  
     -fx-padding: -1 -1 -1 0;  
 }
 
+.table-view > .virtual-flow > .scroll-bar:vertical:hover{
+	-fx-color: #a7befb;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0, 0 0 0 1;  
+    -fx-padding: -1 -1 -1 0;  
+}
+/* The main scrollbar **track** CSS class  */
+.mylistview .scroll-bar:horizontal .track,
+.mylistview .scroll-bar:vertical .track{
+    -fx-background-color:transparent;
+    -fx-border-color:transparent;
+    -fx-background-radius: 0em;
+    -fx-border-radius:2em;
+}
 .table-view,
 .tree-table-view {
     /* Constants used throughout the tableview. */
@@ -60,5 +74,5 @@ table-row-cell .table-cell {
 	 -fx-background-color: transparent;
 }
 .table-view > .virtual-flow > .clipped-container > .sheet > .table-row-cell:hover{
-	 -fx-background-color: #183556;
+	 -fx-background-color: #3b5aac;
 }

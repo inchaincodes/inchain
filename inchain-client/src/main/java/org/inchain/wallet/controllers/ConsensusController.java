@@ -299,7 +299,7 @@ public class ConsensusController implements SubPageController {
 			type = 1;
 		}    	
 
-		DailogUtil.showTip(result.getMessage(), Context.getMainStage());
+		DailogUtil.showTip(result.getMessage(), Context.getMainStage(),3000l);
 		if(result.isSuccess()) {
 			nowStatus = 1;
 			initDatas();

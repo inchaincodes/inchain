@@ -10,11 +10,16 @@ import org.inchain.wallet.entity.Point;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Tooltip;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.Effect;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -157,6 +162,7 @@ public class DailogUtil {
 			Pane dailogContent = content.load();
 			
 			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
+			Group root = addShadow(ui);
 			
 			Stage window = new Stage(StageStyle.TRANSPARENT);
 			dailogDecorationController.setStage(window);
@@ -169,7 +175,8 @@ public class DailogUtil {
 			window.initModality(Modality.APPLICATION_MODAL);
 			//设置程序图标
 			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
-			Scene scene = new Scene(ui);
+			Scene scene = new Scene(root);
+			scene.fillProperty().set(Color.TRANSPARENT);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
 			if(dailogContent.getId() != null) {
@@ -186,6 +193,19 @@ public class DailogUtil {
 			e.printStackTrace();
 		}
 	}
+
+	private static Group addShadow(Pane ui) {
+		//添加阴影
+		Group root = new Group();
+		DropShadow dropShadow = new DropShadow();
+		dropShadow.setBlurType(BlurType.GAUSSIAN);
+		dropShadow.setSpread(0.2);
+		dropShadow.setRadius(15);
+		root.setEffect(dropShadow);
+		
+		root.getChildren().add(ui);
+		return root;
+	}
 	/**
 	 * 显示弹出层
 	 * @param content
@@ -198,7 +218,7 @@ public class DailogUtil {
 			Pane ui = loader.load();
 			DailogDecorationController dailogDecorationController = loader.getController();
 			
-			
+			Group root = addShadow(ui);
 			Stage window = new Stage(StageStyle.TRANSPARENT);
 			dailogDecorationController.setStage(window);
 			dailogDecorationController.setTitle(title);
@@ -210,7 +230,8 @@ public class DailogUtil {
 			window.initModality(Modality.APPLICATION_MODAL);
 			//设置程序图标
 			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
-			Scene scene = new Scene(ui);
+			Scene scene = new Scene(root);
+			scene.fillProperty().set(Color.TRANSPARENT);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/dailogDecoration.css");
 			window.showAndWait();
@@ -244,7 +265,7 @@ public class DailogUtil {
 			ui.setPrefWidth(800);
 			ui.setPrefHeight(550);
 			dailogDecorationController.getDailogContent().getChildren().add(dailogContent);
-			
+			Group root = addShadow(ui);
 			Stage window = new Stage(StageStyle.TRANSPARENT);
 			dailogDecorationController.setStage(window);
 			dailogDecorationController.setTitle(title);
@@ -256,7 +277,8 @@ public class DailogUtil {
 			window.initModality(applicationModal);
 			//设置程序图标
 			window.getIcons().add(new Image(DailogUtil.class.getClass().getResourceAsStream(Constant.APP_ICON)));
-			Scene scene = new Scene(ui);
+			Scene scene = new Scene(root);
+			scene.fillProperty().set(Color.TRANSPARENT);
 			window.setScene(scene);
 			scene.getStylesheets().add("/resources/css/console.css");
 			if(dailogContent.getId() != null) {

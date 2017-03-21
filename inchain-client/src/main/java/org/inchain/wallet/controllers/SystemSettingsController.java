@@ -51,6 +51,7 @@ public class SystemSettingsController implements SubPageController{
 
 		Image console = new Image(getClass().getResourceAsStream("/images/console.png"));
 		consoleId.setGraphic(new ImageView(console));
+		consoleId.setGraphicTextGap(10);
 		consoleId.setOnAction(e -> openConsole());
 		
 		buttons.add(systemInfoId);
@@ -81,7 +82,7 @@ public class SystemSettingsController implements SubPageController{
 					return;
 				}
 				initButtonbg();
-				button.setStyle("-fx-background-color: #1554a2;");
+				button.setStyle("-fx-background-color: #3b5aac;");
 				String id = button.getId();
 				//触发页面显示隐藏事件
 				for (Entry<String, SubPageController> entry : subPageControllerMaps.entrySet()) {
@@ -104,7 +105,7 @@ public class SystemSettingsController implements SubPageController{
 	}
 	protected void initButtonbg() {
 		for (Button button : buttons) {
-			button.setStyle(" -fx-background-color: #1b346e;");
+			button.setStyle(" -fx-background-color: #4b6bc1;");
 		}
 	}
 	/**
@@ -180,7 +181,7 @@ public class SystemSettingsController implements SubPageController{
 		//显示第一个子页面
 		if(buttons.size() > 0) {
 			showPage(buttons.get(0).getId());
-			buttons.get(0).setStyle("-fx-background-color: #1554a2;");
+			buttons.get(0).setStyle("-fx-background-color: #3b5aac;");
 		}
 	}
 	@Override

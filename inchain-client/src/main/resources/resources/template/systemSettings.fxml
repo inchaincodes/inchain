@@ -10,11 +10,11 @@
    <children>
       <HBox alignment="CENTER" layoutX="8.0" layoutY="8.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Button fx:id="systemInfoId" mnemonicParsing="false" prefHeight="45.0" prefWidth="160.0" styleClass="systemInfoButtonId" text="系统信息">
+            <Button fx:id="systemInfoId" mnemonicParsing="false" prefHeight="42.0" prefWidth="240.0" styleClass="systemInfoButtonId" text="系统信息">
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor></Button>
-            <Button fx:id="nodeInfoId" mnemonicParsing="false" prefHeight="45.0" prefWidth="160.0" styleClass="nodeInfoButtonId" text="节点信息">
+            <Button fx:id="nodeInfoId" mnemonicParsing="false" prefHeight="42.0" prefWidth="240.0" styleClass="nodeInfoButtonId" text="节点信息">
                <cursor>
                   <Cursor fx:constant="HAND" />
                </cursor></Button>
