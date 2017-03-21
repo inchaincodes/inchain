@@ -22,4 +22,9 @@ Button:hover{
 	-fx-border-color: transparent;
     -fx-border-style: null;
     -fx-background-color: null;
+    -fx-background-image:url("/images/changepassword_icon.png");
+}
+
+.encryptWalletButton:hover {
+	    -fx-background-image:url("/images/changepasswordH_icon.png");
 }
