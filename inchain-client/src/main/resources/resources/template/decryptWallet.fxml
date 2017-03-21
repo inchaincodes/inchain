@@ -9,7 +9,7 @@
 
 <AnchorPane fx:id="decryptWalletId" prefHeight="200.0" prefWidth="460.0" stylesheets="@../css/changeWalletPassword.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.DecryptWalletController">
    <children>
-      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="50.0">
+      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="30.0">
          <children>
             <Label text="密码" textFill="WHITE">
                <font>
@@ -23,7 +23,7 @@
             </PasswordField>
          </children>
       </HBox>
-      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="150.0">
+      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="110.0">
          <children>
             <Button id="sure" fx:id="okId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="确定" textFill="WHITE">
                <cursor>

@@ -9,7 +9,7 @@
 
 <AnchorPane fx:id="encryptWalletId" prefHeight="200.0" prefWidth="460.0" stylesheets="@../css/changeWalletPassword.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.EncryptWalletController">
    <children>
-      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="50.0">
+      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="10.0">
          <children>
             <Label text="密码" textFill="WHITE">
                <font>
@@ -23,7 +23,7 @@
             </PasswordField>
          </children>
       </HBox>
-      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="100.0">
+      <HBox id="Passworditem" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="70.0">
          <children>
             <Label text="重复密码" textFill="WHITE">
                <font>
@@ -48,7 +48,10 @@
                </font>
                <cursor>
                   <Cursor fx:constant="HAND" />
-               </cursor></Button>
+               </cursor>
+               <HBox.margin>
+                  <Insets left="40.0" />
+               </HBox.margin></Button>
          </children>
       </HBox>
    </children>
