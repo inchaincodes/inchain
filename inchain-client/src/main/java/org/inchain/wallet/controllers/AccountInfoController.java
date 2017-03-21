@@ -64,7 +64,6 @@ public class AccountInfoController implements SubPageController {
     	//初始化按钮
     	addImageToButton(backupWalletId,"backupWallet");
     	addImageToButton(importWalletId,"importWallet");
-    	addImageToButton(encryptWalletId,"encryptWallet");
     	//点击备份钱包事件
     	backupWalletId.setOnAction(e -> backupWallet());
     	//点击导入钱包事件
@@ -254,7 +253,7 @@ public class AccountInfoController implements SubPageController {
 						AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 						//判断账户是否加密
 						if(accountKit.accountIsEncrypted()) {
-				    		encryptWalletId.setText("修改密码");
+							encryptionStatusId.setText("已加密");
 						}
 					}
 				});
