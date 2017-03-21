@@ -151,7 +151,7 @@ public class DailogUtil {
 	 * @param title
 	 */
 	public static void showDailog(FXMLLoader loader, String title,final Runnable callback) {
-		showDailog(loader, title,460,290, callback);
+		showDailog(loader, title,460,300, callback);
 	}
 	/**
 	 * 显示弹出层

@@ -33,7 +33,7 @@
             <PasswordField fx:id="repeatId" promptText="请确认密码" />
          </children>
       </HBox>
-      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="150.0">
+      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="160.0">
          <children>
             <Button id="sure" fx:id="okId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="确定" textFill="WHITE">
                <font>
