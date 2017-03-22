@@ -1,16 +1,21 @@
 package org.inchain.kit;
 
 import java.io.IOException;
+import java.net.URL;
 
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.listener.Listener;
 import org.inchain.service.impl.VersionService;
+import org.inchain.wallet.Context;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import javafx.fxml.FXMLLoader;
 
 /**
  * 印链核心实例
@@ -61,7 +66,10 @@ public class InchainInstance {
 			springContext.start();
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.info("核心程序启动失败 {}", e.getMessage());
+			URL location = getClass().getResource("/resources/template/startupfailed.fxml");
+			FXMLLoader loader = new FXMLLoader(location);
+			DailogUtil.showDailog(loader, "启动错误",Context.getStage("startPage"));
+			log.info("11核心程序启动失败 {}", e.getMessage());
 			return;
 		}
 

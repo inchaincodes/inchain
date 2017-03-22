@@ -130,6 +130,18 @@ public class DailogUtil {
 	 * @param dailogHeight
 	 * @return Point
 	 */
+	public static Point getDailogPoint(double dailogWidth, double dailogHeight,Stage stage) {
+		Stage mainStage = stage;
+		double x = mainStage.getX() + (mainStage.getWidth() - dailogWidth) / 2;
+    	double y = mainStage.getY() + (mainStage.getHeight() - dailogHeight) / 2;
+    	return new Point(x, y);
+	}
+	/**
+	 * 获取弹出层的剧中位置
+	 * @param dailogWidth
+	 * @param dailogHeight
+	 * @return Point
+	 */
 	public static Point getDailogPoint(double dailogWidth, double dailogHeight) {
 		Stage mainStage = Context.getMainStage();
 		double x = mainStage.getX() + 60 + (mainStage.getWidth() - dailogWidth) / 2;
@@ -143,15 +155,7 @@ public class DailogUtil {
 	 * @param title
 	 */
 	public static void showDailog(FXMLLoader loader, String title) {
-		showDailog(loader, title, null);
-	}
-	/**
-	 * 显示弹出层
-	 * @param ui
-	 * @param title
-	 */
-	public static void showDailog(FXMLLoader loader, String title,final Runnable callback) {
-		showDailog(loader, title,460,300, callback);
+		showDailog(loader, title, 460,300);
 	}
 	/**
 	 * 显示弹出层
@@ -159,15 +163,58 @@ public class DailogUtil {
 	 * @param title
 	 */
 	public static void showDailog(FXMLLoader loader, String title,double width,double height) {
-		showDailog(loader, title,width,height, null);
+		showDailog(loader, title,width,height, null,null);
 	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,double width,double height,Stage stage) {
+		showDailog(loader, title,width,height,stage ,null);
+	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader,String title,Stage stage) {
+		showDailog(loader, title, 460,300,stage ,null);
+	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,Stage stage,final Runnable callback) {
+		showDailog(loader, title,460,300,stage,callback);
+	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,final Runnable callback) {
+		showDailog(loader, title, 460,300,null,callback);
+	}
+	/**
+	 * 显示弹出层
+	 * @param ui
+	 * @param title
+	 */
+	public static void showDailog(FXMLLoader loader, String title,double width,double height,final Runnable callback) {
+		showDailog(loader, title,width,height,null,callback);
+	}
+
+
+
 	/**
 	 * 显示弹出层
 	 * @param content
 	 * @param title
 	 * @param callback 关闭时的回调
 	 */
-	public static void showDailog(FXMLLoader content, String title,double width,double height,final Runnable callback) {
+	public static void showDailog(FXMLLoader content, String title,double width,double height,Stage stage,final Runnable callback) {
 		try {
 			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
 			FXMLLoader loader =  new FXMLLoader(url);
@@ -182,7 +229,7 @@ public class DailogUtil {
 			Stage window = new Stage(StageStyle.TRANSPARENT);
 			dailogDecorationController.setStage(window);
 			dailogDecorationController.setTitle(title);
-			Point point = getDailogPoint(ui.getPrefWidth(), ui.getPrefHeight());
+			Point point = getDailogPoint(ui.getPrefWidth(), ui.getPrefHeight(),stage);
 			window.setX(point.getX());
 			window.setY(point.getY());
 			//设置程序标题

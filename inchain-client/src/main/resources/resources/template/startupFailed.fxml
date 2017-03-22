@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.web.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="250.0" prefWidth="460.0" stylesheets="@../css/confirmDailog.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.StartupFailedController">
+   <children>
+      <Label layoutX="46.0" layoutY="47.0" text="核心程序启动失败，可能原因如下：" AnchorPane.leftAnchor="46.0" AnchorPane.topAnchor="47.0" />
+      <Label layoutX="94.0" layoutY="118.0" text="核心程序重复打开，请检查是否有未关闭的客户端程序" AnchorPane.leftAnchor="94.0" AnchorPane.topAnchor="105.0" />
+      <Button fx:id="defineId" layoutX="164.0" layoutY="176.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="确定" AnchorPane.leftAnchor="164.0" AnchorPane.topAnchor="176.0">
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor>
+      </Button>
+   </children>
+</AnchorPane>

@@ -292,7 +292,7 @@ public class AntifakeController implements SubPageController {
 		URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 		FXMLLoader loader = new FXMLLoader(location);
 		final AccountKit accountKitTemp = accountKit;
-		DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
+		DailogUtil.showDailog(loader, "输入钱包密码",460,250, new Runnable() {
 			@Override
 			public void run() {
 				if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {

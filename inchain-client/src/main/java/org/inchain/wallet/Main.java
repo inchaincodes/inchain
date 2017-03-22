@@ -95,6 +95,7 @@ public class Main extends Decoration implements ActionListener {
 	//显示启动界面
 	private void showOnStartPage(final Stage stage) throws IOException {
 		
+
 		URL location = getClass().getResource("/resources/template/startPage.fxml");
         FXMLLoader loader = new FXMLLoader(location);
 
@@ -127,6 +128,7 @@ public class Main extends Decoration implements ActionListener {
 		});
         
 		startPageStage = new Stage(StageStyle.UNDECORATED);
+		Context.addStage("startPage", startPageStage);
 		Scene scene = new Scene(mainUI);
 		scene.getStylesheets().add("/resources/css/startPage.css");
 		startPageStage.initOwner(stage);

@@ -2,6 +2,7 @@ package org.inchain.wallet.controllers;
 
 import java.util.Date;
 
+import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MiningInfos;
@@ -11,7 +12,6 @@ import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
-import org.inchain.kits.PeerKit;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
@@ -48,7 +48,6 @@ public class SystemInfoController implements SubPageController{
 	
 	private AppKit appKit;
 	private AccountKit accountKit;
-	private PeerKit peerKit;
 	
 	/**
 	 * FXML初始化调用
@@ -70,7 +69,6 @@ public class SystemInfoController implements SubPageController{
     	InchainInstance instance = InchainInstance.getInstance();
     	appKit = instance.getAppKit();
     	accountKit = instance.getAccountKit();
-    	peerKit = instance.getPeerKit();
 	}
 
 	/*
@@ -110,14 +108,12 @@ public class SystemInfoController implements SubPageController{
 				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
 				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
 				    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
-				    			
 				    			consensusStatus.setText("正在等待进入共识队列");
-				    		}else if(endTime.compareTo(DateUtil.convertDate(new Date())) <= 0) {
-				    			consensusStatus.setText("正在等待进入下一轮共识队列");
-				    		}else {
-				    			consensusStatus.setText("正在排队\n当前轮开始时间："+periodStartTime+"\n我的共识时间："+beginTime+" - "+endTime);
+				    		} else if(miningInfo.getEndTime() <= TimeService.currentTimeSeconds()) {
+				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + ((miningInfo.getPeriodStartTime() + miningInfo.getPeriodCount() * Configure.BLOCK_GEN_TIME) - miningInfo.getEndTime()) + "秒");
+				    		} else {
+				    			consensusStatus.setText("正在排队\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
 				    		}
-				    		
 				    	} else {
 				    		consensusStatus.setText("未参与共识");
 				    	}
