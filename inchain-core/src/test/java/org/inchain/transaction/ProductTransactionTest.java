@@ -48,7 +48,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 	@Before
 	public void waitAminute() {
 		try {
-			Thread.sleep(20000l);
+			Thread.sleep(10000l);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
