@@ -127,11 +127,16 @@ public class PeerKit {
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
 			public boolean allowConnection(InetSocketAddress inetSocketAddress) {
-				//如果已经主动连接了，就不接收该节点的被动连接
+				//如果已经主动连接了，就不接收该节点的被动连接,节点探测除外
+				//一个IP最多只允许2个被动连接
+				int count = 0;
 				for (Peer peer : outPeers) {
 					if(peer.getAddress().getAddr().getHostAddress().equals(inetSocketAddress.getAddress().getHostAddress())) {
-						return false;
+						count++;
 					}
+				}
+				if(count >= 2) {
+					return false;
 				}
 				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
 			}
@@ -162,8 +167,8 @@ public class PeerKit {
 						peer.ping().get(5, TimeUnit.SECONDS);
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
-						log.info("节点{}无法Ping通，{}", peer.getAddress(), TimeService.currentTimeMillis());
-						if(network.blockIsNewestStatus()) {
+						log.info("节点{}无法Ping通，{}, {}", peer.getAddress(), TimeService.currentTimeMillis(), e.getMessage());
+						if(!network.blockIsNewestStatus()) {
 							peer.close();
 						}
 					}
@@ -426,7 +431,7 @@ public class PeerKit {
 			@Override
 			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
 					CopyOnWriteArrayList<Peer> outPeers) {
-				List<Peer> peers = findAvailablePeers();
+				List<Peer> peers = getConnectedPeers();
 				if(peers.size() >= minConnections) {
 					removeConnectionChangedListener(this);
 					enoughAvailablePeersListener.callback(peers);
@@ -536,7 +541,6 @@ public class PeerKit {
 			}
 		}
 		if(existsSimilar) {
-			log.info("====================不设置网络时间偏移====================");
 			initTimeOffset = true;
 			return;
 		}
@@ -545,7 +549,6 @@ public class PeerKit {
 		
 		TimeService.setNetTimeOffset(mostTimeOffset);
 		initTimeOffset = true;
-		log.info("====================设置了网络时间偏移====================");
 	}
 	
 	/**

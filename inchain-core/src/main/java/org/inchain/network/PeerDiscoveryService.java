@@ -108,11 +108,13 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	 * 加载本地存储数据
 	 */
 	public void startSync() {
-		new Thread() {
+		Thread t = new Thread() {
 			public void run() {
 				PeerDiscoveryService.this.start();
 			};
-		}.start();
+		};
+		t.setName("peer discovery service");
+		t.start();
 	}
 	
 	/**
@@ -284,6 +286,9 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 		} else {
 			//修改时间
 			pas.setTime(peerAddress.getTime());
+			if(pas.getStatus() == PEER_STATUS_VERIFY_FAIL) {
+				pas.setStatus(PEER_STATUS_NEED_VERIFY);
+			}
 			return false;
 		}
 	}
@@ -488,7 +493,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	public void checkMyserviceAndReport() {
 		//获取本机的外网ip地址
 		List<byte[]> ips = new ArrayList<byte[]>(); 
-		for (Peer peer : peerKit.findAvailablePeers()) {
+		for (Peer peer : peerKit.getConnectedPeers()) {
 			PeerAddress addr = peer.getPeerVersionMessage().getTheirAddr();
 			ips.add(addr.getAddr().getAddress());
 		}
