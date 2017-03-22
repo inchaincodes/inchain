@@ -37,6 +37,7 @@ import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.StringUtil;
 import org.inchain.utils.Utils;
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.entity.DetailValue;
@@ -226,7 +227,9 @@ public class TransactionRecordController implements SubPageController {
 					for (Output output : outputs) {
 						Script script = output.getScript();
 						if(script.isSentToAddress()) {
-							outputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+							if(StringUtil.isEmpty(outputAddress)) {
+								outputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+							}
 							
 //							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
 							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
@@ -257,7 +260,7 @@ public class TransactionRecordController implements SubPageController {
 						if(tx.getType() != Definition.TYPE_COINBASE) {
 							detail = "来自 "+inputAddress+"";
 						} else {
-							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")";
+							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;
 						}
 					}
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
