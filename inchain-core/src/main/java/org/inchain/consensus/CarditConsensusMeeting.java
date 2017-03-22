@@ -195,7 +195,10 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			oldMettings.add(0, previousMetting);
 			
 			if(oldMettings.size() > 5) {
-				oldMettings.remove(5);
+				int count = oldMettings.size();
+				for (int i = 0; i < count - 5; i++) {
+					oldMettings.remove(5);
+				}
 			}
 		} catch (CloneNotSupportedException e) {
 			log.error("备份当前轮次信息失败" , e);
