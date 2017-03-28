@@ -39,6 +39,8 @@ public class GetDatasMessageProcess implements MessageProcess {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private ConsensusMeeting consensusMeeting;
+	@Autowired
+	private TransactionMessageProcess transactionMessageProcess;
 	
 	@Override
 	public MessageProcessResult process(Message message, Peer peer) {
@@ -102,6 +104,11 @@ public class GetDatasMessageProcess implements MessageProcess {
 		//首先查看内存里面有没有交易
 		Transaction tx = MempoolContainer.getInstace().get(inventoryItem.getHash());
 		if(tx == null) {
+			tx = transactionMessageProcess.getPendingTx(inventoryItem.getHash());
+			if(tx != null) {
+				sendMessage(peer, tx);
+				return;
+			}
 			//内存里面没有，则查询存储
 			TransactionStore ts = blockStoreProvider.getTransaction(inventoryItem.getHash().getBytes());
 			if(ts == null || ts.getTransaction() == null) {

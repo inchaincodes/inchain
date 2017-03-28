@@ -9,25 +9,24 @@ import java.util.List;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
-import org.inchain.account.AccountBody.ContentType;
 import org.inchain.account.Address;
+import org.inchain.core.AccountKeyValue;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
-import org.inchain.core.KeyValuePair;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.Product;
-import org.inchain.core.Product.ProductType;
-import org.inchain.crypto.Sha256Hash;
+import org.inchain.core.ProductKeyValue;
 import org.inchain.core.TimeService;
 import org.inchain.core.ViolationEvidence;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
@@ -125,7 +124,6 @@ public class TransactionRecordController implements SubPageController {
      * 初始化
      */
     public void initDatas() {
-//    	if(1==1)return;
     	if(log.isDebugEnabled()) {
     		log.debug("加载交易数据···");
     	}
@@ -184,36 +182,40 @@ public class TransactionRecordController implements SubPageController {
 					String inputAddress = null;
 					String outputAddress = null;
 					
-					List<Input> inputs = tx.getInputs();
+					List<TransactionInput> inputs = tx.getInputs();
 					if(tx.getType() != Definition.TYPE_COINBASE && inputs != null && inputs.size() > 0) {
-						for (Input input : inputs) {
-							TransactionOutput from = input.getFrom();
-							TransactionStore fromTx = InchainInstance.getInstance().getAccountKit().getTransaction(from.getParent().getHash());
-							
-							Transaction ftx = null;
-							if(fromTx == null) {
-								//交易不存在区块里，那么应该在内存里面
-								ftx = MempoolContainer.getInstace().get(from.getParent().getHash());
-							} else {
-								ftx = fromTx.getTransaction();
-							}
-							if(ftx == null) {
+						for (TransactionInput input : inputs) {
+							if(input.getFroms() == null || input.getFroms().size() == 0) {
 								continue;
 							}
-							Output fromOutput = ftx.getOutput(from.getIndex());
-							
-							Script script = fromOutput.getScript();
-							for (Account account : accounts) {
-								if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, account.getAddress().getHash160())) {
-									isSendout = true;
-									break;
-								}
-							}
-							
-							if(script.isSentToAddress()) {
-								inputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+							for (TransactionOutput from : input.getFroms()) {
+								TransactionStore fromTx = InchainInstance.getInstance().getAccountKit().getTransaction(from.getParent().getHash());
 								
+								Transaction ftx = null;
+								if(fromTx == null) {
+									//交易不存在区块里，那么应该在内存里面
+									ftx = MempoolContainer.getInstace().get(from.getParent().getHash());
+								} else {
+									ftx = fromTx.getTransaction();
+								}
+								if(ftx == null) {
+									continue;
+								}
+								Output fromOutput = ftx.getOutput(from.getIndex());
+								
+								Script script = fromOutput.getScript();
+								for (Account account : accounts) {
+									if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, account.getAddress().getHash160())) {
+										isSendout = true;
+										break;
+									}
+								}
+								
+								if(script.isSentToAddress()) {
+									inputAddress = new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58();
+									
 //								detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(-"+Coin.valueOf(fromOutput.getValue()).toText()+")";
+								}
 							}
 						}
 					}
@@ -222,9 +224,9 @@ public class TransactionRecordController implements SubPageController {
 //						detail += "\r\n -> ";
 //					}
 					
-					List<Output> outputs = tx.getOutputs();
+					List<TransactionOutput> outputs = tx.getOutputs();
 					
-					for (Output output : outputs) {
+					for (TransactionOutput output : outputs) {
 						Script script = output.getScript();
 						if(script.isSentToAddress()) {
 							if(StringUtil.isEmpty(outputAddress)) {
@@ -269,39 +271,45 @@ public class TransactionRecordController implements SubPageController {
 					CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
 					type = tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ? "账户注册" : "修改信息";
 					
-					List<KeyValuePair> bodyContents = crt.getBody().getContents();
-					for (KeyValuePair keyValuePair : bodyContents) {
-						if(ContentType.from(keyValuePair.getKey()) == ContentType.LOGO) {
+					List<AccountKeyValue> bodyContents = crt.getBody().getContents();
+					for (AccountKeyValue keyValuePair : bodyContents) {
+						if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 							//图标
 							detailValue.setImg(keyValuePair.getValue());
 						} else {
 							if(!"".equals(detail)) {
 								detail += "\r\n";
 							}
-							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}
 					}
 				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS || 
 						tx.getType() == Definition.TYPE_REM_CONSENSUS) {
-					type = tx.getType() == Definition.TYPE_REG_CONSENSUS ? "注册共识" : "退出共识";
-
-					detail = "-";
+					if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+						detail = "提交保证金";
+						type = "注册共识";
+						isSendout = true;
+					} else {
+						detail = "解冻保证金";
+						type = "退出共识";
+						isSendout = false;
+					}
 				} else if(tx.getType() == Definition.TYPE_CREATE_PRODUCT) {
 					
 					ProductTransaction ptx = (ProductTransaction) tx;
 					
 					type = "创建商品";
 					
-					List<KeyValuePair> bodyContents = ptx.getProduct().getContents();
-					for (KeyValuePair keyValuePair : bodyContents) {
+					List<ProductKeyValue> bodyContents = ptx.getProduct().getContents();
+					for (ProductKeyValue keyValuePair : bodyContents) {
 						if(!"".equals(detail)) {
 							detail += "\r\n";
 						}
-						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+						if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 							//时间
-							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+							detail += keyValuePair.getName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
 						} else {
-							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}
 					}
 					
@@ -331,16 +339,16 @@ public class TransactionRecordController implements SubPageController {
 						continue;
 					}
 					
-					List<KeyValuePair> bodyContents = product.getContents();
-					for (KeyValuePair keyValuePair : bodyContents) {
+					List<ProductKeyValue> bodyContents = product.getContents();
+					for (ProductKeyValue keyValuePair : bodyContents) {
 						if(!"".equals(detail)) {
 							detail += "\r\n";
 						}
-						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+						if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 							//时间
-							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+							detail += keyValuePair.getName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
 						} else {
-							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}
 					}
 				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
@@ -351,7 +359,7 @@ public class TransactionRecordController implements SubPageController {
 					
 					type = "防伪验证";
 					
-					byte[] makeCodeTxBytes = InchainInstance.getInstance().getAccountKit().getChainstate(atx.getAntifakeCode().getBytes());
+					byte[] makeCodeTxBytes = InchainInstance.getInstance().getAccountKit().getChainstate(atx.getAntifakeCode());
 					//必要的NPT验证
 					if(makeCodeTxBytes == null) {
 						log.error("防伪码对应的生产记录没有找到，没有找到，将跳过不显示该交易");
@@ -370,16 +378,16 @@ public class TransactionRecordController implements SubPageController {
 						continue;
 					}
 					
-					List<KeyValuePair> bodyContents = ((ProductTransaction)productTxStore.getTransaction()).getProduct().getContents();
-					for (KeyValuePair keyValuePair : bodyContents) {
+					List<ProductKeyValue> bodyContents = ((ProductTransaction)productTxStore.getTransaction()).getProduct().getContents();
+					for (ProductKeyValue keyValuePair : bodyContents) {
 						if(!"".equals(detail)) {
 							detail += "\r\n";
 						}
-						if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+						if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 							//时间
-							detail += keyValuePair.getKeyName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+							detail += keyValuePair.getName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
 						} else {
-							detail += keyValuePair.getKeyName()+" : " + keyValuePair.getValueToString();
+							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}
 					}
 				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
@@ -440,7 +448,11 @@ public class TransactionRecordController implements SubPageController {
 				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss");
 				
 				detailValue.setValue(detail);
-				list.add(new TransactionEntity(tx.getHash(), bestBlockHeight - txs.getHeight() + 1, type, detailValue, amount, time));
+				long confirmCount = 0;
+				if(txs.getHeight() >= 0) {
+					confirmCount = bestBlockHeight - txs.getHeight() + 1;
+				}
+				list.add(new TransactionEntity(tx.getHash(), confirmCount, type, detailValue, amount, time));
 			}
 		}
 	}

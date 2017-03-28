@@ -2,18 +2,19 @@ package org.inchain.consensus;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
 
+import org.inchain.Configure;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.crypto.ECKey;
-import org.inchain.kits.AccountKit;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
 import org.inchain.store.ChainstateStoreProvider;
@@ -33,57 +34,47 @@ public class ConsensusPoolCacher implements ConsensusPool {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 	
-	private final Map<byte[], byte[][]> container = new HashMap<byte[], byte[][]>();
+	private final Map<byte[], byte[][]> container = new ConcurrentHashMap<byte[], byte[][]>();
+	private final Map<byte[], Sha256Hash> txContainer = new ConcurrentHashMap<byte[], Sha256Hash>();
 	
 	@Autowired
 	private NetworkParams network;
-	@Autowired
-	private AccountKit accountKit;
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
 	
 	@PostConstruct
 	public void init() {
-		List<AccountStore> list = accountKit.getConsensusAccounts();
 		
-		for (AccountStore account : list) {
-			container.put(account.getHash160(), account.getPubkeys());
+		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+		if(consensusAccounts == null) {
+			return;
 		}
-		
-		if(log.isDebugEnabled()) {
-			log.debug("====================");
-			log.debug("加载已有的{}个共识", container.size());
-			for (Entry<byte[], byte[][]> entry : container.entrySet()) {
-				log.debug(new Address(network, entry.getKey()).getBase58());
+		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountStore == null) {
+				continue;
 			}
-			log.debug("====================");
+			container.put(accountStore.getHash160(), accountStore.getPubkeys());
+			
+			byte[] txhash = Arrays.copyOfRange(consensusAccounts, i + Address.LENGTH, i + Address.LENGTH + Sha256Hash.LENGTH);
+			txContainer.put(accountStore.getHash160(), Sha256Hash.wrap(txhash));
 		}
 		
-		verify();
+		log.info("加载已有的{}个共识", container.size());
 	}
 	
-	private void verify() {
-		List<byte[]> errors = new ArrayList<byte[]>();
-		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
-			if(!verifyOne(entry.getKey(), entry.getValue())) {
-				errors.add(entry.getKey());
-			}
-		}
-		for (byte[] hash160 : errors) {
-			container.remove(hash160);
-		}
-	}
-
 	/**
 	 * 新增共识结点
 	 * @param hash160
 	 */
-	public void add(byte[] hash160, byte[][] pubkey) {
+	public void add(byte[] hash160, Sha256Hash txhash, byte[][] pubkey) {
 		if(!verifyOne(hash160, pubkey)) {
 			log.warn("公钥不匹配的共识");
 			return;
 		}
 		container.put(hash160, pubkey);
+		txContainer.put(hash160, txhash);
 	}
 	
 	/**
@@ -121,15 +112,14 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	 * 移除共识节点
 	 */
 	public void delete(byte[] hash160) {
-		byte[] hash160Temp = null;
-		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
-			if(Arrays.equals(hash160, entry.getKey())) {
-				hash160Temp = entry.getKey();
-				break;
+		Iterator<Entry<byte[], byte[][]>> it = container.entrySet().iterator();
+		while(it.hasNext()) {
+			Entry<byte[], byte[][]> entry = it.next();
+			byte[] key = entry.getKey();
+			if(Arrays.equals(hash160, key)) {
+				container.remove(key);
+				txContainer.remove(key);
 			}
-		}
-		if(hash160Temp != null) {
-			container.remove(hash160Temp);
 		}
 	}
 	
@@ -161,6 +151,19 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		}
 		return null;
 	}
+
+	/**
+	 * 获取注册共识时的交易hash
+	 */
+	@Override
+	public Sha256Hash getTx(byte[] hash160) {
+		for (Entry<byte[], Sha256Hash> entry : txContainer.entrySet()) {
+			if(Arrays.equals(hash160, entry.getKey())) {
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
 	
 	public Map<byte[], byte[][]> getContainer() {
 		return container;
@@ -178,16 +181,6 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		
 		for (Entry<byte[], byte[][]> entry : container.entrySet()) {
 			list.add(new ConsensusAccount(entry.getKey(), entry.getValue()));
-		}
-		
-		//排序
-		if(list.size() > 1) {
-			list.sort(new Comparator<ConsensusAccount>() {
-				@Override
-				public int compare(ConsensusAccount o1, ConsensusAccount o2) {
-					return o1.getHash160Hex().compareTo(o2.getHash160Hex());
-				}
-			});
 		}
 		
 		return list;

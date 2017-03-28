@@ -162,7 +162,7 @@ public class Block extends BlockHeader {
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		//获取该高度的奖励
-		Coin rewardCoin = ConsensusRewardCalculationUtil.calculat(getHeight());
+		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(getHeight());
 		//不小于奖励，不大于总量
 		if(coinbaseFee.isLessThan(rewardCoin) || coinbaseFee.isGreaterThan(Coin.MAX)) {
 			log.warn("the fee error");

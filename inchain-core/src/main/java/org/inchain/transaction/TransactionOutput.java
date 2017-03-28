@@ -7,8 +7,12 @@ import org.inchain.account.Address;
 import org.inchain.account.RedeemData;
 import org.inchain.core.Coin;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.ScriptException;
 import org.inchain.crypto.ECKey;
+import org.inchain.crypto.Sha256Hash;
+import org.inchain.message.Message;
+import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.utils.Utils;
@@ -18,7 +22,7 @@ import org.inchain.utils.Utils;
  * @author ln
  *
  */
-public class TransactionOutput implements Output {
+public class TransactionOutput extends Message implements Output {
 
 	private Transaction parent;
 	//下次的花费
@@ -42,6 +46,12 @@ public class TransactionOutput implements Output {
     	this.parent = parent;
     }
 	
+	public TransactionOutput(NetworkParams network, Transaction parent, byte[] payload, int offset) {
+		super(network, payload, offset);
+		this.parent = parent;
+	}
+	
+
 	public TransactionOutput(Transaction parent, Coin value, Address to) {
 		this(parent, value, 0l, to);
 	}
@@ -61,7 +71,7 @@ public class TransactionOutput implements Output {
         this.scriptBytes = scriptBytes;
         this.script = new Script(scriptBytes);
 	}
-	
+
 	/**
 	 * 序列化
 	 * @param stream
@@ -75,6 +85,21 @@ public class TransactionOutput implements Output {
 	}
 
 	/**
+	 * 反序列化交易的输出部分
+	 */
+	@Override
+	protected void parse() throws ProtocolException {
+        value = readInt64();
+        lockTime = readInt64();
+        //赎回脚本名的长度
+        int signLength = (int)readVarInt();
+        scriptBytes = readBytes(signLength);
+        script = new Script(scriptBytes);
+        
+        length = cursor - offset;
+	}
+	
+	/**
 	 * 获取交易的输出脚本
 	 * @param key
 	 * @return RedeemData
@@ -86,6 +111,13 @@ public class TransactionOutput implements Output {
 	    } else {
             throw new ScriptException("Could not understand form of connected output script: " + script);
         }
+	}
+
+	public byte[] getKey() {
+		byte[] key = new byte[Sha256Hash.LENGTH + 1];
+		System.arraycopy(parent.getHash().getBytes(), 0, key, 0, key.length - 1);
+		key[key.length - 1] = (byte) index;
+		return key;
 	}
 	
 	public Transaction getParent() {

@@ -3,7 +3,7 @@ package org.inchain.wallet.entity;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.core.KeyValuePair;
+import org.inchain.core.AccountKeyValue;
 
 /**
  * 商家（认证账户）
@@ -15,10 +15,10 @@ public class BusinessEntity {
 	private int status;
 	private byte[] logo;
 	private String name;
-	private List<KeyValuePair> details;
+	private List<AccountKeyValue> details;
 	private long time;
 	
-	public BusinessEntity(int status, byte[] logo, String name, List<KeyValuePair> details, long time) {
+	public BusinessEntity(int status, byte[] logo, String name, List<AccountKeyValue> details, long time) {
 		super();
 		this.status = status;
 		this.logo = logo;
@@ -46,10 +46,10 @@ public class BusinessEntity {
 	public void setName(String name) {
 		this.name = name;
 	}
-	public List<KeyValuePair> getDetails() {
+	public List<AccountKeyValue> getDetails() {
 		return details;
 	}
-	public void setDetails(List<KeyValuePair> details) {
+	public void setDetails(List<AccountKeyValue> details) {
 		this.details = details;
 	}
 	public long getTime() {
@@ -58,9 +58,9 @@ public class BusinessEntity {
 	public void setTime(long time) {
 		this.time = time;
 	}
-	public void addDetail(KeyValuePair keyValuePair) {
+	public void addDetail(AccountKeyValue keyValuePair) {
 		if(details == null) {
-			details = new ArrayList<KeyValuePair>();
+			details = new ArrayList<AccountKeyValue>();
 		}
 		details.add(keyValuePair);
 	}

@@ -10,11 +10,11 @@ import org.inchain.core.AntifakeCode;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
-import org.inchain.core.KeyValuePair;
 import org.inchain.core.Product;
-import org.inchain.core.Product.ProductType;
+import org.inchain.core.ProductKeyValue;
 import org.inchain.core.exception.AccountEncryptedException;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
@@ -124,11 +124,11 @@ public class AntifakeController implements SubPageController {
     public void verifyDo(AccountKit accountKit, String antifakeCode) throws VerificationException {
     	try{
 	    	//解析防伪码字符串
-			AntifakeCode Base58AntifakeCode = AntifakeCode.base58Decode(antifakeCode);
+			AntifakeCode base58AntifakeCode = AntifakeCode.base58Decode(antifakeCode);
 			
 			//判断验证码是否存在
 			ChainstateStoreProvider chainstateStoreProvider = SpringContextUtils.getBean("chainstateStoreProvider");
-			byte[] txBytes = chainstateStoreProvider.getBytes(Base58AntifakeCode.getAntifakeTx().getBytes());
+			byte[] txBytes = chainstateStoreProvider.getBytes(base58AntifakeCode.getAntifakeCode());
 			if(txBytes == null) {
 				throw new VerificationException("防伪码不存在");
 			}
@@ -163,12 +163,23 @@ public class AntifakeController implements SubPageController {
 				
 			}
 			//防伪码验证脚本
-			Script inputSig = ScriptBuilder.createAntifakeInputScript(Base58AntifakeCode.getCertAccountTx(), Base58AntifakeCode.getSigns());
+			//防伪码验证脚本
+			long verifyCode = base58AntifakeCode.getVerifyCode();
+			byte[] verifyCodeByte = new byte[8];
+			Utils.uint64ToByteArrayLE(verifyCode, verifyCodeByte, 0);
+			//把随机数sha256之后和防伪码再次sha256作为验证依据
+			byte[] antifakePasswordSha256 = Sha256Hash.hashTwice(verifyCodeByte);
+			byte[] verifyContent = new byte[Sha256Hash.LENGTH + 40];
+			System.arraycopy(antifakePasswordSha256, 0, verifyContent, 0, Sha256Hash.LENGTH);
+			System.arraycopy(base58AntifakeCode.getAntifakeCode(), 0, verifyContent, Sha256Hash.LENGTH, 20);
+			System.arraycopy(codeMakeTx.getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
+			
+			Script inputSig = ScriptBuilder.createAntifakeInputScript(Sha256Hash.hash(verifyContent));
 			
 			TransactionInput input = new TransactionInput((TransactionOutput) codeMakeTx.getOutput(0));
 			input.setScriptSig(inputSig);
 			NetworkParams network =SpringContextUtils.getBean("network");
-			AntifakeCodeVerifyTransaction tx = new AntifakeCodeVerifyTransaction(network, input);
+			AntifakeCodeVerifyTransaction tx = new AntifakeCodeVerifyTransaction(network, input, base58AntifakeCode.getAntifakeCode());
 			
 			//验证账户，不能是认证账户
 			Account systemAccount = accountKit.getSystemAccount();
@@ -221,7 +232,7 @@ public class AntifakeController implements SubPageController {
 				log.debug("广播失败，失败信息：" + e.getMessage(), e);
 			}
 			
-    	}catch (Exception e) {
+    	} catch (Exception e) {
     		if(e instanceof AccountEncryptedException) {
     			new Thread() {
     				public void run() {
@@ -267,15 +278,15 @@ public class AntifakeController implements SubPageController {
 		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		ProductTransaction productTransaction = (ProductTransaction) productTxStore.getTransaction();
 		Product product = productTransaction.getProduct();
-		List<KeyValuePair> bodyContents = product.getContents();
+		List<ProductKeyValue> bodyContents = product.getContents();
 		
-		for (KeyValuePair keyValuePair : bodyContents) {
+		for (ProductKeyValue keyValuePair : bodyContents) {
 			
 			HBox item= new HBox();
-			name = new Label(keyValuePair.getKeyName()+":");
+			name = new Label(keyValuePair.getName()+":");
 			item.getChildren().add(name);
 			value.setMaxWidth(300);
-			if (ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME){
+			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 				value = new Label(DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 			}else{
 				value = new Label(keyValuePair.getValueToString());

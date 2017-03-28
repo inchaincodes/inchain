@@ -303,6 +303,13 @@ public class ConsensusController implements SubPageController {
 		if(result.isSuccess()) {
 			nowStatus = 1;
 			initDatas();
+		} else {
+			if(consensusStatus) {
+				nowStatus = 2;
+			} else {
+				nowStatus = 0;
+			}
+			initDatas();
 		}
 		return type;
 	}

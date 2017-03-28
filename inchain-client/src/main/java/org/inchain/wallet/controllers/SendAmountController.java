@@ -189,7 +189,12 @@ public class SendAmountController implements SubPageController {
 					}
 				});
     		} else {
-	    		sendMoney(accountKit, address, money, feeCoin);
+				sendMoney(accountKit, address, money, feeCoin);
+    			
+//    			for (int i = 0; i < 1; i++) {
+//					
+//    				accountKit.sendMoney(address, money, feeCoin);
+//				}
     		}
     	} catch (Exception e) {
         	DailogUtil.showTip(e.getMessage());

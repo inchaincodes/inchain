@@ -110,7 +110,7 @@ public class SystemInfoController implements SubPageController{
 				    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
 				    			consensusStatus.setText("正在等待进入共识队列");
 				    		} else if(miningInfo.getEndTime() <= TimeService.currentTimeSeconds()) {
-				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + ((miningInfo.getPeriodStartTime() + miningInfo.getPeriodCount() * Configure.BLOCK_GEN_TIME) - miningInfo.getEndTime()) + "秒");
+				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + ((miningInfo.getPeriodStartTime() + miningInfo.getPeriodCount() * Configure.BLOCK_GEN_TIME) - TimeService.currentTimeSeconds()) + "秒");
 				    		} else {
 				    			consensusStatus.setText("正在排队\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
 				    		}
@@ -118,7 +118,7 @@ public class SystemInfoController implements SubPageController{
 				    		consensusStatus.setText("未参与共识");
 				    	}
 				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
-				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculat(appKit.getNetwork().getBestHeight()).toText() + " INS");
+				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculatReward(appKit.getNetwork().getBestHeight()).toText() + " INS");
 				    	
 				    	totalAmount.setText(Coin.MAX.toText() + " INS");
 				    	rewardTotalAmount.setText(ConsensusRewardCalculationUtil.TOTAL_REWARD.toText() + " INS");

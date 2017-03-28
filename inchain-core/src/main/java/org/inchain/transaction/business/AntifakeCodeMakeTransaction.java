@@ -114,12 +114,12 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	}
 
 	/**
-	 * 获取防伪内容的hash， 这个hash会充当防伪码
-	 * @return Sha256Hash
+	 * 获取防伪码
+	 * @return byte[]
 	 * @throws IOException 
 	 */
-	public Sha256Hash getAntifakeHash() throws IOException {
-		return Sha256Hash.twiceOf(getAntifakeConent());
+	public byte[] getAntifakeCode() throws IOException {
+		return Utils.sha256hash160(getAntifakeConent());
 	}
 	
 	/**

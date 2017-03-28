@@ -9,8 +9,12 @@ import org.inchain.core.Coin;
  */
 public class TransactionValidatorResult {
 
+	/** 错误代码 -- 不存在的交易 **/
+	public final static int ERROR_CODE_NOT_FOUND = 1;
 	/** 错误代码 -- 已使用 **/
-	public final static int ERROR_CODE_USED = 1;
+	public final static int ERROR_CODE_USED = 2;
+	/** 错误代码 -- 已存在 **/
+	public final static int ERROR_CODE_EXIST = 3;
 	
 	private boolean success;			//验证结果
 	private String message;				//验证结果信息

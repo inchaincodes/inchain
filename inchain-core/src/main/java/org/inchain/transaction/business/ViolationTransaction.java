@@ -23,7 +23,7 @@ import org.inchain.network.NetworkParams;
  * @author ln
  *
  */
-public class ViolationTransaction extends CommonlyTransaction {
+public class ViolationTransaction extends BaseCommonlyTransaction {
 	
 	/** 证据  **/
 	private ViolationEvidence violationEvidence;

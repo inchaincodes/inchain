@@ -1,25 +1,7 @@
 
 package org.inchain.script;
 
-import static org.inchain.script.ScriptOpCodes.OP_0;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKLOCKTIMEVERIFY;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKMULTISIG;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKSIG;
-import static org.inchain.script.ScriptOpCodes.OP_CHECKSIGVERIFY;
-import static org.inchain.script.ScriptOpCodes.OP_DROP;
-import static org.inchain.script.ScriptOpCodes.OP_DUP;
-import static org.inchain.script.ScriptOpCodes.OP_ELSE;
-import static org.inchain.script.ScriptOpCodes.OP_ENDIF;
-import static org.inchain.script.ScriptOpCodes.OP_EQUAL;
-import static org.inchain.script.ScriptOpCodes.OP_EQUALVERIFY;
-import static org.inchain.script.ScriptOpCodes.OP_HASH160;
-import static org.inchain.script.ScriptOpCodes.OP_IF;
-import static org.inchain.script.ScriptOpCodes.OP_PUBKEY;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA1;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA2;
-import static org.inchain.script.ScriptOpCodes.OP_PUSHDATA4;
-import static org.inchain.script.ScriptOpCodes.OP_RETURN;
-import static org.inchain.script.ScriptOpCodes.OP_VERTR;
+import static org.inchain.script.ScriptOpCodes.*;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -641,18 +623,13 @@ public class ScriptBuilder {
 	
 	/**
      * 防伪验证输入脚本
-     * @param txid 商家账户信息id
-     * @param signs
+     * @param verifyCodeContent
      * @return Script
      */
-	public static Script createAntifakeInputScript(Sha256Hash txid, byte[][] signs) {
+	public static Script createAntifakeInputScript(byte[] verifyCodeContent) {
 		ScriptBuilder builder = new ScriptBuilder();
 
-		for (byte[] sign : signs) {
-			builder.data(sign);
-		}
-		builder.op(ScriptOpCodes.OP_VERTR)
-		.data(txid.getBytes());
+		builder.data(verifyCodeContent);
         
         return builder.build();
 	}
@@ -668,11 +645,24 @@ public class ScriptBuilder {
 		Utils.checkNotNull(antifakeCode);
 		//输出到认证账户的交易输出脚本
         return new ScriptBuilder()
-            .op(OP_PUBKEY)
-            .data(hash160)
-            .op(OP_EQUALVERIFY)
+            .op(OP_SHA256)
             .data(antifakeCode.getBytes())
-            .op(OP_CHECKSIG)
+            .op(OP_EQUAL)
             .build();
     }
+
+	/**
+	 * 创建参与共识保证金输出脚本，使用时只能输出到指定的账户
+	 * 该脚本不支持通用的验证，所以在最后返回false，如果攻击者要尝试普通交易花费，则不会验证通过
+	 * @param hash160 			//正常退出或者不扣除保证金时的赎回账户
+	 * @param punishmentHash160	//惩罚时的赎回账户
+	 * @return Script
+	 */
+	public static Script createConsensusOutputScript(byte[] hash160, byte[] punishmentHash160) {
+		return new ScriptBuilder()
+            .data(hash160)
+            .data(punishmentHash160)
+            .data(new byte[] { 0 })
+            .build();
+	}
 }

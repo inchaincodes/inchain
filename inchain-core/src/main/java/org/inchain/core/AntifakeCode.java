@@ -2,11 +2,11 @@ package org.inchain.core;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.utils.Base58;
+import org.inchain.utils.Hex;
+import org.inchain.utils.Utils;
 
 /**
  * 防伪码信息
@@ -15,20 +15,17 @@ import org.inchain.utils.Base58;
  */
 public class AntifakeCode {
 
-	//防伪码hash
-	private Sha256Hash antifakeTx;
-	//商家账户信息hash
-	private Sha256Hash certAccountTx;
-	//对防伪码的签名
-	private byte[][] signs;
+	//防伪码
+	private byte[] antifakeCode;
+	//验证码
+	private long verifyCode;
 	
 	public AntifakeCode() {
 	}
 	
-	public AntifakeCode(Sha256Hash antifakeTx, Sha256Hash certAccountTx, byte[][] signs) {
-		this.antifakeTx = antifakeTx;
-		this.certAccountTx = certAccountTx;
-		this.signs = signs;
+	public AntifakeCode(byte[] antifakeCode, long verifyCode) {
+		this.antifakeCode = antifakeCode;
+		this.verifyCode = verifyCode;
 	}
 	
 	/**
@@ -62,12 +59,8 @@ public class AntifakeCode {
 	public byte[] serialize() throws IOException, VerificationException {
 		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		try {
-			stream.write(antifakeTx.getBytes());
-			stream.write(certAccountTx.getBytes());
-			for (byte[] sign : signs) {
-				stream.write(new VarInt(sign.length).encode());
-				stream.write(sign);
-			}
+			stream.write(antifakeCode);
+			Utils.int64ToByteStreamLE(verifyCode, stream);
 			return stream.toByteArray();
 		} finally {
 			stream.close();
@@ -81,85 +74,57 @@ public class AntifakeCode {
 	 * @throws IOException 
 	 */
 	public static AntifakeCode parse(byte[] antifakeCodeContent) throws VerificationException {
-		//防伪码
-		Sha256Hash hash = null;
-		//商家账户信息Id
-		Sha256Hash certAccountTxHash = null;
+		//防伪 码
+		byte[] antifakeCode = null;
 		//商家的签名信息
-		byte[][] signs = null;
+		long verifyCode = 0;
 		
 		try {
 			int cusor = 0;
-			//防伪码hash
-			byte[] hashByte = new byte[Sha256Hash.LENGTH];
-			System.arraycopy(antifakeCodeContent, cusor, hashByte, 0, Sha256Hash.LENGTH);
+			//防伪码内容
+			byte[] antifakeCodeByte = new byte[20];
+			System.arraycopy(antifakeCodeContent, cusor, antifakeCodeByte, 0, antifakeCodeByte.length);
+			cusor += antifakeCodeByte.length;
 			
-			cusor += Sha256Hash.LENGTH;
-			
-			//商家账户信息hash
-			byte[] certAccountTxHashByte = new byte[Sha256Hash.LENGTH];
-			System.arraycopy(antifakeCodeContent, cusor, certAccountTxHashByte, 0, Sha256Hash.LENGTH);
-			cusor += Sha256Hash.LENGTH;
-			
-			//签名长度
-			VarInt signLeng = new VarInt(antifakeCodeContent, cusor);
-			cusor += signLeng.getOriginalSizeInBytes();
-			
-			//签名内容
-			byte[] sign1 = new byte[(int) signLeng.value];
-			System.arraycopy(antifakeCodeContent, cusor, sign1, 0, sign1.length);
-			cusor += sign1.length;
-			
-			//签名长度2
-			signLeng = new VarInt(antifakeCodeContent, cusor);
-			cusor += signLeng.getOriginalSizeInBytes();
-			
-			//签名内容
-			byte[] sign2 = new byte[(int) signLeng.value];
-			System.arraycopy(antifakeCodeContent, cusor, sign2, 0, sign2.length);
-			cusor += sign2.length;
-			
-			hash = Sha256Hash.wrap(hashByte);
-			certAccountTxHash = Sha256Hash.wrap(certAccountTxHashByte);
-			signs = new byte[][] {sign1, sign2};
+			antifakeCode = antifakeCodeByte;
+
+			//验证码内容
+			verifyCode = Utils.readInt64(antifakeCodeContent, cusor);
 		} catch (Exception e) {
 			throw new VerificationException("防伪码不正确");
 		}
 		
-		if(hash == null || certAccountTxHash == null || signs == null) {
+		if(antifakeCode == null || verifyCode == 0l) {
 			throw new VerificationException("防伪码错误");
 		}
 		
-		return new AntifakeCode(hash, certAccountTxHash, signs);
-	}
-	
-	public Sha256Hash getAntifakeTx() {
-		return antifakeTx;
+		return new AntifakeCode(antifakeCode, verifyCode);
 	}
 
-	public void setAntifakeTx(Sha256Hash antifakeTx) {
-		this.antifakeTx = antifakeTx;
+	public byte[] getAntifakeCode() {
+		return antifakeCode;
 	}
 
-	public Sha256Hash getCertAccountTx() {
-		return certAccountTx;
+	public void setAntifakeCode(byte[] antifakeCode) {
+		this.antifakeCode = antifakeCode;
 	}
 
-	public void setCertAccountTx(Sha256Hash certAccountTx) {
-		this.certAccountTx = certAccountTx;
+	public long getVerifyCode() {
+		return verifyCode;
 	}
 
-	public byte[][] getSigns() {
-		return signs;
-	}
-
-	public void setSigns(byte[][] signs) {
-		this.signs = signs;
+	public void setVerifyCode(long verifyCode) {
+		this.verifyCode = verifyCode;
 	}
 
 	@Override
 	public String toString() {
-		return "AntifakeCode [antifakeTx=" + antifakeTx + ", certAccountTx=" + certAccountTx + ", signs="
-				+ Arrays.toString(signs) + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("AntifakeCode [antifakeCode=");
+		builder.append(Hex.encode(antifakeCode));
+		builder.append(", verifyCode=");
+		builder.append(verifyCode);
+		builder.append("]");
+		return builder.toString();
 	}
 }

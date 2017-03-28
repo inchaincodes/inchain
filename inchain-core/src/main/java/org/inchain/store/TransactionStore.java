@@ -52,7 +52,6 @@ public class TransactionStore extends Store {
 		height = readUint32();
 		
 		transaction = network.getDefaultSerializer().makeTransaction(payload, 5 + statusLength);
-		
 		length = 5 + statusLength + transaction.getLength();
 	}
 	

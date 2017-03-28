@@ -67,7 +67,7 @@ public class MakeUnitGengsisBlock extends UnitBaseTestCase {
 		System.out.println("==========================");
 				
 		coinBaseTx.addOutput(Coin.MAX, address);
-		coinBaseTx.verifyScript();
+		coinBaseTx.verify();
 		
 		txs.add(coinBaseTx);
 		

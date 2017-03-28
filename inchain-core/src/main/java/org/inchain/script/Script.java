@@ -988,6 +988,11 @@ public class Script {
                     if (castToBool(stack.getLast()))
                         stack.add(stack.getLast());
                     break;
+                case OP_EQUAL:
+                    if (stack.size() < 2)
+                        throw new ScriptException("Attempted OP_EQUALVERIFY on a stack with size < 2");
+                    stack.add(Arrays.equals(stack.pollLast(), stack.pollLast()) ? new byte[] {1} : new byte[] {});
+                    break;
                 case OP_EQUALVERIFY:	//判断栈顶2元素是否相等
                     if (stack.size() < 2)
                         throw new ScriptException("Attempted OP_EQUALVERIFY on a stack with size < 2");
@@ -1174,7 +1179,21 @@ public class Script {
 		
 		executeScript(this, stack);
 	}
-
+	
+	/**
+	 * hash为验证的内容，先把内容压入栈内，再执行脚步
+	 * @param script
+	 */
+	public void execute(Script script) {
+		LinkedList<byte[]> stack = new LinkedList<byte[]>();
+		executeScript(this, stack);
+		
+		if (stack.size() == 0)
+            throw new ScriptException("Stack empty at end of script execution.");
+        
+        if (!castToBool(stack.pollLast()))
+            throw new ScriptException("Script resulted in a non-true stack: " + stack);
+	}
     
     public static void executeScript(Script script, LinkedList<byte[]> stack) {
     	//操作码数量，最多允许501个
@@ -1278,6 +1297,11 @@ public class Script {
                         throw new ScriptException("Attempted OP_IFDUP on an empty stack");
                     if (castToBool(stack.getLast()))
                         stack.add(stack.getLast());
+                    break;
+                case OP_EQUAL:
+                    if (stack.size() < 2)
+                        throw new ScriptException("Attempted OP_EQUALVERIFY on a stack with size < 2");
+                    stack.add(Arrays.equals(stack.pollLast(), stack.pollLast()) ? new byte[] {1} : new byte[] {});
                     break;
                 case OP_EQUALVERIFY:	//判断栈顶2元素是否相等
                     if (stack.size() < 2)
@@ -1568,17 +1592,25 @@ public class Script {
 	}
 	
 	/**
+	 * 根据签名脚本，获取账户的地址
+	 * @return Address
+	 */
+	public Address getAccountAddress(NetworkParams network) {
+		if(isSystemAccount()) {
+			return new Address(network, network.getSystemAccountVersion(), getAccountHash160());
+		} else if(isCertAccount()) {
+			return new Address(network, network.getCertAccountVersion(), getAccountHash160());
+		} else {
+			throw new VerificationException("不适用的脚本");
+		}
+	}
+	
+	/**
 	 * 根据签名脚本，获取账户的base58地址
 	 * @return byte[]
 	 */
 	public String getAccountBase58(NetworkParams network) {
-		if(isSystemAccount()) {
-			return new Address(network, network.getSystemAccountVersion(), chunks.get(3).data).getBase58();
-		} else if(isCertAccount()) {
-			return new Address(network, network.getCertAccountVersion(), chunks.get(3).data).getBase58();
-		} else {
-			throw new VerificationException("不适用的脚本");
-		}
+		return getAccountAddress(network).getBase58();
 	}
 	
 	/**
@@ -1638,10 +1670,21 @@ public class Script {
      * @return boolean
      */
 	public boolean isAntifakeInputScript() {
-		if(chunks == null || chunks.size() != 4 || 
-				!chunks.get(2).equalsOpCode(ScriptOpCodes.OP_VERTR) || chunks.get(3).data.length != Sha256Hash.LENGTH) {
+		if(chunks == null || chunks.size() != 1 || chunks.get(0).data.length != 32) {
 			return false;
 		}
         return true;
+	}
+	
+	/**
+	 * 是否是参与共识保证金赎回脚本
+	 * @return boolean
+	 */
+	public boolean isConsensusOutputScript() {
+		if(chunks == null || chunks.size() != 3 || chunks.get(0).data.length != Address.LENGTH
+				|| chunks.get(1).data.length != Address.LENGTH || !Arrays.equals(chunks.get(2).data, new byte[] { 0 })) {
+			return false;
+		}
+		return true;
 	}
 }

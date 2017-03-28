@@ -15,6 +15,8 @@ public abstract class ViolationEvidence {
 	
 	/** 违规类型，1超时不出块 **/
 	public final static int VIOLATION_TYPE_NOT_BROADCAST_BLOCK = 1;
+	/** 违规类型，2严重违规，重复出块 **/
+	public final static int VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK = 2;
 
 	/** 违规类型 **/
 	protected int violationType;

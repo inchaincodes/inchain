@@ -71,6 +71,8 @@ public abstract class CommonlyTransaction extends BaseCommonlyTransaction {
 		this.scriptBytes = readBytes((int)readVarInt());
 		this.scriptSig = new Script(this.scriptBytes);
 		
-		length = cursor - offset;
+		if(!isCompatible()) {
+        	length = cursor - offset;
+        }
 	}
 }

@@ -7,7 +7,6 @@ import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.TransactionInput;
@@ -31,19 +30,23 @@ import org.inchain.utils.Utils;
  *
  */
 public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
-	
+
+	/** 防伪码 **/
+	protected byte[] antifakeCode;
 	/** 经度，用户验证时的地理位置，仅用户商家防窜货分析 **/
 	protected double longitude;
 	/** 纬度，用户验证时的地理位置，仅用户商家防窜货分析 **/
 	protected double latitude;
 	
-	public AntifakeCodeVerifyTransaction(NetworkParams network, TransactionInput input) {
+	public AntifakeCodeVerifyTransaction(NetworkParams network, TransactionInput input, byte[] antifakeCode) {
 		super(network);
 		
 		Utils.checkNotNull(input);
 		
 		inputs.add(input);
 		input.setParent(this);
+		
+		this.antifakeCode = antifakeCode;
 		
 		type = Definition.TYPE_ANTIFAKE_CODE_VERIFY;
 	}
@@ -60,6 +63,7 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 	protected void parse() throws ProtocolException {
 		super.parse();
 		
+		antifakeCode = readBytes(20);
 		longitude = readDouble();
 		latitude = readDouble();
 
@@ -70,6 +74,7 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 	protected void serializeToStream(OutputStream stream) throws IOException {
 		super.serializeToStream(stream);
 		
+		stream.write(antifakeCode);
 		Utils.doubleToByteStream(longitude, stream);
 		Utils.doubleToByteStream(latitude, stream);
 	}
@@ -126,18 +131,10 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 
 	/**
 	 * 根据输入引用的上次输出脚本，获取防伪码
-	 * @return Sha256Hash
+	 * @return byte[]
 	 */
-	public Sha256Hash getAntifakeCode() {
-		//获取防伪码，根据输入脚本获取
-		if(inputs == null || inputs.isEmpty()) {
-			throw new VerificationException("没有输入，不能获取到防伪码");
-		}
-		TransactionInput input = (TransactionInput) inputs.get(0);
-		if(input.getFromScriptSig() == null) {
-			throw new VerificationException("没有防伪码的输出脚本，不能获取到防伪码");
-		}
-		return Sha256Hash.wrap(input.getFromScriptSig().getChunks().get(3).data);
+	public byte[] getAntifakeCode() {
+		return antifakeCode;
 	}
 
 	public double getLongitude() {

@@ -8,7 +8,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -20,14 +19,10 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.crypto.TransactionSignature;
-import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Message;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
-import org.inchain.script.ScriptBuilder;
 import org.inchain.script.ScriptOpCodes;
-import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.TransactionStore;
 import org.inchain.utils.Utils;
 
 /**
@@ -46,9 +41,9 @@ public class Transaction extends Message {
     //tx hash
     protected Sha256Hash hash;
 	//交易输入
-    protected List<Input> inputs;
+    protected List<TransactionInput> inputs;
 	//交易输出
-    protected List<Output> outputs;
+    protected List<TransactionOutput> outputs;
 	//交易时间
 	protected long time;
 	//锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度
@@ -84,8 +79,8 @@ public class Transaction extends Message {
 	
 	public Transaction(NetworkParams network) {
 		super(network);
-		inputs = new ArrayList<Input>();
-        outputs = new ArrayList<Output>();
+		inputs = new ArrayList<TransactionInput>();
+        outputs = new ArrayList<TransactionOutput>();
         time = TimeService.currentTimeMillis();
         version = Definition.VERSION;
 	}
@@ -139,201 +134,156 @@ public class Transaction extends Message {
 		
 		//交易输入数量
         long numInputs = readVarInt();
-        inputs = new ArrayList<Input>((int) numInputs);
+        inputs = new ArrayList<TransactionInput>((int) numInputs);
         for (int i = 0; i < numInputs; i++) {
-        	Input input = parseInput();
+        	TransactionInput input = new TransactionInput(network, this, payload, cursor);
             inputs.add(input);
+            cursor += input.getLength();
         }
 
 		//交易输出数量
         long numOutputs = readVarInt();
-        outputs = new ArrayList<Output>((int) numOutputs);
+        outputs = new ArrayList<TransactionOutput>((int) numOutputs);
         for (int i = 0; i < numOutputs; i++) {
-        	TransactionOutput output = parseOutput();
+        	TransactionOutput output = new TransactionOutput(network, this, payload, cursor);
         	output.setIndex(i);
             outputs.add(output);
+            cursor += output.getLength();
         }
         time = readInt64();
         lockTime = readInt64();
-        length = cursor - offset;
-	}
-	
-	/**
-	 * 反序列化交易的输出部分
-	 * @return TransactionOutput
-	 */
-	protected TransactionOutput parseOutput() {
-		TransactionOutput output = new TransactionOutput();
-        output.setParent(this);
-        output.setValue(readInt64());
-        output.setLockTime(readInt64());
-        //赎回脚本名的长度
-        int signLength = (int)readVarInt();
-        output.setScriptBytes(readBytes(signLength));
-        return output;
-	}
-	
-	/**
-	 * 反序列化交易的输入部分
-	 * @return Input
-	 */
-	protected <T extends Input> Input parseInput() {
-		TransactionInput input = new TransactionInput();
-        input.setParent(this);
-        
-        if(getType() == Definition.TYPE_COINBASE) {
-        	int signLength = (int) readVarInt();
-        	byte[] msg = readBytes(signLength);
-        	//TODO
-        	byte[] signMsg = new byte[msg.length -1];
-        	System.arraycopy(msg, 1, signMsg, 0, signMsg.length);
-        	
-        	input.setScriptSig(ScriptBuilder.createCoinbaseInputScript(signMsg));
-            input.setSequence(readUint32());
-        	return input;
+
+        if(!isCompatible()) {
+        	length = cursor - offset;
         }
-        
-    	//上笔交易的引用
-        //TODO 这里上笔交易，必须查询？ 
-        //验证脚本的时候再设置
-        
-        TransactionOutput pre = new TransactionOutput();
-        Transaction t = new Transaction(network);
-        pre.setParent(t);
-        pre.getParent().setHash(Sha256Hash.wrap(readBytes(32)));
-        pre.setIndex((int)readUint32());
-        input.setFrom(pre);
-    
-        //输入签名的长度
-        int signLength = (int)readVarInt();
-        input.setScriptBytes(readBytes(signLength));
-        input.setSequence(readUint32());
-
-        //通过输入签名生成对应的赎回脚本
-//        Script sc = input.getScriptSig();
-//        if(sc.getChunks().size() == 2) {
-//        	//普通账户
-//        	ECKey key = ECKey.fromPublicOnly(sc.getPubKey());
-//        	Script script = ScriptBuilder.createOutputScript(
-//    				AccountTool.newAddressFromKey(network, network.getSystemAccountVersion(), key));
-//    		
-//            pre.setScript(script);
-//        } else if(sc.getChunks().size() == 5) {
-//        	//认证账户
-//        	byte[] hash160 = sc.getChunks().get(4).data;
-//        	Script script = ScriptBuilder.createOutputScript(
-//    				new Address(network, network.getCertAccountVersion(), hash160));
-//    		
-//            pre.setScript(script);
-//        } else {
-//        	new VerificationException("错误的输入脚本");
-//        }
-        
-        
-        
-        return input;
 	}
-
-//	/**
-//	 * 验证交易的合法性
-//	 */
-//	public void verfify() throws VerificationException {
-//		
-//		if(type == TransactionDefinition.TYPE_COINBASE) {
-//			return;
-//		}
-//		//是否引用了不可用的输出
-//		for (int i = 0; i < inputs.size(); i++) {
-//			Input input = inputs.get(i);
-//			TransactionOutput fromOutput = input.getFrom();
-//			if(fromOutput == null || fromOutput.getParent() == null) {
-//				throw new VerificationException("交易引用不存在");
-//			}
-//			
-//			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
-//			TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
-//			Transaction tx = null;
-//			if(txs == null) {
-//				//区块里没有，则去内存池查看是否存在
-//				tx = MempoolContainerMap.getInstace().get(fromOutput.getParent().getHash());
-//				if(tx == null) {
-//					throw new VerificationException("引用了不存在的交易");
-//				}
-//			} else {
-//				tx = txs.getTransaction();
-//			}
-//			if(tx == null) {
-//				throw new VerificationException("引用不存在的交易");
-//			} else if(tx.getLockTime() == -1) {
-//				throw new VerificationException("引用了不可用的交易");
-//			}
-//			TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
-//			if(output.getLockTime() == -1) {
-//				throw new VerificationException("引用了不可用的交易");
-//			}
-//			input.setFrom(output);
-//		}
-//	}
-
+	
 	/**
-	 * 验证交易脚本
+	 * 验证交易的合法性
 	 */
-	public void verifyScript() {
-
-		//验证交易的输入脚本是否正确
+	public void verify() throws VerificationException {
+		
+//		byte[] content = baseSerialize();
+//		if(content.length > MAX_STANDARD_TX_SIZE) {
+//			throw new VerificationException("超过交易最大限制"+MAX_STANDARD_TX_SIZE);
+//		}
+		
 		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
-		if(!isPaymentTransaction()) {
-			throw new VerificationException("交易类型不正确");
-		}
-		if(inputs != null) {
+		if(inputs != null && inputs.size() > 0) {
+			//是否引用了不可用的输出
 			for (int i = 0; i < inputs.size(); i++) {
-				Input input = inputs.get(i);
+				TransactionInput input = inputs.get(i);
 				
-				TransactionInput txInput = (TransactionInput) input;
-				TransactionOutput fromOutput = txInput.getFrom();
-				
-				if(fromOutput.getScript() == null) {
-					BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
-					TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
-					Transaction tx = null;
-					if(txs == null) {
-						//区块里没有，则去内存池查看是否存在
-						tx = MempoolContainer.getInstace().get(fromOutput.getParent().getHash());
-						if(tx == null) {
-							throw new VerificationException("引用了不存在的交易");
-						}
-					} else {
-						tx = txs.getTransaction();
-					}
-					if(tx == null) {
-						throw new VerificationException("引用不存在的交易");
-					} else if(tx.getLockTime() == -1) {
-						throw new VerificationException("引用了不可用的交易");
-					}
-					TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
-					if(output.getLockTime() == -1) {
-						throw new VerificationException("引用了不可用的交易");
-					}
-					input.setFrom(output);
+				List<TransactionOutput> fromOutputs = input.getFroms();
+				if(fromOutputs == null || fromOutputs.size() == 0) {
+					throw new VerificationException("交易缺少输入");
+				}
+				if(fromOutputs.size() > 20000) {
+					throw new VerificationException("交易输入引用最多20000个");
 				}
 				
-				Script outputScript = input.getFromScriptSig();
-				if(outputScript == null) {
-					throw new VerificationException("交易脚本验证失败，输入应用脚本不存在");
+				//交易输入引用必须存在
+				//且交易不能有多个相同的引用
+				for (TransactionOutput transactionOutput : fromOutputs) {
+					if(transactionOutput.getParent() == null) {
+						throw new VerificationException("交易输入缺少对父交易的引用");
+					}
 				}
-				input.getScriptSig().run(this, i, outputScript);
 			}
 		}
 		
+		//交易输出最多200个
+		if(outputs.size() > 200) {
+			throw new VerificationException("交易输出最多200个");
+		}
 	}
+
+//	/**
+//	 * 验证交易脚本
+//	 */
+//	public void verifyScript() {
+//		verifyScript(null);
+//	}
+//	
+//	/**
+//	 * 验证交易脚本
+//	 */
+//	public void verifyScript(List<Transaction> txList) {
+//
+//		//验证交易的输入脚本是否正确
+//		if(type == Definition.TYPE_COINBASE) {
+//			return;
+//		}
+//		if(!isPaymentTransaction()) {
+//			throw new VerificationException("交易类型不正确");
+//		}
+//		if(inputs != null) {
+//			for (int i = 0; i < inputs.size(); i++) {
+//				Input input = inputs.get(i);
+//				
+//				TransactionInput txInput = (TransactionInput) input;
+//				TransactionOutput fromOutput = txInput.getFrom();
+//				
+//				if(fromOutput.getScript() == null) {
+//					
+//					//这里找引用的交易，有几种不同的地方可能找到，内存池里，传入的列表里，链上存储里
+//					//根据大部分交易的优先命中率调整查找顺序
+//					
+//					//先在内存里面找
+//					Sha256Hash preHash = fromOutput.getParent().getHash();
+//					Transaction tx = MempoolContainer.getInstace().get(preHash);
+//					
+//					if(tx == null) {
+//						//再在传入的列表找
+//						if(txList != null) {
+//							for (Transaction transaction : txList) {
+//								if(transaction.getHash().equals(preHash)) {
+//									tx = transaction;
+//									break;
+//								}
+//							}
+//						}
+//						if(tx == null) {
+//							//最后去存储的链上找
+//							BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean(BlockStoreProvider.class);
+//							TransactionStore txs = blockStoreProvider.getTransaction(fromOutput.getParent().getHash().getBytes());
+//							if(txs == null) {
+//								//区块里也没有，查找不到则抛出异常
+//								if(tx == null) {
+//									throw new VerificationException("引用了不存在的交易");
+//								}
+//							} else {
+//								tx = txs.getTransaction();
+//							}
+//						}
+//					}
+//					if(tx == null) {
+//						throw new VerificationException("引用不存在的交易");
+//					} else if(tx.getLockTime() == -1) {
+//						throw new VerificationException("引用了不可用的交易");
+//					}
+//					TransactionOutput output = (TransactionOutput) tx.getOutput(fromOutput.getIndex());
+//					if(output.getLockTime() == -1) {
+//						throw new VerificationException("引用了不可用的交易");
+//					}
+//					input.setFrom(output);
+//				}
+//				
+//				Script outputScript = input.getFromScriptSig();
+//				if(outputScript == null) {
+//					throw new VerificationException("交易脚本验证失败，输入应用脚本不存在");
+//				}
+//				input.getScriptSig().run(this, i, outputScript);
+//			}
+//		}
+//		
+//	}
 
 	public Sha256Hash hashForSignature(int index, byte[] redeemScript, byte sigHashType) {
 		try {
             Transaction tx = this.network.getDefaultSerializer().makeTransaction(this.baseSerialize());
-//            Transaction tx = this;
-
             //清空输入脚本
             for (int i = 0; i < tx.inputs.size(); i++) {
                 tx.getInputs().get(i).clearScriptBytes();
@@ -472,19 +422,19 @@ public class Transaction extends Message {
     	return "tx: " +getHash() + " inputSize:" + (inputs == null ? 0:inputs.size()) + " outputSize:" + (outputs == null ? 0:outputs.size());
     }
     
-    public Input getInput(int index) {
+    public TransactionInput getInput(int index) {
         return inputs.get(index);
     }
 
-    public Output getOutput(int index) {
+    public TransactionOutput getOutput(int index) {
         return outputs.get(index);
     }
     
-    public List<Input> getInputs() {
+    public List<TransactionInput> getInputs() {
 		return inputs;
 	}
     
-    public List<Output> getOutputs() {
+    public List<TransactionOutput> getOutputs() {
 		return outputs;
 	}
 

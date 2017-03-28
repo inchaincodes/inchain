@@ -149,7 +149,7 @@ public class BlockValidator {
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		//获取该高度的奖励
-		Coin rewardCoin = ConsensusRewardCalculationUtil.calculat(block.getHeight());
+		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(block.getHeight());
 		if(!coinbaseFee.equals(fee.add(rewardCoin))) {
 			log.warn("the fee error");
 			return false;

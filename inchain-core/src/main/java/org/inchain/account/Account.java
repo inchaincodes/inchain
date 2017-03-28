@@ -404,13 +404,13 @@ public class Account implements Cloneable {
 	 * 解密交易私钥
 	 * @return ECKey[]
 	 */
-	public ECKey[] decryptionTr(String mgTr) {
+	public ECKey[] decryptionTr(String trPw) {
 
 		ECKey seedPri = ECKey.fromPublicOnly(priSeed);
 		byte[] seedPribs = seedPri.getPubKey(false);
 		
-		BigInteger trPri1 = AccountTool.genPrivKey1(seedPribs, mgTr.getBytes());
-		BigInteger trPri2 = AccountTool.genPrivKey2(seedPribs, mgTr.getBytes());
+		BigInteger trPri1 = AccountTool.genPrivKey1(seedPribs, trPw.getBytes());
+		BigInteger trPri2 = AccountTool.genPrivKey2(seedPribs, trPw.getBytes());
 		ECKey trkey1 = ECKey.fromPrivate(trPri1);
 		ECKey trkey2 = ECKey.fromPrivate(trPri2);
 		

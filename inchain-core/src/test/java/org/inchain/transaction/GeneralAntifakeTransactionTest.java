@@ -8,9 +8,8 @@ import javax.annotation.PostConstruct;
 import org.inchain.TestNetBaseTestCase;
 import org.inchain.account.Account;
 import org.inchain.core.BroadcastResult;
-import org.inchain.core.KeyValuePair;
 import org.inchain.core.Product;
-import org.inchain.core.Product.ProductType;
+import org.inchain.core.ProductKeyValue;
 import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
@@ -119,13 +118,12 @@ public class GeneralAntifakeTransactionTest extends TestNetBaseTestCase {
 	}
 
 	private Product createProduct() {
-		List<KeyValuePair> contents = new ArrayList<KeyValuePair>();
-		contents.add(new KeyValuePair(ProductType.NAME, "印链-闪迪U盘"));
-		contents.add(new KeyValuePair(ProductType.DESCRIPTION, "32G"));
-		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
-		contents.add(new KeyValuePair(ProductType.PRODUCTION_DATE, "2017-02-23"));
-		contents.add(new KeyValuePair(ProductType.CREATE_TIME, TimeService.currentTimeMillisOfBytes()));
-		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
+		List<ProductKeyValue> contents = new ArrayList<ProductKeyValue>();
+		contents.add(new ProductKeyValue("name", "名称", "印链-闪迪U盘"));
+		contents.add(new ProductKeyValue("description", "描述", "32G"));
+		contents.add(new ProductKeyValue("content", "详情", "回馈老用户，免费赠送"));
+		contents.add(new ProductKeyValue("productionDate", "生产日期", "2017-02-23"));
+		contents.add(new ProductKeyValue("createTime", "创建时间", TimeService.currentTimeMillisOfBytes()));
 		
 		Product product = new Product(contents);
 		return product;

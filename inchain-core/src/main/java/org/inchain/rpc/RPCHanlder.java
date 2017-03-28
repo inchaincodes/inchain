@@ -1,11 +1,18 @@
 package org.inchain.rpc;
 
+import java.io.IOException;
+
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.inchain.account.AccountBody;
 import org.inchain.core.Coin;
+import org.inchain.core.Product;
+import org.inchain.core.exception.VerificationException;
+import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -63,6 +70,8 @@ public class RPCHanlder {
 	public JSONObject hanlder(JSONObject commandInfos, JSONObject inputInfos) throws JSONException {
 		String command = commandInfos.getString("command");
 		
+		JSONArray params = commandInfos.getJSONArray("params");
+		
 		String password = null;
 		String newPassword = null;
 		if(inputInfos != null) {
@@ -114,7 +123,7 @@ public class RPCHanlder {
 		//通过高度获取区块hash
 		case "getblockhash": {
 			result.put("success", true);
-			result.put("blockhash", rpcService.getBlockHashByHeight(Long.parseLong(commandInfos.getJSONArray("params").getString(0))));
+			result.put("blockhash", rpcService.getBlockHashByHeight(Long.parseLong(params.getString(0))));
 			
 			return result;
 		}
@@ -122,7 +131,7 @@ public class RPCHanlder {
 		//通过高度或者hash获取区块头信息
 		case "getblockheader": {
 			result.put("success", true);
-			result.put("blockheader", rpcService.getBlockHeader(commandInfos.getJSONArray("params").getString(0)));
+			result.put("blockheader", rpcService.getBlockHeader(params.getString(0)));
 			
 			return result;
 		}
@@ -130,14 +139,77 @@ public class RPCHanlder {
 		//通过hash或者高度获取一个完整的区块信息
 		case "getblock": {
 			result.put("success", true);
-			result.put("blockheader", rpcService.getBlock(commandInfos.getJSONArray("params").getString(0)));
+			result.put("blockheader", rpcService.getBlock(params.getString(0)));
+			
+			return result;
+		}
+		
+		//通过hash获取一个分叉快
+		case "getforkblock": {
+			result.put("success", true);
+			result.put("blockheader", rpcService.getForkBlock(params.getString(0)));
+			
+			return result;
+		}
+		
+		//获取账户列表
+		case "getaccounts": {
+			JSONArray array = rpcService.getAccounts();
+			
+			result.put("success", true);
+			result.put("accountList", array);
+			
+			return result;
+		}
+		
+		//新建普通账户
+		case "newaccount": {
+			
+			try {
+				result = rpcService.newAccount();
+			} catch (IOException e) {
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
+			
+			return result;
+		}
+		
+		//新建认证账户
+		case "newcertaccount": {
+			
+			try {
+				String mggpw = params.getString(0);
+				String trpw = params.getString(1);
+				String bodyHexStr = params.getString(2);
+				AccountBody body = new AccountBody(Hex.decode(bodyHexStr));
+
+				String certpw = params.getString(3);
+				
+				result = rpcService.newCertAccount(mggpw, trpw, body, certpw);
+			} catch (JSONException e) {
+				if(e instanceof JSONException) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex]");
+					return result;
+				}
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
 			
 			return result;
 		}
 		
 		//获取余额
 		case "getbalance": {
-			Coin[] blanaces = rpcService.getAccountBalance();
+			
+			String address = null;
+			
+			if(params.length() > 0) {
+				address = params.getString(0);
+			}
+			
+			Coin[] blanaces = rpcService.getAccountBalance(address);
 			
 			result.put("success", true);
 			result.put("blanace", blanaces[0].add(blanaces[1]).value);
@@ -149,26 +221,45 @@ public class RPCHanlder {
 		
 		//获取账户信用
 		case "getcredit": {
-			long credit = rpcService.getAccountCredit();
-			
-			result.put("success", true);
-			result.put("credit", credit);
-			
+			try {
+				String address = null;
+				
+				if(params.length() > 0) {
+					address = params.getString(0);
+				}
+				
+				long credit = rpcService.getAccountCredit(address);
+				
+				result.put("success", true);
+				result.put("credit", credit);
+			} catch (VerificationException e) {
+				result.put("success", false);
+				result.put("message", e.getMessage());
+			}
 			return result;
 		}
 		
 		//获取账户信息
 		case "getaccountinfo": {
-			result = rpcService.getAccountInfo();
-			
-			result.put("success", true);
-			
+			try {
+				String address = null;
+				
+				if(params.length() > 0) {
+					address = params.getString(0);
+				}
+				
+				result = rpcService.getAccountInfo(address);
+				
+				result.put("success", true);
+			} catch (VerificationException e) {
+				result.put("success", false);
+				result.put("message", e.getMessage());
+			}
 			return result;
 		}
 		
 		//加密钱包
 		case "encryptwallet": {
-			JSONArray params = commandInfos.getJSONArray("params");
 			if(password == null && params.length() >= 1) {
 				password = params.getString(0);
 			}
@@ -178,7 +269,6 @@ public class RPCHanlder {
 		
 		//修改密码
 		case "password": {
-			JSONArray params = commandInfos.getJSONArray("params");
 			if(password == null && newPassword == null && params.length() >= 2) {
 				password = params.getString(0);
 				newPassword = params.getString(1);
@@ -189,7 +279,7 @@ public class RPCHanlder {
 		
 		//通过hash获取一笔交易详情
 		case "gettx": {
-			result = rpcService.getTx(commandInfos.getJSONArray("params").getString(0));
+			result = rpcService.getTx(params.getString(0));
 			
 			result.put("success", true);
 			
@@ -198,7 +288,13 @@ public class RPCHanlder {
 		
 		//获取账户交易
 		case "gettransaction": {
-			JSONArray txs = rpcService.getTransaction();
+			String address = null;
+			
+			if(params.length() > 0) {
+				address = params.getString(0);
+			}
+			
+			JSONArray txs = rpcService.getTransaction(address);
 			
 			result.put("success", true);
 			result.put("txs", txs);
@@ -208,20 +304,107 @@ public class RPCHanlder {
 		
 		//转账
 		case "send": {
-			if(commandInfos.getJSONArray("params").length() > 3 && password == null) {
-				password = commandInfos.getJSONArray("params").getString(3);
+			if(params.length() > 3 && password == null) {
+				password = params.getString(3);
 			}
-			return rpcService.sendMoney(commandInfos.getJSONArray("params").getString(0), commandInfos.getJSONArray("params").getString(1), commandInfos.getJSONArray("params").getString(2), password);
+			return rpcService.sendMoney(params.getString(0), params.getString(1), params.getString(2), password);
+		}
+		
+		//认证账户创建商品
+		case "createproduct": {
+			try {
+				String productHexStr = params.getString(0);
+				
+				String certpw = params.getString(1);
+				
+				String address = null;
+				if(params.length() > 2) {
+					address = params.getString(2);
+				}
+				Product product = new Product(Hex.decode(productHexStr));
+
+				result = rpcService.createProduct(product, certpw, address);
+			} catch (JSONException e) {
+				if(e instanceof JSONException) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：createproduct [product hex] [trpw] [address]");
+					return result;
+				}
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
+			
+			return result;
+		}
+		
+		//认证账户创建防伪码
+		case "createantifake": {
+			try {
+				String productHash = params.getString(0);
+				
+				int count = Integer.parseInt(params.getString(1));
+				
+				if(count <= 0) {
+					result.put("success", false);
+					result.put("message", "防伪码数量不正确，应大于0");
+					return result;
+				}
+				
+				String trpw = params.getString(2);
+				
+				if(StringUtil.isEmpty(trpw)) {
+					result.put("success", false);
+					result.put("message", "缺少密码");
+					return result;
+				}
+				
+				//奖励
+				Coin reward = Coin.ZERO;
+				//账户
+				String address = null;
+				if(params.length() > 3) {
+					try {
+						reward = Coin.parseCoin(params.getString(3));
+					} catch (Exception e) {
+						address = params.getString(3);
+					}
+					if(params.length() > 4) {
+						address = params.getString(4);
+					}
+				}
+				
+				result = rpcService.createAntifake(productHash, count, reward, trpw, address);
+			} catch (JSONException e) {
+				if(e instanceof JSONException) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：createantifake [product hash] [count] [trpassword] ([reward]) [address]");
+					return result;
+				}
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
+			
+			return result;
+		}
+		
+		//通过防伪码查询商家和商品
+		case "queryantifake": {
+			return rpcService.queryAntifake(params.getString(0));
+		}
+		
+		//通过防伪码查询商家和商品
+		case "verifyantifake": {
+			return rpcService.verifyAntifake(params);
 		}
 		
 		//广播
 		case "broadcast": {
-			return rpcService.broadcast(commandInfos.getJSONArray("params").getString(0));
+			return rpcService.broadcast(params.getString(0));
 		}
 		
 		//广播交易，交易存于文件里
 		case "broadcastfromfile": {
-			return rpcService.broadcastfromfile(commandInfos.getJSONArray("params").getString(0));
+			return rpcService.broadcastfromfile(params.getString(0));
 		}
 		
 		//获取共识列表
@@ -236,8 +419,8 @@ public class RPCHanlder {
 		
 		//注册共识
 		case "regconsensus": {
-			if(commandInfos.getJSONArray("params").length() > 0 && password == null) {
-				password = commandInfos.getJSONArray("params").getString(0);
+			if(params.length() > 0 && password == null) {
+				password = params.getString(0);
 			}
 			result = rpcService.regConsensus(password);
 			return result;
@@ -245,8 +428,8 @@ public class RPCHanlder {
 		
 		//退出共识
 		case "remconsensus": {
-			if(commandInfos.getJSONArray("params").length() > 0 && password == null) {
-				password = commandInfos.getJSONArray("params").getString(0);
+			if(params.length() > 0 && password == null) {
+				password = params.getString(0);
 			}
 			result = rpcService.remConsensus(password);
 			return result;

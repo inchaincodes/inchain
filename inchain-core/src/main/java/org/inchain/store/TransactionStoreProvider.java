@@ -2,7 +2,6 @@ package org.inchain.store;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -19,12 +18,11 @@ import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.script.Script;
-import org.inchain.transaction.Input;
-import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
+import org.inchain.utils.StringUtil;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -42,7 +40,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	//交易记录对应的账号列表
 	private List<byte[]> addresses = new CopyOnWriteArrayList<byte[]>();
 	//我的交易列表
-	private List<TransactionStore> mineTxList = new ArrayList<TransactionStore>();
+	private List<TransactionStore> mineTxList = new CopyOnWriteArrayList<TransactionStore>();
+	//未花费的交易
+	private List<TransactionStore> unspendTxList = new CopyOnWriteArrayList<TransactionStore>();
 	
 	//新交易监听器
 	private TransactionListener transactionListener;
@@ -90,10 +90,29 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			}
 			byte[] value = item.getValue();
 			
-			TransactionStore tx = new TransactionStore(network, value);
-			mineTxList.add(tx);
+			TransactionStore txs = new TransactionStore(network, value);
+			mineTxList.add(txs);
+			
+			//是否未花费的交易
+			Transaction tx = txs.getTransaction();
+			if(tx.isPaymentTransaction()) {
+				byte[] status = txs.getStatus();
+				List<TransactionOutput> outputs = tx.getOutputs();
+				for (int i = 0; i < outputs.size(); i++) {
+					TransactionOutput output = outputs.get(i);
+					Script script = output.getScript();
+					if(status == null || status.length < i || status[i] != TransactionStore.STATUS_UNUSE || unspendTxList.contains(txs)) {
+						continue;
+					}
+					for (byte[] hash160 : addresses) {
+						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+							unspendTxList.add(txs);
+						}
+					}
+				}
+			}
 		}
-	
+		
 		//绑定新交易监听器
 		blockStoreProvider.addTransactionListener(new TransactionListener() {
 			@Override
@@ -117,24 +136,25 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		
 		if(tx.isPaymentTransaction()) {
 			//更新交易状态
-			List<Input> inputs = tx.getInputs();
+			List<TransactionInput> inputs = tx.getInputs();
 			if(inputs != null) {
-				for (Input input : inputs) {
-					TransactionInput txInput = (TransactionInput) input;
-					if(txInput.getFrom() == null) {
+				for (TransactionInput input : inputs) {
+					if(input.getFroms() == null || input.getFroms().size() == 0) {
 						continue;
 					}
-					Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
-					
-					for (TransactionStore transactionStore : mineTxList) {
-						if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-							//更新内存
-							byte[] ftxStatus = transactionStore.getStatus();
-							ftxStatus[txInput.getFrom().getIndex()] = TransactionStore.STATUS_UNUSE;
-							transactionStore.setStatus(ftxStatus);
-							//更新存储
-							put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
-							break;
+					for (TransactionOutput from : input.getFroms()) {
+						Sha256Hash fromTxHash = from.getParent().getHash();
+						
+						for (TransactionStore transactionStore : mineTxList) {
+							if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+								//更新内存
+								byte[] ftxStatus = transactionStore.getStatus();
+								ftxStatus[from.getIndex()] = TransactionStore.STATUS_UNUSE;
+								transactionStore.setStatus(ftxStatus);
+								//更新存储
+								put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
+								break;
+							}
 						}
 					}
 				}
@@ -144,11 +164,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		delete(tx.getHash().getBytes());
 		
 		//从内存中删除
-		Iterator<TransactionStore> it = mineTxList.iterator();
-		while(it.hasNext()) {
-			TransactionStore t = it.next();
+		for (TransactionStore t : mineTxList) {
 			if(t.getTransaction().getHash().equals(tx.getHash())) {
-				it.remove();
+				mineTxList.remove(t);
 				break;
 			}
 		}
@@ -178,41 +196,57 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			
 			if(tx.isPaymentTransaction()) {
 				//更新交易状态
-				List<Output> outputs = tx.getOutputs();
+				List<TransactionOutput> outputs = tx.getOutputs();
 				
+				List<TransactionInput> inputs = tx.getInputs();
+				if(inputs != null) {
+					for (TransactionInput input : inputs) {
+						if(input.getFroms() == null || input.getFroms().size() == 0) {
+							continue;
+						}
+						for (TransactionOutput from : input.getFroms()) {
+							Sha256Hash fromTxHash = from.getParent().getHash();
+							
+							for (TransactionStore transactionStore : mineTxList) {
+								if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
+									//更新内存
+									byte[] ftxStatus = transactionStore.getStatus();
+									ftxStatus[from.getIndex()] = TransactionStore.STATUS_USED;
+									transactionStore.setStatus(ftxStatus);
+									//更新存储
+									put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
+									break;
+								}
+							}
+							
+							for (TransactionStore unspendTx : unspendTxList) {
+								if(unspendTx.getTransaction().getHash().equals(fromTxHash)) {
+									//更新内存
+									byte[] ftxStatus = unspendTx.getStatus();
+									ftxStatus[from.getIndex()] = TransactionStore.STATUS_USED;
+									unspendTx.setStatus(ftxStatus);
+									//更新存储
+									put(unspendTx.getTransaction().getHash().getBytes(), unspendTx.baseSerialize());
+									
+									unspendTxList.remove(unspendTx);
+									break;
+								}
+							}
+						}
+					}
+				}
 				//交易状态
 				byte[] status = new byte[outputs.size()];
 				
 				for (int i = 0; i < outputs.size(); i++) {
-					Output output = outputs.get(i);
+					TransactionOutput output = outputs.get(i);
 					Script script = output.getScript();
+					status[i] = TransactionStore.STATUS_UNUSE;
 					
 					for (byte[] hash160 : addresses) {
 						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-							status[i] = TransactionStore.STATUS_UNUSE;
+							unspendTxList.add(txs);
 							break;
-						}
-					}
-				}
-				List<Input> inputs = tx.getInputs();
-				if(inputs != null) {
-					for (Input input : inputs) {
-						TransactionInput txInput = (TransactionInput) input;
-						if(txInput.getFrom() == null) {
-							continue;
-						}
-						Sha256Hash fromTxHash = txInput.getFrom().getParent().getHash();
-						
-						for (TransactionStore transactionStore : mineTxList) {
-							if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-								//更新内存
-								byte[] ftxStatus = transactionStore.getStatus();
-								ftxStatus[txInput.getFrom().getIndex()] = TransactionStore.STATUS_USED;
-								transactionStore.setStatus(ftxStatus);
-								//更新存储
-								put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
-								break;
-							}
 						}
 					}
 				}
@@ -374,9 +408,29 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		
 		//遍历区块写入相关交易
 		mineTxList = blockStoreProvider.loadRelatedTransactions(hash160s);
+		unspendTxList = new CopyOnWriteArrayList<TransactionStore>();
 		
-		for (TransactionStore ts : mineTxList) {
-			put(ts.getTransaction().getHash().getBytes(), ts.baseSerialize());
+		for (TransactionStore txs : mineTxList) {
+			put(txs.getTransaction().getHash().getBytes(), txs.baseSerialize());
+			
+			//是否未花费的交易
+			Transaction tx = txs.getTransaction();
+			if(tx.isPaymentTransaction()) {
+				byte[] status = txs.getStatus();
+				List<TransactionOutput> outputs = tx.getOutputs();
+				for (int i = 0; i < outputs.size(); i++) {
+					TransactionOutput output = outputs.get(i);
+					Script script = output.getScript();
+					if(status == null || status.length < i || status[i] != TransactionStore.STATUS_UNUSE || unspendTxList.contains(txs)) {
+						continue;
+					}
+					for (byte[] hash160 : this.addresses) {
+						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+							unspendTxList.add(txs);
+						}
+					}
+				}
+			}
 		}
 		
 		return true;
@@ -399,7 +453,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			bestBlockHeight = localBestBlockHeight;
 		}
 		
-		for (TransactionStore transactionStore : mineTxList) {
+		for (TransactionStore transactionStore : unspendTxList) {
 			//获取转入交易转入的多少钱
 			Transaction tx = transactionStore.getTransaction();
 			if(!tx.isPaymentTransaction()) {
@@ -416,10 +470,10 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			byte[] key = tx.getHash().getBytes();
 			byte[] status = transactionStore.getStatus();
 			
-			List<Output> outputs = tx.getOutputs();
+			List<TransactionOutput> outputs = tx.getOutputs();
 			
 			for (int i = 0; i < outputs.size(); i++) {
-				Output output = outputs.get(i);
+				TransactionOutput output = outputs.get(i);
 				Script script = output.getScript();
 				if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
 
@@ -433,7 +487,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 //						continue;
 //					}
 					//交易是否已花费
-					if(status[i] == TransactionStore.STATUS_USED) {
+					if(status != null && status.length > 0 && status[i] == TransactionStore.STATUS_USED) {
 						continue;
 					}
 					//本笔输出是否可用
@@ -476,7 +530,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			bestBlockHeight = localBestBlockHeight;
 		}
 		
-		for (TransactionStore transactionStore : mineTxList) {
+		for (TransactionStore transactionStore : unspendTxList) {
 			
 			//交易状态
 			byte[] status = transactionStore.getStatus();
@@ -494,11 +548,11 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				continue;
 			}
 			
-			List<Output> outputs = tx.getOutputs();
+			List<TransactionOutput> outputs = tx.getOutputs();
 			
 			//遍历交易输出
 			for (int i = 0; i < outputs.size(); i++) {
-				Output output = outputs.get(i);
+				TransactionOutput output = outputs.get(i);
 				Script script = output.getScript();
 				if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
 
@@ -553,8 +607,27 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		this.addresses = addresses;
 	}
 	
-	public List<TransactionStore> getMineTxList() {
-		return mineTxList;
+	public List<TransactionStore> getMineTxList(String address) {
+		
+		if(StringUtil.isEmpty(address)) {
+			return mineTxList;
+		}
+		
+		List<TransactionStore> resultList = new ArrayList<TransactionStore>();
+		
+		byte[] hash160 = null;
+		try {
+			hash160 = Address.fromBase58(network, address).getHash160();
+		} catch (Exception e) {
+			return resultList;
+		}
+		for (TransactionStore txs : mineTxList) {
+			Transaction tx = txs.getTransaction();
+			if(blockStoreProvider.checkTxIsMine(tx, hash160)) {
+				resultList.add(txs);
+			}
+		}
+		return resultList;
 	}
 	
 	public void setTransactionListener(TransactionListener transactionListener) {

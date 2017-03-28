@@ -33,24 +33,5 @@ public class AppKitDemo {
 		
 		final AppKit kit = new AppKit();
 		kit.startSyn();
-		
-		kit.setInitListener(new Listener() {
-			@Override
-			public void onComplete() {
-				AccountKit accountKit = kit.getAccountKit();
-				try {
-					Thread.sleep(1000l);
-					if(accountKit.getAccountList().isEmpty()) {
-						accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty());
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-				} finally {
-//					accountKit.close();
-//					peerKit.stop();
-				}
-			}
-		});
-		
 	}
 }

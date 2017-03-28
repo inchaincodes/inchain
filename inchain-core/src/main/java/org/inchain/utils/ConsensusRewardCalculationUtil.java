@@ -1,5 +1,6 @@
 package org.inchain.utils;
 
+import org.inchain.Configure;
 import org.inchain.core.Coin;
 
 /**
@@ -37,7 +38,7 @@ public final class ConsensusRewardCalculationUtil {
 	 * @param height
 	 * @return Coin
 	 */
-	public final static Coin calculat(long height) {
+	public final static Coin calculatReward(long height) {
 		if(height < START_HEIGHT) {
 			return Coin.ZERO;
 		}
@@ -93,6 +94,10 @@ public final class ConsensusRewardCalculationUtil {
 			}
 		}
 		return issued.add(coefficientReward.multiply(realHeight % REWARD_CYCLE));
+	}
+
+	public static Coin calculatRecognizance(int currentConsensusSize) {
+		return Configure.CONSENSUS_MIN_RECOGNIZANCE;
 	}
 	
 	public static void main(String[] args) {

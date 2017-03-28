@@ -2,6 +2,8 @@ package org.inchain.consensus;
 
 import java.util.List;
 
+import org.inchain.crypto.Sha256Hash;
+
 /**
  * 共识池，维护所有参与共识的人，符合条件的人可随时加入，随时退出
  * @author ln
@@ -12,8 +14,9 @@ public interface ConsensusPool {
 	/**
 	 * 新增共识结点
 	 * @param hash160
+	 * @param txhash 
 	 */
-	public void add(byte[] hash160, byte[][] pubkey);
+	public void add(byte[] hash160, Sha256Hash txhash, byte[][] pubkey);
 	
 	/**
 	 * 移除共识节点
@@ -39,4 +42,11 @@ public interface ConsensusPool {
 	 * @return List<ConsensusAccount>
 	 */
 	public List<ConsensusAccount> listSnapshots();
+	
+	/**
+	 * 获取注册共识的交易hash
+	 * @param hash160
+	 * @return Sha256Hash
+	 */
+	public Sha256Hash getTx(byte[] hash160);
 }

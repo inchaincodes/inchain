@@ -15,22 +15,19 @@ import org.inchain.utils.Hex;
  * @author ln
  *
  */
-public class RemConsensusTransaction extends CommonlyTransaction {
+public class RemConsensusTransaction extends BaseCommonlyTransaction {
 
+	public RemConsensusTransaction(NetworkParams network) {
+		super(network);
+		this.type = Definition.TYPE_REM_CONSENSUS;
+	}
+	
 	public RemConsensusTransaction(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
 	
 	public RemConsensusTransaction(NetworkParams network, byte[] payloadBytes, int offset) {
 		super(network, payloadBytes, offset);
-	}
-	
-	public RemConsensusTransaction(NetworkParams network, long version, long time) {
-		super(network);
-		
-		this.type = Definition.TYPE_REM_CONSENSUS;
-		this.version = version;
-		this.time = time;
 	}
 
 	/**

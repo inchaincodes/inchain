@@ -50,4 +50,10 @@ public interface Mempool {
 	 * @return Transaction[]
 	 */
 	Transaction[] getNewest(int max);
+	
+	/**
+	 * 获取内存里面交易数量
+	 * @return int
+	 */
+	int getTxCount();
 }

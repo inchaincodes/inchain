@@ -17,6 +17,10 @@ JAVA_OPTS="-server -Xms512m -Xmx1024m"
 PRGDIR=`dirname "$PRG"`
 SERVER_HOME=`cd "$PRGDIR/.." ; pwd`
 
+if [ -z "$JAVA_HOME" ]; then
+  JAVA_HOME=$SERVER_HOME/jre
+fi
+
 # Get standard Java environment variables
 if [ -r "$SERVER_HOME"/bin/setclasspath.sh ]; then
   BASEDIR="$SERVER_HOME"

@@ -440,7 +440,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				if(o2.getSortValue() == null) {
 					o2.setSortValue(Sha256Hash.twiceOf((periodStartTime + o2.getHash160Hex()).getBytes()));
 				}
-				return o1.getSortValue().compareTo(o2.getSortValue());
+				return o1.getSortValue().toString().compareTo(o2.getSortValue().toString());
 			}
 		});
 		return consensusList;
@@ -742,7 +742,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 */
 	private void resetMeeting(Block block) {
 		log.info("======================= 重置了");
-		currentMetting = new MeetingItem(CarditConsensusMeeting.this, block.getPeriodStartTime(), consensusPool.listSnapshots());
+		currentMetting = new MeetingItem(CarditConsensusMeeting.this, oldMettings.get(0).getPeriodEndTime(), consensusPool.listSnapshots());
 		initNewMeetingRound();
 		meetingRound.set(meetingRound.get() - 1);
 	}

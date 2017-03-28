@@ -2,6 +2,7 @@ package org.inchain.transaction;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 
 import org.inchain.script.Script;
 
@@ -24,6 +25,7 @@ public interface Input {
 
 	Script getFromScriptSig();
 	
-	TransactionOutput getFrom();
-	void setFrom(TransactionOutput from);
+	boolean addFrom(TransactionOutput from);
+	List<TransactionOutput> getFroms();
+	void setFroms(List<TransactionOutput> froms);
 }

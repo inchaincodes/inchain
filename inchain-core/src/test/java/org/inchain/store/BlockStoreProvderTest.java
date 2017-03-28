@@ -83,7 +83,7 @@ public class BlockStoreProvderTest extends TestNetBaseTestCase {
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
 		coinBaseTx.addOutput(Coin.valueOf(100l), Address.fromBase58(network, "uNdmAUpGqrNYgguFQT97eByXb6v1CUtcHR"));
-		coinBaseTx.verifyScript();
+		coinBaseTx.verify();
 		
 		txs.add(coinBaseTx);
 		

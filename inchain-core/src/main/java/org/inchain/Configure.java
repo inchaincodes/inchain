@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,6 +154,10 @@ public final class Configure {
 	 */
 	public final static long CERT_CHANGE_TIME_OUT = -1;
 	
+	/** 参与共识所需最低保证金 -- 1 W ins **/
+	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);
+	/** 参与共识所需最高保证金 -- 100 W ins **/
+	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(1000000);
 	
 
 	/*************  交易相关配置   begin  *****************/

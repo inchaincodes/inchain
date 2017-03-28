@@ -3,6 +3,8 @@ package org.inchain.rpc;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
@@ -15,19 +17,24 @@ import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
-import org.inchain.account.AccountBody.ContentType;
+import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.core.AccountKeyValue;
+import org.inchain.core.AntifakeCode;
+import org.inchain.core.BroadcastMakeAntifakeCodeResult;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
-import org.inchain.core.KeyValuePair;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.Peer;
 import org.inchain.core.Product;
-import org.inchain.core.Product.ProductType;
+import org.inchain.core.ProductKeyValue;
 import org.inchain.core.Result;
+import org.inchain.core.VerifyAntifakeCodeResult;
 import org.inchain.core.ViolationEvidence;
+import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
@@ -37,14 +44,16 @@ import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.store.AccountStore;
+import org.inchain.store.BlockForkStore;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
 import org.inchain.store.TransactionStoreProvider;
-import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
@@ -54,6 +63,7 @@ import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.Base58;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
@@ -78,6 +88,8 @@ public class RPCServiceImpl implements RPCService {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private TransactionStoreProvider transactionStoreProvider;
+	@Autowired
+	private ChainstateStoreProvider chainstateStoreProvider;
 
 	/**
 	 * 获取区块的数量
@@ -211,6 +223,52 @@ public class RPCServiceImpl implements RPCService {
 	}
 	
 	/**
+	 * 通过hash获取一个分叉块
+	 * @throws JSONException 
+	 */
+	@Override
+	public JSONObject getForkBlock(String hash) throws JSONException {
+		
+		JSONObject json = new JSONObject();
+		byte[] content = chainstateStoreProvider.getBytes(Sha256Hash.wrap(hash).getBytes());
+		if(content == null) {
+			json.put("message", "not found");
+			return json;
+		}
+		BlockForkStore blockForkStore = new BlockForkStore(network, content);
+		
+		Block block = blockForkStore.getBlock();
+		
+		json.put("version", block.getVersion())
+		.put("height", block.getHeight())
+		.put("hash", block.getHash())
+		.put("preHash", block.getPreHash())
+		.put("merkleHash", block.getMerkleHash())
+		.put("time", block.getTime())
+		.put("periodStartTime", block.getPeriodStartTime())
+		.put("timePeriod", block.getTimePeriod())
+		.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
+		.put("scriptSig", block.getScriptSig())
+		.put("txCount", block.getTxCount())
+		.put("txs", block.getTxs());
+		
+		List<Transaction> txList = block.getTxs();
+		
+		JSONArray txs = new JSONArray();
+		
+		long bestHeight = network.getBestBlockHeight();
+		List<Account> accountList = accountKit.getAccountList();
+		
+		for (Transaction transaction : txList) {
+			txs.put(txConver(new TransactionStore(network, transaction, block.getHeight(), new byte[] {1}), bestHeight, accountList));
+		}
+		
+		json.put("txs", txs);
+		
+		return json;
+	}
+	
+	/**
 	 * 获取内存里的count条交易
 	 */
 	@Override
@@ -220,27 +278,491 @@ public class RPCServiceImpl implements RPCService {
 	}
 	
 	/**
-	 * 同时必需指定帐户管理密码和交易密码
+	 * 创建一个普通账户
+	 * @return JSONObject
+	 * @throws IOException 
+	 * @throws JSONException
 	 */
 	@Override
-	public String newaccount(String mgpw, String trpw) {
-		try {
-			Account account = accountKit.createNewCertAccount(mgpw, trpw, AccountBody.empty());
-			return account.getAddress().getBase58();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return  e.getMessage();
+	public JSONObject newAccount() throws IOException, JSONException {
+		Address address = accountKit.createNewAccount();
+		
+		JSONObject result = new JSONObject();
+		
+		if(address == null) {
+			result.put("success", false);
+			result.put("message", "创建失败");
+		} else {
+			result.put("success", true);
+			result.put("message", "成功");
+			result.put("address", address.getBase58());
 		}
-
+		return result;
 	}
 	
 	/**
-	 * 获取帐户的地址
+	 * 创建一个认证账户
+	 * @param mgpw
+	 * @param trpw
+	 * @param body
+	 * @param certpw
+	 * @return JSONObject
+	 * @throws JSONException
 	 */
 	@Override
-	public String getaccountaddress() {
-//		return accountKit.getAccountList().;
-		return null;
+	public JSONObject newCertAccount(String mgpw, String trpw, AccountBody body, String certpw) throws JSONException {
+		JSONObject result = new JSONObject();
+		try {
+			Account account = accountKit.createNewCertAccount(mgpw, trpw, body, certpw);
+			if(account == null) {
+				result.put("success", false);
+				result.put("message", "创建失败");
+			} else {
+				result.put("success", true);
+				result.put("message", "创建成功");
+				result.put("address", account.getAddress().getBase58());
+				result.put("prikey", Hex.encode(account.getPriSeed()));
+				
+				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
+				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])).put(Hex.encode(account.getTrPubkeys()[1])));
+				
+				result.put("txid", account.getAccountTransaction().getHash());
+			}
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
+	 * 认证账户创建商品
+	 * @param product
+	 * @param certpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject createProduct(Product product, String certpw, String address) throws JSONException {
+		JSONObject result = new JSONObject();
+		try {
+			Account account = null;
+			
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null || !account.isCertAccount()) {
+				result.put("success", false);
+				result.put("message", "认证账户不存在");
+				return result;
+			}
+			
+			if(account.isEncryptedOfTr()) {
+				ECKey[] eckey = account.decryptionTr(certpw);
+				if(eckey == null) {
+					result.put("success", false);
+					result.put("message", "密码不正确");
+					return result;
+				}
+			}
+			
+			ProductTransaction tx = new ProductTransaction(network, product);
+			
+			tx.sign(account);
+			
+			account.resetKey();
+			
+			tx.verify();
+			tx.verifyScript();
+
+			log.info("txid 1==========={}", tx.getHash());
+			tx.setHash(null);
+			log.info("txid 11==========={}", tx.getHash());
+			
+			tx = new ProductTransaction(network, tx.baseSerialize());
+
+			tx.verify();
+			tx.verifyScript();
+			
+			log.info("txid 2==========={}", tx.getHash());
+			//加入内存池
+			MempoolContainer.getInstace().add(tx);
+			
+			//广播
+			peerKit.broadcastMessage(tx);
+			
+			result.put("success", true);
+			result.put("message", "成功");
+			result.put("txid", tx.getHash());
+		} catch (Exception e) {
+			log.error("创建商品出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
+	 * 认证账户创建防伪码
+	 * @param productTx 商品id
+	 * @param count 数量
+	 * @param reward 奖励
+	 * @param trpw 账户交易密码
+	 * @param address	账户地址
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject createAntifake(String productTx, int count, Coin reward, String trpw, String address) throws JSONException {
+		JSONObject result = new JSONObject();
+		Account account = null;
+		try {
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null || !account.isCertAccount()) {
+				result.put("success", false);
+				result.put("message", "认证账户不存在");
+				return result;
+			}
+			
+			if(reward == null || reward.isLessThan(Coin.ZERO)) {
+				reward = Coin.ZERO;
+			}
+			
+			//如果有奖励，验证余额是否充足
+			if(reward.isGreaterThan(Coin.ZERO)) {
+				Coin balance = accountKit.getBalance(account);
+				if(reward.multiply(count).isGreaterThan(balance)) {
+					result.put("success", false);
+					result.put("message", "余额不足，无法奖励 ");
+					return result;
+				}
+			}
+			
+			JSONArray antifakeList = new JSONArray();
+			JSONArray errormgs = new JSONArray();
+			
+			if(count > 0) {
+				for (int i = 0; i < count; i++) {
+					BroadcastMakeAntifakeCodeResult broadcastResult = accountKit.makeAntifakeCode(productTx, reward, account, trpw);
+					
+					if(broadcastResult.isSuccess()) {
+						JSONObject antifakeJson = new JSONObject();
+						antifakeJson.put("antifakeCode", Base58.encode(broadcastResult.getAntifakeCode().getAntifakeCode()));
+						antifakeJson.put("verifyCode", broadcastResult.getAntifakeCode().getVerifyCode());
+						antifakeJson.put("antifakeContent", broadcastResult.getAntifakeCode().base58Encode());
+						
+						antifakeList.put(antifakeJson);
+					} else {
+						errormgs.put(broadcastResult.getMessage());
+					}
+				}
+			}
+			result.put("success", true);
+			result.put("message", "成功生成" + antifakeList.length() + "个防伪码");
+			result.put("antifakeList", antifakeList);
+			result.put("errormgs", errormgs);
+			
+		} catch (Exception e) {
+			log.error("创建防伪码出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		} finally {
+			if(account != null) {
+				account.resetKey();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * 通过防伪码查询商家和商品
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject queryAntifake(String antifakeCode) throws JSONException {
+		JSONObject result = new JSONObject();
+		
+		try {
+			if(StringUtil.isEmpty(antifakeCode)) {
+				result.put("success", false);
+				result.put("message", "防伪码为空");
+				return result;
+			}
+			
+			//解析防伪码字符串
+			byte[] antifakeCodeBytes = Base58.decode(antifakeCode.trim());
+			
+			//判断验证码是否存在
+			byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCodeBytes);
+			if(txBytes == null) {
+				result.put("success", false);
+				result.put("message", "防伪码不存在");
+				return result;
+			}
+			TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
+			//必须存在
+			if(txStore == null) {
+				result.put("success", false);
+				result.put("message", "防伪码生产交易不存在");
+				return result;
+			}
+			
+			Transaction fromTx = txStore.getTransaction();
+			//交易类型必须是防伪码生成交易
+			if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				result.put("success", false);
+				result.put("message", "防伪码类型错误");
+				return result;
+			}
+			AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
+			TransactionStore productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
+			if(productTxs == null) {
+				result.put("success", false);
+				result.put("message", "未查询到防伪码对应的商品信息");
+				return result;
+			}
+			ProductTransaction ptx = (ProductTransaction) productTxs.getTransaction();
+			
+			List<ProductKeyValue> productBodyContents = ptx.getProduct().getContents();
+			
+			JSONArray product = new JSONArray();
+			for (ProductKeyValue keyValuePair : productBodyContents) {
+				if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
+					//时间
+					product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+				} else {
+					product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+				}
+			}
+			result.put("product", product);
+			
+			//防伪码状态
+			byte[] txStatus = codeMakeTx.getHash().getBytes();
+			byte[] txIndex = new byte[txStatus.length + 1];
+			
+			System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
+			txIndex[txIndex.length - 1] = 0;
+			
+			byte[] status = chainstateStoreProvider.getBytes(txIndex);
+			result.put("verifyStatus", status == null);
+			
+			//商家信息
+			AccountStore certAccountInfo = chainstateStoreProvider.getAccountInfo(codeMakeTx.getHash160());
+			
+			JSONArray infos = new JSONArray();
+			
+			List<AccountKeyValue> businessBodyContents = certAccountInfo.getAccountBody().getContents();
+			for (AccountKeyValue keyValuePair : businessBodyContents) {
+				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+					//图标
+					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+				} else {
+					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+				}
+			}
+			result.put("business", infos);
+			result.put("hash", codeMakeTx.getHash());
+			
+			result.put("success", true);
+			
+		} catch (Exception e) {
+			log.error("查询防伪码出错", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
+	 * 防伪码验证
+	 * @param params
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject verifyAntifake(JSONArray params) throws JSONException {
+		JSONObject result = new JSONObject();
+		
+		try {
+			//解析参数
+			if(params == null || params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			String antifakeContent = null;
+			
+			//如果只有一个参数，那么则认为是完整的防伪码
+			if(params.length() == 1) {
+				antifakeContent = params.getString(0);
+			}
+			
+			double longitude = 0d;
+			double latitude = 0d;
+			String antifakeCode = null;
+			String verifyCode = null;
+			String privateKey = null;
+			
+			//如果第二个是json格式，那么json格式是经纬度
+			if(params.length() == 2) {
+				//2个参数，那么有可能是经纬度，有可能是账户私钥，也有可能是密码，根据类型和长度来判断
+				//如果第二个参数是json格式，则是经纬度
+				try {
+					JSONObject localtionJson = new JSONObject(params.getString(1));
+					longitude = localtionJson.getDouble("longitude");
+					latitude = localtionJson.getDouble("latitude");
+				} catch (Exception e) {
+					//判断第二个参数是不是私钥
+					String param2 = params.getString(1);
+					if(param2.length() > 20) {
+						privateKey = param2;
+					} else {
+						antifakeCode = params.getString(0);
+						verifyCode = param2;
+					}
+				}
+			} else if(params.length() == 3) {
+				//3个参数，有可能第三个是经纬度，有可能第二个是经纬度，如果都没有经纬度，则是分开的指定账户验证
+				String param1 = params.getString(0);
+				String param2 = params.getString(1);
+				String param3 = params.getString(2);
+				try {
+					JSONObject localtionJson = new JSONObject(param2);
+					longitude = localtionJson.getDouble("longitude");
+					latitude = localtionJson.getDouble("latitude");
+					//第二个是经纬度，那么第三个就是私钥了
+					privateKey = param3;
+					antifakeContent = param1;
+				} catch (Exception e) {
+					try {
+						JSONObject localtionJson = new JSONObject(param3);
+						longitude = localtionJson.getDouble("longitude");
+						latitude = localtionJson.getDouble("latitude");
+						//第三个是经纬度，那么第1个就是防伪码，第二个是验证码
+						antifakeCode = param1;
+						verifyCode = param2;
+					} catch (Exception ex) {
+						//没有经纬度
+						antifakeCode = param1;
+						verifyCode = param2;
+						privateKey = param3;
+					}
+				}
+			} else if(params.length() == 4) {
+				String param1 = params.getString(0);
+				String param2 = params.getString(1);
+				String param3 = params.getString(2);
+				String param4 = params.getString(3);
+				
+				antifakeCode = param1;
+				verifyCode = param2;
+				
+				try {
+					JSONObject localtionJson = new JSONObject(param3);
+					longitude = localtionJson.getDouble("longitude");
+					latitude = localtionJson.getDouble("latitude");
+				} catch (Exception ex) {
+					result.put("success", false);
+					result.put("message", "经纬度格式错误");
+					return result;
+				}
+				privateKey = param4;
+			}
+			
+			if(antifakeContent == null) {
+				if(StringUtil.isEmpty(antifakeCode) && StringUtil.isEmpty(verifyCode)) {
+					result.put("success", false);
+					result.put("message", "防伪码为空");
+					return result;
+				}
+				long vc = 0l;
+				try {
+					vc = Long.parseLong(verifyCode);
+				} catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "验证码不正确");
+					return result;
+				}
+				AntifakeCode code = new AntifakeCode(Base58.decode(antifakeCode), vc);
+				antifakeContent = code.base58Encode();
+			}
+			
+			Account account = null;
+			if(StringUtil.isNotEmpty(privateKey)) {
+				ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
+				Address address = AccountTool.newAddress(network, network.getSystemAccountVersion(), eckey);
+				account = new Account(network);
+				account.setAccountType(network.getSystemAccountVersion());
+				account.setAddress(address);
+				account.setEcKey(eckey);
+			}
+			VerifyAntifakeCodeResult vr = accountKit.verifyAntifakeCode(antifakeContent, account, longitude, latitude);
+			
+			if(vr.isSuccess()) {
+				//设置商品和商家信息
+				List<ProductKeyValue> productBodyContents = vr.getProductTx().getProduct().getContents();
+				
+				JSONArray product = new JSONArray();
+				for (ProductKeyValue keyValuePair : productBodyContents) {
+					if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
+						//时间
+						product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+					} else {
+						product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					}
+				}
+				result.put("product", product);
+				
+				//商家信息
+				if(vr.getBusinessBody() != null) {
+					JSONArray infos = new JSONArray();
+					List<AccountKeyValue> businessBodyContents = vr.getBusinessBody().getContents();
+					for (AccountKeyValue keyValuePair : businessBodyContents) {
+						if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+							//图标
+							infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+						} else {
+							infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+						}
+					}
+					result.put("business", infos);
+				}
+
+				result.put("success", true);
+				result.put("message", "验证成功");
+			} else {
+				result.put("success", false);
+				result.put("message", vr.getMessage());
+				return result;
+			}
+		} catch (Exception e) {
+			log.error("查询防伪码出错", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
+	 * 获取帐户列表
+	 * @return JSONArray
+	 */
+	public JSONArray getAccounts() throws JSONException {
+		JSONArray array = new JSONArray();
+		for (Account account : accountKit.getAccountList()) {
+			array.put(account.getAddress().getBase58());
+		}
+		return array;
 	}
 	
 	/**
@@ -263,38 +785,42 @@ public class RPCServiceImpl implements RPCService {
 	
 	/**
 	 * 获取账户的余额
+	 * @param address
 	 * @return Coin[]
 	 */
 	@Override
-	public Coin[] getAccountBalance() {
+	public Coin[] getAccountBalance(String address) {
 		Coin[] balances = new Coin[2];
-		balances[0] = accountKit.getCanUseBalance();
-		balances[1] = accountKit.getCanNotUseBalance();
+		balances[0] = accountKit.getCanUseBalance(address);
+		balances[1] = accountKit.getCanNotUseBalance(address);
 		return balances;
 	}
 	
 	/**
 	 * 获取账户的信用
+	 * @param address
 	 * @return long
+	 * @throws VerificationException 
 	 */
 	@Override
-	public long getAccountCredit() {
-		return accountKit.getAccountInfo().getCert();
+	public long getAccountCredit(String address) throws VerificationException {
+		return accountKit.getAccountInfo(address).getCert();
 	}
 	
 	/**
 	 * 获取账户的详细信息
+	 * @param address
 	 * @return long
-	 * @throws JSONException 
+	 * @throws JSONException VerificationException
 	 */
-	public JSONObject getAccountInfo() throws JSONException {
+	public JSONObject getAccountInfo(String address) throws JSONException, VerificationException {
 		JSONObject json = new JSONObject();
 		
-		AccountStore info = accountKit.getAccountInfo();
+		AccountStore info = accountKit.getAccountInfo(address);
 		json.put("type", info.getType());
 		json.put("adderss", new Address(network, info.getType(), info.getHash160()).getBase58());
 		
-		Coin[] blanaces = getAccountBalance();
+		Coin[] blanaces = getAccountBalance(address);
 		json.put("blanace", blanaces[0].add(blanaces[1]).value);
 		json.put("canUseBlanace", blanaces[0].value);
 		json.put("cannotUseBlanace", blanaces[1].value);
@@ -404,11 +930,12 @@ public class RPCServiceImpl implements RPCService {
 	
 	/**
 	 * 获取帐户的交易记录
+	 * @param address
 	 * @return JSONArray
 	 * @throws JSONException 
 	 */
-	public JSONArray getTransaction() throws JSONException {
-		List<TransactionStore> mineList = transactionStoreProvider.getMineTxList();
+	public JSONArray getTransaction(String address) throws JSONException {
+		List<TransactionStore> mineList = transactionStoreProvider.getMineTxList(address);
 		
 		JSONArray array = new JSONArray();
 		
@@ -599,7 +1126,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 		
 		//判断信用是否足够
-		long cert = getAccountCredit();
+		long cert = getAccountCredit(null);
 		if(cert < Configure.CONSENSUS_CREDIT) {
 			json.put("success", false);
 			json.put("message", "信用值不够,不能参加共识,当前"+cert+",共识所需"+Configure.CONSENSUS_CREDIT+",还差"+(Configure.CONSENSUS_CREDIT - cert));
@@ -759,6 +1286,7 @@ public class RPCServiceImpl implements RPCService {
 		json.put("time", tx.getTime());
 		json.put("locakTime", tx.getLockTime());
 		
+		json.put("height", txs.getHeight());
 		json.put("confirmation", bestHeight - txs.getHeight());
 		
 		if(tx instanceof BaseCommonlyTransaction) {
@@ -784,54 +1312,59 @@ public class RPCServiceImpl implements RPCService {
 			Coin outputFee = Coin.ZERO;
 			
 			
-			List<Input> inputs = tx.getInputs();
+			List<TransactionInput> inputs = tx.getInputs();
 			if(tx.getType() != Definition.TYPE_COINBASE && inputs != null && inputs.size() > 0) {
-				for (Input input : inputs) {
+				for (TransactionInput input : inputs) {
 					
-					JSONObject inputJson = new JSONObject();
-					
-					inputJson.put("fromTx", input.getFrom().getParent().getHash());
-					inputJson.put("fromIndex", input.getFrom().getIndex());
-					
-					TransactionOutput from = input.getFrom();
-					TransactionStore fromTx = blockStoreProvider.getTransaction(from.getParent().getHash().getBytes());
-					
-					Transaction ftx = null;
-					if(fromTx == null) {
-						//交易不存在区块里，那么应该在内存里面
-						ftx = MempoolContainer.getInstace().get(from.getParent().getHash());
-					} else {
-						ftx = fromTx.getTransaction();
-					}
-					if(ftx == null) {
+					if(input.getFroms() == null || input.getFroms().size() == 0) {
 						continue;
 					}
-					Output fromOutput = ftx.getOutput(from.getIndex());
 					
-					Script script = fromOutput.getScript();
-					for (Account account : accountList) {
-						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, account.getAddress().getHash160())) {
-							isSendout = true;
-							break;
+					for (TransactionOutput from : input.getFroms()) {
+						JSONObject inputJson = new JSONObject();
+						
+						inputJson.put("fromTx", from.getParent().getHash());
+						inputJson.put("fromIndex", from.getIndex());
+						
+						TransactionStore fromTx = blockStoreProvider.getTransaction(from.getParent().getHash().getBytes());
+						
+						Transaction ftx = null;
+						if(fromTx == null) {
+							//交易不存在区块里，那么应该在内存里面
+							ftx = MempoolContainer.getInstace().get(from.getParent().getHash());
+						} else {
+							ftx = fromTx.getTransaction();
 						}
+						if(ftx == null) {
+							continue;
+						}
+						Output fromOutput = ftx.getOutput(from.getIndex());
+						
+						Script script = fromOutput.getScript();
+						for (Account account : accountList) {
+							if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, account.getAddress().getHash160())) {
+								isSendout = true;
+								break;
+							}
+						}
+						
+						if(script.isSentToAddress()) {
+							inputJson.put("address", new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58());
+						}
+						
+						Coin value = Coin.valueOf(fromOutput.getValue());
+						inputJson.put("value", value.value);
+						
+						inputFee = inputFee.add(value);
+						
+						inputArray.put(inputJson);
 					}
-					
-					if(script.isSentToAddress()) {
-						inputJson.put("address", new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58());
-					}
-					
-					Coin value = Coin.valueOf(fromOutput.getValue());
-					inputJson.put("value", value.value);
-					
-					inputFee = inputFee.add(value);
-					
-					inputArray.put(inputJson);
 				}
 			}
 			
-			List<Output> outputs = tx.getOutputs();
+			List<TransactionOutput> outputs = tx.getOutputs();
 			
-			for (Output output : outputs) {
+			for (TransactionOutput output : outputs) {
 				Script script = output.getScript();
 				
 				Coin value = Coin.valueOf(output.getValue());
@@ -871,13 +1404,13 @@ public class RPCServiceImpl implements RPCService {
 			
 			JSONArray infos = new JSONArray();
 			
-			List<KeyValuePair> bodyContents = crt.getBody().getContents();
-			for (KeyValuePair keyValuePair : bodyContents) {
-				if(ContentType.from(keyValuePair.getKey()) == ContentType.LOGO) {
+			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
+			for (AccountKeyValue keyValuePair : bodyContents) {
+				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
-					infos.put(new JSONObject().put(keyValuePair.getKeyName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
 				} else {
-					infos.put(new JSONObject().put(keyValuePair.getKeyName(), keyValuePair.getValueToString()));
+					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
 				}
 			}
 			json.put("infos", infos);
@@ -886,15 +1419,15 @@ public class RPCServiceImpl implements RPCService {
 			
 			ProductTransaction ptx = (ProductTransaction) tx;
 			
-			List<KeyValuePair> bodyContents = ptx.getProduct().getContents();
+			List<ProductKeyValue> bodyContents = ptx.getProduct().getContents();
 			
 			JSONArray product = new JSONArray();
-			for (KeyValuePair keyValuePair : bodyContents) {
-				if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+			for (ProductKeyValue keyValuePair : bodyContents) {
+				if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 					//时间
-					product.put(new JSONObject().put(keyValuePair.getKeyName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+					product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
 				} else {
-					product.put(new JSONObject().put(keyValuePair.getKeyName(), keyValuePair.getValueToString()));
+					product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
 				}
 			}
 			json.put("product", product);
@@ -905,12 +1438,12 @@ public class RPCServiceImpl implements RPCService {
 			
 			if(gtx.getProduct() != null) {
 				JSONArray product = new JSONArray();
-				for (KeyValuePair keyValuePair : gtx.getProduct().getContents()) {
-					if(ProductType.from(keyValuePair.getKey()) == ProductType.CREATE_TIME) {
+				for (ProductKeyValue keyValuePair : gtx.getProduct().getContents()) {
+					if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 						//时间
-						product.put(new JSONObject().put(keyValuePair.getKeyName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+						product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
 					} else {
-						product.put(new JSONObject().put(keyValuePair.getKeyName(), keyValuePair.getValueToString()));
+						product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
 					}
 				}
 				json.put("product", product);
@@ -928,7 +1461,7 @@ public class RPCServiceImpl implements RPCService {
 
 			AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
 			
-			byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode().getBytes());
+			byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode());
 			//必要的NPT验证
 			if(makeCodeTxBytes == null) {
 				return json;
@@ -955,7 +1488,11 @@ public class RPCServiceImpl implements RPCService {
 				Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
 				json.put("productName", product.getName());
 				json.put("productTx", ptx.getTransaction().getHash());
-				json.put("rewardCoin", atx.getRewardCoin().toText());
+				if(atx.getRewardCoin() != null) {
+					json.put("rewardCoin", atx.getRewardCoin().toText());
+				} else {
+					json.put("rewardCoin", 0);
+				}
 			}
 			
 		} else if(tx.getType() == Definition.TYPE_CREDIT) {

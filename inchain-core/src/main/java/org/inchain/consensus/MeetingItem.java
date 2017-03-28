@@ -57,7 +57,7 @@ public class MeetingItem implements Cloneable {
 		
 		//这里打乱共识的顺序，运用每个节点都统一的startHeight属性，来重新排序consensusList
 		//排序
-		consensusList.sort(new Comparator<ConsensusAccount>() {
+		this.consensusList.sort(new Comparator<ConsensusAccount>() {
 			@Override
 			public int compare(ConsensusAccount o1, ConsensusAccount o2) {
 				if(o1.getSortValue() == null) {
@@ -66,7 +66,7 @@ public class MeetingItem implements Cloneable {
 				if(o2.getSortValue() == null) {
 					o2.setSortValue(Sha256Hash.twiceOf((startTime + o2.getHash160Hex()).getBytes()));
 				}
-				return o1.getSortValue().compareTo(o2.getSortValue());
+				return o1.getSortValue().toString().compareTo(o2.getSortValue().toString());
 			}
 		});
 	}

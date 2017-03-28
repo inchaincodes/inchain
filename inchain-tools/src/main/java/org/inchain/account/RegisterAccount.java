@@ -45,7 +45,7 @@ public class RegisterAccount {
 		try {
 			Thread.sleep(1000l);
 			if(accountKit.getAccountList().isEmpty()) {
-				Account account = accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty());
+				Account account = accountKit.createNewCertAccount("123456", "0123456", AccountBody.empty(), "");
 				log.info("new address is : "+account.getAddress().getBase58());
 			}
 		} finally {

@@ -6,6 +6,7 @@ import org.inchain.SpringContextUtils;
 import org.inchain.rpc.RPCHanlder;
 import org.inchain.utils.StringUtil;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.control.Button;
@@ -78,12 +79,27 @@ public class ConsoleController extends DailogController{
 					}
 					result = resultJson.toString(3);
 				}
-				contentId.setText(contentId.getText().trim() + "\n" + command + "\n" + result + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+				contentId.setText(contentId.getText().trim() + "\n" + command + "\n" + result + "\n\n");
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		contentId.setScrollTop(Double.MAX_VALUE);
+
 		commandId.setText("");
+		new Thread() {
+			public void run() {
+				try {
+					Thread.sleep(20l);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				Platform.runLater(new Runnable() {
+				    @Override
+				    public void run() {
+				    	contentId.setScrollTop(Double.MAX_VALUE);
+				    }
+				});
+			};
+		}.start();
 	}
 }

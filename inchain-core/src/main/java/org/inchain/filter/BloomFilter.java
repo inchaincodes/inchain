@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class BloomFilter {
 	
-    private static final int MAX_FILTER_SIZE = 10000000;
+    private static final int MAX_FILTER_SIZE = 1000000;
     private static final int MAX_HASH_FUNCS = 50;
     
 	private byte[] data;
@@ -140,22 +140,35 @@ public class BloomFilter {
         data[index >>> 3] |= bitMask[7 & index];
     }
     
-//    public byte[] getData() {
-//		return data;
-//	}
-//	public long getHashFuncs() {
-//		return hashFuncs;
-//	}
+    public byte[] getData() {
+		return data;
+	}
+	public long getHashFuncs() {
+		return hashFuncs;
+	}
 //    public static void main(String[] args) {
-//		BloomFilter filter = new BloomFilter(1000000, 0.0001, 15645646);
-//		
-//		byte[] d1 = Hex.decode("cf9dd4e42b5cddb1bf49efbb6cf3525e3e81b6fd8c18c107e121ff576cf8b3a3");
-//		System.out.println(filter.contains(d1));
-//		
-//		filter.insert(d1);
-//		
-//		System.out.println(filter.contains(d1));
-//		System.out.println(filter.getData().length);
-//		System.out.println(filter.getHashFuncs());
+//    	
+//    	for (int j = 0; j < 100; j++) {
+//    		BloomFilter filter = new BloomFilter(200000, 0.0001d, RandomUtil.randomLong());
+//    		
+//    		int count = 0;
+//    		for (int i = 0; i < 100000; i++) {
+//    			
+//    			byte[] d1 = Sha256Hash.hashTwice((StringUtil.randStr(10, 2)+String.valueOf(RandomUtil.randomLong()) + String.valueOf(RandomUtil.randomLong())).getBytes());
+//    			
+//    			if(filter.contains(d1)) {
+//    				count++;
+//    			}
+//    			filter.insert(d1);
+//    		}
+//    		
+////    		System.out.println("错误数："+count);
+////    		System.out.println(filter.getData().length);
+////    		System.out.println(filter.getHashFuncs());
+//			
+//    		if(count > 0) {
+//    			System.out.println("错误数："+count);
+//    		}
+//		}
 //	}
 }

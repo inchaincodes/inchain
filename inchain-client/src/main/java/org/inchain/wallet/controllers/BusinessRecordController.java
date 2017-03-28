@@ -6,8 +6,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-import org.inchain.account.AccountBody.ContentType;
-import org.inchain.core.KeyValuePair;
+import org.inchain.core.AccountKeyValue;
 import org.inchain.kit.InchainInstance;
 import org.inchain.store.AccountStore;
 import org.inchain.utils.DateUtil;
@@ -49,7 +48,7 @@ public class BusinessRecordController implements SubPageController {
 	public TableColumn<BusinessEntity, Integer> status;
 	public TableColumn<BusinessEntity, byte[]> logo;
 	public TableColumn<BusinessEntity, String> name;
-	public TableColumn<BusinessEntity, List<KeyValuePair>> detail;
+	public TableColumn<BusinessEntity, List<AccountKeyValue>> detail;
 	public TableColumn<BusinessEntity, String> time;
 	
 	private List<AccountStore> businessList;
@@ -80,13 +79,13 @@ public class BusinessRecordController implements SubPageController {
     		}
     	});
     	name.setCellValueFactory(new PropertyValueFactory<BusinessEntity, String>("name"));
-    	detail.setCellValueFactory(new PropertyValueFactory<BusinessEntity, List<KeyValuePair>>("details"));
-    	detail.setCellFactory(new Callback<TableColumn<BusinessEntity, List<KeyValuePair>>, TableCell<BusinessEntity, List<KeyValuePair>>>() {
+    	detail.setCellValueFactory(new PropertyValueFactory<BusinessEntity, List<AccountKeyValue>>("details"));
+    	detail.setCellFactory(new Callback<TableColumn<BusinessEntity, List<AccountKeyValue>>, TableCell<BusinessEntity, List<AccountKeyValue>>>() {
 	    	@Override 
-	    	public TableCell<BusinessEntity, List<KeyValuePair>> call(TableColumn<BusinessEntity, List<KeyValuePair>> tableColumn) {
-	    		return new TableCell<BusinessEntity,List<KeyValuePair>>() {
+	    	public TableCell<BusinessEntity, List<AccountKeyValue>> call(TableColumn<BusinessEntity, List<AccountKeyValue>> tableColumn) {
+	    		return new TableCell<BusinessEntity,List<AccountKeyValue>>() {
     				@Override
-    				protected void updateItem(List<KeyValuePair> items, boolean empty) {
+    				protected void updateItem(List<AccountKeyValue> items, boolean empty) {
     					setTextOverrun(OverrunStyle.CENTER_WORD_ELLIPSIS);
     					
     					super.updateItem(items, empty);
@@ -97,8 +96,8 @@ public class BusinessRecordController implements SubPageController {
     						box.setPrefHeight(110);
     						Insets padding= new Insets(10,10,10,10);
 							box.setPadding(padding);
-    						for (KeyValuePair keyValuePair : items) {
-    							String name = keyValuePair.getKeyName();
+    						for (AccountKeyValue keyValuePair : items) {
+    							String name = keyValuePair.getName();
     							Label nameLabel = new Label(name);
     							nameLabel.setEllipsisString(name.substring(0, name.length() > 4 ? 4 : name.length()));
     							nameLabel.setWrapText(true);
@@ -176,16 +175,16 @@ public class BusinessRecordController implements SubPageController {
 		
 		for (AccountStore account : businessList) {
 			//认证账户注册
-			List<KeyValuePair> bodyContents = account.getAccountBody().getContents();
+			List<AccountKeyValue> bodyContents = account.getAccountBody().getContents();
 			
 			BusinessEntity entity = new BusinessEntity();
 			entity.setTime(account.getCreateTime());
 			
-			for (KeyValuePair keyValuePair : bodyContents) {
-				if(ContentType.from(keyValuePair.getKey()) == ContentType.LOGO) {
+			for (AccountKeyValue keyValuePair : bodyContents) {
+				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
 					entity.setLogo(keyValuePair.getValue());
-				} else if(ContentType.from(keyValuePair.getKey()) == ContentType.NAME) {
+				} else if(AccountKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
 					//图标
 					entity.setName(keyValuePair.getValueToString());
 				} else {

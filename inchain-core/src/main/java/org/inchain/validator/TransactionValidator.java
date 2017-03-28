@@ -19,24 +19,26 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.Script;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.store.TransactionStore;
-import org.inchain.transaction.Input;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
+import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,81 +91,181 @@ public class TransactionValidator {
 			}
 		};
 		
+		tx.verify();
 		//验证交易的合法性
-		tx.verifyScript();
+		if(tx instanceof BaseCommonlyTransaction) {
+			((BaseCommonlyTransaction)tx).verifyScript();
+		}
 		
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 		if(verifyTX != null) {
-			result.setResult(false, "交易hash与区块里的重复");
+			result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
 			return validatorResult;
 		}
 		//如果是转帐交易
-		//TODO 一下代码请使用状态模式重构
+		//TODO 以下代码请使用状态模式重构
 		if(tx.isPaymentTransaction() && tx.getType() != Definition.TYPE_COINBASE) {
 			//验证交易的输入来源，是否已花费的交易，同时验证金额
 			Coin txInputFee = Coin.ZERO;
 			Coin txOutputFee = Coin.ZERO;
 			
 			//验证本次交易的输入
-			List<Input> inputs = tx.getInputs();
-			for (Input input : inputs) {
-				TransactionInput tInput = (TransactionInput) input;
-				TransactionOutput output = tInput.getFrom();
-				if(output == null) {
-					throw new VerificationException("tx error input");
+			List<TransactionInput> inputs = tx.getInputs();
+			for (TransactionInput input : inputs) {
+				List<TransactionOutput> outputs = input.getFroms();
+				if(outputs == null || outputs.size() == 0) {
+					throw new VerificationException("交易没有引用输入");
 				}
-				//对上一交易的引用以及索引值
-				Sha256Hash fromId = output.getParent().getHash();
-				int index = output.getIndex();
-				
-				byte[] key = new byte[fromId.getBytes().length + 1];
-				
-				System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
-				key[key.length - 1] = (byte) index;
-				
-				//查询上次的交易
-				Transaction preTransaction = null;
-				
-				//判断是否未花费
-				byte[] state = chainstateStoreProvider.getBytes(key);
-				if(!Arrays.equals(state, new byte[]{1})) {
-					//查询内存池里是否有该交易
-					preTransaction = MempoolContainer.getInstace().get(fromId);
-					if(preTransaction == null) {
-						//区块链和内存池里面都没有，那么是否在传入的列表里面
-						boolean exist = false;
-						if(txs != null && txs.size() > 0) {
+				//交易引用的输入，赎回脚本必须一致
+				byte[] scriptBytes = null;
+				for (TransactionOutput output : outputs) {
+					//对上一交易的引用以及索引值
+					Transaction fromTx = output.getParent();
+					if(fromTx == null) {
+						throw new VerificationException("交易没有正确的输入引用");
+					}
+					Sha256Hash fromId = fromTx.getHash();
+					int index = output.getIndex();
+					
+					//如果引用已经是完整的交易，则不查询
+					if(fromTx.getOutputs() == null || fromTx.getOutputs().isEmpty()) {
+						//需要设置引用的完整交易
+						//查询内存池里是否有该交易
+						Transaction preTransaction = MempoolContainer.getInstace().get(fromId);
+						//内存池里面没有，那么是否在传入的列表里面
+						if(preTransaction == null && txs != null && txs.size() > 0) {
 							for (Transaction transaction : txs) {
 								if(transaction.getHash().equals(fromId)) {
-									exist = true;
 									preTransaction = transaction;
 									break;
 								}
 							}
 						}
-						if(!exist) {
-							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了不可用的交易");
+						if(preTransaction == null) {
+							//内存池和传入的列表都没有，那么去存储里面找
+							TransactionStore preTransactionStore = blockStoreProvider.getTransaction(fromId.getBytes());
+							if(preTransactionStore == null) {
+								result.setResult(false, TransactionValidatorResult.ERROR_CODE_NOT_FOUND, "引用了不存在的交易");
+								return validatorResult;
+							}
+							preTransaction = preTransactionStore.getTransaction();
+						}
+						output.setParent(preTransaction);
+						output.setScript(preTransaction.getOutput(index).getScript());
+						fromTx = preTransaction;
+					}
+					
+					TransactionOutput preOutput = fromTx.getOutput(index);
+					txInputFee = txInputFee.add(Coin.valueOf(preOutput.getValue()));
+					output.setValue(preOutput.getValue());
+					//验证交易赎回脚本必须一致
+					if(scriptBytes == null) {
+						scriptBytes = preOutput.getScriptBytes();
+					} else if(!Arrays.equals(scriptBytes, preOutput.getScriptBytes())) {
+						throw new VerificationException("错误的输入格式，不同的交易赎回脚本不能合并");
+					}
+					
+					//验证交易不能双花
+					byte[] statusKey = output.getKey();
+					byte[] state = chainstateStoreProvider.getBytes(statusKey);
+					if((state == null || Arrays.equals(state, new byte[]{ 1 })) && txs != null && !txs.isEmpty()) {
+						//没有状态，则可能是在 txs 里，txs里面不能有2笔对此的引用，否则就造成了双花
+						int count = 0;
+						for (Transaction t : txs) {
+							if(t.getHash().equals(tx.getHash())) {
+								continue;
+							}
+							List<TransactionInput> inputsTemp = t.getInputs();
+							if(inputsTemp == null || inputsTemp.size() == 0) {
+								continue;
+							}
+							for (TransactionInput in : t.getInputs()) {
+								List<TransactionOutput> fromsTemp = in.getFroms();
+								if(fromsTemp == null || fromsTemp.size() == 0) {
+									break;
+								}
+								for (TransactionOutput fromTemp : fromsTemp) {
+									if(fromTemp.getParent() != null && fromTemp.getParent().getHash().equals(fromId) && fromTemp.getIndex() == index) {
+										count++;
+									}
+								}
+							}
+						}
+						if(count > 1) {
+							//双花了
+							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "同一块多个交易引用了同一个输入");
+							return validatorResult;
+						}
+					} else if(Arrays.equals(state, new byte[]{2})) {
+						//已经花费了
+						result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了已花费的交易");
+						return validatorResult;
+					}
+				}
+				Script verifyScript = new Script(scriptBytes);
+				if(verifyScript.isConsensusOutputScript()) {
+					//共识保证金引用脚本，则验证
+					//因为共识保证金，除了本人会操作，还会有其它共识人操作
+					//并且不一定是转到自己的账户，所以必须对输入输出都做严格的规范
+					if(!(tx.getType() == Definition.TYPE_REM_CONSENSUS || tx.getType() == Definition.TYPE_VIOLATION)) {
+						throw new VerificationException("不合法的交易引用");
+					}
+					//输入必须只有一个
+					if(inputs.size() != 1 || inputs.get(0).getFroms().size() != 1) {
+						result.setResult(false, "该笔交易有保证金的引用，输入个数不对");
+						return validatorResult;
+					}
+					//输出必须只有一个，切必须按照指定的类型输出到相应的账户
+					if(tx.getOutputs().size() != 1) {
+						result.setResult(false, "该笔交易有保证金的引用，输出个数不对");
+						return validatorResult;
+					}
+					TransactionOutput ouput = tx.getOutputs().get(0);
+					//验证保证金的数量
+					if(ouput.getValue() != inputs.get(0).getFroms().get(0).getValue()) {
+						result.setResult(false, "保证金的输入输出金额不匹配");
+						return validatorResult;
+					}
+					Script outputScript = ouput.getScript();
+					//必须输出到地址
+					if(!outputScript.isSentToAddress()) {
+						result.setResult(false, "保证金的输出不正确");
+						return validatorResult;
+					}
+					//必须输出到指定的账户
+					//自己的账户
+					byte[] selfAccount = verifyScript.getChunks().get(0).data;
+					//惩罚保证金接收账户
+					byte[] punishmentAccount = verifyScript.getChunks().get(1).data;
+					//输出账户
+					byte[] ouputAccount = outputScript.getChunks().get(2).data;
+					if(tx.getType() == Definition.TYPE_REM_CONSENSUS && !Arrays.equals(selfAccount, ouputAccount)) {
+						result.setResult(false, "保证金的输出不合法,应该是保证金所属者");
+						return validatorResult;
+					} else if(tx.getType() == Definition.TYPE_VIOLATION) {
+						//违规处理
+						ViolationTransaction vt = (ViolationTransaction) tx;
+						//证据
+						ViolationEvidence violationEvidence = vt.getViolationEvidence();
+						
+						if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK && !Arrays.equals(selfAccount, ouputAccount)) {
+							result.setResult(false, "超时不出块,保证金的输出不合法,应该是保证金所属者");
+							return validatorResult;
+						} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK && !Arrays.equals(punishmentAccount, ouputAccount)) {
+							result.setResult(false, "严重违规,重复出块,保证金的输出不合法,应该是罚没接收账户");
 							return validatorResult;
 						}
 					}
 				} else {
-					//查询上次的交易
-					preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
-					if(preTransaction == null) {
-						result.setResult(false, "引用了不存在的交易");
-						return validatorResult;
-					}
+					//验证赎回脚本
+					input.getScriptSig().execute(verifyScript);
 				}
-				TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
-				txInputFee = txInputFee.add(Coin.valueOf(preOutput.getValue()));
-				output.setValue(preOutput.getValue());
 			}
 			//验证本次交易的输出
-			List<Output> outputs = tx.getOutputs();
+			List<TransactionOutput> outputs = tx.getOutputs();
 			for (Output output : outputs) {
-				TransactionOutput tOutput = (TransactionOutput) output;
-				Coin outputCoin = Coin.valueOf(tOutput.getValue());
+				Coin outputCoin = Coin.valueOf(output.getValue());
 				//输出金额不能为负数
 				if(outputCoin.isLessThan(Coin.ZERO)) {
 					result.setResult(false, "输出金额不能为负数");
@@ -195,7 +297,7 @@ public class TransactionValidator {
 				}
 				//防伪码不能重复
 				try {
-					byte[] txid = chainstateStoreProvider.getBytes(atx.getAntifakeHash().getBytes());
+					byte[] txid = chainstateStoreProvider.getBytes(atx.getAntifakeCode());
 					if(txid != null) {
 						result.setResult(false, "重复的防伪码");
 						return validatorResult;
@@ -208,7 +310,7 @@ public class TransactionValidator {
 				//防伪码验证交易
 				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 				
-				byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode().getBytes());
+				byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode());
 				if(antifakeCodeVerifyMakeTxHash == null) {
 					result.setResult(false, "防伪码不存在");
 					return validatorResult;
@@ -236,6 +338,157 @@ public class TransactionValidator {
 					result.setResult(false, "防伪码已被验证");
 					return validatorResult;
 				}
+			} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+				//申请成为共识节点
+				RegConsensusTransaction regConsensusTx = (RegConsensusTransaction) tx;
+				byte[] hash160 = regConsensusTx.getHash160();
+				//获取申请人信息，包括信用和可用余额
+				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+				if(accountStore == null && regConsensusTx.isCertAccount()) {
+					//TODO 需要信用才能注册的，这里不应该做任何处理
+					//加入内存池  临时的处理方案
+					result.setResult(false, "账户不存在");
+					return validatorResult;
+				}
+				
+				//判断是否达到共识条件
+				long credit = (accountStore == null ? 0 : accountStore.getCert());
+				if(credit < Configure.CONSENSUS_CREDIT) {
+					//信用不够
+					result.setResult(false, "信用值过低");
+					return validatorResult;
+				}
+				
+				//判断是否已经是共识节点
+				if(consensusPool.contains(hash160)) {
+					//已经是共识节点了
+					result.setResult(false, "已经是共识节点了,勿重复申请");
+					return validatorResult;
+				}
+				
+				//验证保证金
+				//当前共识人数
+				int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(regConsensusTx.getPeriodStartTime()).size();
+				//共识保证金
+				Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
+				if(!txInputFee.equals(recognizance)) {
+					result.setResult(false, "保证金不正确");
+					return validatorResult;
+				}
+			} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
+				//退出共识交易
+				RemConsensusTransaction remConsensusTx = (RemConsensusTransaction) tx;
+				byte[] hash160 = remConsensusTx.getHash160();
+				//判断是否已经是共识节点
+				if(!consensusPool.contains(hash160)) {
+					//不是共识节点，该交易不合法
+					result.setResult(false, "不是共识节点了，该交易不合法");
+					return validatorResult;
+				}
+			} else if(tx instanceof ViolationTransaction) {
+				//违规处罚交易，验证违规证据是否合法
+				ViolationTransaction vtx = (ViolationTransaction)tx;
+				
+				//违规证据
+				ViolationEvidence violationEvidence = vtx.getViolationEvidence();
+				if(violationEvidence == null) {
+					result.setResult(false, "处罚交易违规证据不能为空");
+					return validatorResult;
+				}
+				//违规证据是否已经被处理
+				Sha256Hash evidenceHash = vtx.getViolationEvidence().getEvidenceHash();
+				byte[] ptxHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
+				if(ptxHashBytes != null) {
+					result.setResult(false, "该违规已经被处理，不需要重复处理");
+					return validatorResult;
+				}
+				
+				//验证证据合法性
+				if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+					//超时未出块处罚
+					NotBroadcastBlockViolationEvidence notBroadcastBlock = (NotBroadcastBlockViolationEvidence) violationEvidence;
+					//验证逻辑
+					byte[] hash160 = notBroadcastBlock.getAudienceHash160();
+					long currentPeriodStartTime = notBroadcastBlock.getCurrentPeriodStartTime();
+					long previousPeriodStartTime = notBroadcastBlock.getPreviousPeriodStartTime();
+					
+					BlockHeader startBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
+					//取得当前轮的最后一个块
+					while(true) {
+						BlockHeaderStore lastHeaderStore = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
+						if(lastHeaderStore != null) {
+							BlockHeader lastHeader = lastHeaderStore.getBlockHeader();
+							if(lastHeader.getPeriodStartTime() >= currentPeriodStartTime && !Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
+								startBlockHeader = lastHeader;
+							} else {
+								startBlockHeader = lastHeader;
+								break;
+							}
+						}
+					}
+					
+					//原本应该打包的上一个块
+					if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != previousPeriodStartTime)) {
+						result.setResult(false, "违规证据中的两轮次不相连");
+						return validatorResult;
+					}
+					
+					//验证该轮的时段
+					int index = getConsensusPeriod(hash160, currentPeriodStartTime);
+					if(index == -1) {
+						result.setResult(false, "证据不成立，该人不在共识列表中");
+						return validatorResult;
+					}
+					BlockHeaderStore currentStartBlockHeaderStore = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
+					if(currentStartBlockHeaderStore == null) {
+						result.setResult(false, "证据不成立，当前轮还没有打包数据");
+						return validatorResult;
+					}
+					BlockHeader currentStartBlockHeader = currentStartBlockHeaderStore.getBlockHeader();
+					while(true) {
+						if(currentStartBlockHeader.getTimePeriod() == index) {
+							result.setResult(false, "证据不成立");
+							return validatorResult;
+						}
+						if(currentStartBlockHeader.getTimePeriod() < index) {
+							BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(currentStartBlockHeader.getHeight() + 1);
+							
+							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
+									|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != currentPeriodStartTime) {
+								break;
+							}
+							
+							currentStartBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
+						} else {
+							break;
+						}
+					}
+					//验证上一轮的时段
+					index = getConsensusPeriod(hash160, previousPeriodStartTime);
+					if(index == -1) {
+						result.setResult(false, "证据不成立，该人不在共识列表中");
+						return validatorResult;
+					}
+					while(true) {
+						if(startBlockHeader.getTimePeriod() == index) {
+							result.setResult(false, "证据不成立");
+							return validatorResult;
+						}
+						if(startBlockHeader.getTimePeriod() < index) {
+							BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
+							
+							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
+									|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != previousPeriodStartTime) {
+								break;
+							}
+							
+							startBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
+						} else {
+							break;
+						}
+					}
+				}
+				
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册
@@ -261,43 +514,6 @@ public class TransactionValidator {
 			//认证帐户，就需要判断是否经过认证的
 			if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
 				result.setResult(false, "账户没有经过认证");
-				return validatorResult;
-			}
-		} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
-			//申请成为共识节点
-			RegConsensusTransaction regConsensusTx = (RegConsensusTransaction) tx;
-			byte[] hash160 = regConsensusTx.getHash160();
-			//获取申请人信息，包括信用和可用余额
-			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-			if(accountStore == null && regConsensusTx.isCertAccount()) {
-				//TODO 需要信用才能注册的，这里不应该做任何处理
-				//加入内存池  临时的处理方案
-				result.setResult(false, "账户不存在");
-				return validatorResult;
-			}
-			
-			//判断是否达到共识条件
-			long credit = (accountStore == null ? 0 : accountStore.getCert());
-			if(credit < Configure.CONSENSUS_CREDIT) {
-				//信用不够
-				result.setResult(false, "信用值过低");
-				return validatorResult;
-			}
-			
-			//判断是否已经是共识节点
-			if(consensusPool.contains(hash160)) {
-				//已经是共识节点了
-				result.setResult(false, "已经是共识节点了,勿重复申请");
-				return validatorResult;
-			}
-		} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
-			//退出共识交易
-			RemConsensusTransaction remConsensusTx = (RemConsensusTransaction) tx;
-			byte[] hash160 = remConsensusTx.getHash160();
-			//判断是否已经是共识节点
-			if(!consensusPool.contains(hash160)) {
-				//不是共识节点，该交易不合法
-				result.setResult(false, "不是共识节点了，该交易不合法");
 				return validatorResult;
 			}
 		} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
@@ -329,111 +545,7 @@ public class TransactionValidator {
 				result.setResult(false, "验证出错，错误信息："+e.getMessage());
 				return validatorResult;
 			}
-		} else if(tx instanceof ViolationTransaction) {
-			//违规处罚交易，验证违规证据是否合法
-			ViolationTransaction vtx = (ViolationTransaction)tx;
-			
-			//违规证据
-			ViolationEvidence violationEvidence = vtx.getViolationEvidence();
-			if(violationEvidence == null) {
-				result.setResult(false, "处罚交易违规证据不能为空");
-				return validatorResult;
-			}
-			//违规证据是否已经被处理
-			Sha256Hash evidenceHash = vtx.getViolationEvidence().getEvidenceHash();
-			byte[] ptxHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
-			if(ptxHashBytes != null) {
-				result.setResult(false, "该违规已经被处理，不需要重复处理");
-				return validatorResult;
-			}
-			
-			//验证证据合法性
-			if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
-				//超时未出块处罚
-				NotBroadcastBlockViolationEvidence notBroadcastBlock = (NotBroadcastBlockViolationEvidence) violationEvidence;
-				//验证逻辑
-				byte[] hash160 = notBroadcastBlock.getAudienceHash160();
-				long currentPeriodStartTime = notBroadcastBlock.getCurrentPeriodStartTime();
-				long previousPeriodStartTime = notBroadcastBlock.getPreviousPeriodStartTime();
-				
-				BlockHeader startBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
-				//取得当前轮的最后一个块
-				while(true) {
-					BlockHeaderStore lastHeaderStore = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
-					if(lastHeaderStore != null) {
-						BlockHeader lastHeader = lastHeaderStore.getBlockHeader();
-						if(lastHeader.getPeriodStartTime() >= currentPeriodStartTime && !Sha256Hash.ZERO_HASH.equals(lastHeader.getPreHash())) {
-							startBlockHeader = lastHeader;
-						} else {
-							startBlockHeader = lastHeader;
-							break;
-						}
-					}
-				}
-				
-				//原本应该打包的上一个块
-				if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != previousPeriodStartTime)) {
-					result.setResult(false, "违规证据中的两轮次不相连");
-					return validatorResult;
-				}
-				
-				//验证该轮的时段
-				int index = getConsensusPeriod(hash160, currentPeriodStartTime);
-				if(index == -1) {
-					result.setResult(false, "证据不成立，该人不在共识列表中");
-					return validatorResult;
-				}
-				BlockHeaderStore currentStartBlockHeaderStore = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
-				if(currentStartBlockHeaderStore == null) {
-					result.setResult(false, "证据不成立，当前轮还没有打包数据");
-					return validatorResult;
-				}
-				BlockHeader currentStartBlockHeader = currentStartBlockHeaderStore.getBlockHeader();
-				while(true) {
-					if(currentStartBlockHeader.getTimePeriod() == index) {
-						result.setResult(false, "证据不成立");
-						return validatorResult;
-					}
-					if(currentStartBlockHeader.getTimePeriod() < index) {
-						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(currentStartBlockHeader.getHeight() + 1);
-						
-						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
-								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != currentPeriodStartTime) {
-							break;
-						}
-						
-						currentStartBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
-					} else {
-						break;
-					}
-				}
-				//验证上一轮的时段
-				index = getConsensusPeriod(hash160, previousPeriodStartTime);
-				if(index == -1) {
-					result.setResult(false, "证据不成立，该人不在共识列表中");
-					return validatorResult;
-				}
-				while(true) {
-					if(startBlockHeader.getTimePeriod() == index) {
-						result.setResult(false, "证据不成立");
-						return validatorResult;
-					}
-					if(startBlockHeader.getTimePeriod() < index) {
-						BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
-						
-						if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
-								|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != previousPeriodStartTime) {
-							break;
-						}
-						
-						startBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
-					} else {
-						break;
-					}
-				}
-			}
-			
-		}
+		} 
 
 		result.setSuccess(true);
 		result.setMessage("ok");

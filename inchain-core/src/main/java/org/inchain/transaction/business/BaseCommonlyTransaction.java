@@ -85,7 +85,6 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	 * 验证交易脚本
 	 */
 	public void verifyScript() {
-		super.verifyScript();
 		verfifyCommonScript();
 	}
 	
@@ -143,7 +142,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			}
 			
 			if(keys == null) {
-				throw new VerificationException("账户没有解密？");
+				throw new VerificationException("账户没有解密?");
 			}
 			
 			ECDSASignature ecSign = keys[0].sign(hash);

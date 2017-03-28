@@ -9,17 +9,17 @@ import javax.annotation.PostConstruct;
 
 import org.inchain.TestNetBaseTestCase;
 import org.inchain.core.BroadcastResult;
-import org.inchain.core.KeyValuePair;
-import org.inchain.core.Product;
-import org.inchain.core.TimeService;
 import org.inchain.core.Definition;
-import org.inchain.core.Product.ProductType;
+import org.inchain.core.Product;
+import org.inchain.core.ProductKeyValue;
+import org.inchain.core.TimeService;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.utils.Hex;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +58,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 	public void testAddProdudct() throws InterruptedException, ExecutionException, TimeoutException {
 		
 		Product product = createProduct();
-		
+		log.info("{}", Hex.encode(product.serialize()));
 		assert(product != null);
 		
 		ProductTransaction tx = new ProductTransaction(network, product);
@@ -69,7 +69,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		tx.verify();
 		tx.verifyScript();
 		
-		log.info("tx {}", tx);
+		log.info("tx {}", tx.getHash());
 		log.info("tx size is {}", tx.baseSerialize().length);
 		
 		tx = new ProductTransaction(network, tx.baseSerialize());
@@ -77,7 +77,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		tx.verify();
 		tx.verifyScript();
 		
-		log.info("tx {}", tx);
+		log.info("tx {}", tx.getHash());
 		log.info("tx size is {}", tx.baseSerialize().length);
 		
 		//加入内存池
@@ -94,12 +94,12 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 	}
 	
 	private Product createProduct() {
-		List<KeyValuePair> contents = new ArrayList<KeyValuePair>();
-		contents.add(new KeyValuePair(ProductType.NAME, "印链-闪迪U盘"));
-		contents.add(new KeyValuePair(ProductType.DESCRIPTION, "64G"));
-		contents.add(new KeyValuePair(ProductType.PRODUCTION_DATE, "2017-02-27"));
-		contents.add(new KeyValuePair(ProductType.CREATE_TIME, TimeService.currentTimeMillisOfBytes()));
-		contents.add(new KeyValuePair(ProductType.CONTENT, "回馈老用户，免费赠送"));
+		List<ProductKeyValue> contents = new ArrayList<ProductKeyValue>();
+		contents.add(new ProductKeyValue("name", "名称", "印链-闪迪U盘"));
+		contents.add(new ProductKeyValue("description", "描述", "32G"));
+		contents.add(new ProductKeyValue("content", "详情", "回馈老用户，免费赠送"));
+		contents.add(new ProductKeyValue("productionDate", "生产日期", "2017-02-23"));
+		contents.add(new ProductKeyValue("createTime", "创建时间", TimeService.currentTimeMillisOfBytes()));
 		
 		Product product = new Product(contents);
 		return product;

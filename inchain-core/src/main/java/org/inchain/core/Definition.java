@@ -50,7 +50,7 @@ public final class Definition {
     
 	public static final long VERSION = 1;
 	
-	//lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒）
+	/** lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒） **/
 	public static final long LOCKTIME_THRESHOLD = 50000000000l;
 	
 	public static final int TYPE_COINBASE = 1;					//coinbase交易
@@ -93,7 +93,8 @@ public final class Definition {
 	 */
 	public static boolean isPaymentTransaction(int type) {
 		return type == TYPE_COINBASE || type == TYPE_PAY || type == TYPE_ANTIFAKE_CODE_MAKE
-				|| type == TYPE_ANTIFAKE_CODE_VERIFY; 
+				|| type == TYPE_ANTIFAKE_CODE_VERIFY || type == TYPE_REG_CONSENSUS
+				|| type == TYPE_REM_CONSENSUS || type == TYPE_VIOLATION; 
 	}
 	
 	//交易关联
