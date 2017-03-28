@@ -30,6 +30,7 @@ import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.Peer;
 import org.inchain.core.Product;
 import org.inchain.core.ProductKeyValue;
+import org.inchain.core.RepeatBlockViolationEvidence;
 import org.inchain.core.Result;
 import org.inchain.core.VerifyAntifakeCodeResult;
 import org.inchain.core.ViolationEvidence;
@@ -1518,6 +1519,10 @@ public class RPCServiceImpl implements RPCService {
 				NotBroadcastBlockViolationEvidence nbve = (NotBroadcastBlockViolationEvidence) evidence;
 				reason = String.format("共识过程中，开始时间为%s的轮次及后面一轮次超时未出块", DateUtil.convertDate(new Date(nbve.getCurrentPeriodStartTime() * 1000)));
 				credit = Configure.CERT_CHANGE_TIME_OUT;
+			} else if(violationType == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+				RepeatBlockViolationEvidence nbve = (RepeatBlockViolationEvidence) evidence;
+				reason = String.format("共识过程中,开始时间为%s的轮次重复出块,没收保证金%s", DateUtil.convertDate(new Date(nbve.getBlockHeaders().get(0).getPeriodStartTime() * 1000)), Coin.valueOf(vtx.getOutput(0).getValue()).toText());
+				credit = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
 			}
 			reason = "信用 " + credit + " 原因：" + reason;
 			

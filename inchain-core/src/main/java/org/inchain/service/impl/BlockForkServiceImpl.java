@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
 import org.inchain.account.Address;
@@ -41,8 +43,6 @@ import org.springframework.stereotype.Service;
 public class BlockForkServiceImpl implements BlockForkService {
 	
 	private final static Logger log = LoggerFactory.getLogger(BlockForkServiceImpl.class);
-	
-	private CopyOnWriteArrayList<BlockForkStore> blockForks = new CopyOnWriteArrayList<BlockForkStore>();
 
 	@Autowired
 	private NetworkParams network;
@@ -66,6 +66,13 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private long localBestHashLastTime;
 	//是否重置
 	private boolean hasReset;
+	
+	//违规列表锁
+	private Lock penalizeLock = new ReentrantLock();
+	//待处理分叉块列表
+	private List<BlockForkStore> blockForks = new CopyOnWriteArrayList<BlockForkStore>();
+	//待处理违规块列表
+	private List<List<BlockHeader>> penalizeList = new CopyOnWriteArrayList<List<BlockHeader>>();
 
 	public void startSyn() {
 		Thread t = new Thread() {
@@ -91,16 +98,35 @@ public class BlockForkServiceImpl implements BlockForkService {
 
 	@Override
 	public void addBlockFork(Block block) {
-		//过滤重复的
-		for (BlockForkStore blockForkStore : blockForks) {
-			//找出同一轮中同一个人的多个块，并交给miningService做出相应的处罚 TODO
-			if(blockForkStore.getBlock().getHash().equals(block.getHash())) {
-				return;
-			}
+		
+		//进行初步预筛查
+		if(!check(block)) {
+			return;
 		}
+		
 		BlockForkStore blockStore = new BlockForkStore(network, block, 0);
 		chainstateStoreProvider.put(block.getHash().getBytes(), blockStore.baseSerialize());
 		blockForks.add(blockStore);
+	}
+
+	/*
+	 * 对分叉块进行初步筛查
+	 * 如果重复的块，则不继续处理
+	 * 这里需要监控两种对系统会造成影响的情况
+	 * 1、同一时段，同一节点广播2个以上的块，这些块都会验证通过，不同的节点会接受不同的块，从而造成网络短期分叉。
+	 * 2、同一个节点短期内发送大量恶意或者时段能验证通过的块，对网络其它节点造成负荷
+	 * 如果是遭受大量垃圾块的恶意攻击，直接丢弃，同时交给miningService做出处罚
+	 */
+	private boolean check(Block block) {
+		for (BlockForkStore blockForkStore : blockForks) {
+			//过滤重复的
+			if(blockForkStore.getBlock().getHash().equals(block.getHash())) {
+				return false;
+			}
+			//找出同一轮中同一个人的多个块，并交给miningService做出相应的处罚 TODO
+			
+		}
+		return true;
 	}
 
 	/*
@@ -403,5 +429,70 @@ public class BlockForkServiceImpl implements BlockForkService {
 			}
 		}
 		return -1;
+	}
+
+	/**
+	 * 添加到待处罚列表
+	 * @param block
+	 */
+	@Override
+	public void addBlockInPenalizeList(Block block, int type) {
+		
+		log.info("========={}", block);
+		
+		penalizeLock.lock();
+		try {
+			//验证不通过则代表可能是伪造的，不处理
+			block.verify();
+			block.verifyScript();
+			
+			if(type == 1) {
+				//一轮中重复出块
+				//重复的块
+				BlockHeader repeatBlock = null;
+				//最新块
+				BlockHeader bestBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
+				while(true) {
+					//和传入的必须同一轮
+					if(bestBlockHeader.getPeriodStartTime() != block.getPeriodStartTime()) {
+						break;
+					}
+					if(Arrays.equals(block.getHash160(), bestBlockHeader.getHash160()) && !bestBlockHeader.getHash().equals(block.getHash())) {
+						repeatBlock = bestBlockHeader;
+						break;
+					}
+					bestBlockHeader = blockStoreProvider.getHeader(bestBlockHeader.getPreHash().getBytes()).getBlockHeader();
+				}
+				
+				if(repeatBlock != null) {
+					//加入待处理列表
+					List<BlockHeader> list = new ArrayList<BlockHeader>();
+					list.add(bestBlockHeader);
+					list.add(block.getBlockHeader());
+					penalizeList.add(list);
+					
+					log.info("=========加入成功");
+				}
+			}
+		} finally {
+			penalizeLock.unlock();
+		}
+	}
+	
+	/**
+	 * 获取并移除待处罚列表
+	 * @return List<BlockHeader>
+	 */
+	public List<BlockHeader> getAndRemovePenalize() {
+		penalizeLock.lock();
+		try {
+			if(penalizeList.size() > 0) {
+				return penalizeList.remove(0);
+			} else {
+				return null;
+			}
+		} finally {
+			penalizeLock.unlock();
+		}
 	}
 }

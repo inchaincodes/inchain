@@ -153,6 +153,10 @@ public final class Configure {
 	 * 超时未出块惩罚信用点数
 	 */
 	public final static long CERT_CHANGE_TIME_OUT = -1;
+	/**
+	 * 严重违规的惩罚信用点数
+	 */
+	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999;
 	
 	/** 参与共识所需最低保证金 -- 1 W ins **/
 	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);

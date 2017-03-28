@@ -1,5 +1,6 @@
 package org.inchain;
 
+import org.inchain.network.NetworkParams;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -13,7 +14,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class SpringContextUtils implements ApplicationContextAware{
     
-   public static ApplicationContext context;
+   private static ApplicationContext context;
+   private static NetworkParams network;
 
    @Override
    public void setApplicationContext(ApplicationContext context)
@@ -36,5 +38,12 @@ public class SpringContextUtils implements ApplicationContextAware{
     
    public static ApplicationContext getContext(){
        return context;
+   }
+   
+   public static NetworkParams getNetwork() {
+	   return network;
+   }
+   public static void setNetwork(NetworkParams network) {
+	   SpringContextUtils.network = network;
    }
 }

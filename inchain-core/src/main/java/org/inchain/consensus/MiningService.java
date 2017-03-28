@@ -16,6 +16,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
+import org.inchain.core.RepeatBlockViolationEvidence;
 import org.inchain.core.TimeService;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
@@ -36,6 +37,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.network.NetworkParams.ProtocolVersion;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
+import org.inchain.service.BlockForkService;
 import org.inchain.service.CreditCollectionService;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockStore;
@@ -99,6 +101,8 @@ public final class MiningService implements Mining {
 	private InventoryFilter filter;
 	@Autowired
 	private CreditCollectionService creditCollectionService;
+	@Autowired
+	private BlockForkService blockForkService;
 	@Autowired
 	private TransactionMessageProcess transactionMessageProcess;
 
@@ -383,6 +387,102 @@ public final class MiningService implements Mining {
 			coinbaseOutput.setValue(coinbaseOutput.getValue() - refunedFee.value);
 			coinbaseTx.setHash(null);
 		}
+		
+		try {
+			//处理严重违规的情况
+			processSeriousViolation(txs);
+		} catch (Exception e) {
+			log.error("处理严重违规的情况出错", e);
+		}
+	}
+
+	/*
+	 * 处理严重违规的块，对应的账户
+	 */
+	private void processSeriousViolation(List<Transaction> transactionList) {
+		//严重违规处罚
+		List<BlockHeader> evidenceList = blockForkService.getAndRemovePenalize();
+		if(evidenceList == null || evidenceList.size() != 2) {
+			return;
+		}
+		//验证证据的合法性
+		//违规证据
+		BlockHeader blockHeader1 = evidenceList.get(0);
+		BlockHeader blockHeader2 = evidenceList.get(1);
+		byte[] audienceHash160 = blockHeader1.getHash160();
+		if(!Arrays.equals(blockHeader1.getHash160(), blockHeader2.getHash160())) {
+			log.warn("违规证据里的两个块打包人不相同");
+			return;
+		}
+		if(blockHeader1.getPeriodStartTime() != blockHeader2.getPeriodStartTime()) {
+			log.warn("违规证据里的两个块时段不相同");
+			return;
+		}
+		//验证签名
+		try {
+			blockHeader1.verifyScript();
+			blockHeader2.verifyScript();
+		} catch (Exception e) {
+			log.warn("违规证据里的两个块验证签名不通过");
+			return;
+		}
+		
+		//验证通过
+		RepeatBlockViolationEvidence evidence = new RepeatBlockViolationEvidence(audienceHash160, evidenceList);
+		//判断该节点是否已经被处理过了
+		Sha256Hash evidenceHash = evidence.getEvidenceHash();
+		byte[] txHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
+		if(txHashBytes != null) {
+			log.warn("违规证据已经处理了,无需重复处理");
+			return;
+		}
+		
+		ViolationTransaction vtx = new ViolationTransaction(network, evidence);
+		
+		Sha256Hash txhash = consensusPool.getTx(audienceHash160);
+		if(txhash == null) {
+			log.warn("违规节点共识注册交易没有找到");
+			return;
+		}
+		
+		TransactionStore txs = blockStoreProvider.getTransaction(txhash.getBytes());
+		if(txs.getHeight() == 0l) {
+			return;
+		}
+		Transaction crtx = txs.getTransaction();
+		
+		RegConsensusTransaction consensusRegTx = (RegConsensusTransaction) crtx;
+		TransactionOutput output = consensusRegTx.getOutput(0);
+		byte[] key = output.getKey();
+		//本输入在 transactionList 里面不能有2笔对此的引用，否则就造成了双花
+		if(filter != null) {
+			if(filter.contains(key)) {
+				return;
+			} 
+			filter.insert(key);
+		}
+		
+		//因为违规证据有可能不一样，如果已经被处理过了，则不重复处理，这里用注册共识时的保证金是否被花费掉了来判断
+		byte[] status = chainstateStoreProvider.getBytes(key);
+		if(status == null || !Arrays.equals(status, new byte[] { 1 })) {
+			log.warn("违规节点已经被处理过了，不再重复处理");
+			return;
+		}
+		
+		//签名脚本
+		Script scriptSig = output.getScript();
+		Address address = new Address(network, network.getCertAccountVersion(), scriptSig.getChunks().get(1).data);
+		TransactionInput input = new TransactionInput(output);
+		input.setScriptBytes(new byte[0]);
+		vtx.addInput(input);
+		//输出到保证金没收账户
+		vtx.addOutput(Coin.valueOf(output.getValue()), address);
+		
+		vtx.sign(account);
+		vtx.verify();
+		vtx.verifyScript();
+		
+		transactionList.add(vtx);
 	}
 	
 	/*
@@ -450,7 +550,7 @@ public final class MiningService implements Mining {
 				TransactionInput input = new TransactionInput(output);
 				input.setScriptBytes(new byte[0]);
 				tx.addInput(input);
-				tx.addOutput(Coin.valueOf(consensusRegTx.getOutput(0).getValue()), address);
+				tx.addOutput(Coin.valueOf(output.getValue()), address);
 				
 				tx.sign(account);
 				

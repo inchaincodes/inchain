@@ -165,8 +165,8 @@ public class Block extends BlockHeader {
 		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(getHeight());
 		//不小于奖励，不大于总量
 		if(coinbaseFee.isLessThan(rewardCoin) || coinbaseFee.isGreaterThan(Coin.MAX)) {
-			log.warn("the fee error");
-			return false;
+			log.warn("交易费不正确");
+			throw new VerificationException("交易费不正确");
 		}
 		return true;
 	}

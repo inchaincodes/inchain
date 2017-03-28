@@ -312,6 +312,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							long certChange = 0;
 							if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 								certChange = Configure.CERT_CHANGE_TIME_OUT;
+							} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+								certChange = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
 							}
 							
 							accountInfo.setCert(accountInfo.getCert() + certChange);

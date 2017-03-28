@@ -493,7 +493,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	public void checkMyserviceAndReport() {
 		//获取本机的外网ip地址
 		List<byte[]> ips = new ArrayList<byte[]>(); 
-		for (Peer peer : peerKit.getConnectedPeers()) {
+		for (Peer peer : peerKit.findAvailablePeers()) {
 			PeerAddress addr = peer.getPeerVersionMessage().getTheirAddr();
 			ips.add(addr.getAddr().getAddress());
 		}

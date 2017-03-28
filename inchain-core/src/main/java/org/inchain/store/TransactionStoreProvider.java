@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import javax.annotation.PostConstruct;
 
 import org.inchain.Configure;
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -70,6 +71,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	 */
 	@PostConstruct
 	public void init() {
+		SpringContextUtils.setNetwork(network);
 		//本地交易记录对应的账号列表
 		byte[] list = getBytes(ADDRESSES_KEY);
 		if(list != null) {
@@ -245,7 +247,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					
 					for (byte[] hash160 : addresses) {
 						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-							unspendTxList.add(txs);
+							if(!unspendTxList.contains(txs)) {
+								unspendTxList.add(txs);
+							}
 							break;
 						}
 					}

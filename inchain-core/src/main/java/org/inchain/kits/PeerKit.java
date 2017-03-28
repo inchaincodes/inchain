@@ -431,7 +431,7 @@ public class PeerKit {
 			@Override
 			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
 					CopyOnWriteArrayList<Peer> outPeers) {
-				List<Peer> peers = getConnectedPeers();
+				List<Peer> peers = findAvailablePeers();
 				if(peers.size() >= minConnections) {
 					removeConnectionChangedListener(this);
 					enoughAvailablePeersListener.callback(peers);

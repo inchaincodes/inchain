@@ -13,6 +13,7 @@ import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
+import org.inchain.core.RepeatBlockViolationEvidence;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -487,8 +488,40 @@ public class TransactionValidator {
 							break;
 						}
 					}
+				} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+					//重复出块的验证
+					//验证证据的合法性
+					//违规证据
+					RepeatBlockViolationEvidence repeatBlockViolationEvidence = (RepeatBlockViolationEvidence) violationEvidence;
+					
+					List<BlockHeader> blockHeaders = repeatBlockViolationEvidence.getBlockHeaders();
+					
+					//证据不能为空，且必须是2条记录
+					if(blockHeaders == null || blockHeaders.size() != 2) {
+						result.setResult(false, "证据个数不正确");
+						return validatorResult;
+					}
+					
+					BlockHeader blockHeader1 = blockHeaders.get(0);
+					BlockHeader blockHeader2 = blockHeaders.get(1);
+					if(!Arrays.equals(blockHeader1.getHash160(), blockHeader2.getHash160()) || 
+							!Arrays.equals(blockHeader1.getHash160(), repeatBlockViolationEvidence.getAudienceHash160())) {
+						result.setResult(false, "违规证据里的两个块打包人不相同,或者证据与被处理人不同");
+						return validatorResult;
+					}
+					if(blockHeader1.getPeriodStartTime() != blockHeader2.getPeriodStartTime()) {
+						result.setResult(false, "违规证据里的两个块时段不相同");
+						return validatorResult;
+					}
+					//验证签名
+					try {
+						blockHeader1.verifyScript();
+						blockHeader2.verifyScript();
+					} catch (Exception e) {
+						result.setResult(false, "违规证据里的两个块验证签名不通过");
+						return validatorResult;
+					}
 				}
-				
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册

@@ -25,7 +25,7 @@ public abstract class ViolationEvidence {
 	/** 违规证据内容 **/
 	protected byte[] evidence;
 	
-	private int length;
+	protected int length;
 	
 	public ViolationEvidence(byte[] content) {
 		this(content, 0);
@@ -50,6 +50,8 @@ public abstract class ViolationEvidence {
 		int type = payload[offset];
 		if(type == VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 			return new NotBroadcastBlockViolationEvidence(payload, offset);
+		} else if(type == VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+			return new RepeatBlockViolationEvidence(payload, offset);
 		}
 		return null;
 	}

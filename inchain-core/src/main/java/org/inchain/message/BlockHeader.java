@@ -85,7 +85,7 @@ public class BlockHeader extends Message {
 			txHashs.add(Sha256Hash.wrap(readBytes(32)));
 		}
 		
-		length = cursor;
+		length = cursor - offset;
 	}
 	
 	/**
@@ -138,6 +138,15 @@ public class BlockHeader extends Message {
 		} finally {
 			stream.close();
 		}
+	}
+	
+	/**
+	 * 获取区块头信息
+	 * @return BlockHeader
+	 */
+	public BlockHeader getBlockHeader() {
+		BlockHeader blockHeader  = new BlockHeader(network, baseSerialize());
+		return blockHeader;
 	}
 	
 	/**

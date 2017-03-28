@@ -80,6 +80,19 @@ public final class Definition {
 	public static final int TX_VERIFY_MG = 1;				//脚本认证，账户管理类
 	public static final int TX_VERIFY_TR = 2;				//脚本认证，交易类
 	
+	/**
+	 * 违规类型， 重复打包
+	 */
+	public final static int PENALIZE_REPEAT_BLOCK = 1;
+	/**
+	 * 违规类型， 垃圾块攻击
+	 */
+	public final static int PENALIZE_RUBBISH_BLOCK = 2;
+	/**
+	 * 违规类型， 打包不合法交易
+	 */
+	public final static int PENALIZE_ILLEGAL_TX = 3;
+	
 
 	/** 转账获得信用值 **/
 	public static final int CREDIT_TYPE_PAY = 1;

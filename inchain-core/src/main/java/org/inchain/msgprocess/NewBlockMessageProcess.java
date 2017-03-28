@@ -3,10 +3,12 @@ package org.inchain.msgprocess;
 import java.util.Date;
 
 import org.inchain.account.Address;
+import org.inchain.core.Definition;
 import org.inchain.core.Peer;
 import org.inchain.core.Result;
 import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.filter.BloomFilter;
 import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
@@ -19,6 +21,8 @@ import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.RandomUtil;
+import org.inchain.utils.Utils;
 import org.inchain.validator.BlockValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +51,9 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	@Autowired
 	private BlockValidator blockValidator;
 	
+	//布隆过滤器，判断同一轮中同一共识人出块的数量，如果重复出块，则做出相应的处罚
+	private BloomFilter filter = new BloomFilter(10000, 0.0001, RandomUtil.randomLong());
+	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
 	 */
@@ -54,6 +61,11 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 	public MessageProcessResult process(Message message, Peer peer) {
 
 		Block block = (Block) message;
+		
+		//打包人重复检测
+		if(!checkRepeat(block)) {
+			return new MessageProcessResult(block.getHash(), false);
+		}
 		
 		if(log.isDebugEnabled()) {
 			log.debug("new block : {}", block.getHash());
@@ -113,6 +125,34 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		InventoryItem item = new InventoryItem(Type.NewBlock, hash);
 		InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
 		peerKit.broadcastMessage(invMessage, peer);
+		
+		//重置过滤器
+		if(block.getTimePeriod() == block.getPeriodCount() - 1) {
+			filter = new BloomFilter(10000, 0.0001, RandomUtil.randomLong());
+		}
+		
 		return result;
+	}
+
+	/*
+	 * 打包人同一时段重复检测
+	 */
+	private boolean checkRepeat(Block block) {
+		byte[] key = new byte[24];
+		
+		System.arraycopy(block.getHash160(), 0, key, 0, Address.LENGTH);
+		byte[] startTimeBytes = new byte[4];
+		Utils.uint32ToByteArrayLE(block.getPeriodStartTime(), startTimeBytes, 0);
+		System.arraycopy(startTimeBytes, 0, key, Address.LENGTH, 4);
+		
+		//验证打包人是否重复
+		if(filter.contains(key)) {
+			//同一时段多个合法的块，违背协议，做出处罚
+			blockForkService.addBlockInPenalizeList(block, Definition.PENALIZE_REPEAT_BLOCK);
+			return false;
+		}
+		
+		filter.insert(key);
+		return true;
 	}
 }
