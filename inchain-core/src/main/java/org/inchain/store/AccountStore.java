@@ -27,6 +27,8 @@ public class AccountStore extends Store {
 	//账户类型
 	private int type;
 	private byte[] hash160;
+	//别名
+	private byte[] alias;
 	private byte[][] pubkeys;
 	private long balance;
 	private long lastModifyTime;
@@ -52,6 +54,13 @@ public class AccountStore extends Store {
 		stream.write(type);
 		stream.write(hash160);
 		
+		if(alias == null) {
+			stream.write(new VarInt(0).encode());
+		} else {
+			stream.write(new VarInt(alias.length).encode());
+			stream.write(alias);
+		}
+		
 		if(type == network.getSystemAccountVersion()) {
 			stream.write(new VarInt(pubkeys[0].length).encode());
 			stream.write(pubkeys[0]);
@@ -74,6 +83,12 @@ public class AccountStore extends Store {
 	protected void parse() throws ProtocolException {
 		type = readBytes(1)[0] & 0xff;
 		hash160 = readBytes(Address.LENGTH);
+		
+		int aliasLength = (int) readVarInt();
+		if(aliasLength > 0) {
+			alias = readBytes(aliasLength);
+		}
+		
 		if(type == network.getSystemAccountVersion()) {
 			pubkeys = new byte[][] {readBytes((int) readVarInt())};
 		} else {
@@ -169,5 +184,13 @@ public class AccountStore extends Store {
 
 	public void setAccountBody(AccountBody accountBody) {
 		this.accountBody = accountBody;
+	}
+	
+	public void setAlias(byte[] alias) {
+		this.alias = alias;
+	}
+	
+	public byte[] getAlias() {
+		return alias;
 	}
 }

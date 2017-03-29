@@ -1,10 +1,13 @@
 package org.inchain.wallet.controllers;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
@@ -25,6 +28,7 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
@@ -47,6 +51,7 @@ public class AccountInfoController implements SubPageController {
 	public Label canUseBlanaceId;					//可用余额
 	public Label canNotUseBlanaceId;				//不可用余额
 	public Label addressId;							//账户地址
+	public Label aliasId;							//账户别名
 	public Label certId;							//信用
 	public Label transactionNumberId;				//交易数量
 	public Label encryptionStatusId;				//加密状态
@@ -55,8 +60,14 @@ public class AccountInfoController implements SubPageController {
 	public Button backupWalletId;					//备份钱包
 	public Button importWalletId;					//导入钱包
 	public Button encryptWalletId;					//加密钱包
+	public Button aliasButtonId;					//设置别名
 	
-	Image imageDecline;
+	private Image imageDecline;
+	
+	//别名状态，1可操作，2等待网络确认
+	private int aliasStatus;
+	private byte[] alias;
+	
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
@@ -75,9 +86,11 @@ public class AccountInfoController implements SubPageController {
         fileChooser.getExtensionFilters().add(extFilter);
         //默认选择程序运行目录
         fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+        
+        aliasButtonId.setOnAction(e -> setOrUpdateAlias());
     }
 
-    private void addImageToButton(Button button,String name) {
+	private void addImageToButton(Button button,String name) {
 		imageDecline = new Image(getClass().getResourceAsStream("/images/"+name+"_icon.png"));  
     	button.setGraphic(new ImageView(imageDecline));
     	button.setGraphicTextGap(10);
@@ -101,9 +114,6 @@ public class AccountInfoController implements SubPageController {
 	    	AccountStore accountStore = accountKit.getAccountInfo();
 	    	//自己的交易信息
 	    	TransactionStoreProvider transactionStoreProvider = SpringContextUtils.getBean(TransactionStoreProvider.class);
-	    	if(transactionStoreProvider == null) {
-	    		//return;
-	    	}
     		Platform.runLater(new Runnable() {
 			    @Override
 			    public void run() {
@@ -122,6 +132,30 @@ public class AccountInfoController implements SubPageController {
 			    		consensusStatusId.setText("正在共识中");
 			    	} else {
 			    		consensusStatusId.setText("未参与共识");
+			    	}
+			    	if(!Arrays.equals(alias, accountStore.getAlias())) {
+			    		aliasStatus = 1;
+			    		alias = accountStore.getAlias();
+			    	}
+			    	//别名是否已设置
+			    	if(accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
+			    		//未设置
+			    		//是否达到条件
+			    		if(accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
+			    			aliasId.setText("别名未设置");
+			    			aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
+			    			aliasButtonId.setTooltip(new Tooltip("设置别名"));
+			    		} else {
+			    			aliasId.setText("信用值达到" + Configure.REG_ALIAS_CREDIT + "后可免费设置别名");
+			    			aliasButtonId.setDisable(true);
+			    		}
+			    	} else {
+			    		try {
+							aliasId.setText(new String(accountStore.getAlias(), "utf-8"));
+			    			aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
+							aliasButtonId.setTooltip(new Tooltip("修改别名"));
+						} catch (UnsupportedEncodingException e) {
+						}
 			    	}
 			    }
 			});
@@ -154,6 +188,53 @@ public class AccountInfoController implements SubPageController {
 		//noting to do
 	}
 
+	/*
+	 * 设置或者修改别名
+	 */
+	private void setOrUpdateAlias() {
+		try {
+			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+			//自己的账户信息
+	    	AccountStore accountStore = accountKit.getAccountInfo();
+	    	
+			//判断账户是否已设置别名
+	    	if(accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
+	    		if(accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
+	    			URL location = getClass().getResource("/resources/template/setAlias.fxml");
+	    			FXMLLoader loader = new FXMLLoader(location);
+	    			DailogUtil.showDailog(loader, "修改账户别名", new Runnable() {
+						@Override
+						public void run() {
+							aliasStatus = 2;
+							aliasButtonId.setDisable(true);
+							DailogUtil.showTip("请求已提交，等待网络确认");
+						}
+					});
+	    		} else {
+	        		DailogUtil.showTip("信用值达到" + Configure.REG_ALIAS_CREDIT + "后才能设置别名");
+	    		}
+			} else {
+				//修改账户别名
+				URL location = getClass().getResource("/resources/template/updateAlias.fxml");
+		        FXMLLoader loader = new FXMLLoader(location);
+		        if(accountStore.getCert() >= Configure.UPDATE_ALIAS_CREDIT) {
+		        	DailogUtil.showDailog(loader, "修改账户别名", new Runnable() {
+						@Override
+						public void run() {
+							aliasStatus = 2;
+							aliasButtonId.setDisable(true);
+							DailogUtil.showTip("请求已提交，等待网络确认");
+						}
+					});
+		        } else {
+	        		DailogUtil.showTip("信用值达到" + Configure.UPDATE_ALIAS_CREDIT + "后才能修改别名");
+		        }
+			}
+		} catch (Exception e) {
+			log.error("修改账户别名出错", e);
+		}
+	}
+	
 	/*
 	 * 备份钱包
 	 */

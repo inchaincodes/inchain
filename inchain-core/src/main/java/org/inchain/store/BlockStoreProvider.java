@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.PostConstruct;
-
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
@@ -37,13 +35,16 @@ import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
+import org.inchain.transaction.business.RegAliasTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.RemoveSubAccountTransaction;
+import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.inchain.validator.TransactionValidator;
-import org.inchain.validator.TransactionValidatorResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -284,6 +285,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 								hashExist = true;
 								System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
 								System.arraycopy(consensusAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newConsensusHash160s, j, consensusAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+								break;
 							}
 						}
 						if(hashExist) {
@@ -361,6 +363,22 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					byte[] antifakeHashBytes = generalAntifakeTransaction.getAntifakeHash().getBytes();
 					
 					chainstateStoreProvider.put(antifakeHashBytes, tx.getHash().getBytes());
+				} else if(tx.getType() == Definition.TYPE_RELEVANCE_SUBACCOUNT) {
+					//认证账户关联子账户
+					RelevanceSubAccountTransaction relevancSubAccountTx = (RelevanceSubAccountTransaction) tx;
+					chainstateStoreProvider.addSubAccount(relevancSubAccountTx);
+				} else if(tx.getType() == Definition.TYPE_REMOVE_SUBACCOUNT) {
+					//删除子账户的关联
+					RemoveSubAccountTransaction removeSubAccountTx = (RemoveSubAccountTransaction) tx;
+					chainstateStoreProvider.removeSubAccount(removeSubAccountTx);
+				} else if(tx.getType() == Definition.TYPE_REG_ALIAS) {
+					//注册别名
+					RegAliasTransaction rtx = (RegAliasTransaction) tx;
+					chainstateStoreProvider.setAccountAlias(rtx.getHash160(), rtx.getAlias());
+				} else if(tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
+					//修改别名，消耗信用点
+					UpdateAliasTransaction utx = (UpdateAliasTransaction) tx;
+					chainstateStoreProvider.updateAccountAlias(utx.getHash160(), utx.getAlias());
 				}
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);

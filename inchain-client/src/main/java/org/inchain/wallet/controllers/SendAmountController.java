@@ -1,8 +1,10 @@
 package org.inchain.wallet.controllers;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.List;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
@@ -11,7 +13,8 @@ import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
-import org.inchain.utils.Hex;
+import org.inchain.store.AccountStore;
+import org.inchain.store.ChainstateStoreProvider;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +25,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -36,9 +40,10 @@ public class SendAmountController implements SubPageController {
 	private static final Logger log = LoggerFactory.getLogger(SendAmountController.class);
 	
 	public Label canUseBlanaceId;					//可用余额
-	public TextField receiveAddressId;					//接收地址
-	public TextField sendAmountId;						//发送金额
+	public TextField receiveAddressId;				//接收地址
+	public TextField sendAmountId;					//发送金额
 	public TextField feeId;							//手续费
+	public TextArea remarkId;						//交易备注
 	
 	public Button sendButId;						//发送按钮
 	public Button resetButId;						//重置按钮
@@ -98,11 +103,9 @@ public class SendAmountController implements SubPageController {
      */
     protected void sendAmount() {
     	
-
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	NetworkParams network = InchainInstance.getInstance().getAppKit().getNetwork();
     	
-    	log.info("hash160 {}", Hex.encode(accountKit.getDefaultAccount().getAddress().getHash160()));
     	//接收地址
     	String address = receiveAddressId.getText();
     	//验证接收地址
@@ -115,9 +118,17 @@ public class SendAmountController implements SubPageController {
     		try {
     			Address.fromBase58(network, address);
     		} catch (Exception e) {
-        		receiveAddressId.requestFocus();
-        		DailogUtil.showTip("错误的接收地址");
-        		return;
+    			//可能是别名
+    			ChainstateStoreProvider chainstateStoreProvider = SpringContextUtils.getBean(ChainstateStoreProvider.class);
+    			
+    			AccountStore accountInfo = chainstateStoreProvider.getAccountInfoByAlias(address.getBytes());
+    			if(accountInfo == null) {
+	        		receiveAddressId.requestFocus();
+	        		DailogUtil.showTip("错误的接收地址或别名");
+	        		return;
+    			} else {
+    				address = new Address(network, accountInfo.getType(), accountInfo.getHash160()).getBase58();
+    			}
 			}
     	}
     	
@@ -165,6 +176,19 @@ public class SendAmountController implements SubPageController {
 			}
     	}
     	
+    	//交易备注不能超过30字节
+    	String remark = remarkId.getText();
+    	byte[] remarkBytes = null;
+		try {
+			remarkBytes = remark.getBytes("utf-8");
+		} catch (UnsupportedEncodingException e1) {
+		}
+    	if(remarkBytes != null && remarkBytes.length > 100) {
+    		remarkId.requestFocus();
+    		DailogUtil.showTip("留言太长，最多50个英文或者30个汉字");
+    		return;
+    	}
+    	
 		//验证通过，调用接口广播交易
     	try {
     		//如果账户已加密，则需要先解密
@@ -176,12 +200,13 @@ public class SendAmountController implements SubPageController {
 		        final String addressTemp = address;
 		        final Coin feeCoinTemp = feeCoin;
 		        final Coin moneyTemp = money;
+		        final byte[] remarkBytesTemp = remarkBytes;
 				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
 					@Override
 					public void run() {
 						if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 							try {
-								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp);
+								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp, remarkBytesTemp);
 							} finally {
 								accountKitTemp.resetKeys();
 							}
@@ -189,7 +214,7 @@ public class SendAmountController implements SubPageController {
 					}
 				});
     		} else {
-				sendMoney(accountKit, address, money, feeCoin);
+				sendMoney(accountKit, address, money, feeCoin, remarkBytes);
     			
 //    			for (int i = 0; i < 1; i++) {
 //					
@@ -202,9 +227,9 @@ public class SendAmountController implements SubPageController {
 		}
 	}
 
-    public void sendMoney(AccountKit accountKit, String address, Coin money, Coin feeCoin) {
+    public void sendMoney(AccountKit accountKit, String address, Coin money, Coin feeCoin, byte[] remark) {
     	try {
-    		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin);
+    		BroadcastResult broadcastResult = accountKit.sendMoney(address, money, feeCoin, remark);
 			//返回的交易id，则成功
 			if(broadcastResult.isSuccess()) {
 				loadNewestBalance();
@@ -225,6 +250,7 @@ public class SendAmountController implements SubPageController {
 		    public void run() {
 		    	receiveAddressId.setText("");
 		    	sendAmountId.setText("");
+		    	remarkId.setText("");
 		    }
 		});
 	}

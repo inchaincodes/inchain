@@ -14,6 +14,8 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -59,8 +61,10 @@ import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CertAccountUpdateTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.transaction.business.RegAliasTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
@@ -676,6 +680,18 @@ public class AccountKit {
 	 * @throws MoneyNotEnoughException
 	 */
 	public BroadcastResult sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
+		return sendMoney(to, money, fee, null);
+	}
+	
+	/**
+	 * 发送普通交易到指定地址
+	 * @param to   base58的地址
+	 * @param money	发送金额
+	 * @param fee	手续费
+	 * @return String
+	 * @throws MoneyNotEnoughException
+	 */
+	public BroadcastResult sendMoney(String to, Coin money, Coin fee, byte[] remark) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
 		
@@ -731,6 +747,7 @@ public class AccountKit {
 			tx.setLockTime(TimeService.currentTimeMillis());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
+			tx.setRemark(remark);
 			
 			Coin totalInputCoin = Coin.ZERO;
 			
@@ -1991,7 +2008,7 @@ public class AccountKit {
 					if(totalInputCoin.isGreaterThan(recognizance)) {
 						tx.addOutput(totalInputCoin.subtract(recognizance), account.getAddress());
 					}
-					
+					log.info("共识保证金：{}", recognizance.toText());
 					//签名交易
 					final LocalTransactionSigner signer = new LocalTransactionSigner();
 					try {
@@ -2099,5 +2116,135 @@ public class AccountKit {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 设置别名
+	 * @param alias
+	 * @return Result
+	 */
+	public Result setAlias(String alias) {
+		return setAlias(getDefaultAccount().getAddress().getBase58(), alias);
+	}
+	
+	/**
+	 * 设置别名
+	 * @param address
+	 * @param alias
+	 * @return Result
+	 */
+	public Result setAlias(String address, String alias) {
+		if(StringUtil.isEmpty(alias)) {
+			return new Result(false, "别名不能为空");
+		}
+		byte[] aliasBytes = alias.getBytes();
+		if(aliasBytes.length > 30) {
+			return new Result(false, "别名不能超过10个汉字或者20个英文与字母");
+		}
+		
+		//账户信息
+		Account account = null;
+		if(StringUtil.isEmpty(address)) {
+			account = getDefaultAccount();
+		} else {
+			account = getAccount(address);
+		}
+		
+		if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+				(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
+			return new Result(false, "账户已加密");
+		}
+		
+		AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
+		if(accountInfo == null || accountInfo.getCert() < Configure.REG_ALIAS_CREDIT) {
+			return new Result(false, "账户信用达到" + Configure.REG_ALIAS_CREDIT + "之后才能注册别名");
+		}
+		//是否已经设置过别名了
+		byte[] aliasBytesTemp = accountInfo.getAlias();
+		if(aliasBytesTemp != null && aliasBytesTemp.length > 0) {
+			return new Result(false, "已经设置别名，不能重复设置");
+		}
+		//别名是否已经存在
+		accountInfo = chainstateStoreProvider.getAccountInfoByAlias(aliasBytes);
+		if(accountInfo != null) {
+			return new Result(false, "该别名已经存在，请换一个");
+		}
+		
+		RegAliasTransaction regAliasTx = new RegAliasTransaction(network);
+		regAliasTx.setAlias(aliasBytes);
+		regAliasTx.sign(account);
+		
+		try {
+			MempoolContainer.getInstace().add(regAliasTx);
+			BroadcastResult result = peerKit.broadcast(regAliasTx).get();
+			return new Result(result.isSuccess(), result.getMessage());
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			return new Result(false, "广播过程中出错，可能原因超时：" + e.getMessage());
+		}
+	}
+	
+	/**
+	 * 修改别名
+	 * @param alias
+	 * @return Result
+	 */
+	public Result updateAlias(String alias) {
+		return updateAlias(getDefaultAccount().getAddress().getBase58(), alias);
+	}
+	
+	/**
+	 * 修改别名
+	 * @param address
+	 * @param alias
+	 * @return Result
+	 */
+	public Result updateAlias(String address, String alias) {
+		if(StringUtil.isEmpty(alias)) {
+			return new Result(false, "别名不能为空");
+		}
+		byte[] aliasBytes = alias.getBytes();
+		if(aliasBytes.length > 30) {
+			return new Result(false, "别名不能超过10个汉字或者20个英文与字母");
+		}
+		
+		//账户信息
+		Account account = null;
+		if(StringUtil.isEmpty(address)) {
+			account = getDefaultAccount();
+		} else {
+			account = getAccount(address);
+		}
+		
+		if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+				(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
+			return new Result(false, "账户已加密");
+		}
+		
+		AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
+		if(accountInfo == null || accountInfo.getCert() < Configure.UPDATE_ALIAS_CREDIT) {
+			return new Result(false, "账户信用达到" + Configure.UPDATE_ALIAS_CREDIT + "之后才能修改别名");
+		}
+		//是否有改动
+		byte[] aliasBytesTemp = accountInfo.getAlias();
+		if(aliasBytesTemp != null && Arrays.equals(aliasBytesTemp, aliasBytes)) {
+			return new Result(false, "别名没有改动");
+		}
+		//别名是否已经存在
+		accountInfo = chainstateStoreProvider.getAccountInfoByAlias(aliasBytes);
+		if(accountInfo != null) {
+			return new Result(false, "该别名已经存在，请换一个");
+		}
+		
+		UpdateAliasTransaction updateAliasTx = new UpdateAliasTransaction(network);
+		updateAliasTx.setAlias(aliasBytes);
+		updateAliasTx.sign(account);
+		
+		try {
+			MempoolContainer.getInstace().add(updateAliasTx);
+			BroadcastResult result = peerKit.broadcast(updateAliasTx).get();
+			return new Result(result.isSuccess(), result.getMessage());
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			return new Result(false, "广播过程中出错，可能原因超时：" + e.getMessage());
+		}
 	}
 }

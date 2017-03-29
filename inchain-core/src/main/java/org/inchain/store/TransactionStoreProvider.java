@@ -227,10 +227,23 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 									byte[] ftxStatus = unspendTx.getStatus();
 									ftxStatus[from.getIndex()] = TransactionStore.STATUS_USED;
 									unspendTx.setStatus(ftxStatus);
-									//更新存储
-									put(unspendTx.getTransaction().getHash().getBytes(), unspendTx.baseSerialize());
 									
-									unspendTxList.remove(unspendTx);
+									//查询该笔交易是否还有我没有花费的交易
+									List<TransactionOutput> outputsTemp = unspendTx.getTransaction().getOutputs();
+									boolean hasUnspend = false;
+									for (TransactionOutput transactionOutput : outputsTemp) {
+										Script script = transactionOutput.getScript();
+										for (byte[] hash160 : addresses) {
+											if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)
+													&& ftxStatus[transactionOutput.getIndex()] == TransactionStore.STATUS_UNUSE) {
+												hasUnspend = true;
+												break;
+											}
+										}
+									}
+									if(!hasUnspend) {
+										unspendTxList.remove(unspendTx);
+									}
 									break;
 								}
 							}

@@ -96,11 +96,39 @@ public final class ConsensusRewardCalculationUtil {
 		return issued.add(coefficientReward.multiply(realHeight % REWARD_CYCLE));
 	}
 
+	/**
+	 * 计算当前共识所需保证金
+	 * @param currentConsensusSize
+	 * @return Coin
+	 */
 	public static Coin calculatRecognizance(int currentConsensusSize) {
-		return Configure.CONSENSUS_MIN_RECOGNIZANCE;
+		
+		//max is (Math.log((double)300)/Math.log((double)2))
+		double max = 2468d;
+		
+		double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
+		double nlgn = lgN*currentConsensusSize;
+		long res = (long) (Configure.CONSENSUS_MAX_RECOGNIZANCE.value * (nlgn/max));
+		
+		if(res > Configure.CONSENSUS_MAX_RECOGNIZANCE.value) {
+			return Configure.CONSENSUS_MAX_RECOGNIZANCE;
+		} else if(res < Configure.CONSENSUS_MIN_RECOGNIZANCE.value) {
+			return Configure.CONSENSUS_MIN_RECOGNIZANCE;
+		} else {
+			if(res > Coin.COIN_VALUE * 100000) {
+				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 10000)).multiply(10000);
+			} else {
+				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 1000)).multiply(1000);
+			}
+		}
 	}
 	
 	public static void main(String[] args) {
-		System.out.println(calculatTotal(REWARD_CYCLE * 16 + 3026900));
+//		System.out.println(calculatTotal(REWARD_CYCLE * 16 + 3026900));
+		
+		int size = 308;
+		for (int i = 1; i <= size; i ++) {
+			System.out.println(i+"   "+calculatRecognizance(i));
+		}
 	}
 }

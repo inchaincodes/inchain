@@ -36,8 +36,12 @@ import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.transaction.business.RegAliasTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.RemoveSubAccountTransaction;
+import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
@@ -366,13 +370,18 @@ public class TransactionValidator {
 					result.setResult(false, "已经是共识节点了,勿重复申请");
 					return validatorResult;
 				}
-				
+				//验证时段
+				long periodStartTime = regConsensusTx.getPeriodStartTime();
+				//必须是最近的几轮里
+				if(consensusMeeting.getMeetingItem(periodStartTime) == null) {
+					throw new VerificationException("申请时段不合法");
+				}
 				//验证保证金
 				//当前共识人数
-				int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(regConsensusTx.getPeriodStartTime()).size();
+				int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 				//共识保证金
 				Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
-				if(!txInputFee.equals(recognizance)) {
+				if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 					result.setResult(false, "保证金不正确");
 					return validatorResult;
 				}
@@ -578,7 +587,87 @@ public class TransactionValidator {
 				result.setResult(false, "验证出错，错误信息："+e.getMessage());
 				return validatorResult;
 			}
-		} 
+		} else if(tx.getType() == Definition.TYPE_REG_ALIAS) {
+			//注册别名
+			RegAliasTransaction rtx = (RegAliasTransaction) tx;
+			//账户必须达到规定的信用，才能注册别名
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
+			if(accountInfo == null || accountInfo.getCert() < Configure.REG_ALIAS_CREDIT) {
+				result.setResult(false, "账户信用达到" + Configure.REG_ALIAS_CREDIT + "之后才能注册别名");
+				return validatorResult;
+			}
+			//是否已经设置过别名了
+			byte[] alias = accountInfo.getAlias();
+			if(alias != null && alias.length > 0) {
+				result.setResult(false, "已经设置别名，不能重复设置");
+				return validatorResult;
+			}
+			//别名是否已经存在
+			accountInfo = chainstateStoreProvider.getAccountInfoByAlias(alias);
+			if(accountInfo != null) {
+				result.setResult(false, "别名已经存在");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
+			//修改别名
+			UpdateAliasTransaction utx = (UpdateAliasTransaction) tx;
+			//账户必须达到规定的信用，才能修改别名
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(utx.getHash160());
+			if(accountInfo == null || accountInfo.getCert() < Configure.UPDATE_ALIAS_CREDIT) {
+				result.setResult(false, "账户信用达到" + Configure.UPDATE_ALIAS_CREDIT + "之后才能修改别名");
+				return validatorResult;
+			}
+			//是否已经设置过别名了
+			byte[] alias = accountInfo.getAlias();
+			if(alias == null || alias.length == 0) {
+				result.setResult(false, "没有设置别名，不能修改");
+				return validatorResult;
+			}
+			//新别名是否已经存在
+			accountInfo = chainstateStoreProvider.getAccountInfoByAlias(utx.getAlias());
+			if(accountInfo != null) {
+				result.setResult(false, "新别名已经存在");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_RELEVANCE_SUBACCOUNT) {
+			//注册子账户
+			RelevanceSubAccountTransaction rst = (RelevanceSubAccountTransaction) tx;
+			//交易账户必须是认证账户
+			byte[] hash160 = rst.getHash160();
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountInfo == null || accountInfo.getType() != network.getSystemAccountVersion()) {
+				result.setResult(false, "只有认证账户才能添加子账户");
+				return validatorResult;
+			}
+			//添加的账户是否达到上限,100个
+			int count = chainstateStoreProvider.getSubAccountCount(hash160);
+			if(count > 100) {
+				result.setResult(false, "已达到子账户上限100个，不能继续添加");
+				return validatorResult;
+			}
+			//验证是否重复关联
+			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHash160());
+			if(txHash != null) {
+				result.setResult(false, "重复注册");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_REMOVE_SUBACCOUNT) {
+			//移除子账户
+			RemoveSubAccountTransaction rst = (RemoveSubAccountTransaction) tx;
+			//交易账户必须是认证账户
+			byte[] hash160 = rst.getHash160();
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountInfo == null || accountInfo.getType() != network.getSystemAccountVersion()) {
+				result.setResult(false, "只有认证账户才能添加子账户");
+				return validatorResult;
+			}
+			//验证是否存在
+			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHash160());
+			if(txHash == null) {
+				result.setResult(false, "欲删除不存在的关联");
+				return validatorResult;
+			}
+		}
 
 		result.setSuccess(true);
 		result.setMessage("ok");

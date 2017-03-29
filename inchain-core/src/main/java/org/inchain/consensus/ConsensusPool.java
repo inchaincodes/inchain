@@ -44,6 +44,12 @@ public interface ConsensusPool {
 	public List<ConsensusAccount> listSnapshots();
 	
 	/**
+	 * 获取当前共识人数
+	 * @return int
+	 */
+	public int getCurrentConsensus();
+	
+	/**
 	 * 获取注册共识的交易hash
 	 * @param hash160
 	 * @return Sha256Hash

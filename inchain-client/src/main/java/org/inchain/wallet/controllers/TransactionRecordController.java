@@ -1,5 +1,6 @@
 package org.inchain.wallet.controllers;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,6 +36,8 @@ import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.transaction.business.RegAliasTransaction;
+import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
@@ -266,6 +269,12 @@ public class TransactionRecordController implements SubPageController {
 							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;
 						}
 					}
+					if(tx.getRemark() != null && tx.getRemark().length > 0) {
+						try {
+							detail += "\n(留言：" + new String(tx.getRemark(), "utf-8") + ")";
+						} catch (UnsupportedEncodingException e) {
+						}
+					}
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//认证账户注册
@@ -440,6 +449,36 @@ public class TransactionRecordController implements SubPageController {
 						isSendout = true;
 					}
 					detail += "信用 " + credit + " 原因：" + reason;
+				} else if(tx.getType() == Definition.TYPE_REG_ALIAS) {
+					//注册别名
+					RegAliasTransaction ratx = (RegAliasTransaction) tx;
+					
+					type = "设置别名";
+					
+					for (Account account : accounts) {
+						if(Arrays.equals(account.getAddress().getHash160(), ratx.getHash160())) {
+							try {
+								detail = "账户" + account.getAddress().getBase58() + "设置别名为：" + new String(ratx.getAlias(), "utf-8");
+							} catch (UnsupportedEncodingException e) {
+							}
+							break;
+						}
+					}
+				} else if(tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
+					//修改别名
+					UpdateAliasTransaction uatx = (UpdateAliasTransaction) tx;
+					
+					type = "修改别名";
+					
+					for (Account account : accounts) {
+						if(Arrays.equals(account.getAddress().getHash160(), uatx.getHash160())) {
+							try {
+								detail = "账户" + account.getAddress().getBase58() + "修改别名为：" + new String(uatx.getAlias(), "utf-8") + " ，信用" + Configure.UPDATE_ALIAS_SUB_CREDIT;
+							} catch (UnsupportedEncodingException e) {
+							}
+							break;
+						}
+					}
 				}
 				
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {

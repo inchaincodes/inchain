@@ -177,14 +177,7 @@ public final class MiningService implements Mining {
 				//如果某笔交易验证失败，则不打包进区块
 				try{
 					//去除重复交易
-					boolean exist = false;
-					for (Transaction transaction : transactionList) {
-						if(tx.getHash().equals(transaction.getHash())) {
-							exist = true;
-							break;
-						}
-					}
-					if(exist) {
+					if(transactionList.contains(tx)) {
 						break;
 					}
 					boolean res = verifyTx(transactionList, tx, inputFilter, true);
@@ -600,13 +593,15 @@ public final class MiningService implements Mining {
 	private boolean verifyTx(List<Transaction> transactionList, Transaction tx, BloomFilter filter, boolean forcedCheck) {
 		long time = System.currentTimeMillis();
 		try {
+			tx.verify();
+			
 			//信用累积交易，不是从内存里面来的，所以不打包
 			if(tx.getType() == Definition.TYPE_CREDIT || tx.getType() == Definition.TYPE_COINBASE) {
 				return false;
 			}
 			if(tx.isPaymentTransaction()) {
 				long now = System.currentTimeMillis();
-				tx.verify();
+				
 				System.out.println("交易自检查耗时："+(System.currentTimeMillis() - now)+"ms");
 				
 				//交易的txid不能和区块里面的交易重复
@@ -848,13 +843,18 @@ public final class MiningService implements Mining {
 						//已经是共识节点了
 						throw new VerificationException("已经是共识节点了,勿重复申请");
 					}
-					
+					//验证时段
+					long periodStartTime = regConsensusTx.getPeriodStartTime();
+					//必须是最近的几轮里
+					if(consensusMeeting.getMeetingItem(periodStartTime) == null) {
+						throw new VerificationException("申请时段不合法");
+					}
 					//验证保证金
 					//当前共识人数
-					int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(regConsensusTx.getPeriodStartTime()).size();
+					int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 					//共识保证金
 					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
-					if(!txInputFee.equals(recognizance)) {
+					if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 						throw new VerificationException("保证金不正确");
 					}
 				} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {

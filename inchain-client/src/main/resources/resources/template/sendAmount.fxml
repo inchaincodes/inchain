@@ -6,12 +6,13 @@
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.TextArea?>
 
 <StackPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" stylesheets="@../css/sendAmount.css" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SendAmountController">
    <children>
       <AnchorPane>
          <children>
-            <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="220.0">
+            <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="280.0">
                <children>
                   <Button fx:id="resetButId" layoutX="247.0" layoutY="15.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="重置" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                      <cursor>
@@ -25,13 +26,13 @@
             </AnchorPane>
             <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <Label text="接收地址">
+                  <Label text="接收者">
                      <font>
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font></Label>
-                  <TextField fx:id="receiveAddressId" prefHeight="28.0" prefWidth="250.0" promptText="请输入接收地址">
+                  <TextField fx:id="receiveAddressId" prefHeight="28.0" prefWidth="250.0" promptText="请输入地址或别名">
                      <HBox.margin>
-                        <Insets left="30.0" />
+                        <Insets left="45.0" />
                      </HBox.margin>
                   </TextField>
                </children>
@@ -47,11 +48,16 @@
                      </font></Label>
                   <Label fx:id="canUseBlanaceId" textFill="WHITE">
                      <HBox.margin>
-                        <Insets left="40.0" />
+                        <Insets left="41.0" />
                      </HBox.margin>
                      <font>
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font>
+                  </Label>
+                  <Label text="INS">
+                  	<HBox.margin>
+                        <Insets left="20" />
+                     </HBox.margin>
                   </Label>
                </children>
                <opaqueInsets>
@@ -86,6 +92,19 @@
                      </HBox.margin>
                   </TextField>
                   <Label disable="true" text="INS" />
+               </children>
+               <padding>
+                  <Insets left="50.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="219.0">
+               <children>
+                  <Label text="交易留言" />
+                  <TextArea fx:id="remarkId">
+                  	<HBox.margin>
+                        <Insets left="42.0" />
+                     </HBox.margin>
+                  </TextArea>
                </children>
                <padding>
                   <Insets left="50.0" />

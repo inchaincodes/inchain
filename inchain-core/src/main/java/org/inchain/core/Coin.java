@@ -16,7 +16,7 @@ public final class Coin implements Comparable<Coin>, Serializable {
 
 	public static final int SMALLEST_UNIT_EXPONENT = 8;
 
-    private static final long COIN_VALUE = (long) Math.pow(10, SMALLEST_UNIT_EXPONENT);
+    public static final long COIN_VALUE = (long) Math.pow(10, SMALLEST_UNIT_EXPONENT);
 
     /**
      * 10亿总量

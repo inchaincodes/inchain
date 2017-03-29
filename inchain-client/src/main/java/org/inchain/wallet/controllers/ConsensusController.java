@@ -14,6 +14,8 @@ import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.consensus.ConsensusPool;
+import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
@@ -21,6 +23,7 @@ import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
+import org.inchain.utils.ConsensusRewardCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.entity.ConensusEntity;
@@ -57,8 +60,8 @@ public class ConsensusController implements SubPageController {
 	private static final Logger log = LoggerFactory.getLogger(ConsensusController.class);
 	public static int nowStatus = 0 ; //0 没有参与共识  1 正在等待网络确认参与 2 正在参与共识
 	public TableView<ConensusEntity> table;
-	int type = 0;
 	public Label certNumberId;
+	public Label consensusNumberId;
 	public Label statusLabelId;
 	public Button buttonId;
 	
@@ -68,6 +71,8 @@ public class ConsensusController implements SubPageController {
 	public TableColumn<ConensusEntity, String> time;
 	
 	private List<AccountStore> consensusList;
+	
+	private int type = 0;
 	
 	/**
 	 *  FXMLLoader 调用的初始化
@@ -147,6 +152,9 @@ public class ConsensusController implements SubPageController {
     	AccountStore accountStore = accountKit.getAccountInfo();
     	certNumberId.setText(String.valueOf(accountStore.getCert()));
     	
+    	ConsensusPool consensusPool = SpringContextUtils.getBean(ConsensusPool.class);
+    	consensusNumberId.setText("" + consensusPool.getCurrentConsensus());
+    	
     	//当前共识状态，是否正在共识中
     	boolean consensusStatus = accountKit.checkConsensusing();
     	if (nowStatus == 1) {
@@ -168,11 +176,19 @@ public class ConsensusController implements SubPageController {
         	} else {
         		nowStatus = 0;
         		if(accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
+					//共识保证金
+					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(consensusPool.getCurrentConsensus());
         			//可参与共识
-        			statusLabelId.setText("您已达到参与共识所需信用 " + Configure.CONSENSUS_CREDIT + " , 可参与共识");
-        			
-        			buttonId.setText("申请共识");
-        			buttonId.setDisable(false);
+        			statusLabelId.setText("参与共识所需信用 " + Configure.CONSENSUS_CREDIT + " , 共识需要提交保证金 " + recognizance.toText() + " INS");
+        			//余额
+        			Coin balance = accountKit.getBalance();
+        			if(balance.isLessThan(recognizance)) {
+        				buttonId.setText("保证金不足");
+        				buttonId.setDisable(true);
+        			} else {
+	        			buttonId.setText("申请共识");
+	        			buttonId.setDisable(false);
+        			}
         		} else {
         			//不可参与共识
         			statusLabelId.setText("您离共识所需信用 " + Configure.CONSENSUS_CREDIT + " 还差 " + (Configure.CONSENSUS_CREDIT - accountStore.getCert()));
@@ -229,7 +245,14 @@ public class ConsensusController implements SubPageController {
     	//当前共识状态，是否正在共识中
     	boolean consensusStatus = accountKit.checkConsensusing();
     	
-    	String tip = consensusStatus ? "您当前正在共识中，确认要退出共识吗？" : "一旦参与到共识中，对您的本地环境稳定性要求很高，确认参与吗？";
+    	String tip = null;
+    	if(consensusStatus) {
+    		tip = "您当前正在共识中，确认要退出共识吗？";
+    	} else {
+    		ConsensusPool consensusPool = SpringContextUtils.getBean(ConsensusPool.class);
+    		Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(consensusPool.getCurrentConsensus());
+    		tip = "参与共识会扣除 " + recognizance.toText() + "保证金，将在退出共识时返还，确定继续吗？";
+    	}
     	ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(), tip,1);
     	dailog.setListener(new Listener() {
 			@Override
@@ -243,7 +266,6 @@ public class ConsensusController implements SubPageController {
 						@Override
 						public void run() {
 							if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
-							
 								try {
 									type = doAction(accountKit, consensusStatus);
 								} finally {
@@ -254,7 +276,6 @@ public class ConsensusController implements SubPageController {
 					});
 				} else {
 					doAction(accountKit, consensusStatus);
-					
 				}
 			}
 		});

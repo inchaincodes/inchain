@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="setAlias" prefHeight="200.0" prefWidth="460.0" stylesheets="@../css/changeWalletPassword.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.SetAliasController">
+   <children>
+      <Button id="cancel" fx:id="cancelId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="取消" textFill="WHITE" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="190.0">
+         <font>
+            <Font name="Microsoft YaHei" size="14.0" />
+         </font>
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor></Button>
+      <Button id="sure" fx:id="okId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="确定" textFill="WHITE" AnchorPane.leftAnchor="80.0" AnchorPane.topAnchor="190.0">
+         <font>
+            <Font name="Microsoft YaHei" size="14.0" />
+         </font>
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor></Button>
+      <HBox id="Passworditem" alignment="CENTER_LEFT" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="10.0">
+         <children>
+            <Label text="账户地址" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <HBox.margin>
+                  <Insets left="10.0" />
+               </HBox.margin>
+            </Label>
+            <Label fx:id="addressId" text="tew4Qgaaw4an8av5eHVcEh4hxmcQ4odCYL" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <HBox.margin>
+                  <Insets left="10.0" />
+               </HBox.margin>
+            </Label>
+          </children>
+      </HBox>
+      <HBox id="Passworditem" alignment="CENTER_LEFT" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="80.0">
+         <children>
+            <Label text="账户别名" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <HBox.margin>
+                  <Insets left="10.0" />
+               </HBox.margin>
+            </Label>
+            <TextField id="oldPasswordId1" fx:id="aliasId" promptText="请输入别名">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <HBox.margin>
+                  <Insets left="14.0" />
+               </HBox.margin>
+            </TextField>
+         </children>
+      </HBox>
+   </children>
+</AnchorPane>

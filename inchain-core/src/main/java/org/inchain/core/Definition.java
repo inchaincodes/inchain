@@ -26,8 +26,12 @@ import org.inchain.transaction.business.CertAccountUpdateTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.transaction.business.RegAliasTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
+import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
+import org.inchain.transaction.business.RemoveSubAccountTransaction;
+import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 
 /**
@@ -60,9 +64,19 @@ public final class Definition {
 	public static final int TYPE_VIOLATION = 5;					// 违规事件处理
 	/** 信用累积 **/
 	public static final int TYPE_CREDIT = 6;
+	/** 注册别名 **/
+	public static final int TYPE_REG_ALIAS = 7;
+	/** 修改别名 **/
+	public static final int TYPE_UPDATE_ALIAS = 8;
 	
-	public static final int TYPE_CERT_ACCOUNT_REGISTER = 11;	//认证账户注册
-	public static final int TYPE_CERT_ACCOUNT_UPDATE = 12;		//认证账户修改信息
+	/** 认证账户注册 **/
+	public static final int TYPE_CERT_ACCOUNT_REGISTER = 11;
+	/** 认证账户修改信息 **/
+	public static final int TYPE_CERT_ACCOUNT_UPDATE = 12;
+	/** 商家关联子账户 **/
+	public static final int TYPE_RELEVANCE_SUBACCOUNT = 13;
+	/** 商家解除子账户的关联 **/
+	public static final int TYPE_REMOVE_SUBACCOUNT = 14;
 	
 	//业务交易
 	/** 创建产品 **/
@@ -138,8 +152,12 @@ public final class Definition {
     	PROCESS_FACTORYS.put(GetAddressMessage.class, "addressMessageProcess");
     	
     	PROCESS_FACTORYS.put(Transaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(RegAliasTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(UpdateAliasTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CertAccountRegisterTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CertAccountUpdateTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(RelevanceSubAccountTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(RemoveSubAccountTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RegConsensusTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RemConsensusTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(ViolationTransaction.class, "transactionMessageProcess");
@@ -168,10 +186,14 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(DataNotFoundMessage.class, "notfound");
     	
     	MESSAGE_COMMANDS.put(Transaction.class, "tx");
+    	MESSAGE_COMMANDS.put(RegAliasTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(UpdateAliasTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(RelevanceSubAccountTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(RemoveSubAccountTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(ViolationTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CreditTransaction.class, "tx");
 
@@ -184,10 +206,14 @@ public final class Definition {
     	
     	TRANSACTION_RELATION.put(TYPE_COINBASE, Transaction.class);
 		TRANSACTION_RELATION.put(TYPE_PAY, Transaction.class);
+		TRANSACTION_RELATION.put(TYPE_REG_ALIAS, RegAliasTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_UPDATE_ALIAS, UpdateAliasTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_REG_CONSENSUS, RegConsensusTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_REM_CONSENSUS, RemConsensusTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_REGISTER, CertAccountRegisterTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_UPDATE, CertAccountUpdateTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_RELEVANCE_SUBACCOUNT, RelevanceSubAccountTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_REMOVE_SUBACCOUNT, RemoveSubAccountTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_VIOLATION, ViolationTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CREDIT, CreditTransaction.class);
 		

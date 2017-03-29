@@ -81,5 +81,4 @@ public abstract class BaseStoreProvider implements StoreProvider {
 	public void close() throws IOException {
 		db.close();
 	}
-
 }

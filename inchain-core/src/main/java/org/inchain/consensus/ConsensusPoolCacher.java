@@ -185,4 +185,9 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		
 		return list;
 	}
+
+	@Override
+	public int getCurrentConsensus() {
+		return container.size();
+	}
 }

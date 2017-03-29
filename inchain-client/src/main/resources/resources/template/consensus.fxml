@@ -15,9 +15,18 @@
          <children>
             <HBox prefHeight="30.0">
                <children>
+               	  <HBox alignment="CENTER" prefHeight="30.0" spacing="10.0">
+                     <children>
+                        <Label text="当前共识人数" />
+                        <Label fx:id="consensusNumberId" text="" />
+                     </children>
+                     <padding>
+                        <Insets left="10.0" right="10.0" />
+                     </padding>
+                  </HBox>
                   <HBox alignment="CENTER" prefHeight="30.0" spacing="10.0">
                      <children>
-                        <Label text="当前信用" />
+                        <Label text="我的信用" />
                         <Label fx:id="certNumberId" text="" />
                      </children>
                      <padding>

@@ -52,6 +52,8 @@ public class Transaction extends Message {
 	protected long version;
 	//交易类型
 	protected int type;
+	//备注
+	protected byte[] remark;
 	
 	/**
 	 * 签名类型
@@ -116,6 +118,12 @@ public class Transaction extends Message {
             out.serialize(stream);
         Utils.int64ToByteStreamLE(time, stream);
         Utils.int64ToByteStreamLE(lockTime, stream);
+        if(remark == null) {
+        	stream.write(new VarInt(0).encode());
+        } else {
+        	stream.write(new VarInt(remark.length).encode());
+        	stream.write(remark);
+        }
     }
 	
 	/**
@@ -152,7 +160,8 @@ public class Transaction extends Message {
         }
         time = readInt64();
         lockTime = readInt64();
-
+        remark = readBytes((int)readVarInt());
+        
         if(!isCompatible()) {
         	length = cursor - offset;
         }
@@ -163,10 +172,15 @@ public class Transaction extends Message {
 	 */
 	public void verify() throws VerificationException {
 		
-//		byte[] content = baseSerialize();
-//		if(content.length > MAX_STANDARD_TX_SIZE) {
-//			throw new VerificationException("超过交易最大限制"+MAX_STANDARD_TX_SIZE);
-//		}
+		byte[] content = baseSerialize();
+		if(content.length > MAX_STANDARD_TX_SIZE) {
+			throw new VerificationException("超过交易最大限制"+MAX_STANDARD_TX_SIZE);
+		}
+		
+		//备注不能超过100 byte
+		if(remark != null && remark.length > 100) {
+			throw new VerificationException("备注不能超过100字节");
+		}
 		
 		if(type == Definition.TYPE_COINBASE) {
 			return;
@@ -473,5 +487,13 @@ public class Transaction extends Message {
 
 	public void setType(int type) {
 		this.type = type;
+	}
+	
+	public void setRemark(byte[] remark) {
+		this.remark = remark;
+	}
+	
+	public byte[] getRemark() {
+		return remark;
 	}
 }

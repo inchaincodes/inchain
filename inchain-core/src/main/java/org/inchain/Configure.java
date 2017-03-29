@@ -129,11 +129,25 @@ public final class Configure {
 	
 	/*************  账户相关配置   end  *****************/
 
+	//TODO 临时设置为0
+	/**
+	 * 账户注册别名所需信用值
+	 */
+	public final static long REG_ALIAS_CREDIT = 1;
+	/**
+	 * 修改账户别名需信用达到值
+	 */
+	public final static long UPDATE_ALIAS_CREDIT = 5;
+	/**
+	 * 修改账户别名消耗信用值
+	 */
+	public final static long UPDATE_ALIAS_SUB_CREDIT = -5;
+	
 	/**
 	 * 参与共识所需的信用点
 	 */
 	//TODO 临时设置为0
-	public final static long CONSENSUS_CREDIT = -10;
+	public final static long CONSENSUS_CREDIT = 1;
 	
 	/**
 	 * 转账获得信用点数
