@@ -36,6 +36,7 @@ import org.inchain.utils.DateUtil;
 import org.inchain.utils.Utils;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.wallet.utils.Callback;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -312,9 +313,9 @@ public class AntifakeController implements SubPageController {
 		URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 		FXMLLoader loader = new FXMLLoader(location);
 		final AccountKit accountKitTemp = accountKit;
-		DailogUtil.showDailog(loader, "输入钱包密码",new Runnable() {
+		DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
 			@Override
-			public void run() {
+			public void ok(Object param) {
 				if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 					new Thread() {
 	    				public void run() {

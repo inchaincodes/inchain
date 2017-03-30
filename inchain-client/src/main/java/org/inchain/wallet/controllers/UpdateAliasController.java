@@ -30,13 +30,20 @@ public class UpdateAliasController extends DailogController {
 		tipId.setText("注意：修改账户别名会消耗 " + Math.abs(Configure.UPDATE_ALIAS_SUB_CREDIT) + " 点信用");
 //		tipId.setStyle("-fx-text-fill: green");
 		
-		cancelId.setOnAction(e -> resetAndclose());
+		cancelId.setOnAction(e -> cancel());
 		okId.setOnAction(e -> doSave());
 	}
 	
 	/*
 	 * 取消
 	 */
+	private void cancel() {
+		resetAndclose();
+		if(callback != null) {
+			callback.cancel(null);
+		}
+	}
+	
 	private void resetAndclose() {
 		aliasId.setText("");
 		close();
@@ -60,11 +67,11 @@ public class UpdateAliasController extends DailogController {
 		
     	Result result = accountKit.updateAlias(alias);
 		if(result.isSuccess()) {
-			if(callback != null) {
-    			callback.run();
-    		}
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
     		resetAndclose();
+    		if(callback != null) {
+    			callback.ok(null);
+    		}
 		} else {
 			log.error("修改别名失败,{}", result);
 			DailogUtil.showTipDailogCenter("修改别名失败," + result.getMessage(), getThisStage());

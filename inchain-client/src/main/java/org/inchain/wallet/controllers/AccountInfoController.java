@@ -20,6 +20,7 @@ import org.inchain.store.TransactionStoreProvider;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
+import org.inchain.wallet.utils.Callback;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,9 +203,9 @@ public class AccountInfoController implements SubPageController {
 	    		if(accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
 	    			URL location = getClass().getResource("/resources/template/setAlias.fxml");
 	    			FXMLLoader loader = new FXMLLoader(location);
-	    			DailogUtil.showDailog(loader, "修改账户别名", new Runnable() {
+	    			DailogUtil.showDailog(loader, "修改账户别名", new Callback() {
 						@Override
-						public void run() {
+						public void ok(Object param) {
 							aliasStatus = 2;
 							aliasButtonId.setDisable(true);
 							DailogUtil.showTip("请求已提交，等待网络确认");
@@ -218,9 +219,9 @@ public class AccountInfoController implements SubPageController {
 				URL location = getClass().getResource("/resources/template/updateAlias.fxml");
 		        FXMLLoader loader = new FXMLLoader(location);
 		        if(accountStore.getCert() >= Configure.UPDATE_ALIAS_CREDIT) {
-		        	DailogUtil.showDailog(loader, "修改账户别名", new Runnable() {
+		        	DailogUtil.showDailog(loader, "修改账户别名", new Callback() {
 						@Override
-						public void run() {
+						public void ok(Object param) {
 							aliasStatus = 2;
 							aliasButtonId.setDisable(true);
 							DailogUtil.showTip("请求已提交，等待网络确认");
@@ -328,9 +329,9 @@ public class AccountInfoController implements SubPageController {
 				URL location = getClass().getResource("/resources/template/encryptWallet.fxml");
 		        FXMLLoader loader = new FXMLLoader(location);
 		        
-				DailogUtil.showDailog(loader, "加密钱包", new Runnable() {
+				DailogUtil.showDailog(loader, "加密钱包", new Callback() {
 					@Override
-					public void run() {
+					public void ok(Object param) {
 						AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 						//判断账户是否加密
 						if(accountKit.accountIsEncrypted()) {

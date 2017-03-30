@@ -24,10 +24,20 @@ public class SetAliasController extends DailogController {
 	public Button cancelId;
 	
 	public void initialize() {
-		cancelId.setOnAction(e -> resetAndclose());
+		cancelId.setOnAction(e -> cancel());
 		okId.setOnAction(e -> doSave());
 	}
-	
+
+	/*
+	 * 取消
+	 */
+	private void cancel() {
+		resetAndclose();
+		if(callback != null) {
+			callback.cancel(null);
+		}
+	}
+
 	/*
 	 * 取消
 	 */
@@ -55,7 +65,7 @@ public class SetAliasController extends DailogController {
     	Result result = accountKit.setAlias(alias);
 		if(result.isSuccess()) {
 			if(callback != null) {
-				callback.run();
+				callback.ok(null);
 			}
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
     		resetAndclose();

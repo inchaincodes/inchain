@@ -1,6 +1,7 @@
 package org.inchain.wallet.controllers;
 
 import org.inchain.wallet.Context;
+import org.inchain.wallet.utils.Callback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -16,9 +17,8 @@ public abstract class DailogController {
 	
 	protected final Logger log = LoggerFactory.getLogger(getClass());
 
-	protected Runnable callback;
+	protected Callback callback;
 	protected String pageId;
-	
 	
 	/**
 	 * 校验密码难度
@@ -43,9 +43,6 @@ public abstract class DailogController {
 		Stage window = getThisStage();
 		if(window != null) {
 			window.close();
-			if(callback != null) {
-				callback.run();
-			}
 		}
 	}
 	
@@ -53,11 +50,11 @@ public abstract class DailogController {
 		return Context.getStage(pageId);
 	}
 
-	public Runnable getCallback() {
+	public Callback getCallback() {
 		return callback;
 	}
 
-	public void setCallback(Runnable callback) {
+	public void setCallback(Callback callback) {
 		this.callback = callback;
 	}
 

@@ -28,8 +28,18 @@ public class ChangeCertAccountPasswordController extends DailogController {
 	public ToggleGroup type;
 	
 	public void initialize() {
-		cancelId.setOnAction(e -> resetAndclose());
+		cancelId.setOnAction(e -> cancel());
 		okId.setOnAction(e -> encryptWallet());
+	}
+	
+	/*
+	 * 取消
+	 */
+	private void cancel() {
+		resetAndclose();
+		if(callback != null) {
+			callback.cancel(null);
+		}
 	}
 	
 	/*
@@ -82,6 +92,9 @@ public class ChangeCertAccountPasswordController extends DailogController {
     	Result result = accountKit.changeWalletPassword(oldPassword, password, "mgpwd".equals(type) ? 1 : 2);
 		if(result.isSuccess()) {
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
+    		if(callback != null) {
+    			callback.ok(null);
+    		}
     		resetAndclose();
 		} else {
 			log.error("密码修改失败,{}", result);

@@ -15,6 +15,7 @@ import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
 import org.inchain.store.ChainstateStoreProvider;
+import org.inchain.wallet.utils.Callback;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,9 +202,9 @@ public class SendAmountController implements SubPageController {
 		        final Coin feeCoinTemp = feeCoin;
 		        final Coin moneyTemp = money;
 		        final byte[] remarkBytesTemp = remarkBytes;
-				DailogUtil.showDailog(loader, "输入钱包密码", new Runnable() {
+				DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
 					@Override
-					public void run() {
+					public void ok(Object param) {
 						if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 							try {
 								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp, remarkBytesTemp);

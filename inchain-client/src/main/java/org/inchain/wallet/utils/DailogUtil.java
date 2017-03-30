@@ -135,7 +135,7 @@ public class DailogUtil {
 		if(mainStage == null) {
 			mainStage = Context.getMainStage();
 		}
-		double x = mainStage.getX() + (mainStage.getWidth() - dailogWidth) / 2;
+		double x = mainStage.getX() + 95 + (mainStage.getWidth() - dailogWidth) / 2;
     	double y = mainStage.getY() + (mainStage.getHeight() - dailogHeight) / 2;
     	return new Point(x, y);
 	}
@@ -147,7 +147,7 @@ public class DailogUtil {
 	 */
 	public static Point getDailogPoint(double dailogWidth, double dailogHeight) {
 		Stage mainStage = Context.getMainStage();
-		double x = mainStage.getX() + 60 + (mainStage.getWidth() - dailogWidth) / 2;
+		double x = mainStage.getX() + 95 + (mainStage.getWidth() - dailogWidth) / 2;
     	double y = mainStage.getY() + (mainStage.getHeight() - dailogHeight) / 2;
     	return new Point(x, y);
 	}
@@ -189,7 +189,7 @@ public class DailogUtil {
 	 * @param ui
 	 * @param title
 	 */
-	public static void showDailog(FXMLLoader loader, String title,Stage stage,final Runnable callback) {
+	public static void showDailog(FXMLLoader loader, String title,Stage stage,final Callback callback) {
 		showDailog(loader, title,460,300,stage,callback);
 	}
 	/**
@@ -197,7 +197,7 @@ public class DailogUtil {
 	 * @param ui
 	 * @param title
 	 */
-	public static void showDailog(FXMLLoader loader, String title,final Runnable callback) {
+	public static void showDailog(FXMLLoader loader, String title,final Callback callback) {
 		showDailog(loader, title, 460,300,null,callback);
 	}
 	/**
@@ -205,7 +205,7 @@ public class DailogUtil {
 	 * @param ui
 	 * @param title
 	 */
-	public static void showDailog(FXMLLoader loader, String title,double width,double height,final Runnable callback) {
+	public static void showDailog(FXMLLoader loader, String title,double width,double height,final Callback callback) {
 		showDailog(loader, title,width,height,null,callback);
 	}
 
@@ -217,7 +217,7 @@ public class DailogUtil {
 	 * @param title
 	 * @param callback 关闭时的回调
 	 */
-	public static void showDailog(FXMLLoader content, String title,double width,double height,Stage stage,final Runnable callback) {
+	public static void showDailog(FXMLLoader content, String title,double width,double height,Stage stage,final Callback callback) {
 		try {
 			URL url = DailogUtil.class.getClass().getResource("/resources/template/dailogDecoration.fxml");
 			FXMLLoader loader =  new FXMLLoader(url);
