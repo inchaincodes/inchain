@@ -54,6 +54,9 @@ public class DecryptWalletController extends DailogController {
     	Result result = accountKit.decryptWallet(password, 2);
 		if(result.isSuccess()) {
     		resetAndclose();
+    		if(callback != null) {
+    			callback.ok(null);
+    		}
 		} else {
 			log.error("解密钱包失败,{}", result);
 			DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
