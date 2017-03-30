@@ -88,7 +88,7 @@
                   <Label text="手续费" />
                   <TextField fx:id="feeId" disable="true" prefWidth="46.0" text="0.1">
                      <HBox.margin>
-                        <Insets left="42.0" />
+                        <Insets left="48.0" />
                      </HBox.margin>
                   </TextField>
                   <Label disable="true" text="INS" />
@@ -100,9 +100,9 @@
             <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="219.0">
                <children>
                   <Label text="交易留言" />
-                  <TextArea fx:id="remarkId">
+                  <TextArea fx:id="remarkId" prefHeight="53.0" prefWidth="250.0" promptText="请输入留言" style="-fx-border-color: null;" styleClass="remark">
                   	<HBox.margin>
-                        <Insets left="42.0" />
+                        <Insets left="35.0" />
                      </HBox.margin>
                   </TextArea>
                </children>

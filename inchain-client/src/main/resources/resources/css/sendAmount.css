@@ -17,13 +17,22 @@ Button:hover{
 	-fx-background-color: #3b5aac;
 }
 
-TextField{
+TextField {
 	-fx-background-radius: 0;
     -fx-border-style: null;
     -fx-background-color: null;
     -fx-text-fill:WHITE;
     -fx-font-name:Microsoft YaHei;
     -fx-font-size:14;
+}
+.remark {
+	-fx-background-radius: 0;
+    -fx-border-style: none;
+    -fx-background-color: null;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_CENTER;
 }
 
 Label{

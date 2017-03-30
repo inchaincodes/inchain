@@ -11,24 +11,29 @@ import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
+import org.inchain.core.Definition;
 import org.inchain.core.Result;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
+import org.inchain.listener.Listener;
 import org.inchain.store.AccountStore;
 import org.inchain.store.TransactionStoreProvider;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.utils.Callback;
+import org.inchain.wallet.utils.ConfirmDailog;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -52,7 +57,7 @@ public class AccountInfoController implements SubPageController {
 	public Label canUseBlanaceId;					//可用余额
 	public Label canNotUseBlanaceId;				//不可用余额
 	public Label addressId;							//账户地址
-	public Label aliasId;							//账户别名
+	public TextField aliasId;							//账户别名
 	public Label certId;							//信用
 	public Label transactionNumberId;				//交易数量
 	public Label encryptionStatusId;				//加密状态
@@ -68,7 +73,8 @@ public class AccountInfoController implements SubPageController {
 	//别名状态，1可操作，2等待网络确认
 	private int aliasStatus;
 	private byte[] alias;
-	
+	//编辑按钮状态 flase编辑  true确认
+	private boolean aliasButtonStatus = true;
 	/**
 	 *  FXMLLoader 调用的初始化
 	 */
@@ -162,17 +168,6 @@ public class AccountInfoController implements SubPageController {
 			});
     	}
     	
-		//判断账户是否加密
-//    	Platform.runLater(new Runnable() {
-//		    @Override
-//		    public void run() {
-//				if(accountKit.accountIsEncrypted()) {
-//		    		encryptWalletId.setText("修改密码");
-//				} else {
-//					encryptWalletId.setText("加密钱包");
-//				} 
-//		    }
-//		});
     }
 
 	public void setAccountInfoListener(AccountInfoListener accountInfoListener) {
@@ -193,49 +188,157 @@ public class AccountInfoController implements SubPageController {
 	 * 设置或者修改别名
 	 */
 	private void setOrUpdateAlias() {
-		try {
-			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-			//自己的账户信息
-	    	AccountStore accountStore = accountKit.getAccountInfo();
-	    	
-			//判断账户是否已设置别名
-	    	if(accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
-	    		if(accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
-	    			URL location = getClass().getResource("/resources/template/setAlias.fxml");
-	    			FXMLLoader loader = new FXMLLoader(location);
-	    			DailogUtil.showDailog(loader, "修改账户别名", new Callback() {
-						@Override
-						public void ok(Object param) {
-							aliasStatus = 2;
-							aliasButtonId.setDisable(true);
-							DailogUtil.showTip("请求已提交，等待网络确认");
-						}
-					});
-	    		} else {
-	        		DailogUtil.showTip("信用值达到" + Configure.REG_ALIAS_CREDIT + "后才能设置别名");
-	    		}
+		
+		aliasButtonStatus = !aliasButtonStatus;
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+		//自己的账户信息
+		AccountStore accountStore = accountKit.getAccountInfo();
+		if(aliasButtonStatus==false) { //修改
+			if(accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
+				aliasId.setText("");
+				aliasId.setStyle("-fx-border-color: #506fc3;-fx-background-color: WHITE;-fx-text-fill: #000;");
+				aliasId.setEditable(true);
+				aliasId.requestFocus();
 			} else {
-				//修改账户别名
-				URL location = getClass().getResource("/resources/template/updateAlias.fxml");
-		        FXMLLoader loader = new FXMLLoader(location);
-		        if(accountStore.getCert() >= Configure.UPDATE_ALIAS_CREDIT) {
-		        	DailogUtil.showDailog(loader, "修改账户别名", new Callback() {
-						@Override
-						public void ok(Object param) {
-							aliasStatus = 2;
-							aliasButtonId.setDisable(true);
-							DailogUtil.showTip("请求已提交，等待网络确认");
-						}
-					});
-		        } else {
-	        		DailogUtil.showTip("信用值达到" + Configure.UPDATE_ALIAS_CREDIT + "后才能修改别名");
-		        }
+				ConfirmDailog confirmDailog = new ConfirmDailog(Context.getMainStage(), "注意：修改账户别名会消耗 " + Math.abs(Configure.UPDATE_ALIAS_SUB_CREDIT) + " 点信用", 1);
+				confirmDailog.setListener(new Listener() {
+					public void onComplete() {
+						aliasId.setStyle("-fx-border-color: #506fc3;-fx-background-color: WHITE;-fx-text-fill: #000;");
+						aliasId.setEditable(true);
+						aliasId.requestFocus();
+					}
+				},new Listener() {
+					public void onComplete() {
+						aliasButtonStatus = !aliasButtonStatus;
+					}
+				});
+				confirmDailog.show();
 			}
-		} catch (Exception e) {
-			log.error("修改账户别名出错", e);
+			
+		} else { //确认修改或者设置
+			aliasButtonStatus = !aliasButtonStatus;
+			try {
+				
+				//判断账户是否已设置别名
+				if(accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
+					
+					if(accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
+						//如果账户已加密，则需要先解密
+			    		if(accountKit.accountIsEncrypted()) {
+			    			//解密账户
+			    			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+					        FXMLLoader loader = new FXMLLoader(location);
+					        final AccountKit accountKitTemp = accountKit;
+							DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
+								@Override
+								public void ok(Object param) {
+									if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+										try {
+											setAlias();
+										} finally {
+											accountKitTemp.resetKeys();
+										}
+									}
+								}
+							});
+			    		} else {
+			    			setAlias();
+			    		}
+						
+					} else {
+						DailogUtil.showTip("信用值达到" + Configure.REG_ALIAS_CREDIT + "后才能设置别名");
+					}
+				} else {
+					//修改账户别名
+					if(accountStore.getCert() >= Configure.UPDATE_ALIAS_CREDIT) {
+
+						//如果账户已加密，则需要先解密
+			    		if(accountKit.accountIsEncrypted()) {
+			    			//解密账户
+			    			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+					        FXMLLoader loader = new FXMLLoader(location);
+					        final AccountKit accountKitTemp = accountKit;
+							DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
+								@Override
+								public void ok(Object param) {
+									if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+										try {
+											updateAlias();
+										} finally {
+											accountKitTemp.resetKeys();
+										}
+									}
+								}
+							});
+			    		} else {
+			    			updateAlias();
+			    		}
+					} else {
+						DailogUtil.showTip("信用值达到" + Configure.UPDATE_ALIAS_CREDIT + "后才能修改别名");
+					}
+				}
+			} catch (Exception e) {
+				aliasId.setStyle("-fx-border-color: transparent;-fx-background-color: null;-fx-text-fill: #fff;");
+				aliasId.setEditable(false);
+				aliasButtonStatus = !aliasButtonStatus;
+				log.error("修改账户别名出错", e);
+			}
 		}
 	}
 	
+	private void updateAlias() {
+		//校验
+		String alias = aliasId.getText();
+		if(StringUtils.isEmpty(alias)) {
+			aliasId.requestFocus();
+			DailogUtil.showTip("别名不能为空");
+			return;
+		}
+		
+		//修改密码并判断结果
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+		
+    	Result result = accountKit.updateAlias(alias);
+		if(result.isSuccess()) {
+			aliasStatus = 2;
+			aliasButtonId.setDisable(true);
+    		DailogUtil.showTip(result.getMessage());
+		} else {
+			log.error("修改别名失败,{}", result);
+			DailogUtil.showTip("修改别名失败," + result.getMessage());
+		}
+		aliasId.setStyle("-fx-border-color: transparent;-fx-background-color: null;-fx-text-fill: #fff;");
+		aliasId.setEditable(false);
+		aliasButtonStatus = !aliasButtonStatus;
+	}
+
+	private void setAlias() {
+		//校验
+		String alias = aliasId.getText();
+		if(StringUtils.isEmpty(alias)) {
+			aliasId.requestFocus();
+			DailogUtil.showTip("别名不能为空");
+			return;
+		}
+		
+		//修改密码并判断结果
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+		
+    	Result result = accountKit.setAlias(alias);
+		if(result.isSuccess()) {
+			aliasStatus = 2;
+			aliasButtonId.setDisable(true);
+    		DailogUtil.showTip(result.getMessage());
+			//DailogUtil.showTip("请求已提交，等待网络确认");
+		} else {
+			
+			log.error("别名设置失败,{}", result);
+			DailogUtil.showTipDailogCenter("别名设置失败," + result.getMessage(),  Context.getMainStage());
+		}
+		aliasId.setStyle("-fx-border-color: transparent;-fx-background-color: null;-fx-text-fill: #fff;");
+		aliasId.setEditable(false);
+	}
+
 	/*
 	 * 备份钱包
 	 */
@@ -347,7 +450,7 @@ public class AccountInfoController implements SubPageController {
 
 	@Override
 	public boolean refreshData() {
-		return true;
+		return aliasButtonStatus;
 	}
 
 	@Override
