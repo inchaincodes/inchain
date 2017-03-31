@@ -37,6 +37,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -219,7 +221,7 @@ public class AccountInfoController implements SubPageController {
 	 * 编辑状态
 	 * */
 	private void braveryState() {
-		aliasId.setStyle("-fx-border-color: #506fc3;-fx-background-color: WHITE;-fx-text-fill: #000;");
+		aliasId.setStyle("-fx-border-color: #4474af;");
 		aliasId.setEditable(true);
 		aliasId.requestFocus();
 		cancelButtonId.setVisible(true);
@@ -359,7 +361,7 @@ public class AccountInfoController implements SubPageController {
 		if (result.isSuccess()) {
 			aliasStatus = 2;
 			aliasButtonId.setDisable(true);
-			DailogUtil.showTip(result.getMessage());
+			DailogUtil.showTip("请求已提交，等待网络确认");
 		} else {
 			log.error("修改别名失败,{}", result);
 			DailogUtil.showTip("修改别名失败," + result.getMessage());
