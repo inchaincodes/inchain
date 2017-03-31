@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -60,7 +62,23 @@ public class SendAmountController implements SubPageController {
     	sendButId.setGraphicTextGap(10);
     	resetButId.setGraphic(new ImageView(resetIcon));
     	resetButId.setGraphicTextGap(10);
-    	
+    	remarkId.textProperty().addListener(new ChangeListener<String>() {
+    		
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				//交易备注不能超过30字节
+		    	String remark = remarkId.getText();
+		    	byte[] remarkBytes = null;
+				try {
+					remarkBytes = remark.getBytes("utf-8");
+				} catch (UnsupportedEncodingException e1) {
+				}
+		    	if(remarkBytes != null && remarkBytes.length > 100) {
+		    		remarkId.requestFocus();
+		    		DailogUtil.showTip("留言太长，最多50个英文或者30个汉字");
+		    		return;
+		    	}
+			}
+		});
     	resetButId.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {

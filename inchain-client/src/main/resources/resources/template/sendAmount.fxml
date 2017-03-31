@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.effect.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
@@ -12,7 +13,7 @@
    <children>
       <AnchorPane>
          <children>
-            <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="280.0">
+            <AnchorPane prefHeight="54.0" prefWidth="402.0" AnchorPane.topAnchor="290.0">
                <children>
                   <Button fx:id="resetButId" layoutX="247.0" layoutY="15.0" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="重置" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
                      <cursor>
@@ -24,7 +25,7 @@
                      </cursor></Button>
                </children>
             </AnchorPane>
-            <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="0.0">
+            <HBox id="infoItem" alignment="CENTER_LEFT" prefHeight="50.0" prefWidth="402.0" AnchorPane.topAnchor="0.0">
                <children>
                   <Label text="接收者">
                      <font>
@@ -40,7 +41,21 @@
                   <Insets left="50.0" />
                </padding>
             </HBox>
-            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="53.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="53.0">
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="50.0" prefWidth="402.0" AnchorPane.topAnchor="103.0">
+               <children>
+                  <Label text="手续费" />
+                  <TextField fx:id="feeId" disable="true" prefWidth="46.0" text="0.1">
+                     <HBox.margin>
+                        <Insets left="48.0" />
+                     </HBox.margin>
+                  </TextField>
+                  <Label disable="true" text="INS" />
+               </children>
+               <padding>
+                  <Insets left="50.0" />
+               </padding>
+            </HBox>
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="53.0" prefHeight="50.0" prefWidth="402.0" AnchorPane.topAnchor="50.0">
                <children>
                   <Label text="可用余额">
                      <font>
@@ -67,7 +82,7 @@
                   <Insets left="50.0" />
                </padding>
             </HBox>
-            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="94.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="106.0">
+            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="94.0" prefHeight="50.0" prefWidth="402.0" AnchorPane.topAnchor="156.0">
                <children>
                   <Label text="转账金额">
                      <font>
@@ -83,27 +98,16 @@
                   <Insets left="50.0" />
                </padding>
             </HBox>
-            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="159.0">
-               <children>
-                  <Label text="手续费" />
-                  <TextField fx:id="feeId" disable="true" prefWidth="46.0" text="0.1">
-                     <HBox.margin>
-                        <Insets left="48.0" />
-                     </HBox.margin>
-                  </TextField>
-                  <Label disable="true" text="INS" />
-               </children>
-               <padding>
-                  <Insets left="50.0" />
-               </padding>
-            </HBox>
-            <HBox id="infoItem" alignment="CENTER_LEFT" layoutY="121.0" prefHeight="53.0" prefWidth="402.0" AnchorPane.topAnchor="219.0">
+            <HBox id="infoItem" layoutY="121.0" minHeight="70.0" prefHeight="70.0" prefWidth="402.0" AnchorPane.topAnchor="215.0">
                <children>
                   <Label text="交易留言" />
-                  <TextArea fx:id="remarkId" prefHeight="53.0" prefWidth="250.0" promptText="请输入留言" style="-fx-border-color: null;" styleClass="remark">
+                  <TextArea fx:id="remarkId" cache="true" depthTest="DISABLE" maxHeight="70.0" minHeight="70.0" nodeOrientation="LEFT_TO_RIGHT" prefHeight="70.0" prefWidth="250.0" promptText="请输入留言" style="-fx-border-color: null;" styleClass="remark" wrapText="true">
                   	<HBox.margin>
-                        <Insets left="35.0" />
+                        <Insets left="40.0" />
                      </HBox.margin>
+                     <opaqueInsets>
+                        <Insets />
+                     </opaqueInsets>
                   </TextArea>
                </children>
                <padding>
