@@ -32,6 +32,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 /**
  * 交易转账控制器
@@ -57,6 +59,31 @@ public class SendAmountController implements SubPageController {
     public void initialize() {
     	Image sendIcon = new Image(getClass().getResourceAsStream("/images/send_icon.png"));
     	Image resetIcon = new Image (getClass().getResourceAsStream("/images/reset_icon.png"));
+    	//设置回车监听
+    	receiveAddressId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					sendAmountId.requestFocus();
+				}
+			}
+		});
+    	sendAmountId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					remarkId.requestFocus();
+				}
+			}
+		});
+    	remarkId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					sendAmount();
+				}
+			}
+		});
     	//设置按钮图片以及图片与字体之间的间距
     	sendButId.setGraphic(new ImageView(sendIcon));
     	sendButId.setGraphicTextGap(10);

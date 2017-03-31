@@ -6,8 +6,11 @@ import org.inchain.kits.AccountKit;
 import org.inchain.wallet.utils.DailogUtil;
 import org.springframework.util.StringUtils;
 
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 
 /**
  * 加密钱包
@@ -24,6 +27,22 @@ public class EncryptWalletController extends DailogController {
 	
 	public void initialize() {
 		cancelId.setOnAction(e -> resetAndclose());
+		passwordId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					encryptWallet();
+				}
+			}
+		});
+		repeatId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					encryptWallet();
+				}
+			}
+		});
 		okId.setOnAction(e -> encryptWallet());
 	}
 	

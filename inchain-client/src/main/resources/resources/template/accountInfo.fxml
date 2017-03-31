@@ -58,19 +58,28 @@
                               <Insets left="15.0" />
                            </HBox.margin>
                         </Label>
-                        <TextField fx:id="aliasId" editable="false" prefHeight="19.0" prefWidth="240.0" styleClass="alias">
+                        <TextField fx:id="aliasId" editable="false" prefHeight="25.0" prefWidth="215.0" styleClass="alias">
                            <HBox.margin>
                               <Insets left="48.0" />
                            </HBox.margin>
                         </TextField>
-                        <Button fx:id="aliasButtonId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="encryptWalletButton">
-                           <cursor>
-                              <Cursor fx:constant="HAND" />
-                           </cursor>
+                        <AnchorPane>
+                           <children>
+                              <Button fx:id="aliasButtonId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="encryptWalletButton">
+                                 <cursor>
+                                    <Cursor fx:constant="HAND" />
+                                 </cursor>
+                              </Button>
+                              <Button fx:id="cancelButtonId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="cancelButton" visible="false" AnchorPane.leftAnchor="30.0">
+                                 <cursor>
+                                    <Cursor fx:constant="HAND" />
+                                 </cursor>
+                              </Button>
+                           </children>
                            <HBox.margin>
-                              <Insets left="10.0" />
+                              <Insets left="30.0" />
                            </HBox.margin>
-                        </Button>
+                        </AnchorPane>
                      </children>
                      <padding>
                         <Insets left="20.0" />

@@ -28,6 +28,16 @@ Button:hover{
 .encryptWalletButton:hover {
 	-fx-background-image:url("/images/changepasswordH_icon.png");
 }
+.cancelButton {
+	-fx-background-radius: 0;
+	-fx-border-color: transparent;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-image:url("/images/cancel_icon.png");
+}
+.cancelButton:hover {
+    -fx-background-image:url("/images/cancelH_icon.png");
+}
 .alias {
 	-fx-text-fill:WHITE;
 	-fx-background-radius: 0;
