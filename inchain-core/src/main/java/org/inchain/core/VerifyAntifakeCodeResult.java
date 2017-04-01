@@ -8,7 +8,7 @@ import org.inchain.transaction.business.ProductTransaction;
  * @author ln
  *
  */
-public class VerifyAntifakeCodeResult extends Result {
+public class VerifyAntifakeCodeResult extends BroadcastResult {
 	
 	//验证的商品
 	private ProductTransaction productTx;

@@ -142,6 +142,15 @@ public final class Configure {
 	 * 修改账户别名消耗信用值
 	 */
 	public final static long UPDATE_ALIAS_SUB_CREDIT = -5;
+	/**
+	 * 转让防伪码所需信用值
+	 */
+	public final static long TRANSFER_ANTIFAKECODE_CREDIT = 1;
+	/**
+	 * 转让防伪码消耗信用值
+	 */
+	public final static long TRANSFER_ANTIFAKECODE_SUB_CREDIT = -1;
+	
 	
 	/**
 	 * 参与共识所需的信用点

@@ -3,6 +3,8 @@ package org.inchain.transaction.business;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -10,7 +12,9 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
+import org.inchain.script.Script;
 import org.inchain.transaction.Output;
+import org.inchain.transaction.TransactionInput;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 
@@ -150,12 +154,25 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 		this.productTx = productTx;
 	}
 
+	/**
+	 * 获取引用的防伪码列表
+	 * @return List<Sha256Hash>
+	 */
+	public List<Sha256Hash> getSources() {
+		List<Sha256Hash> hashs = new ArrayList<Sha256Hash>();
+		for (TransactionInput input : inputs) {
+			Script script = input.getScriptSig();
+			if(input.getFroms().size() == 1 && script.getChunks().size() == 1 && !script.getChunks().get(0).isOpCode() && script.getChunks().get(0).data.length == Sha256Hash.LENGTH) {
+				hashs.add(input.getFroms().get(0).getParent().getHash());
+			}
+		}
+		return hashs;
+	}
+	
 	@Override
 	public String toString() {
 		return "AntifakeCodeMakeTransaction [hash=" + getHash() + ", type=" + type + ", time=" + time + ", outputs="
 				+ outputs + ", inputs=" + inputs + ", scriptSig=" + scriptSig + ", productTx=" + productTx + ", nonce="
 				+ nonce + "]";
 	}
-	
-	
 }

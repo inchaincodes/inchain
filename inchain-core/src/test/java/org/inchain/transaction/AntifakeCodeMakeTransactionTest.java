@@ -55,7 +55,7 @@ public class AntifakeCodeMakeTransactionTest extends TestNetBaseTestCase {
 		
 		log.info("best block height {}", network.getBestBlockHeight());
 		
-		String productTx = "6f761f487bdc557bd244c9e32499be1bd89401b949987aa1f69ec905508ca5a8";
+		String productTx = "c97904f235e8a109281230ecf919a251d4c97fde21181e4ee74f294b5731baa8";
 //		Coin reward = Coin.COIN.multiply(3).div(2);
 		Coin reward = Coin.ZERO;
 		BroadcastMakeAntifakeCodeResult result = accountKit.makeAntifakeCode(productTx, reward, "inchain123");

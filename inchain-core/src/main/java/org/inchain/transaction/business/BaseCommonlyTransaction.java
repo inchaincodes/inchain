@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.account.Account;
+import org.inchain.account.Address;
 import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.AccountEncryptedException;
@@ -184,6 +185,18 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			throw new VerificationException("交易验证脚本不存在，无法获取账户hash160");
 		}
 		return scriptSig.getAccountHash160();
+	}
+	
+	/**
+	 * 获取交易者的账户地址
+	 * @return
+	 */
+	public String getOperator() {
+		if(isCertAccount()) {
+			return new Address(network, network.getCertAccountVersion(), getHash160()).getBase58();
+		} else {
+			return new Address(network, network.getSystemAccountVersion(), getHash160()).getBase58();
+		}
 	}
 	
 	/**

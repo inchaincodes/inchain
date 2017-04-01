@@ -12,6 +12,7 @@ import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.AccountKeyValue;
+import org.inchain.core.AntifakeInfosResult;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
@@ -22,6 +23,7 @@ import org.inchain.core.TimeService;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
+import org.inchain.kits.AccountKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
@@ -32,13 +34,18 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
+import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegAliasTransaction;
+import org.inchain.transaction.business.RelevanceSubAccountTransaction;
+import org.inchain.transaction.business.RemoveSubAccountTransaction;
 import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.utils.Base58;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
 import org.inchain.utils.Utils;
@@ -161,6 +168,8 @@ public class TransactionRecordController implements SubPageController {
 			//当前最新区块高度
 			NetworkParams network = InchainInstance.getInstance().getAppKit().getNetwork();
 			long bestBlockHeight = network.getBestBlockHeight();
+			
+			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 			
 			List<Account> accounts = InchainInstance.getInstance().getAccountKit().getAccountList();
 			
@@ -478,6 +487,58 @@ public class TransactionRecordController implements SubPageController {
 							}
 							break;
 						}
+					}
+				} else if(tx.getType() == Definition.TYPE_RELEVANCE_SUBACCOUNT) {
+					//关联子账户
+					RelevanceSubAccountTransaction rsatx = (RelevanceSubAccountTransaction) tx;
+					
+					type = "关联账户";
+					
+					detail += "关联子账户：" + rsatx.getAddress().getBase58();
+					
+				} else if(tx.getType() == Definition.TYPE_REMOVE_SUBACCOUNT) {
+					//解除子账户的关联
+					RemoveSubAccountTransaction rsatx = (RemoveSubAccountTransaction) tx;
+					
+					type = "关联解除";
+					
+					detail += "解除与账户：" + rsatx.getAddress().getBase58() + " 的关联";
+					
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
+					//防伪码流转
+					CirculationTransaction ctx = (CirculationTransaction) tx;
+
+					type = "流转信息";
+					
+					AntifakeInfosResult infos = accountKit.getProductAndBusinessInfosByAntifake(ctx.getAntifakeCode());
+
+					detail += "防伪码：" + Base58.encode(ctx.getAntifakeCode()) + "\n";
+					try {
+						detail += "商家：" + infos.getBusiness().getAccountBody().getName() + "\n";
+						detail += "商品：" + infos.getProductTx().getProduct().getName() + "\n";
+						detail += "事件：" + new String(ctx.getTag(), "utf-8") + "\n";
+						detail += "详情：" + new String(ctx.getContent(), "utf-8") + "\n";
+					} catch (UnsupportedEncodingException e) {
+						e.printStackTrace();
+					}
+					detail += "操作人：" + ctx.getOperator();
+					
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+					//防伪码转让
+					AntifakeTransferTransaction atx = (AntifakeTransferTransaction) tx;
+					
+					AntifakeInfosResult infos = accountKit.getProductAndBusinessInfosByAntifake(atx.getAntifakeCode());
+					
+					type = "商品转让";
+					detail += "防伪码：" + Base58.encode(atx.getAntifakeCode()) + "\n";
+					detail += "商家：" + infos.getBusiness().getAccountBody().getName() + "\n";
+					detail += "商品：" + infos.getProductTx().getProduct().getName() + "\n";
+					detail += "转让者：" + atx.getOperator() + "\n";
+					detail += "转让给：" + atx.getReceiveAddress() + "\n";
+					try {
+						detail += "说明：" + new String(atx.getRemark(), "utf-8") + "\n";
+					} catch (UnsupportedEncodingException e) {
+						e.printStackTrace();
 					}
 				}
 				

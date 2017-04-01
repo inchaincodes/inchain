@@ -90,6 +90,15 @@ public class AccountBody {
 	public void setContents(List<AccountKeyValue> contents) {
 		this.contents = contents;
 	}
+	
+	public String getName() {
+		for (AccountKeyValue keyValuePair : contents) {
+			if(keyValuePair.getCode().equals(AccountKeyValue.NAME.getCode())) {
+				return keyValuePair.getValueToString();
+			}
+		}
+		return null;
+	}
 
 	@Override
 	public String toString() {

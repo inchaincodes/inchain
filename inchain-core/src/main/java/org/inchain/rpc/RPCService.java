@@ -181,13 +181,14 @@ public interface RPCService {
 	 * 认证账户创建防伪码
 	 * @param productTx 商品id
 	 * @param count 数量
+	 * @param sources 来源
 	 * @param reward 奖励
 	 * @param trpw 账户交易密码
 	 * @param address	账户地址
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	JSONObject createAntifake(String productTx, int count, Coin reward, String trpw, String address) throws JSONException;
+	JSONObject createAntifake(String productTx, int count, JSONArray sources, Coin reward, String trpw, String address) throws JSONException;
 
 	/**
 	 * 获取共识节点列表
@@ -260,7 +261,7 @@ public interface RPCService {
 	JSONObject broadcastfromfile(String filepath) throws JSONException;
 
 	/**
-	 * 通过防伪码查询商家和商品
+	 * 通过防伪码查询防伪码相关的所有信息
 	 * @param antifakeCode
 	 * @return JSONObject
 	 * @throws JSONException
@@ -274,4 +275,129 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONObject verifyAntifake(JSONArray params) throws JSONException;
+
+	/**
+	 * 添加防伪码流转信息
+	 * @param antifakeCode				防伪码
+	 * @param tag						流转信息标签
+	 * @param content					流转信息内容
+	 * @param address 					地址
+	 * @param privateKeyOrPassword		私钥或者地址密码，当地址为空，这个值不为空之代表私钥，否则代表密码
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject addCirculation(String antifakeCode, String tag, String content, String address,
+			String privateKeyOrPassword) throws JSONException;
+
+	/**
+	 * 查询防伪码流转信息
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryCirculations(String antifakeCode) throws JSONException;
+
+	/**
+	 * 查询防伪码流转次数
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryCirculationCount(String antifakeCode) throws JSONException;
+	
+	/**
+	 * 查询防伪码流转次数
+	 * @param antifakeCode
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryCirculationCount(String antifakeCode, String address) throws JSONException;
+
+	/**
+	 * 防伪码转让
+	 * @param antifakeCode		防伪码
+	 * @param receiver			接收人
+	 * @param remark			备注
+	 * @param address			转让者账户
+	 * @param privateKeyOrPassword	转让者私钥或者账户密码
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject transferAntifake(String antifakeCode, String receiver, String remark, String address,
+			String privateKeyOrPassword) throws JSONException;
+
+	/**
+	 * 查询防伪码转让记录
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryTransfers(String antifakeCode) throws JSONException;
+
+	/**
+	 * 查询防伪码转让次数
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryTransferCount(String antifakeCode) throws JSONException;
+
+	/**
+	 * 查询防伪码拥有者
+	 * @param antifakeCode
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject queryAntifakeOwner(String antifakeCode) throws JSONException;
+
+	/**
+	 * 认证商家关联子账户
+	 * @param relevancer
+	 * @param alias
+	 * @param content
+	 * @param trpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject relevanceSubAccount(String relevancer, String alias, String content, String trpw, String address) throws JSONException;
+
+	/**
+	 * 解除子账户的关联
+	 * @param relevancer
+	 * @param hashId
+	 * @param trpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject removeSubAccount(String relevancer, String hashId, String trpw, String address) throws JSONException;
+	
+	/**
+	 * 获取认证商家子账户列表
+	 * @param address
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject getSubAccounts(String address) throws JSONException;
+
+	/**
+	 * 获取认证商家子账户数量
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject getSubAccountCount(String address) throws JSONException;
+	
+	/**
+	 * 检查是否是商家的子账户
+	 * @param certAddress
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject checkIsSubAccount(String certAddress, String address) throws JSONException;
+	
+	
 }

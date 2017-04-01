@@ -6,9 +6,12 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.account.AccountBody;
+import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Product;
+import org.inchain.core.exception.AddressFormatException;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.network.NetworkParams;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +58,8 @@ public class RPCHanlder {
 	private final static Logger log = LoggerFactory.getLogger(RPCHanlder.class);
 
 	@Autowired
+	private NetworkParams network;
+	@Autowired
 	private RPCService rpcService;
 	
 	/**
@@ -64,7 +69,13 @@ public class RPCHanlder {
 	 * @throws JSONException 
 	 */
 	public JSONObject hanlder(JSONObject commandInfos) throws JSONException {
-		return hanlder(commandInfos, null);
+		try {
+			return hanlder(commandInfos, null);
+		} catch (JSONException e) {
+			return new JSONObject().put("success", false).put("message", "缺少参数");
+		} catch (AddressFormatException ae) {
+			return new JSONObject().put("success", false).put("message", "地址不正确");
+		}
 	}
 
 	public JSONObject hanlder(JSONObject commandInfos, JSONObject inputInfos) throws JSONException {
@@ -342,11 +353,34 @@ public class RPCHanlder {
 			try {
 				String productHash = params.getString(0);
 				
-				int count = Integer.parseInt(params.getString(1));
+				JSONArray sources = null;
+				int count = 0;
 				
-				if(count <= 0) {
+				String params1 = params.getString(1);
+				
+				try {
+					System.out.println(params1);
+					
+					JSONObject params1Json = new JSONObject(params1);
+					
+					count = params1Json.getInt("count");
+					if(count <= 0) {
+						result.put("success", false);
+						result.put("message", "防伪码数量不正确，应大于0");
+						return result;
+					}
+					if(params1Json.has("sources")) {
+						sources = params1Json.getJSONArray("sources");
+						if(count != sources.length()) {
+							result.put("success", false);
+							result.put("message", "来源个数和防伪码个数不匹配");
+							return result;
+						}
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
 					result.put("success", false);
-					result.put("message", "防伪码数量不正确，应大于0");
+					result.put("message", "参数格式不正确");
 					return result;
 				}
 				
@@ -373,7 +407,7 @@ public class RPCHanlder {
 					}
 				}
 				
-				result = rpcService.createAntifake(productHash, count, reward, trpw, address);
+				result = rpcService.createAntifake(productHash, count, sources, reward, trpw, address);
 			} catch (JSONException e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
@@ -389,21 +423,261 @@ public class RPCHanlder {
 		
 		//通过防伪码查询商家和商品
 		case "queryantifake": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
 			return rpcService.queryAntifake(params.getString(0));
 		}
 		
-		//通过防伪码查询商家和商品
+		//防伪码验证
 		case "verifyantifake": {
 			return rpcService.verifyAntifake(params);
 		}
 		
+		//添加防伪码流转信息
+		case "addcirculation": {
+			if(params.length()  < 3) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//防伪码
+			String antifakeCode = params.getString(0);
+			//标签
+			String tag = params.getString(1);
+			//内容
+			String content = params.getString(2);
+			
+			String address = null;
+			String privateKeyOrPassword = null;
+			
+			if(params.length() == 4) {
+				//判断是否是地址
+				try {
+					Address ar = Address.fromBase58(network, params.getString(3));
+					address = ar.getBase58();
+				} catch (Exception e) {
+					privateKeyOrPassword = params.getString(3); 
+				}
+			} else if(params.length() == 5) {
+				address = params.getString(3);
+				privateKeyOrPassword = params.getString(4);
+			}
+			
+			return rpcService.addCirculation(antifakeCode, tag, content, address, privateKeyOrPassword);
+		}
+		
+		//查询防伪码流转信息
+		case "querycirculations": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//防伪码
+			String antifakeCode = params.getString(0);
+			return rpcService.queryCirculations(antifakeCode);
+		}
+		
+		//查询防伪码流转次数
+		case "querycirculationcount": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//防伪码
+			String antifakeCode = params.getString(0);
+			String address = null;
+			
+			if(params.length() > 1) {
+				address = params.getString(1);
+			}
+			
+			return rpcService.queryCirculationCount(antifakeCode, address);
+		}
+		
+		//防伪码转让
+		case "transferantifake": {
+			if(params.length()  < 3) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			//防伪码
+			String antifakeCode = params.getString(0);
+			//接收者
+			String receiver = params.getString(1);
+			//备注
+			String remark = params.getString(2);
+			
+			String address = null;
+			String privateKeyOrPassword = null;
+			
+			if(params.length() == 4) {
+				//判断是否是地址
+				try {
+					Address ar = Address.fromBase58(network, params.getString(3));
+					address = ar.getBase58();
+				} catch (Exception e) {
+					privateKeyOrPassword = params.getString(3); 
+				}
+			} else if(params.length() == 5) {
+				address = params.getString(3);
+				privateKeyOrPassword = params.getString(4);
+			}
+			
+			return rpcService.transferAntifake(antifakeCode, receiver, remark, address, privateKeyOrPassword);
+		}
+		
+		//查询防伪码转让信息
+		case "querytransfers": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			//防伪码
+			String antifakeCode = params.getString(0);
+			return rpcService.queryTransfers(antifakeCode);
+		}
+		
+		//查询防伪码转让次数
+		case "querytransfercount": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//防伪码
+			String antifakeCode = params.getString(0);
+			return rpcService.queryTransferCount(antifakeCode);
+		}
+		
+		//查询防伪码所属权
+		case "queryantifakeowner": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			//防伪码
+			String antifakeCode = params.getString(0);
+			return rpcService.queryAntifakeOwner(antifakeCode);
+		}
+		
+		//认证商家关联子账户
+		case "relevancesubaccount": {
+			
+			if(params.length()  < 3) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//关联账户
+			String relevancer = params.getString(0);
+			//别名
+			String alias = params.getString(1);
+			//描述
+			String content = params.getString(2);
+			
+			String trpw = params.getString(3);
+			String address = null;
+			
+			if(params.length() > 4) {
+				address = params.getString(4); 
+			}
+			
+			return rpcService.relevanceSubAccount(relevancer, alias, content, trpw, address);
+		}
+		
+		//认证商家解除子账户关联
+		case "removesubaccount": {
+			if(params.length()  < 3) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			//关联账户
+			String relevancer = params.getString(0);
+			//交易id
+			String hashId = params.getString(1);
+			
+			String trpw = params.getString(2);
+			String address = null;
+			
+			if(params.length() > 3) {
+				address = params.getString(3); 
+			}
+			
+			return rpcService.removeSubAccount(relevancer, hashId, trpw, address);
+		}
+		
+		//获取认证商家子账户列表
+		case "getsubaccounts": {
+			if(params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			String address = params.getString(0);
+			return rpcService.getSubAccounts(address);
+		}
+		
+		//获取认证商家子账户个数
+		case "getsubaccountcount": {
+			if(params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			String address = params.getString(0);
+			return rpcService.getSubAccountCount(address);
+		}
+		
+		//获取认证商家子账户个数
+		case "checksssubaccount": {
+			if(params.length() < 2) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
+			String certAddress = params.getString(0);
+			String address = params.getString(1);
+			return rpcService.checkIsSubAccount(certAddress, address);
+		}
+		
 		//广播
 		case "broadcast": {
+			if(params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
 			return rpcService.broadcast(params.getString(0));
 		}
 		
 		//广播交易，交易存于文件里
 		case "broadcastfromfile": {
+			if(params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			
 			return rpcService.broadcastfromfile(params.getString(0));
 		}
 		
@@ -489,13 +763,28 @@ public class RPCHanlder {
 		sb.append(" --- 节点相关 --- \n");
 		sb.append("  getpeers                        获取连接节点信息\n");
 		sb.append("\n");
-//		sb.append(" --- 业务相关 --- \n");
-//		sb.append("  createproduct [productinfo] [password]                               认证账户创建商品[仅适用于认证账户]\n");
-//		sb.append("  makegeneralantifakecode [productinfo|producttxid] [password]         创建普通防伪码[仅适用于认证账户]\n");
-//		sb.append("  makeantifakecode [productinfo] [password]                            创建链上防伪码[仅适用于认证账户]\n");
-//		sb.append("  verifygeneralantifakecode [antifakecode] [password]                  验证普通防伪码[仅适用于普通账户]\n");
-//		sb.append("  verifyantifakecode [antifakecode] [password]                         验证链上防伪码[仅适用于普通账户]\n");
-//		sb.append("\n");
+		sb.append(" --- 业务相关 --- \n");
+		sb.append("  createproduct [productinfo] [password]                               认证账户创建商品[仅适用于认证账户]\n");
+		sb.append("  makegeneralantifakecode [productinfo|producttxid] [password]         创建普通防伪码[仅适用于认证账户]\n");
+		sb.append("  makeantifakecode [productinfo] [password]                            创建链上防伪码[仅适用于认证账户]\n");
+		sb.append("  verifygeneralantifakecode [antifakecode] [password]                  验证普通防伪码[仅适用于普通账户]\n");
+		sb.append("  verifyantifakecode [antifakecode] [password]                         验证链上防伪码[仅适用于普通账户]\n");
+		sb.append("\n");
+		sb.append("  queryantifake [antifakecode]                                                                            查询防伪码的信息,包括防伪码所属商家、商品、溯源信息、流转信息、验证信息、转让信息\n");
+		sb.append("  addcirculation [antifakecode] [subject] [description] ([address] [privateKeyOrPassword])                添加防伪码流转信息\n");
+		sb.append("  querycirculations [antifakecode]                                                                        查询防伪码流转信息\n");
+		sb.append("  querycirculationcount [antifakecode] [address]                                                          查询防伪码流转次数\n");
+		sb.append("  transferantifake [antifakecode] [receiverAddress] [description]  ([address] [privateKeyOrPassword])     防伪码转让\n");
+		sb.append("  querytransfers [antifakecode]                                                                           查询防伪码转让记录\n");
+		sb.append("  querytransfercount [antifakecode]                                                                       查询防伪码转让次数\n");
+		sb.append("  queryantifakeowner [antifakecode]                                                                       查询防伪码拥有者\n");
+		sb.append("\n");
+		sb.append("  relevancesubaccount [address] [alias] [description] [trpw] ([certAddress])                              认证商家关联子账户\n");
+		sb.append("  removeSubAccount [address] [txId] [trpw] ([certAddress])                                                解除子账户的关联\n");
+		sb.append("  getsubaccounts [certAddress]                                                                            获取认证商家子账户列表\n");
+		sb.append("  getsubaccountcount [certAddress]                                                                        获取认证商家子账户数量\n");
+		sb.append("  checkissubaccount [certAddress] [address]                                                               检查是否是商家的子账户\n");
+		
 		
 		return sb.toString();
 	}

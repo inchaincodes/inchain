@@ -1,7 +1,10 @@
 package org.inchain.account;
 
+import java.util.Arrays;
+
 import org.inchain.core.Coin;
 import org.inchain.core.exception.AddressFormatException;
+import org.inchain.core.exception.VerificationException;
 import org.inchain.core.exception.WrongNetworkException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
@@ -17,6 +20,8 @@ import org.inchain.utils.Utils;
  */
 public class Address {
 	
+	//base58的长度
+	public static final int HASH_LENGTH = 25;
 	//address 的 RIPEMD160 长度
     public static final int LENGTH = 20;
     //所处网络环境
@@ -67,6 +72,7 @@ public class Address {
         version = versionByte & 0xFF;
         bytes = new byte[LENGTH];
         System.arraycopy(versionAndDataBytes, 1, bytes, 0, LENGTH);
+        
         if (network != null) {
             if (!isAcceptableVersion(network, version)) {
                 throw new WrongNetworkException(version, network.getAcceptableAddressCodes());
@@ -86,7 +92,7 @@ public class Address {
             this.network = paramsFound;
         }
     }
-
+    
     /**
      * 根据hash160创建地址
      * @param network
@@ -99,6 +105,32 @@ public class Address {
         } catch (WrongNetworkException e) {
             throw new RuntimeException(e);  // Cannot happen.
         }
+    }
+    
+    /**
+     * 根据hash内容创建地址
+     * @param network
+     * @param hashs
+     * @return Address
+     * @throws AddressFormatException
+     */
+    public static Address fromHashs(NetworkParams network, byte[] hashs) throws AddressFormatException {
+    	
+    	if(hashs == null || hashs.length != HASH_LENGTH) {
+    		throw new AddressFormatException();
+    	}
+    	
+    	int version = hashs[0] & 0XFF;
+    	byte[] content = new byte[LENGTH];
+        System.arraycopy(hashs, 1, content, 0, LENGTH);
+    	
+        byte[] sign = new byte[4];
+    	System.arraycopy(hashs, 21, sign, 0, 4);
+    	
+    	Address address = new Address(network, version, content);
+    	address.checkSign(sign);
+    	
+    	return address;
     }
     
     /**
@@ -209,6 +241,22 @@ public class Address {
 		System.arraycopy(Sha256Hash.hashTwice(versionAndHash160), 0, checkSin, 0, 4);
 		return checkSin;
 	}
+    
+    protected void checkSign(byte[] sign) throws VerificationException {
+    	//地址一共25字节
+        byte[] versionAndHash160 = new byte[21];
+        //加上版本号
+        versionAndHash160[0] = (byte) version;
+        //加上20字节的hash160
+        System.arraycopy(bytes, 0, versionAndHash160, 1, bytes.length);
+        
+    	byte[] checkSin = new byte[4];
+		System.arraycopy(Sha256Hash.hashTwice(versionAndHash160), 0, checkSin, 0, 4);
+		
+		if(!Arrays.equals(checkSin, sign)) {
+			throw new VerificationException("地址校验失败");
+		}
+    }
     
     public int getVersion() {
 		return version;

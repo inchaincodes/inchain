@@ -76,14 +76,14 @@ public class SendAmountController implements SubPageController {
 				}
 			}
 		});
-    	remarkId.setOnKeyPressed(new EventHandler<KeyEvent>() {
-			@Override
-			public void handle(KeyEvent event) {
-				if(event.getCode() == KeyCode.ENTER) {
-					sendAmount();
-				}
-			}
-		});
+//    	remarkId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+//			@Override
+//			public void handle(KeyEvent event) {
+//				if(event.getCode() == KeyCode.ENTER) {
+//					sendAmount();
+//				}
+//			}
+//		});
     	//设置按钮图片以及图片与字体之间的间距
     	sendButId.setGraphic(new ImageView(sendIcon));
     	sendButId.setGraphicTextGap(10);

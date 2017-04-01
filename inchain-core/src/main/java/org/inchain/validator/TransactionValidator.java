@@ -17,6 +17,7 @@ import org.inchain.core.RepeatBlockViolationEvidence;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.kits.AccountKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
@@ -32,8 +33,10 @@ import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
+import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegAliasTransaction;
@@ -70,6 +73,8 @@ public class TransactionValidator {
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
+	@Autowired
+	private AccountKit accountKit;
 
 	/**
 	 * 交易验证器，验证交易的输入输出是否合法
@@ -209,6 +214,7 @@ public class TransactionValidator {
 					}
 				}
 				Script verifyScript = new Script(scriptBytes);
+				System.out.println(verifyScript);
 				if(verifyScript.isConsensusOutputScript()) {
 					//共识保证金引用脚本，则验证
 					//因为共识保证金，除了本人会操作，还会有其它共识人操作
@@ -339,7 +345,7 @@ public class TransactionValidator {
 				txIndex[txIndex.length - 1] = 0;
 				
 				byte[] status = chainstateStoreProvider.getBytes(txIndex);
-				if(status == null) {
+				if(status != null && Arrays.equals(status, new byte[] { 2 })) {
 					result.setResult(false, "防伪码已被验证");
 					return validatorResult;
 				}
@@ -350,8 +356,6 @@ public class TransactionValidator {
 				//获取申请人信息，包括信用和可用余额
 				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 				if(accountStore == null && regConsensusTx.isCertAccount()) {
-					//TODO 需要信用才能注册的，这里不应该做任何处理
-					//加入内存池  临时的处理方案
 					result.setResult(false, "账户不存在");
 					return validatorResult;
 				}
@@ -635,7 +639,7 @@ public class TransactionValidator {
 			//交易账户必须是认证账户
 			byte[] hash160 = rst.getHash160();
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-			if(accountInfo == null || accountInfo.getType() != network.getSystemAccountVersion()) {
+			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
 				result.setResult(false, "只有认证账户才能添加子账户");
 				return validatorResult;
 			}
@@ -646,7 +650,7 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 			//验证是否重复关联
-			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHash160());
+			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHashs());
 			if(txHash != null) {
 				result.setResult(false, "重复注册");
 				return validatorResult;
@@ -657,14 +661,118 @@ public class TransactionValidator {
 			//交易账户必须是认证账户
 			byte[] hash160 = rst.getHash160();
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-			if(accountInfo == null || accountInfo.getType() != network.getSystemAccountVersion()) {
+			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
 				result.setResult(false, "只有认证账户才能添加子账户");
 				return validatorResult;
 			}
 			//验证是否存在
-			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHash160());
+			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHashs());
 			if(txHash == null) {
 				result.setResult(false, "欲删除不存在的关联");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
+			//防伪码流转信息
+			CirculationTransaction ctx = (CirculationTransaction) tx;
+			//通过防伪码查询到防伪信息
+			byte[] antifakeCode = ctx.getAntifakeCode();
+			//先验证防伪码是否是合法状态
+			byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(antifakeCode);
+			if(antifakeCodeVerifyMakeTxHash == null) {
+				result.setResult(false, "防伪码不存在");
+				return validatorResult;
+			}
+			
+			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
+			if(txStore == null || txStore.getTransaction() == null) {
+				result.setResult(false, "防伪码生成交易不存在");
+				return validatorResult;
+			}
+			Transaction avmTx = txStore.getTransaction();
+			if(avmTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				result.setResult(false, "错误的防伪码");
+				return validatorResult;
+			}
+			AntifakeCodeMakeTransaction antifakeMakeTx = (AntifakeCodeMakeTransaction) avmTx;
+			//保证该防伪码没有被验证
+			byte[] txStatus = antifakeMakeTx.getHash().getBytes();
+			byte[] txIndex = new byte[txStatus.length + 1];
+			
+			System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
+			txIndex[txIndex.length - 1] = 0;
+			
+			byte[] status = chainstateStoreProvider.getBytes(txIndex);
+			if(status != null && Arrays.equals(status, new byte[] { 2 })) {
+				result.setResult(false, "防伪码已被验证");
+				return validatorResult;
+			}
+
+			//操作人必须是商家自己，或者关联的子账户，否则验证失败
+			//先验证是否是商家自己
+			byte[] certHash160 = antifakeMakeTx.getHash160();
+			byte[] hash160 = ctx.getHash160();
+			if(Arrays.equals(certHash160, hash160)) {
+				result.setResult(true, "ok");
+				return validatorResult;
+			}
+			Address address = new Address(network, ctx.isCertAccount() ? network.getCertAccountVersion() : network.getSystemAccountVersion(), hash160);
+			//不是商家自己，那么验证是否子账户
+			Sha256Hash subAccountTx = chainstateStoreProvider.checkIsSubAccount(certHash160, address.getHash());
+			if(subAccountTx == null) {
+				result.setResult(false, "非法的操作,添加流转信息必须是商家自己或者商家关联的子账户");
+				return validatorResult;
+			}
+			//每个子账户对应每个防伪码只能关联5条流转信息
+			int count = chainstateStoreProvider.getCirculationCount(antifakeCode, address.getHash());
+			if(count > CirculationTransaction.SUB_ACCOUNT_MAX_SIZE) {
+				result.setResult(false, "添加的流转信息超过数量限制，不能大于" + CirculationTransaction.SUB_ACCOUNT_MAX_SIZE + "条");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
+			
+			//账户必须达到规定的信用，才能转让防伪码
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getReceiveHash160());
+			if(accountInfo == null || accountInfo.getCert() < Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
+				result.setResult(false, "账户信用达到" + Configure.TRANSFER_ANTIFAKECODE_CREDIT + "之后才能转让");
+				return validatorResult;
+			}
+			
+			byte[] antifakeCode = attx.getAntifakeCode();
+			//先验证防伪码是否是合法状态
+			byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(antifakeCode);
+			if(antifakeCodeVerifyMakeTxHash == null) {
+				result.setResult(false, "防伪码不存在");
+				return validatorResult;
+			}
+			
+			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
+			if(txStore == null || txStore.getTransaction() == null) {
+				result.setResult(false, "防伪码生成交易不存在");
+				return validatorResult;
+			}
+			Transaction avmTx = txStore.getTransaction();
+			if(avmTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				result.setResult(false, "错误的防伪码");
+				return validatorResult;
+			}
+			AntifakeCodeMakeTransaction antifakeCodeMakeTx = (AntifakeCodeMakeTransaction) avmTx;
+			//保证该防伪码已经被验证
+			byte[] txStatus = antifakeCodeMakeTx.getHash().getBytes();
+			byte[] txIndex = new byte[txStatus.length + 1];
+			
+			System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
+			txIndex[txIndex.length - 1] = 0;
+			
+			byte[] status = chainstateStoreProvider.getBytes(txIndex);
+			if(status != null && Arrays.equals(status, new byte[] { 1 })) {
+				result.setResult(false, "防伪码未被验证，不能转让");
+				return validatorResult;
+			}
+			//必须是拥有者才能转让
+			Address owner = accountKit.queryAntifakeOwner(antifakeCode);
+			if(owner == null || !Arrays.equals(owner.getHash160(), attx.getHash160())) {
+				result.setResult(false, "没有权限转让");
 				return validatorResult;
 			}
 		}

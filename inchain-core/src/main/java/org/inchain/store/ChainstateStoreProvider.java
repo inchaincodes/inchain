@@ -8,6 +8,8 @@ import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.business.AntifakeTransferTransaction;
+import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.RemoveSubAccountTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,10 +121,10 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		if(subAccounts == null) {
 			subAccounts = new byte[0];
 		}
-		byte[] newSubAccounts = new byte[subAccounts.length + Address.LENGTH + Sha256Hash.LENGTH];
+		byte[] newSubAccounts = new byte[subAccounts.length + Address.HASH_LENGTH + Sha256Hash.LENGTH];
 		System.arraycopy(subAccounts, 0, newSubAccounts, 0, subAccounts.length);
-		System.arraycopy(relevancSubAccountTx.getRelevanceHash160(), 0, newSubAccounts, subAccounts.length, Address.LENGTH);
-		System.arraycopy(relevancSubAccountTx.getHash().getBytes(), 0, newSubAccounts, subAccounts.length + Address.LENGTH, Sha256Hash.LENGTH);
+		System.arraycopy(relevancSubAccountTx.getRelevanceHashs(), 0, newSubAccounts, subAccounts.length, Address.HASH_LENGTH);
+		System.arraycopy(relevancSubAccountTx.getHash().getBytes(), 0, newSubAccounts, subAccounts.length + Address.HASH_LENGTH, Sha256Hash.LENGTH);
 		put(subAccountKey, newSubAccounts);
 		return true;
 	}
@@ -140,18 +142,18 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		
 		byte[] subAccounts = getBytes(subAccountKey);
 		
-		byte[] newSubAccounts = new byte[subAccounts.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+		byte[] newSubAccounts = new byte[subAccounts.length - (Address.HASH_LENGTH + Sha256Hash.LENGTH)];
 		
 		//找出位置在哪里
 		//判断在列表里面才更新，否则就被清空了
 		boolean hashExist = false;
-		for (int j = 0; j < subAccounts.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
-			byte[] addressHash160 = Arrays.copyOfRange(subAccounts, j, j + Address.LENGTH);
-			byte[] txhash = Arrays.copyOfRange(subAccounts, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH);
-			if(Arrays.equals(addressHash160, removeSubAccountTx.getRelevanceHash160()) && Arrays.equals(txhash, removeSubAccountTx.getTxhash().getBytes())) {
+		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHashsTemp = Arrays.copyOfRange(subAccounts, j, j + Address.HASH_LENGTH);
+			byte[] txhash = Arrays.copyOfRange(subAccounts, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH);
+			if(Arrays.equals(addressHashsTemp, removeSubAccountTx.getRelevanceHashs()) && Arrays.equals(txhash, removeSubAccountTx.getTxhash().getBytes())) {
 				hashExist = true;
 				System.arraycopy(subAccounts, 0, newSubAccounts, 0, j);
-				System.arraycopy(subAccounts, j + (Address.LENGTH + Sha256Hash.LENGTH), newSubAccounts, j, subAccounts.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+				System.arraycopy(subAccounts, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newSubAccounts, j, subAccounts.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
 				break;
 			}
 		}
@@ -181,8 +183,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			return list;
 		}
 		
-		for (int j = 0; j < subAccounts.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
-			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(subAccounts, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH));
+		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(subAccounts, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH));
 			
 			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
 			if(txs == null) {
@@ -209,16 +211,16 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		if(subAccounts == null || subAccounts.length == 0) {
 			return 0;
 		}
-		return (int)(subAccounts.length / (Address.LENGTH + Sha256Hash.LENGTH));
+		return (int)(subAccounts.length / (Address.HASH_LENGTH + Sha256Hash.LENGTH));
 	}
 	
 	/**
 	 * 检查是否是认证账户的子账户
 	 * @param certHash160
-	 * @param hash160
+	 * @param addressHashs
 	 * @return Sha256Hash 返回商家添加子账户的交易id，有可能返回null
 	 */
-	public Sha256Hash checkIsSubAccount(byte[] certHash160, byte[] hash160) {
+	public Sha256Hash checkIsSubAccount(byte[] certHash160, byte[] addressHashs) {
 		byte[] subAccountKey = new byte[22];
 		subAccountKey[0] = 0;
 		subAccountKey[1] = 1;
@@ -228,10 +230,10 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		if(subAccounts == null || subAccounts.length == 0) {
 			return null;
 		}
-		for (int j = 0; j < subAccounts.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
-			byte[] addressHash160 = Arrays.copyOfRange(subAccounts, j, j + Address.LENGTH);
-			if(Arrays.equals(addressHash160, hash160)) {
-				return Sha256Hash.wrap(Arrays.copyOfRange(subAccounts, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH));
+		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHashsTemp = Arrays.copyOfRange(subAccounts, j, j + Address.HASH_LENGTH);
+			if(Arrays.equals(addressHashsTemp, addressHashs)) {
+				return Sha256Hash.wrap(Arrays.copyOfRange(subAccounts, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH));
 			}
 		}
 		return null;
@@ -302,11 +304,248 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 		//设置新的别名
 		accountInfo.setAlias(alias);
+		//扣除信用
 		accountInfo.setCert(accountInfo.getCert() + Configure.UPDATE_ALIAS_SUB_CREDIT);
 		saveAccountInfo(accountInfo);
 		
 		put(Sha256Hash.hash(alias), hash160);
 		
 		return true;
+	}
+	
+	/**
+	 * 添加防伪码流转信息
+	 * @param antifakeCode
+	 * @param hash160
+	 * @param txHash
+	 */
+	public void addCirculation(byte[] antifakeCode, byte[] hash160, Sha256Hash txHash) {
+		byte[] circulationKey = new byte[22];
+		circulationKey[0] = 0;
+		circulationKey[1] = 1;
+		System.arraycopy(antifakeCode, 0, circulationKey, 2, Address.LENGTH);
+		
+		byte[] circulations = getBytes(circulationKey);
+		if(circulations == null) {
+			circulations = new byte[0];
+		}
+		byte[] newCirculations = new byte[circulations.length +  Address.LENGTH + Sha256Hash.LENGTH];
+		System.arraycopy(circulations, 0, newCirculations, 0, circulations.length);
+		System.arraycopy(hash160, 0, newCirculations, circulations.length, Address.LENGTH);
+		System.arraycopy(txHash.getBytes(), 0, newCirculations, circulations.length + Address.LENGTH, Sha256Hash.LENGTH);
+		put(circulationKey, newCirculations);
+	}
+
+	/**
+	 * 获取防伪码对应人已添加的流转信息数量
+	 * @param antifakeCode
+	 * @param hash160
+	 * @return int
+	 */
+	public int getCirculationCount(byte[] antifakeCode, byte[] hash160) {
+		byte[] circulationKey = new byte[22];
+		circulationKey[0] = 0;
+		circulationKey[1] = 1;
+		System.arraycopy(antifakeCode, 0, circulationKey, 2, Address.LENGTH);
+		
+		byte[] circulations = getBytes(circulationKey);
+		
+		if(circulations == null) {
+			return 0;
+		}
+		
+		int count = 0;
+		for (int j = 0; j < circulations.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHash160 = Arrays.copyOfRange(circulations, j, j + Address.LENGTH);
+			if(Arrays.equals(addressHash160, hash160)) {
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	/**
+	 * 获取防伪码对应已添加的流转信息数量
+	 * @param antifakeCode
+	 * @return int
+	 */
+	public int getCirculationCount(byte[] antifakeCode) {
+		byte[] circulationKey = new byte[22];
+		circulationKey[0] = 0;
+		circulationKey[1] = 1;
+		System.arraycopy(antifakeCode, 0, circulationKey, 2, Address.LENGTH);
+		
+		byte[] circulations = getBytes(circulationKey);
+		
+		if(circulations == null) {
+			return 0;
+		}
+		
+		return circulations.length / (Address.LENGTH + Sha256Hash.LENGTH);
+	}
+	
+	/**
+	 * 获取防伪码流转信息列表
+	 * @param antifakeCode
+	 * @return List<CirculationTransaction>
+	 */
+	public List<CirculationTransaction> getCirculationList(byte[] antifakeCode) {
+		List<CirculationTransaction> list = new ArrayList<CirculationTransaction>();
+		
+		byte[] circulationKey = new byte[22];
+		circulationKey[0] = 0;
+		circulationKey[1] = 1;
+		System.arraycopy(antifakeCode, 0, circulationKey, 2, Address.LENGTH);
+		
+		byte[] circulations = getBytes(circulationKey);
+		
+		if(circulations == null) {
+			return list;
+		}
+		
+		for (int j = 0; j < circulations.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(circulations, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH));
+			
+			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+			if(txs == null) {
+				continue;
+			}
+			CirculationTransaction ctx = (CirculationTransaction) txs.getTransaction();
+			list.add(ctx);
+		}
+		return list;
+	}
+
+	/**
+	 * 转让防伪码
+	 * @param antifakeCode
+	 * @param hash160
+	 * @param receiveHashs
+	 * @param txHash
+	 */
+	public void antifakeTransfer(byte[] antifakeCode, byte[] hash160, byte[] receiveHashs, Sha256Hash txHash) {
+		byte[] transferKey = new byte[22];
+		transferKey[0] = 0;
+		transferKey[1] = 2;
+		System.arraycopy(antifakeCode, 0, transferKey, 2, Address.LENGTH);
+		
+		byte[] transfers = getBytes(transferKey);
+		if(transfers == null) {
+			transfers = new byte[0];
+		}
+		byte[] newTransfers = new byte[transfers.length +  Address.HASH_LENGTH + Sha256Hash.LENGTH];
+		System.arraycopy(transfers, 0, newTransfers, 0, transfers.length);
+		System.arraycopy(receiveHashs, 0, newTransfers, transfers.length, Address.HASH_LENGTH);
+		System.arraycopy(txHash.getBytes(), 0, newTransfers, transfers.length + Address.HASH_LENGTH, Sha256Hash.LENGTH);
+		
+		AccountStore accountInfo = getAccountInfo(hash160);
+		//扣除信用
+		accountInfo.setCert(accountInfo.getCert() + Configure.TRANSFER_ANTIFAKECODE_SUB_CREDIT);
+		saveAccountInfo(accountInfo);
+				
+		put(transferKey, newTransfers);
+	}
+	
+	/**
+	 * 获取防伪码的拥有者，流转链的最后一个人，如果流转链没有，则是验证者，会返回null，调用者自行判断
+	 * @param antifakeCode
+	 * @return byte[]
+	 */
+	public byte[] getAntifakeCodeOwner(byte[] antifakeCode) {
+		byte[] transferKey = new byte[22];
+		transferKey[0] = 0;
+		transferKey[1] = 2;
+		System.arraycopy(antifakeCode, 0, transferKey, 2, Address.LENGTH);
+		
+		byte[] transfers = getBytes(transferKey);
+		if(transfers == null || transfers.length == 0) {
+			return null;
+		}
+		int count = transfers.length / (Address.HASH_LENGTH + Sha256Hash.LENGTH);
+		int index = (count - 1) * (Address.HASH_LENGTH + Sha256Hash.LENGTH);
+		return Arrays.copyOfRange(transfers, index, index + Address.HASH_LENGTH);
+	}
+	
+	/**
+	 * 获取防伪码的转让次数
+	 * @param antifakeCode
+	 * @return int
+	 */
+	public int getAntifakeCodeTransferCount(byte[] antifakeCode) {
+		byte[] transferKey = new byte[22];
+		transferKey[0] = 0;
+		transferKey[1] = 2;
+		System.arraycopy(antifakeCode, 0, transferKey, 2, Address.LENGTH);
+		
+		byte[] transfers = getBytes(transferKey);
+		if(transfers == null || transfers.length == 0) {
+			return 0;
+		}
+		return transfers.length / (Address.HASH_LENGTH + Sha256Hash.LENGTH);
+	}
+	
+	/**
+	 * 获取防伪码转让列表
+	 * @param antifakeCode
+	 * @return List<CirculationTransaction>
+	 */
+	public List<AntifakeTransferTransaction> getAntifakeCodeTransferList(byte[] antifakeCode) {
+		List<AntifakeTransferTransaction> list = new ArrayList<AntifakeTransferTransaction>();
+		
+		byte[] transferKey = new byte[22];
+		transferKey[0] = 0;
+		transferKey[1] = 2;
+		System.arraycopy(antifakeCode, 0, transferKey, 2, Address.LENGTH);
+		
+		byte[] transfers = getBytes(transferKey);
+		
+		if(transfers == null) {
+			return list;
+		}
+		
+		for (int j = 0; j < transfers.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(transfers, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH));
+			
+			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+			if(txs == null) {
+				continue;
+			}
+			AntifakeTransferTransaction atx = (AntifakeTransferTransaction) txs.getTransaction();
+			list.add(atx);
+		}
+		return list;
+	}
+
+	/**
+	 * 获取防伪码验证的交易
+	 * @param antifakeCode
+	 * @return Sha256Hash
+	 */
+	public Sha256Hash getAntifakeVerifyTx(byte[] antifakeCode) {
+		byte[] key = new byte[22];
+		key[0] = 0;
+		key[1] = 3;
+		System.arraycopy(antifakeCode, 0, key, 2, Address.LENGTH);
+		
+		byte[] content = getBytes(key);
+		if(content == null) {
+			return null;
+		}
+		return Sha256Hash.wrap(content);
+	}
+
+	/**
+	 * 防伪码验证
+	 * @param antifakeCode
+	 * @param hash
+	 */
+	public void verifyAntifakeCode(byte[] antifakeCode, Sha256Hash hash) {
+		
+		byte[] key = new byte[22];
+		key[0] = 0;
+		key[1] = 3;
+		System.arraycopy(antifakeCode, 0, key, 2, Address.LENGTH);
+		
+		put(key, hash.getBytes());
 	}
 }

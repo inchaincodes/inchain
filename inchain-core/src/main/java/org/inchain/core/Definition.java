@@ -21,8 +21,10 @@ import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
+import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CertAccountUpdateTransaction;
+import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
@@ -89,6 +91,10 @@ public final class Definition {
 	public static final int TYPE_ANTIFAKE_STATE_CHANGE = 23;
 	/** 防伪码验证 **/
 	public static final int TYPE_ANTIFAKE_CODE_VERIFY = 24;
+	/** 防伪码流转 **/
+	public static final int TYPE_ANTIFAKE_CIRCULATION = 25;
+	/** 防伪码转让 **/
+	public static final int TYPE_ANTIFAKE_TRANSFER = 26;
 	
 	
 	public static final int TX_VERIFY_MG = 1;				//脚本认证，账户管理类
@@ -168,6 +174,8 @@ public final class Definition {
     	PROCESS_FACTORYS.put(GeneralAntifakeTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeCodeMakeTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeCodeVerifyTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(CirculationTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(AntifakeTransferTransaction.class, "transactionMessageProcess");
     	
     	//===========================-分割线=============================//
     	
@@ -201,6 +209,8 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeCodeMakeTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(CirculationTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(AntifakeTransferTransaction.class, "tx");
     	
     	//===========================-分割线=============================//
     	
@@ -222,6 +232,8 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_GENERAL_ANTIFAKE, GeneralAntifakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_MAKE, AntifakeCodeMakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CIRCULATION, CirculationTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_TRANSFER, AntifakeTransferTransaction.class);
 		
     	//===========================-分割线=============================//
     	

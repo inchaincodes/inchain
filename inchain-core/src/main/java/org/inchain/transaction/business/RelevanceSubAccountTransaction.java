@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.inchain.account.Address;
+import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
+import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
-import org.inchain.utils.Hex;
 
 /**
  * 认证账户关联子账户
@@ -19,17 +20,19 @@ import org.inchain.utils.Hex;
 public class RelevanceSubAccountTransaction extends CommonlyTransaction {
 
 	//关联账户
-	private byte[] relevanceHash160;
+	private byte[] relevanceHashs;
 	//别名
 	private byte[] alias;
 	//描述
 	private byte[] content;
 	
-	public RelevanceSubAccountTransaction(NetworkParams network, byte[] relevanceHash160, byte[] alias, byte[] content) {
+	public RelevanceSubAccountTransaction(NetworkParams network, byte[] relevanceHashs, byte[] alias, byte[] content) {
 		super(network);
-		this.relevanceHash160 = relevanceHash160;
+		this.relevanceHashs = relevanceHashs;
 		this.alias = alias;
 		this.content = content;
+		
+		type = Definition.TYPE_RELEVANCE_SUBACCOUNT;
 	}
 
 	public RelevanceSubAccountTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
@@ -41,44 +44,53 @@ public class RelevanceSubAccountTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		stream.write(relevanceHash160);
+	public void verify() throws VerificationException {
+		super.verify();
+		
+		if(relevanceHashs == null || relevanceHashs.length != Address.HASH_LENGTH) {
+			throw new VerificationException("地址不正确");
+		}
 		
 		if(alias == null) {
-			stream.write(0);
-		} else {
-			stream.write(new VarInt(alias.length).encode());
-			stream.write(alias);
+			throw new VerificationException("标题不能为空");
 		}
 		
 		if(content == null) {
-			stream.write(0);
-		} else {
-			stream.write(new VarInt(content.length).encode());
-			stream.write(content);
+			throw new VerificationException("说明不能为空");
 		}
+	}
+	
+	@Override
+	protected void serializeToStream(OutputStream stream) throws IOException {
+		super.serializeToStream(stream);
+		stream.write(relevanceHashs);
+		
+		stream.write(new VarInt(alias.length).encode());
+		stream.write(alias);
+		
+		stream.write(new VarInt(content.length).encode());
+		stream.write(content);
 	}
 	
 	@Override
 	protected void parse() throws ProtocolException {
 		super.parse();
-		relevanceHash160 = readBytes(20);
+		relevanceHashs = readBytes(Address.HASH_LENGTH);
 		
 		alias = readBytes((int)readVarInt());
 		content = readBytes((int)readVarInt());
 		
 		length = cursor - offset;
 	}
-
-	public byte[] getRelevanceHash160() {
-		return relevanceHash160;
-	}
-
-	public void setRelevanceHash160(byte[] relevanceHash160) {
-		this.relevanceHash160 = relevanceHash160;
-	}
 	
+	public byte[] getRelevanceHashs() {
+		return relevanceHashs;
+	}
+
+	public void setRelevanceHashs(byte[] relevanceHashs) {
+		this.relevanceHashs = relevanceHashs;
+	}
+
 	public byte[] getAlias() {
 		return alias;
 	}
@@ -96,14 +108,14 @@ public class RelevanceSubAccountTransaction extends CommonlyTransaction {
 	}
 
 	public Address getAddress() {
-		return new Address(network, relevanceHash160);
+		return Address.fromHashs(network, relevanceHashs);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RelevanceSubAccountTransaction [relevanceHash160=");
-		builder.append(Hex.encode(relevanceHash160));
+		builder.append("RelevanceSubAccountTransaction [relevanceHashs=");
+		builder.append(Address.fromHashs(network, relevanceHashs).getBase58());
 		builder.append(", alias=");
 		builder.append(new String(alias));
 		builder.append(", content=");

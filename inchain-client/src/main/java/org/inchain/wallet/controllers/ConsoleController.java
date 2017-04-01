@@ -55,7 +55,7 @@ public class ConsoleController extends DailogController{
 		if(StringUtil.isNotEmpty(command)) {
 			try {
 				
-				String[] commands = StringUtil.split(command);
+				String[] commands = StringUtil.split(command, "\\s");
 				
 				String result = null;
 				if("help".equals(commands[0])) {

@@ -1681,8 +1681,9 @@ public class Script {
 	 * @return boolean
 	 */
 	public boolean isConsensusOutputScript() {
-		if(chunks == null || chunks.size() != 3 || chunks.get(0).data.length != Address.LENGTH
-				|| chunks.get(1).data.length != Address.LENGTH || !Arrays.equals(chunks.get(2).data, new byte[] { 0 })) {
+		if(chunks == null || chunks.size() != 3 || chunks.get(0).isOpCode() || chunks.get(0).data.length != Address.LENGTH
+				|| chunks.get(1).isOpCode() || chunks.get(1).data.length != Address.LENGTH || 
+				chunks.get(2).isOpCode() || !Arrays.equals(chunks.get(2).data, new byte[] { 0 })) {
 			return false;
 		}
 		return true;

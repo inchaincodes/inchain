@@ -31,8 +31,11 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
+import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
+import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.RegAliasTransaction;
@@ -222,9 +225,19 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
 
 						chainstateStoreProvider.put(atx.getAntifakeCode(), tx.getHash().getBytes());
-					} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
-						//TODO 防伪码验证
 						
+						List<Sha256Hash> sources = atx.getSources();
+						//如果有来源引用，则写入验证信息
+						for (Sha256Hash mtxHash : sources) {
+							AntifakeCodeMakeTransaction mtx = (AntifakeCodeMakeTransaction) getTransaction(mtxHash.getBytes()).getTransaction();
+							chainstateStoreProvider.verifyAntifakeCode(mtx.getAntifakeCode(), atx.getHash());
+						}
+						
+					} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+						//防伪码验证
+						AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
+						
+						chainstateStoreProvider.verifyAntifakeCode(acvtx.getAntifakeCode(), acvtx.getHash());
 					} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
 						//如果是共识注册交易，则保存至区块状态表
 						RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
@@ -379,6 +392,14 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					//修改别名，消耗信用点
 					UpdateAliasTransaction utx = (UpdateAliasTransaction) tx;
 					chainstateStoreProvider.updateAccountAlias(utx.getHash160(), utx.getAlias());
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
+					//防伪码流转信息
+					CirculationTransaction ctx = (CirculationTransaction) tx;
+					//放入状态数据库里
+					chainstateStoreProvider.addCirculation(ctx.getAntifakeCode(), ctx.getHash160(), ctx.getHash());
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+					AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
+					chainstateStoreProvider.antifakeTransfer(attx.getAntifakeCode(), attx.getHash160(), attx.getReceiveHashs(), attx.getHash());
 				}
 				//交易是否与我有关
 				checkIsMineAndUpdate(txs);
@@ -611,6 +632,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					chainstateStoreProvider.saveAccountInfo(accountInfo);
 					
 					creditCollectionService.removeCredit(creditTransaction.getReasonType(), creditTransaction.getOwnerHash160(), bestBlock.getTime());
+				} else {
+					//TODO
 				}
 				
 				//交易是否与我有关
