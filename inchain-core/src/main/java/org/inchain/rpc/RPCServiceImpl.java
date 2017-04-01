@@ -1268,7 +1268,7 @@ public class RPCServiceImpl implements RPCService {
 	/**
 	 * 获取认证商家子账户列表
 	 * @param address
-	 * @return
+	 * @return JSONObject
 	 * @throws JSONException
 	 */
 	@Override

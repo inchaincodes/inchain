@@ -189,7 +189,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	
 	/**
 	 * 获取交易者的账户地址
-	 * @return
+	 * @return String
 	 */
 	public String getOperator() {
 		if(isCertAccount()) {
