@@ -1,8 +1,6 @@
 package org.inchain.rpc;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,8 +12,6 @@ import java.net.Socket;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import javax.annotation.PostConstruct;
 
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -72,7 +68,6 @@ public class RPCServer implements Server {
 	
 	private boolean isRunning = false;
 	
-	@PostConstruct
 	public void startSyn() {
 		Thread t = new Thread() {
 			@Override
@@ -213,17 +208,8 @@ public class RPCServer implements Server {
 	 * 如果没有配置文件，则生成新的rpc配置文件
 	 */
 	private void init() throws IOException {
-		
-		String filePath = System.getProperty("user.dir") + File.separator + "conf" + File.separator + "rpc_config.properties";
-
-		File file = new File(filePath);
-		
-		if(!file.exists()) {
-			file.createNewFile();
-		}
-		
 		//判断配置文件是否存在
-		InputStream in = new FileInputStream(file);
+		InputStream in = RPCServer.class.getResourceAsStream("/rpc_config.properties");
 		if(in != null) {
 			property.load(in);
 			in.close();
@@ -248,7 +234,10 @@ public class RPCServer implements Server {
 		
 		//回写
 		if(refresh) {
-			FileOutputStream os = new FileOutputStream(file);
+			if(RPCServer.class.getResource("/") == null) {
+				return;
+			}
+			FileOutputStream os = new FileOutputStream(RPCServer.class.getResource("/").getPath()+"rpc_config.properties");
 			
 			property.store(os, "this is rpc server configs");
 			
