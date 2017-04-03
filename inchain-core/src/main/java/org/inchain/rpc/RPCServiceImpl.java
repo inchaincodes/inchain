@@ -343,6 +343,63 @@ public class RPCServiceImpl implements RPCService {
 	}
 	
 	/**
+	 * 修改认证账户信息
+	 * @param body
+	 * @param mgpw
+	 * @param address
+	 * @return JSONObject
+	 */
+	@Override
+	public JSONObject updateCertAccount(AccountBody body, String mgpw, String address) throws JSONException {
+		JSONObject result = new JSONObject();
+		try {
+			BroadcastResult res = accountKit.updateCertAccountInfo(mgpw, address, body);
+			if(!res.isSuccess()) {
+				result.put("success", false);
+				result.put("message", res.getMessage());
+			} else {
+				result.put("success", true);
+				result.put("txid", res.getHash());
+			}
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
+	 * 认证账户修改密码
+	 * @param oldMgpw
+	 * @param newMgpw
+	 * @param newTrpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	public JSONObject certAccountEditPassword(String oldMgpw, String newMgpw, String newTrpw, String address) throws JSONException {
+		JSONObject result = new JSONObject();
+		try {
+			BroadcastResult res = accountKit.certAccountEditPassword(oldMgpw, newMgpw, newTrpw, address);
+			if(!res.isSuccess()) {
+				result.put("success", false);
+				result.put("message", res.getMessage());
+			} else {
+				result.put("success", true);
+				result.put("txid", res.getHash());
+				
+				Account account = accountKit.getAccount(address);
+				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
+				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])).put(Hex.encode(account.getTrPubkeys()[1])));
+			}
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+	
+	/**
 	 * 认证账户创建商品
 	 * @param product
 	 * @param certpw
@@ -554,7 +611,7 @@ public class RPCServiceImpl implements RPCService {
 			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 				//时间
 				product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
-			} else {
+			} else if(!ProductKeyValue.IMG.getCode().equals(keyValuePair.getCode()) && !ProductKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 				if(ProductKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
 					productName = keyValuePair.getValueToString();
 				}

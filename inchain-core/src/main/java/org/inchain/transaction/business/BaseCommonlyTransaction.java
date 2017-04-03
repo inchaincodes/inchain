@@ -124,7 +124,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 		if(account.isCertAccount()) {
 			if(type == Definition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
 				throw new AccountEncryptedException();
-			} else if(account.isEncryptedOfTr()) {
+			} else if(type == Definition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
 				throw new AccountEncryptedException();
 			}
 		}

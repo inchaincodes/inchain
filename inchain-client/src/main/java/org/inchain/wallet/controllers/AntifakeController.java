@@ -1,5 +1,6 @@
 package org.inchain.wallet.controllers;
 
+import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
@@ -281,15 +282,23 @@ public class AntifakeController implements SubPageController {
 		Product product = productTransaction.getProduct();
 		List<ProductKeyValue> bodyContents = product.getContents();
 		
+		byte[] img = null;
+		
 		for (ProductKeyValue keyValuePair : bodyContents) {
+			
+			if(ProductKeyValue.LOGO.getCode().equals(keyValuePair.getCode()) || ProductKeyValue.IMG.getCode().equals(keyValuePair.getCode())) {
+				img = keyValuePair.getValue();
+				continue;
+			}
 			
 			HBox item= new HBox();
 			name = new Label(keyValuePair.getName()+":");
 			item.getChildren().add(name);
 			value.setMaxWidth(300);
+			
 			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 				value = new Label(DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
-			}else{
+			} else {
 				value = new Label(keyValuePair.getValueToString());
 			}
 			Tooltip tooltip = new Tooltip(value.getText());
@@ -298,12 +307,23 @@ public class AntifakeController implements SubPageController {
 			tooltip.setWrapText(true);
 			tooltip.setStyle("-fx-padding:10;");
 			value.setTooltip(tooltip);
+			
 			item.getChildren().add(value);
 			
 			item.setStyle("-fx-padding:0 0 10 10;");
+			
 			content.getChildren().add(item);
 		}
 		content.setStyle("-fx-padding:20 0 0 120;");
+		
+		if(img != null) {
+			ImageView imageView = new ImageView(new Image(new ByteArrayInputStream(img)));
+			
+			imageView.setFitWidth(30);
+			imageView.setFitHeight(30);
+			imageView.setStyle("-fx-padding:0 0 10 10;");
+			content.getChildren().add(imageView);
+		}
 		body.getChildren().add(content);
 		DailogUtil.showDailog(body, "验证结果");
 	}

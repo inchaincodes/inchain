@@ -204,6 +204,22 @@ public class AccountKit {
 	}
 	
 	/**
+	 * 获取一个认证账户，如果没有则返回null
+	 * @return Account
+	 */
+	public Account getCertAccount() {
+		if(accountList == null || accountList.size() == 0) {
+			return null;
+		}
+		for (Account account : accountList) {
+			if(account.isCertAccount()) {
+				return account;
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * 获取余额
 	 */
 	public Coin getBalance() {
@@ -1199,6 +1215,198 @@ public class AccountKit {
 		}
 	}
 
+	/**
+	 * 修改认证账户的信息
+	 * @param mgPw
+	 * @param address
+	 * @param accountBody
+	 * @return BroadcastResult
+	 * @throws VerificationException
+	 */
+	public BroadcastResult updateCertAccountInfo(String mgPw, String address, AccountBody accountBody) throws VerificationException  {
+		
+		//密码位数和难度检测
+		if(!validPassword(mgPw)) {
+			return new BroadcastResult(false, "密码错误");
+		}
+		
+		Account account = null;
+		if(StringUtil.isEmpty(address)) {
+			account = getCertAccount();
+		} else {
+			account = getAccount(address);
+		}
+		
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
+		
+		ECKey[] eckey = account.decryptionMg(mgPw);
+		if(eckey == null) {
+			return new BroadcastResult(false, "密码错误");
+		}
+		
+		locker.lock();
+		try {
+			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody);
+			cutx.sign(account, Definition.TX_VERIFY_MG);
+			
+			cutx.verify();
+			cutx.verifyScript();
+			
+			//验证交易合法才广播
+			//这里面同时会判断是否被验证过了
+			TransactionValidatorResult rs = transactionValidator.valDo(cutx).getResult();
+			if(!rs.isSuccess()) {
+				return new BroadcastResult(false, rs.getMessage());
+			}
+
+			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+			MempoolContainer.getInstace().add(cutx);
+			try {
+				BroadcastResult result = peerKit.broadcast(cutx).get();
+				//等待广播回应
+				if(result.isSuccess()) {
+					result.setHash(cutx.getHash());
+					
+					account.setBody(accountBody);
+					
+					//签名帐户
+					account.signAccount(account.getMgEckeys()[0], account.getMgEckeys()[1]);
+					File accountFile = new File(accountDir + File.separator,  account.getAddress().getBase58() +".dat");
+					FileOutputStream fos = new FileOutputStream(accountFile);
+					try {
+						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+						fos.write(account.serialize());
+					} finally {
+						fos.close();
+					}
+					
+					//更新交易记录
+					transactionStoreProvider.processNewTransaction(new TransactionStore(network, cutx));
+				}
+				return result;
+			} catch (Exception e) {
+				return new BroadcastResult(false, e.getMessage());
+			}
+		} finally {
+			account.resetKey();
+			locker.unlock();
+		}
+	}
+	
+	/**
+	 * 认证账户修改密码
+	 * @param oldMgpw
+	 * @param newMgpw
+	 * @param newTrpw
+	 * @param address
+	 * @return BroadcastResult
+	 */
+	public BroadcastResult certAccountEditPassword(String oldMgpw, String newMgpw, String newTrpw, String address) {
+		//密码位数和难度检测
+		if(!validPassword(oldMgpw)) {
+			return new BroadcastResult(false, "密码错误");
+		}
+		if(!validPassword(newMgpw)) {
+			return new BroadcastResult(false, "新账户管理密码不合法");
+		}
+		if(!validPassword(newTrpw)) {
+			return new BroadcastResult(false, "新交易密码不合法");
+		}
+		
+		Account account = null;
+		if(StringUtil.isEmpty(address)) {
+			account = getCertAccount();
+		} else {
+			account = getAccount(address);
+		}
+		
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
+		
+		ECKey[] eckey = account.decryptionMg(oldMgpw);
+		if(eckey == null) {
+			return new BroadcastResult(false, "旧密码错误");
+		}
+		
+		locker.lock();
+		try {
+			Account tempAccount = account.clone();
+			
+			ECKey seedPri = ECKey.fromPublicOnly(tempAccount.getPriSeed());
+			byte[] seedPribs = seedPri.getPubKey(false);
+			
+			//生成账户管理的私匙
+			BigInteger mgPri1 = AccountTool.genPrivKey1(seedPribs, newMgpw.getBytes());
+			//生成交易的私匙
+			BigInteger trPri1 = AccountTool.genPrivKey1(seedPribs, newTrpw.getBytes());
+			
+			BigInteger mgPri2 = AccountTool.genPrivKey2(seedPribs, newMgpw.getBytes());
+			BigInteger trPri2 = AccountTool.genPrivKey2(seedPribs, newTrpw.getBytes());
+
+			ECKey mgkey1 = ECKey.fromPrivate(mgPri1);
+			ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
+			
+			ECKey trkey1 = ECKey.fromPrivate(trPri1);
+			ECKey trkey2 = ECKey.fromPrivate(trPri2);
+			
+			tempAccount.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
+			tempAccount.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
+			
+			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, tempAccount.getAddress().getHash160(), tempAccount.getMgPubkeys(), tempAccount.getTrPubkeys(), tempAccount.getBody());
+			cutx.sign(account, Definition.TX_VERIFY_MG);
+			
+			cutx.verify();
+			cutx.verifyScript();
+			
+			//验证交易合法才广播
+			//这里面同时会判断是否被验证过了
+			TransactionValidatorResult rs = transactionValidator.valDo(cutx).getResult();
+			if(!rs.isSuccess()) {
+				return new BroadcastResult(false, rs.getMessage());
+			}
+			
+			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+			MempoolContainer.getInstace().add(cutx);
+			try {
+				BroadcastResult result = peerKit.broadcast(cutx).get();
+				//等待广播回应
+				if(result.isSuccess()) {
+					result.setHash(cutx.getHash());
+					
+					account.setMgPubkeys(tempAccount.getMgPubkeys());
+					account.setTrPubkeys(tempAccount.getTrPubkeys());
+					account.setAccountTransaction(cutx);
+					
+					//签名帐户
+					tempAccount.signAccount(mgkey1, mgkey2);
+					File accountFile = new File(accountDir + File.separator,  tempAccount.getAddress().getBase58() +".dat");
+					FileOutputStream fos = new FileOutputStream(accountFile);
+					try {
+						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+						fos.write(tempAccount.serialize());
+					} finally {
+						tempAccount.resetKey();
+						fos.close();
+					}
+					//更新交易记录
+					transactionStoreProvider.processNewTransaction(new TransactionStore(network, cutx));
+				}
+				return result;
+			} catch (Exception e) {
+				return new BroadcastResult(false, e.getMessage());
+			}
+		} catch (CloneNotSupportedException e1) {
+			log.error("error", e1);
+			return new BroadcastResult(false, e1.getMessage());
+		} finally {
+			account.resetKey();
+			locker.unlock();
+		}
+	}
+
 	/*
 	 * 生成帐户信息
 	 */
@@ -1824,7 +2032,7 @@ public class AccountKit {
 		//如果某个账户有冻结余额，则重新加载
 		for (Account account : accountList) {
 			Address address = account.getAddress();
-			if(address.getUnconfirmedBalance().isGreaterThan(Coin.ZERO)) {
+			if(address.getUnconfirmedBalance() == null || address.getUnconfirmedBalance().isGreaterThan(Coin.ZERO)) {
 				loadAddressBalance(address);
 			}
 		}

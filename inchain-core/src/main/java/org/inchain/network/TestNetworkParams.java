@@ -19,12 +19,12 @@ public class TestNetworkParams extends NetworkParams {
     public TestNetworkParams() {
     	seedManager = new RemoteSeedManager();
 
-//    	seedManager.addDnsSeed("test1.seed.inchain.org");
-//    	seedManager.addDnsSeed("test2.seed.inchain.org");
+    	seedManager.addDnsSeed("test1.seed.inchain.org");
+    	seedManager.addDnsSeed("test2.seed.inchain.org");
     	
-    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.11", 11862)));
-    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.12", 11862)));
-    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.13", 11862)));
+//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.11", 11862)));
+//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.12", 11862)));
+//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.13", 11862)));
 		
     	init();
 	}
@@ -39,7 +39,7 @@ public class TestNetworkParams extends NetworkParams {
 		
 		id = ID_TESTNET;
 		
-		packetMagic = 669266887l;
+		packetMagic = 669266888l;
 		
 		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}

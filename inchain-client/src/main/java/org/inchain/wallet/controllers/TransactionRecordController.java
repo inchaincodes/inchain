@@ -327,6 +327,8 @@ public class TransactionRecordController implements SubPageController {
 						if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 							//时间
 							detail += keyValuePair.getName()+" : " + DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)));
+						} else if(ProductKeyValue.IMG.getCode().equals(keyValuePair.getCode()) || ProductKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+							detailValue.setImg(keyValuePair.getValue());
 						} else {
 							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}

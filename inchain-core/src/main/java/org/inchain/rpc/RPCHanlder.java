@@ -12,6 +12,7 @@ import org.inchain.core.Product;
 import org.inchain.core.exception.AddressFormatException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
+import org.inchain.utils.Base58;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,11 +194,63 @@ public class RPCHanlder {
 				String mggpw = params.getString(0);
 				String trpw = params.getString(1);
 				String bodyHexStr = params.getString(2);
-				AccountBody body = new AccountBody(Hex.decode(bodyHexStr));
+				AccountBody body = new AccountBody(Base58.decode(bodyHexStr));
 
 				String certpw = params.getString(3);
 				
 				result = rpcService.newCertAccount(mggpw, trpw, body, certpw);
+			} catch (JSONException e) {
+				if(e instanceof JSONException) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex]");
+					return result;
+				}
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
+			
+			return result;
+		}
+		
+		//修改认证账户信息
+		case "updatecertaccount": {
+			
+			try {
+				String bodyHexStr = params.getString(0);
+				AccountBody body = new AccountBody(Base58.decode(bodyHexStr));
+				String pw = params.getString(1);
+				String address = null;
+				if(params.length() > 2) {
+					address = params.getString(2);
+				}
+				
+				result = rpcService.updateCertAccount(body, pw, address);
+			} catch (JSONException e) {
+				if(e instanceof JSONException) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex]");
+					return result;
+				}
+				result.put("success", false);
+				result.put("message", "创建时出错：" + e.getMessage());
+			}
+			
+			return result;
+		}
+		
+		//修改认证账户密码
+		case "certaccounteditpassword": {
+			
+			try {
+				String oldMgpw = params.getString(0);
+				String newMgpw = params.getString(1);
+				String newTrpw = params.getString(2);
+				String address = null;
+				if(params.length() > 3) {
+					address = params.getString(3);
+				}
+				
+				result = rpcService.certAccountEditPassword(oldMgpw, newMgpw, newTrpw, address);
 			} catch (JSONException e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
@@ -332,7 +385,7 @@ public class RPCHanlder {
 				if(params.length() > 2) {
 					address = params.getString(2);
 				}
-				Product product = new Product(Hex.decode(productHexStr));
+				Product product = new Product(Base58.decode(productHexStr));
 
 				result = rpcService.createProduct(product, certpw, address);
 			} catch (JSONException e) {

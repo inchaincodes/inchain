@@ -35,10 +35,10 @@
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>2.4</version>
 				<configuration>
-					<excludes>
+					<!-- <excludes>
 						<exclude>**/*.properties</exclude>
 						<exclude>**/log4j.xml</exclude>
-					</excludes>
+					</excludes> -->
 				</configuration>
 			</plugin>
             <!-- mvn dependency:copy-dependencies 命令 把依赖的所有jar包复制到lib目录下 -->

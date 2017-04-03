@@ -17,10 +17,6 @@ JAVA_OPTS="-server -Xms512m -Xmx1024m"
 PRGDIR=`dirname "$PRG"`
 SERVER_HOME=`cd "$PRGDIR/.." ; pwd`
 
-if [ -z "$JAVA_HOME" ]; then
-  JAVA_HOME=$SERVER_HOME/jre
-fi
-
 # Get standard Java environment variables
 if [ -r "$SERVER_HOME"/bin/setclasspath.sh ]; then
   BASEDIR="$SERVER_HOME"
@@ -29,6 +25,10 @@ else
   echo "Cannot find $SERVER_HOME/bin/setclasspath.sh"
   echo "This file is needed to run this program"
   exit 1
+fi
+
+if [ -z "$JAVA_HOME" ]; then
+  JAVA_HOME=$SERVER_HOME/jre
 fi
 
 # add conf to classpath
@@ -52,10 +52,10 @@ APP_MAINCLASS=org.inchain.kit.InchainKit
 psid=0
  
 checkpid() {
-   javaps=`ps aux | grep $APP_MAINCLASS`
+   javaps=`$JAVA_HOME/bin/jps -l | grep $APP_MAINCLASS`
  
    if [ -n "$javaps" ]; then
-      psid=`echo $javaps | awk '{print $2}'`
+      psid=`echo $javaps | awk '{print $1}'`
    else
       psid=0
    fi

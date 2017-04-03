@@ -11,6 +11,7 @@ import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
+import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
 import org.inchain.core.NotBroadcastBlockViolationEvidence;
 import org.inchain.core.RepeatBlockViolationEvidence;
@@ -36,6 +37,7 @@ import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
+import org.inchain.transaction.business.CertAccountUpdateTransaction;
 import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.GeneralAntifakeTransaction;
 import org.inchain.transaction.business.ProductTransaction;
@@ -75,6 +77,8 @@ public class TransactionValidator {
 	private ChainstateStoreProvider chainstateStoreProvider;
 	@Autowired
 	private AccountKit accountKit;
+	@Autowired
+	private DataSynchronizeHandler dataSynchronizeHandler;
 
 	/**
 	 * 交易验证器，验证交易的输入输出是否合法
@@ -377,7 +381,7 @@ public class TransactionValidator {
 				//验证时段
 				long periodStartTime = regConsensusTx.getPeriodStartTime();
 				//必须是最近的几轮里
-				if(consensusMeeting.getMeetingItem(periodStartTime) == null) {
+				if(dataSynchronizeHandler.hasComplete() && consensusMeeting.getMeetingItem(periodStartTime) == null) {
 					throw new VerificationException("申请时段不合法");
 				}
 				//验证保证金
@@ -560,6 +564,25 @@ public class TransactionValidator {
 			//认证帐户，就需要判断是否经过认证的
 			if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
 				result.setResult(false, "账户没有经过认证");
+				return validatorResult;
+			}
+		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
+			//认证账户修改信息
+			CertAccountUpdateTransaction updateTx = (CertAccountUpdateTransaction) tx;
+			byte[] hash160 = updateTx.getHash160();
+			
+			//必须是自己最新的账户状态
+			byte[] verTxid = updateTx.getScript().getChunks().get(1).data;
+			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
+			if(verTxBytes == null) {
+				result.setResult(false, "签名错误");
+				return validatorResult;
+			}
+			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
+			
+			//认证帐户，就需要判断是否经过认证的
+			if(!Arrays.equals(verTx.getHash160(), hash160)) {
+				result.setResult(false, "错误的签名，账户不匹配");
 				return validatorResult;
 			}
 		} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {

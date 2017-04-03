@@ -5,6 +5,8 @@ import java.io.UnsupportedEncodingException;
 public class ProductKeyValue extends KeyValue {
 
 	public final static ProductKeyValue NAME = new ProductKeyValue("name", "名称");
+	public final static ProductKeyValue LOGO = new ProductKeyValue("logo", "图标");
+	public final static ProductKeyValue IMG = new ProductKeyValue("img", "图片");
 	public final static ProductKeyValue CREATE_TIME = new ProductKeyValue("createTime", "创建时间");
 	
 //	NAME("名称", "name"),						//名称

@@ -121,6 +121,27 @@ public interface RPCService {
 	JSONObject newCertAccount(String mgpw, String trpw, AccountBody body, String certpw) throws JSONException;
 	
 	/**
+	 * 修改认证账户信息
+	 * @param body
+	 * @param mgpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject updateCertAccount(AccountBody body, String mgpw, String address) throws JSONException;
+	
+	/**
+	 * 认证账户修改密码
+	 * @param oldMgpw
+	 * @param newMgpw
+	 * @param newTrpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject certAccountEditPassword(String oldMgpw, String newMgpw, String newTrpw, String address) throws JSONException;
+	
+	/**
 	 * 获取帐户列表
 	 * @return JSONArray
 	 * @throws JSONException
@@ -414,6 +435,5 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONObject getAliasByAccount(String account) throws JSONException;
-	
-	
+
 }

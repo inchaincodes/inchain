@@ -107,7 +107,7 @@ public class AppKit {
 	 * 初始化rpc服务
 	 */
 	private void initRpcService() {
-		rpcServer.startSyn();
+//		rpcServer.startSyn();
 	}
 
 	//初始化数据变化监听器
