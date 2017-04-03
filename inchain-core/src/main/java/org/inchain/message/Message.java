@@ -172,9 +172,9 @@ public abstract class Message {
             	if(tx.isCompatible()) {
             		//新协议
             		byte[] newPayload = new byte[payload.length + 4];
-            		System.arraycopy(payload, 0, newPayload, 0, 4);
-            		Utils.uint32ToByteArrayBE(payload.length + 4, newPayload, 4);
-            		System.arraycopy(payload, 4, newPayload, 8, payload.length -4);
+            		System.arraycopy(payload, 0, newPayload, 0, 5);
+            		Utils.uint32ToByteArrayBE(payload.length + 4, newPayload, 5);
+            		System.arraycopy(payload, 5, newPayload, 9, payload.length -4);
             		
             		payload = newPayload;
             	}
@@ -195,9 +195,9 @@ public abstract class Message {
         	if(tx.isCompatible()) {
         		//新协议
         		byte[] newPayload = new byte[buf.length + 4];
-        		System.arraycopy(buf, 0, newPayload, 0, 4);
-        		Utils.uint32ToByteArrayBE(buf.length + 4, newPayload, 4);
-        		System.arraycopy(buf, 4, newPayload, 8, buf.length -4);
+        		System.arraycopy(buf, 0, newPayload, 0, 5);
+        		Utils.uint32ToByteArrayBE(buf.length + 4, newPayload, 5);
+        		System.arraycopy(buf, 5, newPayload, 9, buf.length - 5);
         		
         		buf = newPayload;
         	}

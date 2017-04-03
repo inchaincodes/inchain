@@ -398,6 +398,22 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONObject checkIsSubAccount(String certAddress, String address) throws JSONException;
+
+	/**
+	 * 通过别名获取账户
+	 * @param alias
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject getAccountByAlias(String alias) throws JSONException;
+
+	/**
+	 * 通过账户获取别名
+	 * @param account
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject getAliasByAccount(String account) throws JSONException;
 	
 	
 }

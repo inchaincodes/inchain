@@ -6,8 +6,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.Properties;
 import java.util.Scanner;
@@ -16,6 +16,8 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.Configure;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * rpc客户端，通过命令调用远程客户端功能
@@ -38,6 +40,8 @@ import org.inchain.Configure;
  *
  */
 public class RPCClient {
+	
+	private static final Logger log = LoggerFactory.getLogger(RPCClient.class);
 	
 	public final static String RPC_HOST_KEY = "rpc_host";
 	public final static String RPC_PORT_KEY = "rpc_port";
@@ -203,12 +207,8 @@ public class RPCClient {
 	 * 发送命令
 	 */
 	private void sendCommands(JSONObject infos) {
-		try {
-			pw.println(new String(infos.toString().getBytes("utf-8")));
-			pw.flush();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		pw.println(infos.toString());
+		pw.flush();
 	}
 
 	/*
@@ -266,8 +266,8 @@ public class RPCClient {
 			printError("连接不成功");
 			closeAndExit();
 		}
-		this.br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		this.pw = new PrintWriter(socket.getOutputStream());
+		this.br = new BufferedReader(new InputStreamReader(socket.getInputStream(), "utf-8"));
+		this.pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "utf-8"));
 		
 		JSONObject certificationInfo = new JSONObject();
 		certificationInfo.put(RPC_USER_KEY, property.getProperty(RPC_USER_KEY));

@@ -78,7 +78,7 @@ public class ProductTransaction extends CommonlyTransaction {
 	
 	@Override
 	public boolean isCompatible() {
-		return true;
+		return false;
 	}
 
 	@Override
@@ -93,5 +93,4 @@ public class ProductTransaction extends CommonlyTransaction {
 	public void setProduct(Product product) {
 		this.product = product;
 	}
-	
 }

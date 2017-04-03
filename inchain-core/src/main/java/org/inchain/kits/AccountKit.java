@@ -1262,7 +1262,7 @@ public class AccountKit {
 		ECKey trkey2 = ECKey.fromPrivate(trPri2);
 		
 		//帐户信息
-		Account account = new Account();
+		Account account = new Account(network);
 		account.setStatus((byte) 0);
 		account.setAccountType(network.getSystemAccountVersion());
 		account.setAddress(address);
@@ -2641,6 +2641,10 @@ public class AccountKit {
 			account = getAccount(address);
 		}
 		
+		if(!account.isCertAccount()) {
+			return new BroadcastResult(false, "非认证账户，没有权限");
+		}
+		
 		if(account.isEncryptedOfTr()) {
 			if(StringUtil.isEmpty(trpw)) {
 				return new BroadcastResult(false, "账户已加密，请解密或者传入密码");
@@ -2668,6 +2672,8 @@ public class AccountKit {
 		try {
 			relevancerAddress = new Address(network, relevancer);
 		} catch (Exception e) {
+			account.resetKey();
+			
 			return new BroadcastResult(false, "子账户错误");
 		}
 		
@@ -2700,6 +2706,8 @@ public class AccountKit {
 			}
 		} catch (Exception e) {
 			return new BroadcastResult(false, "出错：" + e.getMessage());
+		} finally {
+			account.resetKey();
 		}
 	}
 
@@ -2718,6 +2726,10 @@ public class AccountKit {
 			account = getDefaultAccount();
 		} else {
 			account = getAccount(address);
+		}
+		
+		if(!account.isCertAccount()) {
+			return new BroadcastResult(false, "非认证账户，没有权限");
 		}
 		
 		if(account.isEncryptedOfTr()) {
@@ -2739,12 +2751,14 @@ public class AccountKit {
 		try {
 			relevancerAddress = new Address(network, relevancer);
 		} catch (Exception e) {
+			account.resetKey();
 			return new BroadcastResult(false, "子账户错误");
 		}
 		Sha256Hash txId = null;
 		try {
 			txId = Sha256Hash.wrap(Hex.decode(hashId));
 		} catch (Exception e) {
+			account.resetKey();
 			return new BroadcastResult(false, "交易id不正确");
 		}
 		
@@ -2777,6 +2791,8 @@ public class AccountKit {
 			}
 		} catch (Exception e) {
 			return new BroadcastResult(false, "出错：" + e.getMessage());
+		} finally {
+			account.resetKey();
 		}
 	}
 

@@ -114,6 +114,10 @@ public class AccountStore extends Store {
 		length = cursor + accountBody.serialize().length - offset;
 	}
 
+	public String getAddress() {
+		return new Address(network, type, hash160).getBase58();
+	}
+	
 	public int getType() {
 		return type;
 	}

@@ -543,21 +543,25 @@ public class RPCServiceImpl implements RPCService {
 	/*
 	 * 设置防伪码结果
 	 */
-	private void setResult(JSONObject result, AntifakeInfosResult res) throws JSONException {
+	private void setResult(JSONObject result, AntifakeInfosResult res) throws JSONException, IOException {
 		ProductTransaction ptx = res.getProductTx();
 		
 		List<ProductKeyValue> productBodyContents = ptx.getProduct().getContents();
 		
 		JSONArray product = new JSONArray();
+		String productName = null;
 		for (ProductKeyValue keyValuePair : productBodyContents) {
 			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 				//时间
-				product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+				product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
 			} else {
-				product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+				if(ProductKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
+					productName = keyValuePair.getValueToString();
+				}
+				product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", keyValuePair.getValueToString()));
 			}
 		}
-		result.put("product", product);
+		result.put("product", new JSONObject().put("name", productName).put("values", product));
 		
 		//商家信息
 		AccountStore certAccountInfo = res.getBusiness();
@@ -565,18 +569,25 @@ public class RPCServiceImpl implements RPCService {
 		JSONArray infos = new JSONArray();
 		
 		List<AccountKeyValue> businessBodyContents = certAccountInfo.getAccountBody().getContents();
+		
+		String businessName = null;
 		for (AccountKeyValue keyValuePair : businessBodyContents) {
 			if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 				//图标
-				infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+				infos.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", Base64.getEncoder().encodeToString(keyValuePair.getValue())));
 			} else {
-				infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+				if(AccountKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
+					businessName = keyValuePair.getValueToString();
+				}
+				infos.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", keyValuePair.getValueToString()));
 			}
 		}
-		result.put("business", infos);
+		result.put("business", new JSONObject().put("name", businessName).put("values", infos));
 		
 		//防伪码生成交易id
 		result.put("hash", res.getMakeTx().getHash());
+		result.put("antifakeCode", Base58.encode(res.getMakeTx().getAntifakeCode()));
+		result.put("time", res.getMakeTx().getTime());
 		//防伪码验证状态
 		result.put("hasVerify", res.isHasVerify());
 		//验证信息
@@ -585,6 +596,8 @@ public class RPCServiceImpl implements RPCService {
 			
 			JSONObject verifyJson = new JSONObject();
 			
+			//类型，验证还是引用，1验证，2引用
+			verifyJson.put("type", verifyTx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY ? 1 : 2);
 			//验证人
 			verifyJson.put("account", verifyTx.getOperator());
 			//验证时间
@@ -1397,6 +1410,66 @@ public class RPCServiceImpl implements RPCService {
 	}
 	
 	/**
+	 * 通过别名获取账户
+	 * @param alias
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject getAccountByAlias(String alias) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		AccountStore accountStore = chainstateStoreProvider.getAccountInfoByAlias(alias.getBytes());
+		
+		if(accountStore == null) {
+			json.put("success", false);
+			json.put("message", "别名不存在");
+		} else {
+			json.put("success", true);
+			json.put("message", "ok");
+			json.put("account", accountStore.getAddress());
+		}
+		
+		return json;
+	}
+
+	/**
+	 * 通过账户获取别名
+	 * @param account
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject getAliasByAccount(String account) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		Address address = null; 
+		try {
+			address = Address.fromHashs(network, Base58.decode(account));
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", "账户不正确");
+			return json;
+		}
+		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(address.getHash160());
+		
+		if(accountStore == null || accountStore.getAlias() == null) {
+			json.put("success", false);
+			json.put("message", "账户没有关联别名");
+		} else {
+			json.put("success", true);
+			json.put("message", "ok");
+			try {
+				json.put("alias", new String(accountStore.getAlias(), "utf-8"));
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return json;
+	}
+	
+	/**
 	 * 获取帐户列表
 	 * @return JSONArray
 	 */
@@ -2119,7 +2192,13 @@ public class RPCServiceImpl implements RPCService {
 			if(productTxStore == null) {
 				return json;
 			}
-			json.put("antifakeCodeTx", atx.getAntifakeCode());
+			try {
+				json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			json.put("antifakeMakeTx", makeCodeTx.getHash());
+			json.put("antifakeVerifyTx", atx.getHash());
 			json.put("productTx", productTxStore.getTransaction().getHash());
 			
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
@@ -2137,7 +2216,29 @@ public class RPCServiceImpl implements RPCService {
 					json.put("rewardCoin", 0);
 				}
 			}
-			
+			try {
+				json.put("antifakeCode", Base58.encode(atx.getAntifakeCode()));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
+			//防伪码流转记录
+			CirculationTransaction ctx = (CirculationTransaction) tx;
+			json.put("antifakeCode", Base58.encode(ctx.getAntifakeCode()));
+			json.put("time", ctx.getTime());
+			try {
+				json.put("tag", new String(ctx.getTag(), "utf-8"));
+				json.put("content", new String(ctx.getContent(), "utf-8"));
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+			//防伪码流转记录
+			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
+			json.put("antifakeCode", Base58.encode(attx.getAntifakeCode()));
+			json.put("from", attx.getOperator());
+			json.put("to", attx.getReceiveAddress());
+			json.put("time", attx.getTime());
 		} else if(tx.getType() == Definition.TYPE_CREDIT) {
 			CreditTransaction ctx = (CreditTransaction) tx;
 			

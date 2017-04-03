@@ -62,11 +62,10 @@ public abstract class CommonlyTransaction extends BaseCommonlyTransaction {
 	protected void parse() throws ProtocolException {
 		
 		this.type = readBytes(1)[0] & 0XFF;
+		this.version = readUint32();
 		if(isCompatible()) {
 			length = (int) readUint32();
 		}
-		
-		this.version = readUint32();
 		this.time = readInt64();
 		this.scriptBytes = readBytes((int)readVarInt());
 		this.scriptSig = new Script(this.scriptBytes);

@@ -134,11 +134,11 @@ public class Transaction extends Message {
 		cursor = offset;
 		
 		type = readBytes(1)[0] & 0XFF;
+		version = readUint32();
 		
 		if(isCompatible()) {
 			length = (int) readUint32();
 		}
-		version = readUint32();
 		
 		//交易输入数量
         long numInputs = readVarInt();

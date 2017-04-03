@@ -150,7 +150,7 @@ public class RPCHanlder {
 		//通过hash或者高度获取一个完整的区块信息
 		case "getblock": {
 			result.put("success", true);
-			result.put("blockheader", rpcService.getBlock(params.getString(0)));
+			result.put("block", rpcService.getBlock(params.getString(0)));
 			
 			return result;
 		}
@@ -657,6 +657,26 @@ public class RPCHanlder {
 			String certAddress = params.getString(0);
 			String address = params.getString(1);
 			return rpcService.checkIsSubAccount(certAddress, address);
+		}
+		
+		//通过别名获取账户
+		case "getaccountbyalias": {
+			if(params.length() < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			return rpcService.getAccountByAlias(params.getString(0));
+		}
+		
+		//通过账户获取别名
+		case "getaliasbyaccount": {
+			if(params.length() < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			return rpcService.getAliasByAccount(params.getString(0));
 		}
 		
 		//广播
