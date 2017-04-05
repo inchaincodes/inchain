@@ -1,0 +1,41 @@
+Button{
+	-fx-background-radius: 2;
+	-fx-border-radius: 2;
+	-fx-border-color:#6585dc;
+    -fx-background-color: #4b6bc1;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:14;
+    -fx-alignment:BASELINE_CENTER;
+}
+
+Button:hover{
+	-fx-border-color:#506fc3;
+	-fx-background-color: #3b5aac;
+}
+
+.table-row-cell {
+    -fx-cell-size: 50px;
+}
+.antifakeBut {
+	-fx-background-radius: 5 0 0 5;
+	-fx-border-radius: 5 0 0 5;
+}
+.flowBut {
+	-fx-background-radius: 0 5 5 0;
+	-fx-border-radius:  0 5 5 0;
+}
+.myProductBut {
+	-fx-background-radius: 0;
+	-fx-border-radius:  0;
+}
+.customize {
+	-fx-text-fill: #fff;
+    -fx-font-name:Microsoft YaHei;
+	-fx-font-size:16;
+	-fx-background-color: transparent;
+	-fx-border-color: transparent;
+}
+.choiceBox {
+	-fx-background-color: rgb(40,65,123);
+}

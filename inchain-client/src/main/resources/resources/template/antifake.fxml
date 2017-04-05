@@ -7,43 +7,70 @@
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<StackPane prefHeight="300.0" prefWidth="600.0" stylesheets="@../css/consensus.css" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AntifakeController">
+<AnchorPane stylesheets="@../css/consensus.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AntifakeController">
    <children>
-      <VBox prefHeight="200.0" prefWidth="100.0">
+      <VBox alignment="CENTER" layoutX="10.0" layoutY="10.0" minWidth="550.0" prefWidth="550.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="70.0">
          <children>
-            <VBox alignment="CENTER" prefHeight="200.0" prefWidth="100.0">
+            <VBox alignment="CENTER">
                <children>
-                  <TextArea fx:id="antifakeCodeId" minWidth="600.0" prefHeight="200.0" prefWidth="600.0" promptText="请输入验证码" wrapText="true">
-                     <font>
-                        <Font name="Microsoft YaHei" size="16.0" />
-                     </font></TextArea>
+                  <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
+                     <children>
+                        <Label text="验证码：" />
+                        <TextArea fx:id="antifakeCodeId" minWidth="460.0" prefHeight="100.0" prefWidth="460.0" promptText="请输入验证码" wrapText="true">
+                           <font>
+                              <Font name="Microsoft YaHei" size="16.0" />
+                           </font>
+                           <HBox.margin>
+                              <Insets left="30.0" />
+                           </HBox.margin>
+                        </TextArea>
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER">
+                     <children>
+                        <Label text="防伪密码：" />
+                        <TextField fx:id="antifakePasswordId" minHeight="60.0" prefHeight="60.0" prefWidth="460.0" promptText="请输入防伪密码" styleClass="textField">
+                           <HBox.margin>
+                              <Insets left="17.0" />
+                           </HBox.margin>
+                           <font>
+                              <Font name="Microsoft YaHei" size="16.0" />
+                           </font>
+                        </TextField>
+                     </children>
+                     <VBox.margin>
+                        <Insets top="30.0" />
+                     </VBox.margin>
+                  </HBox>
                </children>
             </VBox>
-            <HBox alignment="BOTTOM_CENTER" prefHeight="100.0" prefWidth="200.0" spacing="20.0">
+            <HBox alignment="BOTTOM_CENTER" spacing="20.0">
                <children>
                   <Button fx:id="verifyButId" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="验证">
                      <cursor>
                         <Cursor fx:constant="HAND" />
-                     </cursor></Button>
+                     </cursor>
+                     <HBox.margin>
+                        <Insets left="65.0" />
+                     </HBox.margin>
+                  </Button>
                   <Button fx:id="resetButId" mnemonicParsing="false" prefHeight="28.0" prefWidth="148.0" text="重置">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
                      <HBox.margin>
                         <Insets left="100.0" />
                      </HBox.margin>
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
+                  </Button>
                </children>
                <padding>
                   <Insets bottom="30.0" />
                </padding>
+               <VBox.margin>
+                  <Insets top="40.0" />
+               </VBox.margin>
             </HBox>
          </children>
-         <StackPane.margin>
-            <Insets top="30.0" />
-         </StackPane.margin>
       </VBox>
    </children>
-   <padding>
-      <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-   </padding>
-</StackPane>
+</AnchorPane>

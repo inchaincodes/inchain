@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="530.0" prefWidth="774.0" stylesheets="@../css/antiCounterfeiting.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.AntiCounterfeitingController">
+   <children>
+      <HBox alignment="CENTER" layoutX="247.0" layoutY="14.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="20.0">
+         <children>
+            <Button fx:id="antifakeId" minHeight="40.0" minWidth="200.0" mnemonicParsing="false" styleClass="antifakeBut" text="商品验证">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
+            <Button fx:id="myProductId" minHeight="40.0" minWidth="200.0" mnemonicParsing="false" styleClass="myProductBut" text="我的商品">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
+            <Button fx:id="flowInfoId" minHeight="40.0" minWidth="200.0" mnemonicParsing="false" styleClass="flowBut" text="流转信息">
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
+         </children>
+      </HBox>
+      <StackPane fx:id="contentId" alignment="TOP_CENTER" layoutX="187.0" layoutY="112.0" prefHeight="236.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="70.0" />
+   </children>
+</AnchorPane>

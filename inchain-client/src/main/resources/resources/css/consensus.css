@@ -15,3 +15,10 @@ Button:hover{
 	-fx-border-color:#506fc3;
 	-fx-background-color: #3b5aac;
 }
+
+.textField {
+	-fx-text-fill: #fff;
+    -fx-background-color: transparent;
+    -fx-border-color: #6da9e9;
+    -fx-border-radius: 3;
+}

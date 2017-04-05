@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="450.0" prefWidth="774.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.MyProductListController">
+   <children>
+      <TableView fx:id="table" layoutX="114.0" layoutY="44.0" prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: transparent;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <columns>
+            <TableColumn fx:id="name" prefWidth="99.0" resizable="true" sortable="false" text="名称" />
+            <TableColumn fx:id="business" prefWidth="123.0" resizable="true" sortable="false" text="商家" />
+          <TableColumn fx:id="verifyCode" prefWidth="288.0" resizable="true" sortable="false" text="防伪码" />
+            <TableColumn fx:id="result" prefWidth="82.0" resizable="true" sortable="false" text="验证结果" />
+          <TableColumn fx:id="time" minWidth="0.0" prefWidth="118.0" resizable="true" sortable="false" text="时间" />
+            <TableColumn fx:id="operating" prefWidth="63.0" resizable="true" sortable="false" text="操作" />
+        </columns>
+      </TableView>
+   </children>
+</AnchorPane>

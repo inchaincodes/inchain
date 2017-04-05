@@ -66,7 +66,7 @@ public class MainController {
 	public Button transactionRecordId;		//交易记录
 	public Button consensusRecordId;		//共识节点列表
 	public Button sellerRecordId;			//商家列表
-	public Button antifakeId;				//防伪测试
+	public Button applicationListId;		//应用列表
 	public Button systemSettingsId;       //系统设置
 	
 	public ImageView netInfoImageViewId;	//网络信息
@@ -114,7 +114,7 @@ public class MainController {
     	addImageToButton(transactionRecordId,"transactionRecord");
     	addImageToButton(consensusRecordId,"consensusRecord");
     	addImageToButton(sellerRecordId,"sellerRecord");
-    	addImageToButton(antifakeId, "antifake");
+    	addImageToButton(applicationListId, "antifake");
     	addImageToButton(systemSettingsId, "settings");
     	
 		buttons.add(accountInfoId);
@@ -122,7 +122,7 @@ public class MainController {
 		buttons.add(transactionRecordId);
 		buttons.add(consensusRecordId);
 		buttons.add(sellerRecordId);
-		buttons.add(antifakeId);
+		buttons.add(applicationListId);
     	buttons.add(systemSettingsId);
     	
 		EventHandler<ActionEvent> buttonEventHandler = getPageEventHandler();
@@ -459,9 +459,9 @@ public class MainController {
 			//点击商家列表按钮
 			fxml = "/resources/template/businessRecord.fxml";
 			break;
-		case "antifakeId":
+		case "applicationListId":
 			//点击防伪测试按钮
-			fxml = "/resources/template/antifake.fxml";
+			fxml = "/resources/template/applicationList.fxml";
 			break;
 		case "systemSettingsId":
 			//点击系统设置按钮

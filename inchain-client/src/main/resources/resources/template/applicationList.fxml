@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="antiCounterfeitingBodyId" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="530.0" minWidth="774.0" prefHeight="530.0" prefWidth="774.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.ApplicationListController">
+   <children>
+      <Button fx:id="antiCounterfeitingId" layoutX="38.0" layoutY="30.0" mnemonicParsing="false" prefHeight="104.0" prefWidth="147.0" styleClass="antiCounterfeitingBut" text="防伪溯源">
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor></Button>
+   </children>
+</AnchorPane>
