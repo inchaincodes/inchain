@@ -49,6 +49,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -67,6 +68,7 @@ public class AntifakeController implements SubPageController {
 	private static final Logger log = LoggerFactory.getLogger(AntifakeController.class);
 	
 	public TextArea antifakeCodeId;				//防伪码内容
+	public TextField antifakePasswordId;         //防伪密码
 	
 	public Button verifyButId;						//验证按钮
 	public Button resetButId;						//重置按钮
@@ -111,19 +113,26 @@ public class AntifakeController implements SubPageController {
     	
     	//防伪码内容
     	String antifakeCode = antifakeCodeId.getText();
+    	//防伪密码内容
+    	String antifakePassword = antifakePasswordId.getText();
     	//验证接收地址
     	if("".equals(antifakeCode)) {
     		antifakeCodeId.requestFocus();
     		DailogUtil.showTip("请输入防伪码");
     		return;
     	}
-    	
+    	if("".equals(antifakePassword)) {
+    		antifakePasswordId.requestFocus();
+    		DailogUtil.showTip("请输入防伪密码");
+    		return;
+    	}
 		//调用接口广播交易
     	//如果账户已加密，则需要先解密
-		verifyDo(accountKit, antifakeCode);
+		verifyDo(accountKit, antifakeCode,antifakePassword);
+		
 	}
 
-    public void verifyDo(AccountKit accountKit, String antifakeCode) throws VerificationException {
+    public void verifyDo(AccountKit accountKit, String antifakeCode, String antifakePassword) throws VerificationException {
     	try{
 	    	//解析防伪码字符串
 			AntifakeCode base58AntifakeCode = AntifakeCode.base58Decode(antifakeCode);
@@ -241,7 +250,7 @@ public class AntifakeController implements SubPageController {
     					Platform.runLater(new Runnable() {
     					    @Override
     					    public void run() {
-    					    	decryptWallet(accountKit, antifakeCode);
+    					    	decryptWallet(accountKit, antifakeCode,antifakePassword);
     					    }
     					});
     				};
@@ -298,7 +307,7 @@ public class AntifakeController implements SubPageController {
 			
 			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 				value = new Label(DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
-			} else {
+			}else{
 				value = new Label(keyValuePair.getValueToString());
 			}
 			Tooltip tooltip = new Tooltip(value.getText());
@@ -307,11 +316,9 @@ public class AntifakeController implements SubPageController {
 			tooltip.setWrapText(true);
 			tooltip.setStyle("-fx-padding:10;");
 			value.setTooltip(tooltip);
-			
 			item.getChildren().add(value);
 			
 			item.setStyle("-fx-padding:0 0 10 10;");
-			
 			content.getChildren().add(item);
 		}
 		content.setStyle("-fx-padding:20 0 0 120;");
@@ -328,7 +335,7 @@ public class AntifakeController implements SubPageController {
 		DailogUtil.showDailog(body, "验证结果");
 	}
 
-	private void decryptWallet(AccountKit accountKit, String antifakeCode) {
+	private void decryptWallet(AccountKit accountKit, String antifakeCode,String antifakePassword) {
 		//解密账户
 		URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 		FXMLLoader loader = new FXMLLoader(location);
@@ -343,7 +350,7 @@ public class AntifakeController implements SubPageController {
 	    					    @Override
 	    					    public void run() {
 	    					    	try {
-	    					    		verifyDo(accountKitTemp, antifakeCode);
+	    					    		verifyDo(accountKitTemp, antifakeCode,antifakePassword);
 	    					    	} finally {
 	    					    		accountKitTemp.resetKeys();
 	    					    	}
@@ -364,6 +371,7 @@ public class AntifakeController implements SubPageController {
 		    @Override
 		    public void run() {
 		    	antifakeCodeId.setText("");
+		    	antifakePasswordId.setText("");
 		    }
 		});
 	}
