@@ -168,9 +168,9 @@ public class PeerKit {
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
 						log.info("节点{}无法Ping通，{}, {}", peer.getAddress(), TimeService.currentTimeMillis(), e.getMessage());
-						if(!network.blockIsNewestStatus()) {
-							peer.close();
-						}
+//						if(!network.blockIsNewestStatus()) {
+//							peer.close();
+//						}
 					}
 				}
 			}

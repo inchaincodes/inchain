@@ -2170,10 +2170,10 @@ public class AccountKit {
 	 */
 	public List<AccountStore> getCertAccounts(List<AccountStore> certAccountList) {
 		byte[] certAccounts = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
-		if(certAccountList != null && certAccountList.size() == certAccounts.length / Address.LENGTH) {
-			//没有变化，则直接返回
-			return certAccountList;
-		}
+//		if(certAccountList != null && certAccountList.size() == certAccounts.length / Address.LENGTH) {
+//			//没有变化，则直接返回
+//			return certAccountList;
+//		}
 		certAccountList = new ArrayList<AccountStore>();
 		if(certAccounts == null) {
 			return certAccountList;

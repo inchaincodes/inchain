@@ -785,7 +785,7 @@ public class RPCServiceImpl implements RPCService {
 				} catch (Exception e) {
 					//判断第二个参数是不是私钥
 					String param2 = params.getString(1);
-					if(param2.length() > 20) {
+					if(param2.length() > 30) {
 						privateKey = param2;
 					} else {
 						antifakeCode = params.getString(0);

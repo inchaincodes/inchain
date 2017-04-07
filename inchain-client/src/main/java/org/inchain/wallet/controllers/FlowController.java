@@ -1,10 +1,19 @@
 package org.inchain.wallet.controllers;
 
+import java.net.URL;
+
+import org.inchain.SpringContextUtils;
+import org.inchain.core.BroadcastResult;
+import org.inchain.core.Definition;
+import org.inchain.kits.AccountKit;
+import org.inchain.wallet.utils.Callback;
 import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.TextArea;
@@ -53,29 +62,73 @@ public class FlowController implements SubPageController{
 	   	eventTagId.getSelectionModel().clearSelection();;
 		antifakeCodeId.setText("");
 		descriptionId.setText("");
+		customizeId.setText("");
 	}
 
 	/*
 	 * 进行流转
 	 * */
 	private void define() {
-		if("".equals(antifakeCodeId.getText())) {
+		
+		String antifakeCode = antifakeCodeId.getText();
+		String customize = customizeId.getText();
+		String description = descriptionId.getText();
+		
+		if("".equals(antifakeCode)) {
 			antifakeCodeId.requestFocus();
 			DailogUtil.showTip("请输入防伪码");
     		return;
 		}
-		if("".equals(customizeId.getText())) {
+		if("".equals(customize)) {
 			customizeId.requestFocus();
 			DailogUtil.showTip("请选择事件标签");
 			return;
 		}
-		if("".equals(descriptionId.getText())) {
+		if("".equals(description)) {
 			descriptionId.requestFocus();
 			DailogUtil.showTip("请输入流转说明");
 			return;
 		}
-		DailogUtil.showTip("流转成功！");
-		reset();
+		AccountKit accountKit = SpringContextUtils.getBean(AccountKit.class);
+		if(accountKit.accountIsEncrypted()) {
+			decryptWallet(accountKit);
+			return;
+		}
+		BroadcastResult res = accountKit.addCirculation(antifakeCode, customize, description, null);
+		
+		if(res.isSuccess()) {
+			DailogUtil.showTip("添加流转信息成功！");
+			reset();
+		} else {
+			DailogUtil.showTip(res.getMessage());
+		}
+	}
+	
+	private void decryptWallet(final AccountKit accountKit) {
+		//解密账户
+		URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+		FXMLLoader loader = new FXMLLoader(location);
+		DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
+			@Override
+			public void ok(Object param) {
+				if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+					new Thread() {
+	    				public void run() {
+	    					Platform.runLater(new Runnable() {
+	    					    @Override
+	    					    public void run() {
+	    					    	try {
+	    					    		define();
+	    					    	} finally {
+	    					    		accountKit.resetKeys();
+	    					    	}
+	    					    }
+	    					});
+	    				};
+	    			}.start();
+				}
+			}
+		});
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package org.inchain.wallet.controllers;
 
 import java.io.ByteArrayInputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -33,7 +34,9 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.ProductTransaction;
+import org.inchain.utils.Base58;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
@@ -72,6 +75,8 @@ public class AntifakeController implements SubPageController {
 	
 	public Button verifyButId;						//验证按钮
 	public Button resetButId;						//重置按钮
+	
+	private List<String> successList = new ArrayList<String>();
 	
 	/**
 	 *  FXMLLoader 调用的初始化
@@ -121,11 +126,28 @@ public class AntifakeController implements SubPageController {
     		DailogUtil.showTip("请输入防伪码");
     		return;
     	}
-    	if("".equals(antifakePassword)) {
-    		antifakePasswordId.requestFocus();
-    		DailogUtil.showTip("请输入防伪密码");
+    	try {
+    		byte[] bytes = Base58.decode(antifakeCode);
+    		if(bytes.length == 20) {
+    			if("".equals(antifakePassword)) {
+    	    		antifakePasswordId.requestFocus();
+    	    		DailogUtil.showTip("请输入防伪密码");
+    	    		return;
+    	    	} else {
+    	    		try {
+    	    			Long.parseLong(antifakePassword);
+    	    		} catch (Exception e) {
+    	        		antifakeCodeId.requestFocus();
+    	        		DailogUtil.showTip("错误的密码");
+    	        		return;
+					}
+    	    	}
+    		}
+    	} catch (Exception e) {
+    		antifakeCodeId.requestFocus();
+    		DailogUtil.showTip("错误的防伪码");
     		return;
-    	}
+		}
 		//调用接口广播交易
     	//如果账户已加密，则需要先解密
 		verifyDo(accountKit, antifakeCode,antifakePassword);
@@ -134,9 +156,17 @@ public class AntifakeController implements SubPageController {
 
     public void verifyDo(AccountKit accountKit, String antifakeCode, String antifakePassword) throws VerificationException {
     	try{
-	    	//解析防伪码字符串
-			AntifakeCode base58AntifakeCode = AntifakeCode.base58Decode(antifakeCode);
-			
+    		AntifakeCode base58AntifakeCode = null;
+    		
+    		byte[] bytes = Base58.decode(antifakeCode);
+    		
+    		//解析防伪码字符串
+    		if(bytes.length > 20) {
+    			base58AntifakeCode = AntifakeCode.base58Decode(antifakeCode);
+    		} else {
+    			base58AntifakeCode = new AntifakeCode(bytes, Long.parseLong(antifakePassword));
+    		}
+    		
 			//判断验证码是否存在
 			ChainstateStoreProvider chainstateStoreProvider = SpringContextUtils.getBean("chainstateStoreProvider");
 			byte[] txBytes = chainstateStoreProvider.getBytes(base58AntifakeCode.getAntifakeCode());
@@ -211,6 +241,11 @@ public class AntifakeController implements SubPageController {
 			tx.verify();
 			tx.verifyScript();
 			
+    		if(successList.contains(Hex.encode(base58AntifakeCode.getAntifakeCode()))) {
+    			showProfuctInfo(blockStoreProvider, codeMakeTx, "验证失败，该防伪码已被验证");
+    			return;
+    		}
+    		
 			//验证交易合法才广播
 			//这里面同时会判断是否被验证过了
 			TransactionValidator transactionValidator = SpringContextUtils.getBean("transactionValidator");
@@ -234,6 +269,8 @@ public class AntifakeController implements SubPageController {
 				
 				//等待广播回应
 				if(result.isSuccess()) {
+					successList.add(Hex.encode(base58AntifakeCode.getAntifakeCode()));
+					resetForms();
 					//更新交易记录
 					TransactionStoreProvider transactionStoreProvider = SpringContextUtils.getBean("transactionStoreProvider");
 					transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));

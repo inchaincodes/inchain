@@ -11,6 +11,18 @@
    <children>
       <VBox prefHeight="200.0" prefWidth="100.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="50.0" AnchorPane.rightAnchor="50.0" AnchorPane.topAnchor="20.0">
          <children>
+         	<HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" style="-fx-border-color: transparent transparent transparent transparent;">
+               <VBox.margin>
+                  <Insets top="0" />
+               </VBox.margin>
+               <children>
+                  <Label fx:id="tips" text="" style="-fx-text-fill:#030404;">
+                     <HBox.margin>
+                        <Insets left="20.0" />
+                     </HBox.margin>
+                  </Label>
+               </children>
+            </HBox>
             <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
                <VBox.margin>
                   <Insets top="10.0" />

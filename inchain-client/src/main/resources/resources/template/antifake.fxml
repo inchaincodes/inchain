@@ -29,7 +29,7 @@
                   <HBox alignment="CENTER">
                      <children>
                         <Label text="防伪密码：" />
-                        <TextField fx:id="antifakePasswordId" minHeight="60.0" prefHeight="60.0" prefWidth="460.0" promptText="请输入防伪密码" styleClass="textField">
+                        <TextField fx:id="antifakePasswordId" minHeight="60.0" prefHeight="60.0" prefWidth="460.0" promptText="请输入防伪密码、若没有可不输" styleClass="textField">
                            <HBox.margin>
                               <Insets left="17.0" />
                            </HBox.margin>
