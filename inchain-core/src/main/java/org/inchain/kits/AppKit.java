@@ -2,7 +2,10 @@ package org.inchain.kits;
 
 import java.io.IOException;
 
+import javax.annotation.PostConstruct;
+
 import org.inchain.Configure;
+import org.inchain.SpringContextUtils;
 import org.inchain.consensus.Mining;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.listener.BlockChangedListener;
@@ -56,6 +59,11 @@ public class AppKit {
 		
 	}
 
+	@PostConstruct
+	public void init() {
+		SpringContextUtils.setNetwork(network);
+	}
+	
 	//异步启动
 	public void startSyn() {
 		new Thread(){

@@ -115,8 +115,6 @@ public class AccountKit {
 	private TransactionValidator transactionValidator;
 	@Autowired
 	private ConsensusPool consensusPool;
-	@Autowired
-	private ConsensusMeeting consensusMeeting;
 	//网络
 	@Autowired
 	private NetworkParams network;
@@ -1918,6 +1916,9 @@ public class AccountKit {
 			}
 		}
 		
+		//初始化交易数据
+		transactionStoreProvider.init();
+		
 		//加载账户信息
 		List<byte[]> hash160s = getAccountHash160s();
 		
@@ -1945,7 +1946,6 @@ public class AccountKit {
 
 	//是否重新加载账户交易
 	private void maybeReLoadTransaction(List<byte[]> hash160s) {
-		
 		//判断上次加载的和本次的账户是否完全一致
 		List<byte[]> hash160sStore = transactionStoreProvider.getAddresses();
 
@@ -2279,7 +2279,7 @@ public class AccountKit {
 					//上下限为1W -- 100W INS
 					BlockHeader bestBlockHeader = network.getBestBlockHeader();
 					//当前共识人数
-					int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(bestBlockHeader.getPeriodStartTime()).size();
+					int currentConsensusSize = bestBlockHeader.getPeriodCount();
 					//共识保证金
 					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
 					//输入金额

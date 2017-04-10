@@ -48,9 +48,16 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 		Thread t = new Thread() {
 			@Override
 			public void run() {
+				//延迟1秒启动
+				try {
+					Thread.sleep(1000l);
+				} catch (InterruptedException e) {
+					log.error("", e);
+				}
 				onload();
 			}
 		};
+		t.setName("credit collection service");
 		t.start();
 	}
 	

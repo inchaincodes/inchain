@@ -6,10 +6,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.annotation.PostConstruct;
-
 import org.inchain.Configure;
-import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -69,9 +66,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	/**
 	 * 初始化
 	 */
-	@PostConstruct
 	public void init() {
-		SpringContextUtils.setNetwork(network);
 		//本地交易记录对应的账号列表
 		byte[] list = getBytes(ADDRESSES_KEY);
 		if(list != null) {
@@ -187,6 +182,8 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				transactionStore.setHeight(txs.getHeight());
 				txs = transactionStore;
 				hasUpdate = true;
+				//保存
+				put(txs.getTransaction().getHash().getBytes(), txs.baseSerialize());
 				break;
 			}
 		}
@@ -209,24 +206,15 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 						for (TransactionOutput from : input.getFroms()) {
 							Sha256Hash fromTxHash = from.getParent().getHash();
 							
-							for (TransactionStore transactionStore : mineTxList) {
-								if(transactionStore.getTransaction().getHash().equals(fromTxHash)) {
-									//更新内存
-									byte[] ftxStatus = transactionStore.getStatus();
-									ftxStatus[from.getIndex()] = TransactionStore.STATUS_USED;
-									transactionStore.setStatus(ftxStatus);
-									//更新存储
-									put(transactionStore.getTransaction().getHash().getBytes(), transactionStore.baseSerialize());
-									break;
-								}
-							}
-							
 							for (TransactionStore unspendTx : unspendTxList) {
 								if(unspendTx.getTransaction().getHash().equals(fromTxHash)) {
 									//更新内存
 									byte[] ftxStatus = unspendTx.getStatus();
 									ftxStatus[from.getIndex()] = TransactionStore.STATUS_USED;
 									unspendTx.setStatus(ftxStatus);
+									
+									//更新存储
+									put(unspendTx.getTransaction().getHash().getBytes(), unspendTx.baseSerialize());
 									
 									//查询该笔交易是否还有我没有花费的交易
 									List<TransactionOutput> outputsTemp = unspendTx.getTransaction().getOutputs();
@@ -259,10 +247,9 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 					status[i] = TransactionStore.STATUS_UNUSE;
 					
 					for (byte[] hash160 : addresses) {
-						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-							if(!unspendTxList.contains(txs)) {
-								unspendTxList.add(txs);
-							}
+						if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)
+								&& !unspendTxList.contains(txs)) {
+							unspendTxList.add(txs);
 							break;
 						}
 					}
@@ -270,6 +257,8 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				//设置交易存储状态
 				txs.setStatus(status);
 			}
+			//保存
+			put(txs.getTransaction().getHash().getBytes(), txs.baseSerialize());
 			
 			if(noticeListener != null) {
 				// 我的交易，则提醒
@@ -303,8 +292,6 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				}
 			}
 		}
-		
-		put(txs.getTransaction().getHash().getBytes(), txs.baseSerialize());
 		
 		newConfirmTransaction(txs);
 	}
@@ -519,7 +506,6 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 				}
 			}
 		}
-		
 		return new Coin[]{balance, unconfirmedBalance};
 	}
 	

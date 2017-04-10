@@ -218,7 +218,6 @@ public class TransactionValidator {
 					}
 				}
 				Script verifyScript = new Script(scriptBytes);
-				System.out.println(verifyScript);
 				if(verifyScript.isConsensusOutputScript()) {
 					//共识保证金引用脚本，则验证
 					//因为共识保证金，除了本人会操作，还会有其它共识人操作
@@ -391,6 +390,9 @@ public class TransactionValidator {
 				Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
 				if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 					result.setResult(false, "保证金不正确");
+					System.out.println("==");
+					System.exit(0);
+					currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 					return validatorResult;
 				}
 			} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {

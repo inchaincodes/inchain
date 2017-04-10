@@ -19,7 +19,7 @@ public final class Coin implements Comparable<Coin>, Serializable {
     public static final long COIN_VALUE = (long) Math.pow(10, SMALLEST_UNIT_EXPONENT);
 
     /**
-     * 10亿总量
+     * 代币总量
      */
     public static final Coin MAX = Coin.valueOf(100000000).multiply(COIN_VALUE);
     

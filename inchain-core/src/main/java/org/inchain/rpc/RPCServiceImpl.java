@@ -779,6 +779,7 @@ public class RPCServiceImpl implements RPCService {
 				//2个参数，那么有可能是经纬度，有可能是账户私钥，也有可能是密码，根据类型和长度来判断
 				//如果第二个参数是json格式，则是经纬度
 				try {
+					antifakeContent = params.getString(0);
 					JSONObject localtionJson = new JSONObject(params.getString(1));
 					longitude = localtionJson.getDouble("longitude");
 					latitude = localtionJson.getDouble("latitude");

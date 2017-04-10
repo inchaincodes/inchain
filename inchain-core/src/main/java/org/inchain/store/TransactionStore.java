@@ -7,6 +7,7 @@ import org.inchain.core.exception.ProtocolException;
 import org.inchain.network.NetworkParams;
 import org.inchain.transaction.Transaction;
 import org.inchain.utils.Utils;
+import org.spongycastle.util.Arrays;
 
 public class TransactionStore extends Store {
 	
@@ -99,5 +100,18 @@ public class TransactionStore extends Store {
 	}
 	public byte[] getStatus() {
 		return status;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(!(obj instanceof TransactionStore)) {
+			return false;
+		}
+		return transaction.getHash().equals(((TransactionStore)obj).getTransaction().getHash());
+	}
+	
+	@Override
+	public int hashCode() {
+		return Arrays.hashCode(transaction.getHash().getBytes());
 	}
 }

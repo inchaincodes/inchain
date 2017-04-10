@@ -96,8 +96,9 @@ public class MakeTestNetGengsisBlock {
 			input = new TransactionInput((TransactionOutput)coinBaseTx.getOutput(0));
 			tx.addInput(input);
 			
-			Coin freeze = Coin.valueOf(10000000).multiply(Coin.COIN.value);
-			tx.addOutput(freeze, DateUtil.convertStringToDate("2018-08-01 00:00:00").getTime(), address1);
+			//冻结数量
+			Coin freeze = Coin.MAX.div(10);
+			tx.addOutput(freeze, DateUtil.convertStringToDate("2019-08-01 00:00:00").getTime(), address1);
 			tx.addOutput(Coin.valueOf(coinBaseTx.getOutput(0).getValue()).subtract(freeze), 0, address);
 			
 			//创建一个输入的空签名

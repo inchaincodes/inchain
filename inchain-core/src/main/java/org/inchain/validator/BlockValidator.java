@@ -125,6 +125,7 @@ public class BlockValidator {
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
 			
 			if(!rs.getResult().isSuccess()) {
+				System.out.println(networkParams.getBestBlockHeight());
 				throw new VerificationException(rs.getResult().getMessage());
 			}
 			//信用累积交易，比较特殊，这里单独验证

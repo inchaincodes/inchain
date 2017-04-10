@@ -21,6 +21,7 @@ import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
+import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
 import org.inchain.utils.ConsensusRewardCalculationUtil;
@@ -249,8 +250,8 @@ public class ConsensusController implements SubPageController {
     	if(consensusStatus) {
     		tip = "您当前正在共识中，确认要退出共识吗？";
     	} else {
-    		ConsensusPool consensusPool = SpringContextUtils.getBean(ConsensusPool.class);
-    		Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(consensusPool.getCurrentConsensus());
+    		BlockHeader bestBlockHeader = InchainInstance.getInstance().getAppKit().getNetwork().getBestBlockHeader();
+    		Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(bestBlockHeader.getPeriodCount());
     		tip = "参与共识会扣除 " + recognizance.toText() + "保证金，将在退出共识时返还，确定继续吗？";
     	}
     	ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(), tip,1);

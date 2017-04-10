@@ -44,7 +44,25 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	
 	@PostConstruct
 	public void init() {
-		
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				try {
+					Thread.sleep(100l);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				initConsensusAccounts();
+			}
+		};
+		t.setName("ConsensusPoolCacher init");
+		t.start();
+	}
+	
+	/*
+	 * 加载当前共识账户列表
+	 */
+	private void initConsensusAccounts() {
 		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 		if(consensusAccounts == null) {
 			return;
@@ -55,10 +73,9 @@ public class ConsensusPoolCacher implements ConsensusPool {
 			if(accountStore == null) {
 				continue;
 			}
-			container.put(accountStore.getHash160(), accountStore.getPubkeys());
 			
 			byte[] txhash = Arrays.copyOfRange(consensusAccounts, i + Address.LENGTH, i + Address.LENGTH + Sha256Hash.LENGTH);
-			txContainer.put(accountStore.getHash160(), Sha256Hash.wrap(txhash));
+			add(accountStore.getHash160(), Sha256Hash.wrap(txhash), accountStore.getPubkeys());
 		}
 		
 		log.info("加载已有的{}个共识", container.size());
@@ -71,6 +88,10 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	public void add(byte[] hash160, Sha256Hash txhash, byte[][] pubkey) {
 		if(!verifyOne(hash160, pubkey)) {
 			log.warn("公钥不匹配的共识");
+			return;
+		}
+		if(contains(hash160)) {
+			log.warn("重复的共识节点");
 			return;
 		}
 		container.put(hash160, pubkey);
@@ -117,8 +138,8 @@ public class ConsensusPoolCacher implements ConsensusPool {
 			Entry<byte[], byte[][]> entry = it.next();
 			byte[] key = entry.getKey();
 			if(Arrays.equals(hash160, key)) {
-				container.remove(key);
 				txContainer.remove(key);
+				it.remove();
 			}
 		}
 	}
