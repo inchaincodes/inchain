@@ -867,6 +867,7 @@ public class RPCServiceImpl implements RPCService {
 				account.setAccountType(network.getSystemAccountVersion());
 				account.setAddress(address);
 				account.setEcKey(eckey);
+				account.setMgPubkeys(new byte[][] {eckey.getPubKey(true)});
 			}
 			
 			VerifyAntifakeCodeResult vr = accountKit.verifyAntifakeCode(antifakeContent, account, longitude, latitude);
