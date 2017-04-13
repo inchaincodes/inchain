@@ -943,6 +943,7 @@ public class RPCServiceImpl implements RPCService {
 				account.setAccountType(network.getSystemAccountVersion());
 				account.setAddress(ad);
 				account.setEcKey(eckey);
+				account.setMgPubkeys(new byte[][] {eckey.getPubKey(true)});
 			} else if(StringUtil.isNotEmpty(address)){
 				account = accountKit.getAccount(address);
 			} else if(StringUtil.isEmpty(address)) {
@@ -1112,6 +1113,7 @@ public class RPCServiceImpl implements RPCService {
 				account.setAccountType(network.getSystemAccountVersion());
 				account.setAddress(ad);
 				account.setEcKey(eckey);
+				account.setMgPubkeys(new byte[][] {eckey.getPubKey(true)});
 			} else if(StringUtil.isNotEmpty(address)){
 				account = accountKit.getAccount(address);
 			} else if(StringUtil.isEmpty(address)) {
