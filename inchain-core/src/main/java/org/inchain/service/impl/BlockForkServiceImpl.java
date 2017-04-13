@@ -303,7 +303,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		if(preBlock.getHash().equals(network.getBestBlockHeader().getHash())) {
 			//1、上一个块是最新块，这种情况最好处理，直接把当前块当做最新块来验证即可
 			try {
-				boolean veriSuccess = blockValidator.verifyBlock(block);
+				boolean veriSuccess = blockValidator.verifyBlock(block).isSuccess();
 				if(!veriSuccess) {
 					log.info("分叉块 高度：{}， hash： {}, 打包人： {} 验证失败，丢弃", block.getHeight(), block.getHash(), new Address(network, block.getHash160()).getBase58());
 					//验证失败
@@ -494,5 +494,25 @@ public class BlockForkServiceImpl implements BlockForkService {
 		} finally {
 			penalizeLock.unlock();
 		}
+	}
+	
+	/**
+	 * 获取一个块
+	 * @param hash
+	 * @return Block
+	 */
+	public Block getBlock(Sha256Hash hash) {
+		for (BlockForkStore blockForkStore : blockForks) {
+			if(blockForkStore.getBlock().getHash().equals(hash)) {
+				return blockForkStore.getBlock();
+			}
+		}
+		
+		byte[] blockStroeBytes = chainstateStoreProvider.getBytes(hash.getBytes());
+		if(blockStroeBytes == null) {
+			return null;
+		}
+		BlockForkStore blockForkStore = new BlockForkStore(network, blockStroeBytes);
+		return blockForkStore.getBlock();
 	}
 }

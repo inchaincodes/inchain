@@ -2040,6 +2040,83 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 	
+	/**
+	 * 通过公钥得到地址
+	 * @param pubkey
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	public JSONObject getAddressByPubKey(String pubkey) throws JSONException {
+		
+		JSONObject json = new JSONObject();
+		
+		if(StringUtil.isEmpty(pubkey)) {
+			return json.put("success", false).put("message", "公钥为空");
+		}
+		
+		try {
+			json.put("address", AccountTool.newAddress(network, ECKey.fromPublicOnly(Hex.decode(pubkey))).getBase58());
+			json.put("success", true).put("message", "ok");
+		} catch (Exception e) {
+			json.put("success", false).put("message", e.getMessage());
+		}
+		return json;
+	}
+	
+	/**
+	 * 获取私钥
+	 * @param address
+	 * @param password
+	 * @return JSONObject
+	 */
+	public JSONObject getPrivatekey(String address, String password) throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		Account account = null;
+		if(StringUtil.isNotEmpty(address)) {
+			account = accountKit.getAccount(address);
+		} else {
+			account = accountKit.getDefaultAccount();
+		}
+		
+		if(account == null) {
+			json.put("success", false).put("message", "账户不存在");
+			return json;
+		}
+		
+		if(account.getAccountType() == network.getCertAccountVersion()) {
+			json.put("success", false).put("message", "该方法不支持认证账号");
+			return json;
+		}
+		
+		if(account.isEncrypted() && StringUtil.isEmpty(password)) {
+			json.put("success", false).put("message", "账户已加密");
+			return json;
+		}
+		
+		if(account.isEncrypted()) {
+			account.decryptionMg(password);
+			//普通账户的解密
+			account.resetKey(password);
+			ECKey eckey = account.getEcKey();
+			try {
+				account.setEcKey(eckey.decrypt(password));
+			} catch (Exception e) {
+				log.error("解密失败, "+e.getMessage(), e);
+				account.setEcKey(eckey);
+				json.put("success", false).put("message", e.getMessage());
+			}
+		}
+		
+		String privateKey = account.getEcKey().getPrivateKeyAsHex();
+		
+		account.resetKey();
+		
+		json.put("privateKey", privateKey);
+		json.put("success", true).put("message", "ok");
+		return json;
+	}
+	
 	/*
 	 * 转换tx为json
 	 */

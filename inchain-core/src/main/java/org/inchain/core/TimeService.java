@@ -27,7 +27,7 @@ public final class TimeService {
 	/*
 	 * 网络时间刷新间隔
 	 */
-	private static final long TIME_REFRESH_TIME = 3600000l;
+	private static final long TIME_REFRESH_TIME = 600000l;
 
 	/*
 	 * 模拟网络时钟 
@@ -121,7 +121,7 @@ public final class TimeService {
 				log.info("本地时间调整了：{}", newTime - lastTime);
 				initTime();
 			} else if(lastInitTime - currentTimeMillis() > TIME_REFRESH_TIME) {
-				//每隔1小时更新网络时间
+				//每隔一段时间更新网络时间
 				initTime();
 			}
 			lastTime = newTime;

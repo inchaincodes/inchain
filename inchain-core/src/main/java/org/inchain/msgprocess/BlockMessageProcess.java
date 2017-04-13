@@ -5,6 +5,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.core.Peer;
+import org.inchain.core.Result;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
@@ -71,11 +72,15 @@ public class BlockMessageProcess implements MessageProcess {
 			}
 			
 			//验证区块消息的合法性
-			if(!blockValidator.verifyBlock(block)) {
+			Result verifyReuslt = blockValidator.verifyBlock(block);
+			if(!verifyReuslt.isSuccess()) {
 				
 				blockForkService.addBlockFork(block);
 				
-				return replyRejectMessage(block);
+				MessageProcessResult result = replyRejectMessage(block);
+				result.setErrorCode(verifyReuslt.getErrorCode());
+				
+				return result;
 			}
 			
 			//验证通过 ，存储区块数据

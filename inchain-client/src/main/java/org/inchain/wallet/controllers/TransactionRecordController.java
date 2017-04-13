@@ -309,7 +309,7 @@ public class TransactionRecordController implements SubPageController {
 						type = "注册共识";
 						isSendout = true;
 					} else {
-						detail = "解冻保证金";
+						detail = "赎回保证金";
 						type = "退出共识";
 						isSendout = false;
 					}

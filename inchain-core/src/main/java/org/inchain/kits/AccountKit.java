@@ -2429,8 +2429,9 @@ public class AccountKit {
 	 * 设置别名
 	 * @param alias
 	 * @return Result
+	 * @throws UnsupportedEncodingException 
 	 */
-	public Result setAlias(String alias) {
+	public Result setAlias(String alias) throws UnsupportedEncodingException {
 		return setAlias(getDefaultAccount().getAddress().getBase58(), alias);
 	}
 	
@@ -2439,12 +2440,13 @@ public class AccountKit {
 	 * @param address
 	 * @param alias
 	 * @return Result
+	 * @throws UnsupportedEncodingException 
 	 */
-	public Result setAlias(String address, String alias) {
+	public Result setAlias(String address, String alias) throws UnsupportedEncodingException {
 		if(StringUtil.isEmpty(alias)) {
 			return new Result(false, "别名不能为空");
 		}
-		byte[] aliasBytes = alias.getBytes();
+		byte[] aliasBytes = alias.getBytes("utf-8");
 		if(aliasBytes.length > 30) {
 			return new Result(false, "别名不能超过10个汉字或者20个英文与字母");
 		}
@@ -2494,8 +2496,9 @@ public class AccountKit {
 	 * 修改别名
 	 * @param alias
 	 * @return Result
+	 * @throws UnsupportedEncodingException 
 	 */
-	public Result updateAlias(String alias) {
+	public Result updateAlias(String alias) throws UnsupportedEncodingException {
 		return updateAlias(getDefaultAccount().getAddress().getBase58(), alias);
 	}
 	
@@ -2504,12 +2507,13 @@ public class AccountKit {
 	 * @param address
 	 * @param alias
 	 * @return Result
+	 * @throws UnsupportedEncodingException 
 	 */
-	public Result updateAlias(String address, String alias) {
+	public Result updateAlias(String address, String alias) throws UnsupportedEncodingException {
 		if(StringUtil.isEmpty(alias)) {
 			return new Result(false, "别名不能为空");
 		}
-		byte[] aliasBytes = alias.getBytes();
+		byte[] aliasBytes = alias.getBytes("utf-8");
 		if(aliasBytes.length > 30) {
 			return new Result(false, "别名不能超过10个汉字或者20个英文与字母");
 		}

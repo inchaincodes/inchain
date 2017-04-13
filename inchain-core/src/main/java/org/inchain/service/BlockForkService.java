@@ -2,6 +2,7 @@ package org.inchain.service;
 
 import java.util.List;
 
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 
@@ -36,4 +37,11 @@ public interface BlockForkService {
 	 * @return List<BlockHeader>
 	 */
 	List<BlockHeader> getAndRemovePenalize();
+	
+	/**
+	 * 获取一个块
+	 * @param hash
+	 * @return Block
+	 */
+	Block getBlock(Sha256Hash hash);
 }

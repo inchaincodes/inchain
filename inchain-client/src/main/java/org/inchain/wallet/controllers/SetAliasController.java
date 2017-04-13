@@ -1,5 +1,7 @@
 package org.inchain.wallet.controllers;
 
+import java.io.UnsupportedEncodingException;
+
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -25,7 +27,13 @@ public class SetAliasController extends DailogController {
 	
 	public void initialize() {
 		cancelId.setOnAction(e -> cancel());
-		okId.setOnAction(e -> doSave());
+		okId.setOnAction(e -> {
+			try {
+				doSave();
+			} catch (UnsupportedEncodingException e1) {
+				e1.printStackTrace();
+			}
+		});
 	}
 
 	/*
@@ -49,7 +57,7 @@ public class SetAliasController extends DailogController {
 	/*
 	 * 确定
 	 */
-	private void doSave() {
+	private void doSave() throws UnsupportedEncodingException {
 		
 		//校验
 		String alias = aliasId.getText();

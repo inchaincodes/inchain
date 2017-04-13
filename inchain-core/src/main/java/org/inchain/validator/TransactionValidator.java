@@ -390,8 +390,6 @@ public class TransactionValidator {
 				Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
 				if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 					result.setResult(false, "保证金不正确");
-					System.out.println("==");
-					System.exit(0);
 					currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 					return validatorResult;
 				}

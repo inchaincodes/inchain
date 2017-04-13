@@ -37,8 +37,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
-import javafx.scene.effect.BlurType;
-import javafx.scene.effect.DropShadow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
@@ -295,6 +293,8 @@ public class AccountInfoController implements SubPageController {
 									if (!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 										try {
 											setAlias();
+										} catch (UnsupportedEncodingException e) {
+											e.printStackTrace();
 										} finally {
 											accountKitTemp.resetKeys();
 										}
@@ -324,6 +324,8 @@ public class AccountInfoController implements SubPageController {
 									if (!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
 										try {
 											updateAlias();
+										} catch (UnsupportedEncodingException e) {
+											e.printStackTrace();
 										} finally {
 											accountKitTemp.resetKeys();
 										}
@@ -345,7 +347,7 @@ public class AccountInfoController implements SubPageController {
 	}
 
 
-	private void updateAlias() {
+	private void updateAlias() throws UnsupportedEncodingException {
 		// 校验
 		String alias = aliasId.getText();
 		if (StringUtils.isEmpty(alias)) {
@@ -369,7 +371,7 @@ public class AccountInfoController implements SubPageController {
 		initialState();
 	}
 
-	private void setAlias() {
+	private void setAlias() throws UnsupportedEncodingException {
 		// 校验
 		String alias = aliasId.getText();
 		if (StringUtils.isEmpty(alias)) {

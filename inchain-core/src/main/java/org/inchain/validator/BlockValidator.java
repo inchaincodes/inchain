@@ -36,6 +36,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class BlockValidator {
 
+	public final static int ERROR_CODE_HEIGHT_ERROR = 1;
+	
 	private Logger log = LoggerFactory.getLogger(getClass());
 	
 	@Autowired
@@ -105,12 +107,20 @@ public class BlockValidator {
 	 * @param block
 	 * @return boolean
 	 */
-	public boolean verifyBlock(Block block) {
+	public Result verifyBlock(Block block) {
 		//验证区块签名
-		if(!block.verify()) {
-			return false;
+		try {
+			if(!block.verify()) {
+				return new Result(false);
+			}
+		} catch (VerificationException e) {
+			return new Result(false, e.getMessage());
 		}
-		block.verifyScript();
+		try {
+			block.verifyScript();
+		} catch (Exception e) {
+			return new Result(false, "签名错误");
+		}
 		
 		//验证交易是否合法
 		Coin coinbaseFee = Coin.ZERO; //coinbase 交易包含的金额，主要是手续费
@@ -125,7 +135,6 @@ public class BlockValidator {
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx, txs);
 			
 			if(!rs.getResult().isSuccess()) {
-				System.out.println(networkParams.getBestBlockHeight());
 				throw new VerificationException(rs.getResult().getMessage());
 			}
 			//信用累积交易，比较特殊，这里单独验证
@@ -153,7 +162,7 @@ public class BlockValidator {
 		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(block.getHeight());
 		if(!coinbaseFee.equals(fee.add(rewardCoin))) {
 			log.warn("the fee error");
-			return false;
+			return new Result(false, "交易金额错误");
 		}
 		//获取区块的最新高度
 		BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
@@ -162,9 +171,9 @@ public class BlockValidator {
 				block.getHeight() != bestBlockHeader.getBlockHeader().getHeight() + 1) {
 			log.warn("block info warn");
 			blockForkService.addBlockFork(block);
-			return false;
+			return new Result(false, ERROR_CODE_HEIGHT_ERROR, "block info warn");
 		}
-		return true;
+		return new Result(true);
 	}
 	
 	/**

@@ -16,7 +16,6 @@ import org.inchain.utils.Base58;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spongycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -790,7 +789,34 @@ public class RPCHanlder {
 			return result;
 		}
 		
+		//通过公钥得到地址
+		case "getaddressbypubkey": {
+			String pubkey = params.getString(0);
+			return rpcService.getAddressByPubKey(pubkey);
+		}
 		
+		//查看账户的私钥
+		case "getprivatekey": {
+			
+			String pw = null;
+			String address = null;
+			if(params.length() > 0) {
+				pw = params.getString(0);
+			}
+			if(params.length() > 1) {
+				address = params.getString(1);
+			}
+			if(params.length() == 1) {
+				//当参数只有一个时，判断是密码还是地址
+				try {
+					Address.fromBase58(network, address);
+					address = params.getString(0);
+					pw = null;
+				} catch (Exception e) {
+				}
+			}
+			return rpcService.getPrivatekey(address, pw);
+		}
 		
 		default:
 			result.put("success", false).put("message", "没有找到的命令" + command);

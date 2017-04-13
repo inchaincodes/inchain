@@ -8,13 +8,22 @@ package org.inchain.core;
 public class Result {
 
 	protected boolean success;
+	protected int errorCode;
 	protected String message;
 	
 	public Result() {
 		super();
 	}
+	public Result(boolean success) {
+		this.success = success;
+	}
 	public Result(boolean success, String message) {
 		this.success = success;
+		this.message = message;
+	}
+	public Result(boolean success, int errorCode, String message) {
+		this.success = success;
+		this.errorCode = errorCode;
 		this.message = message;
 	}
 	public boolean isSuccess() {
@@ -29,8 +38,22 @@ public class Result {
 	public void setMessage(String message) {
 		this.message = message;
 	}
+	public int getErrorCode() {
+		return errorCode;
+	}
+	public void setErrorCode(int errorCode) {
+		this.errorCode = errorCode;
+	}
 	@Override
 	public String toString() {
-		return "Result [success=" + success + ", message=" + message + "]";
+		StringBuilder builder = new StringBuilder();
+		builder.append("Result [success=");
+		builder.append(success);
+		builder.append(", errorCode=");
+		builder.append(errorCode);
+		builder.append(", message=");
+		builder.append(message);
+		builder.append("]");
+		return builder.toString();
 	}
 }

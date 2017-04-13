@@ -7,6 +7,7 @@ import java.util.List;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.core.Peer;
 import org.inchain.mempool.MempoolContainer;
+import org.inchain.message.Block;
 import org.inchain.message.ConsensusMessage;
 import org.inchain.message.DataNotFoundMessage;
 import org.inchain.message.GetDatasMessage;
@@ -14,6 +15,7 @@ import org.inchain.message.InventoryItem;
 import org.inchain.message.Message;
 import org.inchain.message.NewBlockMessage;
 import org.inchain.network.NetworkParams;
+import org.inchain.service.BlockForkService;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.store.TransactionStore;
@@ -37,6 +39,8 @@ public class GetDatasMessageProcess implements MessageProcess {
 	private NetworkParams network;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private BlockForkService blockForkService;
 	@Autowired
 	private ConsensusMeeting consensusMeeting;
 	@Autowired
@@ -126,12 +130,18 @@ public class GetDatasMessageProcess implements MessageProcess {
 	 * 下载新区块
 	 */
 	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
+		Block block = null;
+		
 		BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
 		if(blockStore == null) {
-			sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
-			return;
+			block = blockForkService.getBlock(inventoryItem.getHash());
+			if(block == null) {
+				sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
+				return;
+			}
 		}
-		sendMessage(peer, new NewBlockMessage(peer.getNetwork(), blockStore.getBlock().baseSerialize()));
+		block = blockStore.getBlock();
+		sendMessage(peer, new NewBlockMessage(peer.getNetwork(), block.baseSerialize()));
 	}
 
 }

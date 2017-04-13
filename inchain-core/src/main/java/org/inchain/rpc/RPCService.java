@@ -436,4 +436,20 @@ public interface RPCService {
 	 */
 	JSONObject getAliasByAccount(String account) throws JSONException;
 
+	/**
+	 * 通过公钥得到地址
+	 * @param pubkey
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject getAddressByPubKey(String pubkey) throws JSONException;
+
+	/**
+	 * 获取私钥
+	 * @param address
+	 * @param password
+	 * @return JSONObject
+	 */
+	JSONObject getPrivatekey(String address, String password) throws JSONException;
+
 }

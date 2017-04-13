@@ -95,7 +95,15 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		
 		MessageProcessResult result = super.process(message, peer);
 		
+		Sha256Hash hash = block.getHash();
+		
 		if(!result.isSuccess()) {
+			if(result.getErrorCode() == BlockValidator.ERROR_CODE_HEIGHT_ERROR) {
+				//转播
+				InventoryItem item = new InventoryItem(Type.NewBlock, hash);
+				InventoryMessage invMessage = new InventoryMessage(peer.getNetwork(), item);
+				peerKit.broadcastMessage(invMessage, peer);
+			}
 			return result;
 		}
 
@@ -108,8 +116,6 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 			//移除內存中的交易
 			MempoolContainer.getInstace().remove(tx.getHash());
 		}
-		
-		Sha256Hash hash = block.getHash();
 		
 		//区块变化监听器
 		if(peerKit.getBlockChangedListener() != null) {
