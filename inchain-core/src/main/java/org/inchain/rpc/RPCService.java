@@ -217,6 +217,13 @@ public interface RPCService {
 	 * @throws JSONException 
 	 */
 	JSONArray getConsensus() throws JSONException;
+	
+	/**
+	 * 获取共识节点数量
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject getConsensusCount() throws JSONException;
 
 	/**
 	 * 注册共识
@@ -258,12 +265,14 @@ public interface RPCService {
 	 * 发送交易
 	 * @param toAddress
 	 * @param money
-	 * @param fee
+	 * @param address 
 	 * @param password 
+	 * @param remark 
+	 * @param passwordOrRemark
 	 * @return JSONObject
 	 * @throws JSONException 
 	 */
-	JSONObject sendMoney(String toAddress, String money, String fee, String password) throws JSONException;
+	JSONObject sendMoney(String toAddress, String money, String address, String password, String remark, String passwordOrRemark) throws JSONException;
 
 	/**
 	 * 广播交易

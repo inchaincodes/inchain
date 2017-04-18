@@ -2,6 +2,7 @@ package org.inchain.core;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.NotYetConnectedException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -269,6 +270,9 @@ public class Peer extends PeerSocketHandler {
 	 * @return long
 	 */
 	public long getBestBlockHeight() {
+		if(bestBlockHeight == null) {
+			return 0;
+		}
 		return bestBlockHeight.get();
 	}
 	
@@ -287,7 +291,7 @@ public class Peer extends PeerSocketHandler {
 		pingFutures.put(nonce, pingFuture);
 		try {
 			sendMessage(new PingMessage(nonce));
-		} catch (NotYetConnectedException | IOException e) {
+		} catch (NotYetConnectedException | IOException | CancelledKeyException e) {
 			pingFuture.set(false);
 			pingFutures.remove(nonce);
 		}

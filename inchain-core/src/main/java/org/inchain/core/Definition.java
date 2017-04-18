@@ -47,14 +47,19 @@ public final class Definition {
 	/**
      * Inchain 核心程序版本
      */
-    public static final String INCHAIN_VERSION = "0.0.5";
+    public static final String INCHAIN_VERSION = "0.1.1";
 
     /**
      * 版本完整信息
      */
-    public static final String LIBRARY_SUBVER = "inchain core preview version v" + INCHAIN_VERSION + "";
+    public static final String LIBRARY_SUBVER = "inchain core beta v" + INCHAIN_VERSION + "";
     
 	public static final long VERSION = 1;
+	
+	/**
+	 * 区块最大限制
+	 */
+	public static final int MAX_BLOCK_SIZE = 2048 * 1024;
 	
 	/** lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒） **/
 	public static final long LOCKTIME_THRESHOLD = 50000000000l;
@@ -138,7 +143,7 @@ public final class Definition {
 	public static final Map<String, Class<? extends Message>> COMMANDS_MESSAGE = new HashMap<String, Class<? extends Message>>();
 	//消息对应处理器
     public static final Map<Class<? extends Message>, String> PROCESS_FACTORYS = new HashMap<Class<? extends Message>, String>();
-    
+
 	static {
     	//===========================-分割线=============================//
 		

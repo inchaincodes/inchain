@@ -73,7 +73,7 @@ import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.RemoveSubAccountTransaction;
 import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.utils.Base58;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.RandomUtil;
@@ -793,7 +793,7 @@ public class AccountKit {
 	 * @throws MoneyNotEnoughException
 	 */
 	public BroadcastResult sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
-		return sendMoney(to, money, fee, null);
+		return sendMoney(to, money, fee, null, null, null);
 	}
 	
 	/**
@@ -804,7 +804,7 @@ public class AccountKit {
 	 * @return String
 	 * @throws MoneyNotEnoughException
 	 */
-	public BroadcastResult sendMoney(String to, Coin money, Coin fee, byte[] remark) throws MoneyNotEnoughException {
+	public BroadcastResult sendMoney(String to, Coin money, Coin fee, byte[] remark, String address, String password) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
 		
@@ -834,10 +834,33 @@ public class AccountKit {
 			}
 			
 			//账户是否已加密
-			Account account = getDefaultAccount();
+			Account account = null;
+			
+			if(StringUtil.isEmpty(address)) {
+				account = getDefaultAccount();
+			} else {
+				account = getAccount(address);
+			}
+			
+			if(account == null) {
+				throw new VerificationException("地址不存在或错误");
+			}
+			
 			if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
 					(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
-				throw new VerificationException("账户已加密");
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密");
+				}
+				
+				if(account.getAccountType() == network.getSystemAccountVersion()) {
+					ECKey eckey = account.getEcKey().decrypt(password);
+					account.setEcKey(eckey);
+				} else {
+					ECKey[] eckeys = account.decryptionTr(password);
+					if(eckeys == null) {
+						throw new VerificationException("密码错误");
+					}
+				}
 			}
 			
 			//如果是认证账户，但是没有被收录进链里，则账户不可用
@@ -1031,7 +1054,15 @@ public class AccountKit {
 			Collections.sort(thisOutputs, new Comparator<TransactionOutput>() {
 				@Override
 				public int compare(TransactionOutput o1, TransactionOutput o2) {
-					return o1.getParent().getTime() > o2.getParent().getTime() ? 1:-1;
+					long v1 = o1.getParent().getTime();
+					long v2 = o2.getParent().getTime();
+					if(v1 == v2) {
+						return 0;
+					} else if(v1 > v2) {
+						return 1;
+					} else {
+						return -1;
+					}
 				}
 			});
 		}
@@ -1086,7 +1117,15 @@ public class AccountKit {
 		Collections.sort(moreThanList, new Comparator<TransactionOutput>() {
 			@Override
 			public int compare(TransactionOutput o1, TransactionOutput o2) {
-				return o1.getValue() > o2.getValue() ? 1:-1;
+				long v1 = o1.getValue();
+				long v2 = o2.getValue();
+				if(v1 == v2) {
+					return 0;
+				} else if(v1 > v2) {
+					return 1;
+				} else {
+					return -1;
+				}
 			}
 		});
 		outputs.add(moreThanList.get(0));
@@ -1103,7 +1142,15 @@ public class AccountKit {
 		Collections.sort(lessThanList, new Comparator<TransactionOutput>() {
 			@Override
 			public int compare(TransactionOutput o1, TransactionOutput o2) {
-				return o1.getValue() > o2.getValue() ? 1:-1;
+				long v1 = o1.getValue();
+				long v2 = o2.getValue();
+				if(v1 == v2) {
+					return 0;
+				} else if(v1 > v2) {
+					return 1;
+				} else {
+					return -1;
+				}
 			}
 		});
 		
@@ -2269,19 +2316,20 @@ public class AccountKit {
 	public Result registerConsensus() {
 		//选取第一个可注册共识的账户进行广播
 		try {
+			BlockHeader bestBlockHeader = network.getBestBlockHeader();
+			
 			for (Account account : accountList) {
 				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
-				if((accountStore != null && accountStore.getCert() >= Configure.CONSENSUS_CREDIT)
-						|| (Configure.CONSENSUS_CREDIT <= 0l && accountStore == null)) {
+				if((accountStore != null && accountStore.getCert() >= ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()))
+						|| (ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()) <= 0l && accountStore == null)) {
 					
 					//保证金是否充足
 					//根据当前人数动态计算参与共识的保证金
 					//上下限为1W -- 100W INS
-					BlockHeader bestBlockHeader = network.getBestBlockHeader();
 					//当前共识人数
 					int currentConsensusSize = bestBlockHeader.getPeriodCount();
 					//共识保证金
-					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
+					Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, bestBlockHeader.getHeight());
 					//输入金额
 					Coin totalInputCoin = Coin.ZERO;
 					//选择输入

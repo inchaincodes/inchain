@@ -137,6 +137,8 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 			filter = new BloomFilter(10000, 0.0001, RandomUtil.randomLong());
 		}
 		
+		log.info("{} success", block.getHeight());
+		
 		return result;
 	}
 

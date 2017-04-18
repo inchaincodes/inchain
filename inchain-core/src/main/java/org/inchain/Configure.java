@@ -41,16 +41,16 @@ public final class Configure {
 	 * 运行模式，1主网， 2 测试网络，3 单元测试
 	 */
 	public final static int RUN_MODE = getProperty("run.mode", 2);
-
-	/**
-	 * p2p 端口
-	 */
-	public final static int PORT = getProperty("port", 8631);
 	
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
 	public final static int DEFAULT_PORT = 11861;
+
+	/**
+	 * p2p 端口
+	 */
+	public final static int PORT = getProperty("port", DEFAULT_PORT);
 	
 	/**
 	 * 是否挖矿
@@ -70,7 +70,7 @@ public final class Configure {
 	/**
 	 * 区块生成间隔时间，单位秒
 	 */
-	public final static int BLOCK_GEN_TIME = getProperty("block.gen.time", 6);
+	public final static int BLOCK_GEN_TIME = 10;
 	/**
 	 * 区块生成间隔时间，单位豪秒
 	 */
@@ -78,7 +78,7 @@ public final class Configure {
 	/**
 	 * 挖矿奖励冻结区块数
 	 */
-	public final static int MINING_MATURE_COUNT = getProperty("block.gen.time", 10);
+	public final static int MINING_MATURE_COUNT = 1000;	// getProperty("block.gen.time", 1000);
 	/**
 	 * 数据存储目录
 	 */
@@ -137,11 +137,11 @@ public final class Configure {
 	/**
 	 * 修改账户别名需信用达到值
 	 */
-	public final static long UPDATE_ALIAS_CREDIT = 5;
+	public final static long UPDATE_ALIAS_CREDIT = 1;
 	/**
 	 * 修改账户别名消耗信用值
 	 */
-	public final static long UPDATE_ALIAS_SUB_CREDIT = -5;
+	public final static long UPDATE_ALIAS_SUB_CREDIT = -1;
 	/**
 	 * 转让防伪码所需信用值
 	 */
@@ -156,7 +156,7 @@ public final class Configure {
 	 * 参与共识所需的信用点
 	 */
 	//TODO 临时设置为0
-	public final static long CONSENSUS_CREDIT = 1;
+	public final static long CONSENSUS_CREDIT = 0;
 	
 	/**
 	 * 转账获得信用点数
@@ -179,7 +179,7 @@ public final class Configure {
 	/**
 	 * 严重违规的惩罚信用点数
 	 */
-	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999;
+	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999999;
 	
 	/** 参与共识所需最低保证金 -- 1 W ins **/
 	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);

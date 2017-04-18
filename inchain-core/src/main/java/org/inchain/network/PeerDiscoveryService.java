@@ -124,6 +124,11 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 		runing = false;
 		
 		writeObjectToFile(netaddressMaps);
+		
+		netaddressMaps.clear();
+		verifyedMaps.clear();
+		canuseMaps.clear();
+		connectedStatusMaps.clear();
 	}
 	
 	/*
@@ -134,6 +139,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 		
 		try {
 			//读取节点列表信息
+			//TODO
 			netaddressMaps = readObjectFromFile();
 			
 			if(netaddressMaps == null) {
@@ -361,9 +367,15 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	 * @return List<Seed>
 	 */
 	public List<Seed> getCanConnectPeerSeeds(int maxCount) {
-		locker.lock();
 		
 		List<Seed> list = new ArrayList<Seed>();
+		
+		if(!runing) {
+			return list;
+		}
+		
+		locker.lock();
+		
 		try {
 			if(canuseMaps.isEmpty() && !hasLoadDns) {
 				return getDnsSeeds(maxCount);

@@ -48,7 +48,7 @@ import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.RemoveSubAccountTransaction;
 import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -365,7 +365,9 @@ public class TransactionValidator {
 				
 				//判断是否达到共识条件
 				long credit = (accountStore == null ? 0 : accountStore.getCert());
-				if(credit < Configure.CONSENSUS_CREDIT) {
+				BlockHeader blockHeader = blockStoreProvider.getBlockHeaderByperiodStartTime(regConsensusTx.getPeriodStartTime());
+				long consensusCredit = ConsensusCalculationUtil.getConsensusCredit(blockHeader.getHeight());
+				if(credit < consensusCredit) {
 					//信用不够
 					result.setResult(false, "信用值过低");
 					return validatorResult;
@@ -387,7 +389,7 @@ public class TransactionValidator {
 				//当前共识人数
 				int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 				//共识保证金
-				Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
+				Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, blockHeader.getHeight());
 				if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 					result.setResult(false, "保证金不正确");
 					currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
@@ -755,7 +757,7 @@ public class TransactionValidator {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
 			
 			//账户必须达到规定的信用，才能转让防伪码
-			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getReceiveHash160());
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getHash160());
 			if(accountInfo == null || accountInfo.getCert() < Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
 				result.setResult(false, "账户信用达到" + Configure.TRANSFER_ANTIFAKECODE_CREDIT + "之后才能转让");
 				return validatorResult;
@@ -814,7 +816,7 @@ public class TransactionValidator {
 	 */
 	public int getConsensusPeriod(byte[] hash160, long periodStartTime) {
 		List<ConsensusAccount> consensusList = consensusMeeting.analysisConsensusSnapshots(periodStartTime);
-		log.info("被处理人： {} , 开始时间： {} ,  列表： {}", new Address(network, hash160).getBase58(), DateUtil.convertDate(new Date(periodStartTime*1000)), consensusList);
+//		log.info("被处理人： {} , 开始时间： {} ,  列表： {}", new Address(network, hash160).getBase58(), DateUtil.convertDate(new Date(periodStartTime*1000)), consensusList);
 		if(log.isDebugEnabled()) {
 			log.debug("被处理人： {} , 开始时间： {} ,  列表： {}", new Address(network, hash160).getBase58(), DateUtil.convertDate(new Date(periodStartTime*1000)), consensusList);
 		}

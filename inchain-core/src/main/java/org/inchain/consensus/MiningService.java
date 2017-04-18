@@ -55,7 +55,7 @@ import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.RandomUtil;
@@ -169,11 +169,17 @@ public final class MiningService implements Mining {
 		//博隆过滤器，检查本次打包的交易是否有双花嫌疑
 		BloomFilter inputFilter = new BloomFilter(100000, 0.0001, RandomUtil.randomLong());
 		
+		int txsSize = 0;
+		int maxTxsSize = Definition.MAX_BLOCK_SIZE - 200;
+		
 		while (true) {
 			//每次获取内存里面的一个交易
 			Transaction tx = mempool.get();
 			
 			while(tx != null) {
+				if(txsSize > maxTxsSize) {
+					break;
+				}
 				//如果某笔交易验证失败，则不打包进区块
 				try{
 					//去除重复交易
@@ -188,6 +194,8 @@ public final class MiningService implements Mining {
 							fee = fee.add(getTransactionFee(tx));
 						}
 						transactionList.add(tx);
+						
+						txsSize += tx.getLength();
 					} else {
 						//验证失败
 						debug("交易验证失败：" + tx.getHash());
@@ -233,7 +241,7 @@ public final class MiningService implements Mining {
 		input.setScriptSig(ScriptBuilder.createCoinbaseInputScript("this a gengsis tx".getBytes()));
 		
 		//获得当前高度的奖励
-		Coin consensusRreward = ConsensusRewardCalculationUtil.calculatReward(currentHeight);
+		Coin consensusRreward = ConsensusCalculationUtil.calculatReward(currentHeight);
 		coinBaseTx.addOutput(fee.add(consensusRreward), accountKit.getAccountList().get(0).getAddress());
 		coinBaseTx.verify();
 		
@@ -278,6 +286,9 @@ public final class MiningService implements Mining {
 		block.setMerkleHash(block.buildMerkleHash());
 		
 		block.sign(account);
+		
+		block.verify();
+		
 		block.verifyScript();
 		
 		BlockStore blockStore = new BlockStore(network, block);
@@ -305,7 +316,7 @@ public final class MiningService implements Mining {
 						blockStore.getBlock().getTxs().size(), blockStore.getBlock().getMerkleHash());
 			}
 			
-			blockStore =	blockStoreProvider.getBlockByHeight(block.getHeight());
+			blockStore = blockStoreProvider.getBlockByHeight(block.getHeight());
 			
 			//广播
 			InventoryItem item = new InventoryItem(Type.NewBlock, block.getHash());
@@ -833,7 +844,9 @@ public final class MiningService implements Mining {
 					
 					//判断是否达到共识条件
 					long credit = (accountStore == null ? 0 : accountStore.getCert());
-					if(credit < Configure.CONSENSUS_CREDIT) {
+					
+					BlockHeader blockHeader = blockStoreProvider.getBlockHeaderByperiodStartTime(regConsensusTx.getPeriodStartTime());
+					if(credit < ConsensusCalculationUtil.getConsensusCredit(blockHeader.getHeight())) {
 						//信用不够
 						throw new VerificationException("信用值过低");
 					}
@@ -853,7 +866,7 @@ public final class MiningService implements Mining {
 					//当前共识人数
 					int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
 					//共识保证金
-					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(currentConsensusSize);
+					Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, blockHeader.getHeight());
 					if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
 						throw new VerificationException("保证金不正确");
 					}

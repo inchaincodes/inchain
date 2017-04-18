@@ -22,6 +22,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.AccountKeyValue;
 import org.inchain.core.AntifakeCode;
 import org.inchain.core.AntifakeInfosResult;
@@ -71,6 +72,7 @@ import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.Base58;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
@@ -91,6 +93,8 @@ public class RPCServiceImpl implements RPCService {
 	private PeerKit peerKit;
 	@Autowired
 	private AccountKit accountKit;
+	@Autowired
+	private ConsensusPool consensusPool;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
 	@Autowired
@@ -1747,15 +1751,17 @@ public class RPCServiceImpl implements RPCService {
 	 * 发送交易
 	 * @param toAddress
 	 * @param money
-	 * @param fee
+	 * @param address
+	 * @param password
+	 * @param remark
+	 * @param passwordOrRemark
 	 * @return JSONObject
 	 * @throws JSONException 
 	 */
-	public JSONObject sendMoney(String toAddress, String money, String fee, String password) throws JSONException {
+	public JSONObject sendMoney(String toAddress, String money, String address, String password, String remark, String passwordOrRemark) throws JSONException {
 		JSONObject json = new JSONObject();
 		
-		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money) ||
-				StringUtil.isEmpty(fee)) {
+		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money)) {
 			json.put("success", false);
 			json.put("message", "params error");
 			return json;
@@ -1765,21 +1771,41 @@ public class RPCServiceImpl implements RPCService {
 		Coin feeCoin = null;
 		try {
 			moneyCoin = Coin.parseCoin(money);
-			feeCoin = Coin.parseCoin(fee);
+			feeCoin = Coin.parseCoin("0.1");
 		} catch (Exception e) {
 			json.put("success", false);
 			json.put("message", "金额不正确");
 			return json;
 		}
 		
+		Account account = null;
+		
+		if(StringUtil.isEmpty(address)) {
+			account = accountKit.getDefaultAccount();
+		} else {
+			account = accountKit.getAccount(address);
+		}
+		
+		if(account == null) {
+			json.put("success", false);
+			json.put("message", "账户不存在");
+			return json;
+		}
+		
 		//账户是否加密
-		if(accountKit.accountIsEncrypted()) {
-			if(StringUtil.isEmpty(password)) {
+		if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+				(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
+			if(StringUtil.isEmpty(password) && StringUtil.isEmpty(passwordOrRemark)) {
 				json.put("needInput", true);
 				json.put("inputType", 1);	//输入密码
 				json.put("inputTip", "输入钱包密码进行转账");
 				return json;
 			} else {
+				if(StringUtil.isEmpty(password)) {
+					password = passwordOrRemark;
+				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
+					remark = passwordOrRemark;
+				}
 				Result re = accountKit.decryptWallet(password);
 				if(!re.isSuccess()) {
 					json.put("success", false);
@@ -1787,9 +1813,12 @@ public class RPCServiceImpl implements RPCService {
 					return json;
 				}
 			}
+		} else if(StringUtil.isEmpty(remark) && StringUtil.isNotEmpty(passwordOrRemark)) {
+			remark = passwordOrRemark;
 		}
+		
 		try {
-			BroadcastResult br = accountKit.sendMoney(toAddress, moneyCoin, feeCoin);
+			BroadcastResult br = accountKit.sendMoney(toAddress, moneyCoin, feeCoin, remark == null ? null:remark.getBytes(), address, password);
 			
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
@@ -1891,6 +1920,18 @@ public class RPCServiceImpl implements RPCService {
 		
 		return array;
 	}
+	
+	/**
+	 * 获取共识节点数量
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject getConsensusCount() throws JSONException {
+		JSONObject json = new JSONObject();
+		json.put("count", consensusPool.getCurrentConsensus());
+		json.put("success", true);
+		return json;
+	}
 
 	/**
 	 * 注册共识
@@ -1904,9 +1945,13 @@ public class RPCServiceImpl implements RPCService {
 		
 		//判断信用是否足够
 		long cert = getAccountCredit(null);
-		if(cert < Configure.CONSENSUS_CREDIT) {
+		
+		BlockHeader bestBlockHeader = network.getBestBlockHeader();
+		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
+		
+		if(cert < consensusCert) {
 			json.put("success", false);
-			json.put("message", "信用值不够,不能参加共识,当前"+cert+",共识所需"+Configure.CONSENSUS_CREDIT+",还差"+(Configure.CONSENSUS_CREDIT - cert));
+			json.put("message", "信用值不够,不能参加共识,当前"+cert+",共识所需"+consensusCert+",还差"+(consensusCert - cert));
 			return json;
 		}
 		

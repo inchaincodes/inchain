@@ -13,6 +13,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.annotation.PostConstruct;
 
+import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.listener.BlockDownendListener;
@@ -49,6 +50,8 @@ public class DataSynchronizeHandler implements Runnable {
 		
 	@Autowired
 	private NetworkParams network;
+	@Autowired
+	private ConsensusMeeting consensusMeeting;
 	@Autowired
 	private PeerKit peerKit;
 	@Autowired
@@ -92,7 +95,7 @@ public class DataSynchronizeHandler implements Runnable {
 			}
 		});
 		//启动数据同步服务
-		executor.scheduleWithFixedDelay(this , 5, 10, TimeUnit.SECONDS);
+		executor.scheduleWithFixedDelay(this , 3, 10, TimeUnit.SECONDS);
 	}
 	
 	/**
@@ -128,6 +131,7 @@ public class DataSynchronizeHandler implements Runnable {
 		
 		if(localHeight >= bestHeight) {
 			synchronousStatus = 2;
+			consensusMeeting.resetCurrentMeetingItem();
 			//同步完成之后，检查区块是否是最优的，有没有被恶意节点误导引起分叉
 			//TODO
 			if(log.isDebugEnabled()) {
@@ -154,9 +158,8 @@ public class DataSynchronizeHandler implements Runnable {
 			}
 			
 			BlockHeader blockHeader = network.getBestBlockHeader();
-			if(bestHeight == blockHeader.getHeight()) {
+			if(bestHeight <= blockHeader.getHeight()) {
 				initSynchronous = false;
-				startSynchronous();
 				return;
 			}
 			//高度一致的节点
@@ -169,6 +172,7 @@ public class DataSynchronizeHandler implements Runnable {
 				}
 			}
 			List<Boolean> results = new ArrayList<Boolean>();
+			
 			for (Peer peer : newestPeers) {
 				try {
 					while(true) {
@@ -178,6 +182,7 @@ public class DataSynchronizeHandler implements Runnable {
 							break;
 						}
 						Sha256Hash startHash = blockHeader.getHash();
+						
 						Sha256Hash stopHash = Sha256Hash.ZERO_HASH;
 						peer.sendMessage(new GetBlocksMessage(network, startHash, stopHash));
 						boolean result = peer.waitBlockDownComplete(startHash);
@@ -205,9 +210,16 @@ public class DataSynchronizeHandler implements Runnable {
 				//TODO
 				//撤销本地最新块重试
 				blockStoreProvider.revokedNewestBlock();
+				
 			}
-			initSynchronous = false;
-			startSynchronous();
+			Thread t = new Thread() {
+				@Override
+				public void run() {
+					startSynchronous();
+				}
+			};
+			t.setName("block download service");
+			t.start();
 			
 		} catch (Exception e) {
 			log.error("区块同步出错 {}", e.getMessage(), e);
@@ -285,7 +297,15 @@ public class DataSynchronizeHandler implements Runnable {
 		list.sort(new Comparator<Item>() {
 			@Override
 			public int compare(Item o1, Item o2) {
-				return o1.getCount() < o2.getCount() ? 1:-1;
+				int v1 = o1.getCount();
+				int v2 = o2.getCount();
+				if(v1 == v2) {
+					return 0;
+				} else if(v1 > v2) {
+					return -1;
+				} else {
+					return 1;
+				}
 			}
 		});
 		return list.get(0).getHeight();

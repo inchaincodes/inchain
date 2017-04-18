@@ -3,20 +3,21 @@ package org.inchain.store;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.consensus.MiningService;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
-import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -47,7 +48,6 @@ import org.inchain.transaction.business.UpdateAliasTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
-import org.inchain.validator.TransactionValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -76,10 +76,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	private ConsensusMeeting consensusMeeting;
 	@Autowired
 	private CreditCollectionService creditCollectionService;
-	@Autowired
-	private TransactionValidator transactionValidator;
-	@Autowired
-	private MiningService miningService;
 
 	//新交易监听器
 	private TransactionListener transactionListener;
@@ -147,7 +143,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					if(accountInfo == null) {
 						if(Arrays.equals(creditTransaction.getHash160(), creditTransaction.getOwnerHash160())) {
 							//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
-							accountInfo = createNewAccountInfo(creditTransaction, AccountBody.empty(), new byte[][] {creditTransaction.getPubkey()});
+							accountInfo = chainstateStoreProvider.createNewAccountInfo(creditTransaction, AccountBody.empty(), new byte[][] {creditTransaction.getPubkey()});
 						} else {
 							//不存在时，直接写入信用
 							accountInfo = new AccountStore(network);
@@ -232,47 +228,24 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							AntifakeCodeMakeTransaction mtx = (AntifakeCodeMakeTransaction) getTransaction(mtxHash.getBytes()).getTransaction();
 							chainstateStoreProvider.verifyAntifakeCode(mtx.getAntifakeCode(), atx.getHash());
 						}
-						
 					} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 						//防伪码验证
 						AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 						
 						chainstateStoreProvider.verifyAntifakeCode(acvtx.getAntifakeCode(), acvtx.getHash());
 					} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+						
 						//如果是共识注册交易，则保存至区块状态表
 						RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
+						chainstateStoreProvider.addConsensus(regTransaction);
 						
-						//注册共识，加入到共识账户列表中
-						byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
-						if(consensusAccountHash160s == null) {
-							consensusAccountHash160s = new byte[0];
-						}
-						byte[] hash160 = regTransaction.getHash160();
-						byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + (Address.LENGTH + Sha256Hash.LENGTH)];
-						System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, consensusAccountHash160s.length);
-						System.arraycopy(hash160, 0, newConsensusHash160s, consensusAccountHash160s.length, Address.LENGTH);
-						System.arraycopy(regTransaction.getHash().getBytes(), 0, newConsensusHash160s, consensusAccountHash160s.length + Address.LENGTH, Sha256Hash.LENGTH);
-						chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
-
-						//添加账户信息，如果不存在的话
-						AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-						if(accountInfo == null) {
-							//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
-							accountInfo = createNewAccountInfo(regTransaction, AccountBody.empty(), new byte[][] {regTransaction.getPubkey()});
-							chainstateStoreProvider.put(hash160, accountInfo.baseSerialize());
-						} else {
-							//不确定的账户，现在可以确定下来了
-							updateAccountInfo(accountInfo, regTransaction);
-						}
-						//公钥
-						byte[][] pubkeys = accountInfo.getPubkeys();
-						//添加到共识缓存器里
-						consensusPool.add(regTransaction.getHash160(), tx.getHash(), pubkeys);
 						//下一轮开始打包
 						consensusMeeting.startConsensusOnNextRound(block);
 
 					} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS || tx.getType() == Definition.TYPE_VIOLATION) {
 						//退出共识
+						chainstateStoreProvider.removeConsensus(tx);
+						
 						byte[] hash160 = null;
 						if(tx instanceof RemConsensusTransaction) {
 							//主动退出共识
@@ -283,29 +256,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							ViolationTransaction vtx = (ViolationTransaction)tx;
 							hash160 = vtx.getViolationEvidence().getAudienceHash160();
 						}
-						
-						//从共识账户列表中删除
-						byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
-						
-						byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
-						
-						//找出位置在哪里
-						//判断在列表里面才更新，否则就被清空了
-						boolean hashExist = false;
-						for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
-							byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
-							if(Arrays.equals(addressHash160, hash160)) {
-								hashExist = true;
-								System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
-								System.arraycopy(consensusAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newConsensusHash160s, j, consensusAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
-								break;
-							}
-						}
-						if(hashExist) {
-							chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
-						}
-						//从共识缓存器里中移除
-						consensusPool.delete(hash160);
 
 						//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
 						Account consensusAccount = consensusMeeting.getAccount();
@@ -313,37 +263,52 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							//下一轮停止共识
 							consensusMeeting.stopConsensusOnNextRound(block);
 						}
-						
-						//退出的账户
-						if(tx instanceof ViolationTransaction) {
-							//违规被提出共识，增加规则证据到状态里，以便查证
-							ViolationTransaction vtx = (ViolationTransaction)tx;
-							ViolationEvidence violationEvidence = vtx.getViolationEvidence();
-							Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
-							chainstateStoreProvider.put(evidenceHash.getBytes(), tx.getHash().getBytes());
-							
-							//减去相应的信用值
-							AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-							long certChange = 0;
-							if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
-								certChange = Configure.CERT_CHANGE_TIME_OUT;
-							} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
-								certChange = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
-							}
-							
-							accountInfo.setCert(accountInfo.getCert() + certChange);
-							
-							chainstateStoreProvider.saveAccountInfo(accountInfo);
-						}
 					}
 				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//帐户注册和修改账户信息
 					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
+					
+					//添加账户信息，如果不存在的话
+					Sha256Hash oldHash = null;
+					
+					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
+					byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
+					if(accountInfo == null) {
+						accountInfo = chainstateStoreProvider.createNewAccountInfo(rtx, rtx.getBody(), pubkeys);
+					} else {
+						oldHash = accountInfo.getInfoTxid();
+						accountInfo.setAccountBody(rtx.getBody());
+						accountInfo.setLastModifyTime(rtx.getTime());
+						accountInfo.setInfoTxid(rtx.getHash());
+						accountInfo.setPubkeys(pubkeys);
+					}
+					chainstateStoreProvider.saveAccountInfo(accountInfo);
+					
 					if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
-						//删除之前的信息
-						byte[] oldTxid = chainstateStoreProvider.getBytes(rtx.getHash160());
-						chainstateStoreProvider.delete(oldTxid);
+						//删除之前的
+						if(oldHash != null) {
+							chainstateStoreProvider.delete(oldHash.getBytes());
+						}
+						//修改之前的信息
+						byte[] certAccountHash160s = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
+						if(certAccountHash160s == null) {
+							certAccountHash160s = new byte[0];
+						}
+						
+						for (int j = 0; j < certAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+							byte[] addressHash160 = Arrays.copyOfRange(certAccountHash160s, j, j + Address.LENGTH);
+							if(Arrays.equals(addressHash160, rtx.getHash160())) {
+								byte[] newBusinessHash160s = new byte[certAccountHash160s.length];
+
+								System.arraycopy(certAccountHash160s, 0, newBusinessHash160s, 0, j);
+								System.arraycopy(addressHash160, 0, newBusinessHash160s, 0, Address.LENGTH);
+								System.arraycopy(rtx.getHash().getBytes(), 0, newBusinessHash160s, 0, Sha256Hash.LENGTH);
+								System.arraycopy(certAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newBusinessHash160s, j, certAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+								chainstateStoreProvider.put(Configure.CERT_ACCOUNT_KEYS, newBusinessHash160s);
+								break;
+							}
+						}
 					} else {
 						//账户注册，加入到认证账户列表中
 						byte[] certAccountHash160s = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
@@ -357,18 +322,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 					chainstateStoreProvider.put(rtx.getHash().getBytes(), rtx.baseSerialize());
 					
-					//添加账户信息，如果不存在的话
-					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
-					byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
-					if(accountInfo == null) {
-						accountInfo = createNewAccountInfo(rtx, rtx.getBody(), pubkeys);
-					} else {
-						accountInfo.setAccountBody(rtx.getBody());
-						accountInfo.setLastModifyTime(rtx.getTime());
-						accountInfo.setInfoTxid(rtx.getHash());
-						accountInfo.setPubkeys(pubkeys);
-					}
-					chainstateStoreProvider.saveAccountInfo(accountInfo);
 				} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
 					//普通防伪验证
 					GeneralAntifakeTransaction generalAntifakeTransaction = (GeneralAntifakeTransaction) tx;
@@ -478,7 +431,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				
 				//把这些交易再次放回内存中
 				//除信用交易外
-				if(!(tx instanceof CreditTransaction) && tx.getType() != Definition.TYPE_COINBASE) {
+				if(!(tx.getType() == Definition.TYPE_COINBASE ||
+						tx.getType() == Definition.TYPE_CREDIT ||
+						tx.getType() == Definition.TYPE_VIOLATION)) {
 					MempoolContainer.getInstace().add(tx);
 				}
 				
@@ -532,36 +487,19 @@ public class BlockStoreProvider extends BaseStoreProvider {
 							e.printStackTrace();
 						}
 					} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
-						//TODO 防伪码验证
+						//防伪码验证
+						AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 						
+						chainstateStoreProvider.revokedVerifyAntifakeCode(acvtx.getAntifakeCode());
 					} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
 						//注册共识，因为是回滚区块，需要从共识列表中删除
 						//退出共识
 						RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;
+						
 						byte[] hash160 = regTransaction.getHash160();
-						
 						//从共识账户列表中删除
-						byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+						chainstateStoreProvider.deleteConsensusFromCollection(hash160);
 						
-						byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
-						
-						//找出位置在哪里
-						//判断在列表里面才更新，否则就被清空了
-						boolean hashExist = false;
-						for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
-							byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
-							if(Arrays.equals(addressHash160, hash160)) {
-								hashExist = true;
-								System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
-								System.arraycopy(consensusAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newConsensusHash160s, j, consensusAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
-							}
-						}
-						if(hashExist) {
-							chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
-						}
-						//从共识缓存器里中移除
-						consensusPool.delete(hash160);
-
 						//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
 						Account consensusAccount = consensusMeeting.getAccount();
 						if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), hash160)) {
@@ -570,57 +508,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						}
 					} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS || tx.getType() == Definition.TYPE_VIOLATION) {
 						//退出或者被踢出共识，这里需要再次加入
-						byte[] hash160 = null;
-						if(tx instanceof RemConsensusTransaction) {
-							//主动退出共识
-							RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
-							hash160 = remTransaction.getHash160();
-						} else {
-							//违规被提出共识
-							ViolationTransaction vtx = (ViolationTransaction)tx;
-							hash160 = vtx.getViolationEvidence().getAudienceHash160();
-						}
+						chainstateStoreProvider.revokedConsensus(tx);
 						
-						//重新加入共识账户列表中
-						byte[] consensusAccountHash160s = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
-						if(consensusAccountHash160s == null) {
-							consensusAccountHash160s = new byte[0];
-						}
-						//注册共识的交易
-						Sha256Hash txhash = tx.getInput(0).getFroms().get(0).getParent().getHash();
-						byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + (Address.LENGTH + Sha256Hash.LENGTH)];
-						System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, consensusAccountHash160s.length);
-						System.arraycopy(hash160, 0, newConsensusHash160s, consensusAccountHash160s.length, Address.LENGTH);
-						System.arraycopy(txhash.getBytes(), 0, newConsensusHash160s, consensusAccountHash160s.length + Address.LENGTH, Sha256Hash.LENGTH);
-						chainstateStoreProvider.put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
-
-						//公钥
-						AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-						
-						byte[][] pubkeys = accountInfo.getPubkeys();
-						//添加到共识缓存器里
-						consensusPool.add(hash160, txhash, pubkeys);
-						//下一轮开始打包
-//						consensusMeeting.startConsensusOnNextRound(bestBlock);
-						
-						//退出的账户
-						if(tx instanceof ViolationTransaction) {
-							//违规被提出共识，删除证据
-							ViolationTransaction vtx = (ViolationTransaction)tx;
-							ViolationEvidence violationEvidence = vtx.getViolationEvidence();
-							Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
-							chainstateStoreProvider.delete(evidenceHash.getBytes());
-							
-							//加上之前减去的信用值
-							long certChange = 0;
-							if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
-								certChange = Configure.CERT_CHANGE_TIME_OUT;
-							}
-							
-							accountInfo.setCert(accountInfo.getCert() - certChange);
-							
-							chainstateStoreProvider.saveAccountInfo(accountInfo);
-						}
+						consensusMeeting.resetCurrentMeetingItem();
 					}
 				} else if(tx instanceof CreditTransaction) {
 					//信用值的增加
@@ -632,6 +522,104 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					chainstateStoreProvider.saveAccountInfo(accountInfo);
 					
 					creditCollectionService.removeCredit(creditTransaction.getReasonType(), creditTransaction.getOwnerHash160(), bestBlock.getTime());
+				} else if(tx.getType() == Definition.TYPE_RELEVANCE_SUBACCOUNT) {
+					//认证账户关联子账户
+					RelevanceSubAccountTransaction relevancSubAccountTx = (RelevanceSubAccountTransaction) tx;
+					chainstateStoreProvider.revokedAddSubAccount(relevancSubAccountTx);
+				} else if(tx.getType() == Definition.TYPE_REMOVE_SUBACCOUNT) {
+					//删除子账户的关联
+					RemoveSubAccountTransaction removeSubAccountTx = (RemoveSubAccountTransaction) tx;
+					chainstateStoreProvider.revokedRemoveSubAccount(removeSubAccountTx);
+				} else if(tx.getType() == Definition.TYPE_REG_ALIAS) {
+					//注册别名
+					RegAliasTransaction rtx = (RegAliasTransaction) tx;
+					chainstateStoreProvider.revokedSetAccountAlias(rtx.getHash160(), rtx.getAlias());
+				} else if(tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
+					//修改别名，消耗信用点
+					UpdateAliasTransaction utx = (UpdateAliasTransaction) tx;
+					chainstateStoreProvider.revokedUpdateAccountAlias(utx.getHash160(), utx.getAlias());
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
+					//防伪码流转信息
+					CirculationTransaction ctx = (CirculationTransaction) tx;
+					//放入状态数据库里
+					chainstateStoreProvider.revokedAddCirculation(ctx.getAntifakeCode(), ctx.getHash160(), ctx.getHash());
+				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+					AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
+					chainstateStoreProvider.revokedAntifakeTransfer(attx.getAntifakeCode(), attx.getHash160(), attx.getReceiveHashs(), attx.getHash());
+				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
+						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
+					
+					//帐户注册和修改账户信息
+					CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
+					
+					if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
+						//修改
+						chainstateStoreProvider.delete(rtx.getHash().getBytes());
+						//恢复之前的信息
+						try {
+							Script script = rtx.getScript();
+							byte[] oldTxBytes = script.getChunks().get(1).data;
+							TransactionStore txStore = getTransaction(oldTxBytes);
+							
+							if(txStore != null) {
+								Transaction certTx = txStore.getTransaction();
+								CertAccountRegisterTransaction newCertTx = (CertAccountRegisterTransaction) certTx;
+								
+								chainstateStoreProvider.put(newCertTx.getHash().getBytes(), newCertTx.baseSerialize());
+								
+								//修改之前的信息
+								byte[] certAccountHash160s = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
+								if(certAccountHash160s == null) {
+									certAccountHash160s = new byte[0];
+								}
+								
+								for (int j = 0; j < certAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+									byte[] addressHash160 = Arrays.copyOfRange(certAccountHash160s, j, j + Address.LENGTH);
+									if(Arrays.equals(addressHash160, newCertTx.getHash160())) {
+										byte[] newBusinessHash160s = new byte[certAccountHash160s.length];
+
+										System.arraycopy(certAccountHash160s, 0, newBusinessHash160s, 0, j);
+										System.arraycopy(addressHash160, 0, newBusinessHash160s, 0, Address.LENGTH);
+										System.arraycopy(newCertTx.getHash().getBytes(), 0, newBusinessHash160s, 0, Sha256Hash.LENGTH);
+										System.arraycopy(certAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newBusinessHash160s, j, certAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+										chainstateStoreProvider.put(Configure.CERT_ACCOUNT_KEYS, newBusinessHash160s);
+										break;
+									}
+								}
+								
+								AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(newCertTx.getHash160());
+								byte[][] pubkeys = new byte[][] {newCertTx.getMgPubkeys()[0], newCertTx.getMgPubkeys()[1], newCertTx.getTrPubkeys()[0], newCertTx.getTrPubkeys()[1]};
+								accountInfo.setAccountBody(newCertTx.getBody());
+								accountInfo.setLastModifyTime(newCertTx.getTime());
+								accountInfo.setInfoTxid(newCertTx.getHash());
+								accountInfo.setPubkeys(pubkeys);
+								chainstateStoreProvider.saveAccountInfo(accountInfo);
+							}
+							
+						} catch (Exception e) {
+							log.error("认证账户修改回滚出错，{}", e);
+						}
+					} else {
+						//注册，简单，删除即可
+						chainstateStoreProvider.delete(rtx.getHash().getBytes());
+						chainstateStoreProvider.delete(rtx.getHash160());
+						
+						//从列表中删除
+						byte[] certAccountHash160s = chainstateStoreProvider.getBytes(Configure.CERT_ACCOUNT_KEYS);
+						if(certAccountHash160s != null) {
+							for (int j = 0; j < certAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+								byte[] addressHash160 = Arrays.copyOfRange(certAccountHash160s, j, j + Address.LENGTH);
+								if(Arrays.equals(addressHash160, rtx.getHash160())) {
+									byte[] newBusinessHash160s = new byte[certAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+									
+									System.arraycopy(certAccountHash160s, 0, newBusinessHash160s, 0, j);
+									System.arraycopy(certAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newBusinessHash160s, j, certAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+									chainstateStoreProvider.put(Configure.CERT_ACCOUNT_KEYS, newBusinessHash160s);
+									break;
+								}
+							}
+						}
+					}
 				} else {
 					//TODO
 				}
@@ -645,49 +633,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		}
 	}
 
-	/**
-	 * 创建一个新的账户存储信息
-	 * @param tx
-	 * @param accountBody
-	 * @param pubkeys
-	 * @return AccountStore
-	 */
-	public AccountStore createNewAccountInfo(BaseCommonlyTransaction tx, AccountBody accountBody, byte[][] pubkeys) {
-		AccountStore accountInfo;
-		accountInfo = new AccountStore(network);
-		accountInfo.setHash160(tx.getHash160());
-		accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
-		accountInfo.setCert(0);
-		accountInfo.setAccountBody(accountBody);
-		accountInfo.setBalance(Coin.ZERO.value);
-		accountInfo.setCreateTime(tx.getTime());
-		accountInfo.setLastModifyTime(tx.getTime());
-		accountInfo.setInfoTxid(tx.getHash());
-		accountInfo.setPubkeys(pubkeys);
-		return accountInfo;
-	}
-
-	/**
-	 * 不确定的账户，确定下来
-	 * @param accountInfo
-	 * @param tx
-	 */
-	public void updateAccountInfo(AccountStore accountInfo, BaseCommonlyTransaction tx) {
-		if(accountInfo != null && accountInfo.getType() == 0) {
-			accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
-			
-			if(tx.isCertAccount()) {
-				accountInfo.setInfoTxid(tx.getHash());
-				CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
-				byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
-				accountInfo.setPubkeys(pubkeys);
-			} else {
-				accountInfo.setPubkeys(new byte[][] { tx.getPubkey() });
-			}
-			chainstateStoreProvider.saveAccountInfo(accountInfo);
-		}
-	}
-	
 	/**
 	 * 检查交易是否与我有关，并且回滚交易状态
 	 * @param txs
@@ -797,6 +742,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			if((hash160 == null && accountFilter.contains(commonlytx.getHash160())) || (hash160 != null && Arrays.equals(hash160, commonlytx.getHash160()))) {
 				return true;
 			}
+			if(transaction.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
+				AntifakeTransferTransaction atx = (AntifakeTransferTransaction) transaction;
+				if((hash160 == null && accountFilter.contains(atx.getReceiveHash160())) || (hash160 != null && Arrays.equals(hash160, atx.getReceiveHash160()))) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}
@@ -875,6 +826,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		if(blockHeader.getTxHashs() != null) {
 			for (Sha256Hash txHash : header.getBlockHeader().getTxHashs()) {
 				TransactionStore tx = getTransaction(txHash.getBytes());
+				if(tx == null) {
+					continue;
+				}
 				txs.add(tx.getTransaction());
 			}
 		}
@@ -1093,29 +1047,74 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		this.transactionListener = transactionListener;
 	}
 
+	/**
+	 * 根据时段开始时间，查找区块头信息
+	 * @param periodStartTime
+	 * @return BlockHeader
+	 */
+	public BlockHeader getBlockHeaderByperiodStartTime(long periodStartTime) {
+		BlockHeaderStore bestBlockHeaderStore = getBestBlockHeader();
+		
+		while(bestBlockHeaderStore != null) {
+			BlockHeader bestBlockHeader = bestBlockHeaderStore.getBlockHeader();
+			if(bestBlockHeader.getPreHash().equals(Sha256Hash.ZERO_HASH) || bestBlockHeader.getPeriodStartTime() == periodStartTime) {
+				return bestBlockHeader;
+			} else {
+				bestBlockHeaderStore = getHeader(bestBlockHeader.getPreHash().getBytes());
+			}
+		}
+		return null;
+	}
+	
+
 //	@PostConstruct
 	public void test() {
+		SpringContextUtils.setNetwork(network);
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		
 		//从创始快开始遍历所有区块
 		BlockStore blockStore = network.getGengsisBlock();
 		Sha256Hash nextHash = blockStore.getBlock().getHash();
+		
+		Address address = Address.fromBase58(network, "tb7CF9ATjRayoiRqeG5iT1ChCFVxd1mBP3");
+		
+		Set<String> sets = new HashSet<String>();
 		
 		while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
 			BlockStore nextBlockStore = getBlock(nextHash.getBytes());
 			
 			List<Transaction> txs = nextBlockStore.getBlock().getTxs();
-			if(txs.size() > 2) {
-				log.info("============== block height {}, tx count is {}, size is {} bytes", nextBlockStore.getBlock().getHeight(), txs.size(), nextBlockStore.getBlock().baseSerialize().length);
+//			if(txs.size() > 2) {
+//				log.info("============== block height {}, tx count is {}, size is {} bytes", nextBlockStore.getBlock().getHeight(), txs.size(), nextBlockStore.getBlock().baseSerialize().length);
+//			}
+//			if(nextBlockStore.getBlock().getHeight() == 356l) {
+//				log.info("========= {}", nextBlockStore.getBlock());
+//			}
+			
+			for (Transaction tx : txs) {
+				if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+					//注册
+					RegConsensusTransaction reg = (RegConsensusTransaction) tx;
+					sets.add(reg.getOperator());
+				} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
+					RemConsensusTransaction rem = (RemConsensusTransaction) tx;
+					sets.remove(rem.getOperator());
+				} else if(tx.getType() == Definition.TYPE_VIOLATION) {
+					ViolationTransaction vtx = (ViolationTransaction) tx;
+					byte[] h160 = vtx.getViolationEvidence().getAudienceHash160();
+					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(h160);
+					sets.remove(accountInfo.getAddress());
+				}
 			}
-			if(nextBlockStore.getBlock().getHeight() == 356l) {
-				log.info("========= {}", nextBlockStore.getBlock());
-			}
+			
 			nextHash = nextBlockStore.getNextHash();
 		}
+		
+		log.info("共识节点数量{}", sets.size());
 		
 //		BlockStore bs = getBlockByHeight(126l);
 //		Block block = bs.getBlock();
@@ -1158,7 +1157,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 //		try {
 //			saveBlock(bs);
 //		} catch (VerificationException | IOException e) {
-//			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
 //		System.out.println("入库耗时："+(System.currentTimeMillis() - time) + " ms");

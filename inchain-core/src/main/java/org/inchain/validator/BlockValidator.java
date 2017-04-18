@@ -21,7 +21,7 @@ import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +55,12 @@ public class BlockValidator {
 
 	public Result doVal(Block block) {
 		try {
+			
 			//验证新区块打包的人是否合法
 			ConsensusInfos currentInfos = consensusMeeting.getCurrentConsensusInfos(block.getPeriodStartTime(), block.getTimePeriod());
 
 			if(currentInfos == null) {
-				log.error("验证新区块时段出错", block);
+				log.error("验证新区块时段出错 {} , {}", block.getPeriodStartTime(), block.getTimePeriod());
 				return new Result(false, "验证新区块时段出错");
 			}
 			
@@ -98,6 +99,7 @@ public class BlockValidator {
 			
 		} catch (Exception e) {
 			log.error("验证新区块时段出错", e);
+			return new Result(false, "验证新区块出错," + e.getMessage());
 		}
 		return new Result(true, "ok");
 	}
@@ -108,7 +110,6 @@ public class BlockValidator {
 	 * @return boolean
 	 */
 	public Result verifyBlock(Block block) {
-		//验证区块签名
 		try {
 			if(!block.verify()) {
 				return new Result(false);
@@ -116,6 +117,7 @@ public class BlockValidator {
 		} catch (VerificationException e) {
 			return new Result(false, e.getMessage());
 		}
+		//验证区块签名
 		try {
 			block.verifyScript();
 		} catch (Exception e) {
@@ -159,7 +161,7 @@ public class BlockValidator {
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		//获取该高度的奖励
-		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(block.getHeight());
+		Coin rewardCoin = ConsensusCalculationUtil.calculatReward(block.getHeight());
 		if(!coinbaseFee.equals(fee.add(rewardCoin))) {
 			log.warn("the fee error");
 			return new Result(false, "交易金额错误");
@@ -169,9 +171,9 @@ public class BlockValidator {
 		//必需衔接
 		if(!block.getPreHash().equals(bestBlockHeader.getBlockHeader().getHash()) ||
 				block.getHeight() != bestBlockHeader.getBlockHeader().getHeight() + 1) {
-			log.warn("block info warn");
+			log.warn("block info warn newblock {}, localblock {}", block.getHeight(), bestBlockHeader.getBlockHeader().getHeight());
 			blockForkService.addBlockFork(block);
-			return new Result(false, ERROR_CODE_HEIGHT_ERROR, "block info warn");
+			return new Result(false, ERROR_CODE_HEIGHT_ERROR, "block info warn newblock {}, localblock {}");
 		}
 		return new Result(true);
 	}

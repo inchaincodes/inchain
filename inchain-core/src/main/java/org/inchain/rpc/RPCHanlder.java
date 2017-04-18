@@ -367,10 +367,42 @@ public class RPCHanlder {
 		
 		//转账
 		case "send": {
-			if(params.length() > 3 && password == null) {
-				password = params.getString(3);
+			
+			if(params.length() < 2) {
+				return new JSONObject().put("success", false).put("message", "缺少参数");
 			}
-			return rpcService.sendMoney(params.getString(0), params.getString(1), params.getString(2), password);
+			
+			String toAddress = params.getString(0);
+			String amount = params.getString(1);
+			String address = null;
+			String remark = null;
+			String passwordOrRemark = null;
+			
+			if(params.length() == 3) {
+				address = params.getString(2);
+				try {
+					Address.fromBase58(network, address);
+				} catch (Exception e) {
+					password = address;
+					address = null;
+				}
+			} else if(params.length() == 4) {
+				address = params.getString(2);
+				try {
+					Address ar = Address.fromBase58(network, address);
+					passwordOrRemark = params.getString(3);
+				} catch (Exception e) {
+					password = address;
+					address = null;
+					remark = params.getString(3);
+				}
+			} else if(params.length() == 5) {
+				address = params.getString(2);
+				password = params.getString(3);
+				remark = params.getString(4);
+			}
+			
+			return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
 		}
 		
 		//认证账户创建商品
@@ -761,6 +793,11 @@ public class RPCHanlder {
 			result.put("consensus", consensus);
 			
 			return result;
+		}
+		
+		//获取当前共识节点数量
+		case "getconsensuscount": {
+			return rpcService.getConsensusCount();
 		}
 		
 		//注册共识

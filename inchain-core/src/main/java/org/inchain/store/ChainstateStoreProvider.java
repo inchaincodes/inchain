@@ -3,15 +3,26 @@ package org.inchain.store;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.Configure;
+import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusPool;
+import org.inchain.core.Coin;
+import org.inchain.core.ViolationEvidence;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.AntifakeTransferTransaction;
+import org.inchain.transaction.business.BaseCommonlyTransaction;
+import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CirculationTransaction;
+import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RelevanceSubAccountTransaction;
+import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.RemoveSubAccountTransaction;
+import org.inchain.transaction.business.ViolationTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -23,8 +34,12 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ChainstateStoreProvider extends BaseStoreProvider {
 	
+	private Lock consensusLocker = new ReentrantLock();
+	
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private ConsensusPool consensusPool;
 
 	protected ChainstateStoreProvider() {
 		this(Configure.DATA_CHAINSTATE);
@@ -130,6 +145,41 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 	
 	/**
+	 * 撤销认证商家添加的子账户
+	 * @param relevancSubAccountTx
+	 * @return boolean
+	 */
+	public boolean revokedAddSubAccount(RelevanceSubAccountTransaction relevancSubAccountTx) {
+		byte[] subAccountKey = new byte[22];
+		subAccountKey[0] = 0;
+		subAccountKey[1] = 1;
+		System.arraycopy(relevancSubAccountTx.getHash160(), 0, subAccountKey, 2, Address.LENGTH);
+		
+		byte[] subAccounts = getBytes(subAccountKey);
+		
+		byte[] newSubAccounts = new byte[subAccounts.length - (Address.HASH_LENGTH + Sha256Hash.LENGTH)];
+		
+		//找出位置在哪里
+		//判断在列表里面才更新，否则就被清空了
+		boolean hashExist = false;
+		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHashsTemp = Arrays.copyOfRange(subAccounts, j, j + Address.HASH_LENGTH);
+			if(Arrays.equals(addressHashsTemp, relevancSubAccountTx.getRelevanceHashs())) {
+				hashExist = true;
+				System.arraycopy(subAccounts, 0, newSubAccounts, 0, j);
+				System.arraycopy(subAccounts, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newSubAccounts, j, subAccounts.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
+				break;
+			}
+		}
+		if(hashExist) {
+			put(subAccountKey, newSubAccounts);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	/**
 	 * 认证商家删除子账户
 	 * @param removeSubAccountTx
 	 * @return boolean
@@ -163,6 +213,29 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		} else {
 			return false;
 		}
+	}
+	
+	/**
+	 * 撤销认证商家删除子账户
+	 * @param removeSubAccountTx
+	 * @return boolean
+	 */
+	public boolean revokedRemoveSubAccount(RemoveSubAccountTransaction removeSubAccountTx) {
+		byte[] subAccountKey = new byte[22];
+		subAccountKey[0] = 0;
+		subAccountKey[1] = 1;
+		System.arraycopy(removeSubAccountTx.getHash160(), 0, subAccountKey, 2, Address.LENGTH);
+		
+		byte[] subAccounts = getBytes(subAccountKey);
+		if(subAccounts == null) {
+			subAccounts = new byte[0];
+		}
+		byte[] newSubAccounts = new byte[subAccounts.length + Address.HASH_LENGTH + Sha256Hash.LENGTH];
+		System.arraycopy(subAccounts, 0, newSubAccounts, 0, subAccounts.length);
+		System.arraycopy(removeSubAccountTx.getRelevanceHashs(), 0, newSubAccounts, subAccounts.length, Address.HASH_LENGTH);
+		System.arraycopy(removeSubAccountTx.getTxhash().getBytes(), 0, newSubAccounts, subAccounts.length + Address.HASH_LENGTH, Sha256Hash.LENGTH);
+		put(subAccountKey, newSubAccounts);
+		return true;
 	}
 	
 	/**
@@ -286,6 +359,27 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 	
 	/**
+	 * 撤销设置账户别名
+	 * 消耗相应的信用点
+	 * @param hash160
+	 * @param alias
+	 * @return boolean
+	 */
+	public boolean revokedSetAccountAlias(byte[] hash160, byte[] alias) {
+		AccountStore accountInfo = getAccountInfo(hash160);
+		if(accountInfo == null) {
+			return false;
+		}
+		//设置别名为空
+		accountInfo.setAlias(null);
+		saveAccountInfo(accountInfo);
+		
+		put(Sha256Hash.hash(alias), hash160);
+		
+		return true;
+	}
+	
+	/**
 	 * 修改账户别名
 	 * 消耗相应的信用点
 	 * @param hash160
@@ -314,6 +408,18 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 	
 	/**
+	 * 撤销修改账户别名
+	 * 消耗相应的信用点
+	 * @param hash160
+	 * @param alias
+	 * @return boolean
+	 */
+	public boolean revokedUpdateAccountAlias(byte[] hash160, byte[] alias) {
+		//TODO
+		return true;
+	}
+	
+	/**
 	 * 添加防伪码流转信息
 	 * @param antifakeCode
 	 * @param hash160
@@ -334,6 +440,42 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		System.arraycopy(hash160, 0, newCirculations, circulations.length, Address.LENGTH);
 		System.arraycopy(txHash.getBytes(), 0, newCirculations, circulations.length + Address.LENGTH, Sha256Hash.LENGTH);
 		put(circulationKey, newCirculations);
+	}
+	
+	/**
+	 * 撤销添加防伪码流转信息
+	 * @param antifakeCode
+	 * @param hash160
+	 * @param txHash
+	 */
+	public void revokedAddCirculation(byte[] antifakeCode, byte[] hash160, Sha256Hash txHash) {
+		byte[] circulationKey = new byte[22];
+		circulationKey[0] = 0;
+		circulationKey[1] = 1;
+		System.arraycopy(antifakeCode, 0, circulationKey, 2, Address.LENGTH);
+		
+		byte[] circulations = getBytes(circulationKey);
+		if(circulations == null) {
+			circulations = new byte[0];
+		}
+		byte[] newCirculations = new byte[circulations.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+		
+		//找出位置在哪里
+		//判断在列表里面才更新，否则就被清空了
+		boolean hashExist = false;
+		for (int j = 0; j < circulations.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHashsTemp = Arrays.copyOfRange(circulations, j, j + Address.LENGTH);
+			byte[] txHashByte = Arrays.copyOfRange(circulations, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH);
+			if(Arrays.equals(addressHashsTemp, hash160) && Arrays.equals(txHash.getBytes(), txHashByte)) {
+				hashExist = true;
+				System.arraycopy(circulations, 0, newCirculations, 0, j);
+				System.arraycopy(circulations, j + (Address.LENGTH + Sha256Hash.LENGTH), newCirculations, j, circulations.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+				break;
+			}
+		}
+		if(hashExist) {
+			put(circulationKey, circulations);
+		}
 	}
 
 	/**
@@ -447,6 +589,46 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 	
 	/**
+	 * 撤销转让防伪码
+	 * @param antifakeCode
+	 * @param hash160
+	 * @param receiveHashs
+	 * @param txHash
+	 */
+	public void revokedAntifakeTransfer(byte[] antifakeCode, byte[] hash160, byte[] receiveHashs, Sha256Hash txHash) {
+		byte[] transferKey = new byte[22];
+		transferKey[0] = 0;
+		transferKey[1] = 2;
+		System.arraycopy(antifakeCode, 0, transferKey, 2, Address.LENGTH);
+		
+		byte[] transfers = getBytes(transferKey);
+		if(transfers == null) {
+			return;
+		}
+		byte[] newTransfers = new byte[transfers.length - (Address.HASH_LENGTH + Sha256Hash.LENGTH)];
+		
+		boolean hashExist = false;
+		for (int j = 0; j < transfers.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
+			byte[] addressHashsTemp = Arrays.copyOfRange(transfers, j, j + Address.HASH_LENGTH);
+			byte[] txHashByte = Arrays.copyOfRange(transfers, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH);
+			if(Arrays.equals(addressHashsTemp, hash160) && Arrays.equals(txHash.getBytes(), txHashByte)) {
+				hashExist = true;
+				System.arraycopy(transfers, 0, newTransfers, 0, j);
+				System.arraycopy(transfers, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newTransfers, j, transfers.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
+				break;
+			}
+		}
+		if(hashExist) {
+			put(transferKey, newTransfers);
+			
+			AccountStore accountInfo = getAccountInfo(hash160);
+			//扣除信用
+			accountInfo.setCert(accountInfo.getCert() - Configure.TRANSFER_ANTIFAKECODE_SUB_CREDIT);
+			saveAccountInfo(accountInfo);
+		}
+	}
+	
+	/**
 	 * 获取防伪码的拥有者，流转链的最后一个人，如果流转链没有，则是验证者，会返回null，调用者自行判断
 	 * @param antifakeCode
 	 * @return byte[]
@@ -547,5 +729,230 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		System.arraycopy(antifakeCode, 0, key, 2, Address.LENGTH);
 		
 		put(key, hash.getBytes());
+	}
+	
+	/**
+	 * 撤销防伪码验证
+	 * @param antifakeCode
+	 */
+	public void revokedVerifyAntifakeCode(byte[] antifakeCode) {
+		
+		byte[] key = new byte[22];
+		key[0] = 0;
+		key[1] = 3;
+		System.arraycopy(antifakeCode, 0, key, 2, Address.LENGTH);
+		
+		delete(key);
+	}
+	
+	/**
+	 * 共识节点加入
+	 * @param tx
+	 */
+	public void addConsensus(RegConsensusTransaction tx) {
+		consensusLocker.lock();
+		try {
+			//注册共识，加入到共识账户列表中
+			byte[] consensusAccountHash160s = getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+			if(consensusAccountHash160s == null) {
+				consensusAccountHash160s = new byte[0];
+			}
+			byte[] hash160 = tx.getHash160();
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + (Address.LENGTH + Sha256Hash.LENGTH)];
+			System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, consensusAccountHash160s.length);
+			System.arraycopy(hash160, 0, newConsensusHash160s, consensusAccountHash160s.length, Address.LENGTH);
+			System.arraycopy(tx.getHash().getBytes(), 0, newConsensusHash160s, consensusAccountHash160s.length + Address.LENGTH, Sha256Hash.LENGTH);
+			put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+	
+			//添加账户信息，如果不存在的话
+			AccountStore accountInfo = getAccountInfo(hash160);
+			if(accountInfo == null) {
+				//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
+				accountInfo = createNewAccountInfo(tx, AccountBody.empty(), new byte[][] {tx.getPubkey()});
+				put(hash160, accountInfo.baseSerialize());
+			} else {
+				//不确定的账户，现在可以确定下来了
+				updateAccountInfo(accountInfo, tx);
+			}
+			//公钥
+			byte[][] pubkeys = accountInfo.getPubkeys();
+			//添加到共识缓存器里
+			consensusPool.add(tx.getHash160(), tx.getHash(), pubkeys);
+		} catch (Exception e) {
+			log.error("出错了{}", e.getMessage(), e);
+		} finally {
+			consensusLocker.unlock();
+		}
+	}
+	
+	/**
+	 * 退出共识
+	 * @param tx
+	 */
+	public void removeConsensus(Transaction tx) {
+		byte[] hash160 = null;
+		if(tx instanceof RemConsensusTransaction) {
+			//主动退出共识
+			RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+			hash160 = remTransaction.getHash160();
+		} else {
+			//违规被提出共识
+			ViolationTransaction vtx = (ViolationTransaction)tx;
+			hash160 = vtx.getViolationEvidence().getAudienceHash160();
+		}
+		
+		//从集合中删除共识节点
+		deleteConsensusFromCollection(hash160);
+		
+		//退出的账户
+		if(tx instanceof ViolationTransaction) {
+			//违规被提出共识，增加规则证据到状态里，以便查证
+			ViolationTransaction vtx = (ViolationTransaction)tx;
+			ViolationEvidence violationEvidence = vtx.getViolationEvidence();
+			Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
+			put(evidenceHash.getBytes(), tx.getHash().getBytes());
+			
+			//减去相应的信用值
+			AccountStore accountInfo = getAccountInfo(hash160);
+			long certChange = 0;
+			if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+				certChange = Configure.CERT_CHANGE_TIME_OUT;
+			} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+				certChange = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
+			}
+			
+			accountInfo.setCert(accountInfo.getCert() + certChange);
+			
+			saveAccountInfo(accountInfo);
+		}
+	}
+
+	/**
+	 * 从集合中删除共识节点
+	 * @param hash160
+	 */
+	public void deleteConsensusFromCollection(byte[] hash160) {
+		consensusLocker.lock();
+		try {
+			//从共识账户列表中删除
+			byte[] consensusAccountHash160s = getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+			
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+			
+			//找出位置在哪里
+			//判断在列表里面才更新，否则就被清空了
+			boolean hashExist = false;
+			for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
+				if(Arrays.equals(addressHash160, hash160)) {
+					hashExist = true;
+					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
+					System.arraycopy(consensusAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newConsensusHash160s, j, consensusAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+					break;
+				}
+			}
+			if(hashExist) {
+				put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
+			}
+			//从共识缓存器里中移除
+			consensusPool.delete(hash160);
+		} catch (Exception e) {
+			log.error("出错了{}", e.getMessage(), e);
+		} finally {
+			consensusLocker.unlock();
+		}
+	}
+	
+	/**
+	 * 不确定的账户，确定下来
+	 * @param accountInfo
+	 * @param tx
+	 */
+	public void updateAccountInfo(AccountStore accountInfo, BaseCommonlyTransaction tx) {
+		if(accountInfo != null && accountInfo.getType() == 0) {
+			accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+			
+			if(tx.isCertAccount()) {
+				accountInfo.setInfoTxid(tx.getHash());
+				CertAccountRegisterTransaction rtx = (CertAccountRegisterTransaction) tx;
+				byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
+				accountInfo.setPubkeys(pubkeys);
+			} else {
+				accountInfo.setPubkeys(new byte[][] { tx.getPubkey() });
+			}
+			saveAccountInfo(accountInfo);
+		}
+	}
+	
+	/**
+	 * 创建一个新的账户存储信息
+	 * @param tx
+	 * @param accountBody
+	 * @param pubkeys
+	 * @return AccountStore
+	 */
+	public AccountStore createNewAccountInfo(BaseCommonlyTransaction tx, AccountBody accountBody, byte[][] pubkeys) {
+		AccountStore accountInfo = new AccountStore(network);
+		accountInfo.setHash160(tx.getHash160());
+		accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+		accountInfo.setCert(0);
+		accountInfo.setAccountBody(accountBody);
+		accountInfo.setBalance(Coin.ZERO.value);
+		accountInfo.setCreateTime(tx.getTime());
+		accountInfo.setLastModifyTime(tx.getTime());
+		accountInfo.setInfoTxid(tx.getHash());
+		accountInfo.setPubkeys(pubkeys);
+		return accountInfo;
+	}
+
+	/**
+	 * 回滚过程中的共识重新加入
+	 * @param tx
+	 */
+	public void revokedConsensus(Transaction tx) {
+		
+		byte[] hash160 = null;
+		if(tx instanceof RemConsensusTransaction) {
+			//主动退出共识
+			RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+			hash160 = remTransaction.getHash160();
+		} else {
+			//违规被提出共识
+			ViolationTransaction vtx = (ViolationTransaction)tx;
+			hash160 = vtx.getViolationEvidence().getAudienceHash160();
+		}
+		
+		//重新加入共识账户列表中
+		//注册共识的交易
+		Sha256Hash txhash = tx.getInput(0).getFroms().get(0).getParent().getHash();
+		
+		TransactionStore regTxStore = blockStoreProvider.getTransaction(txhash.getBytes());
+		if(regTxStore == null) {
+			return;
+		}
+		RegConsensusTransaction regTx = (RegConsensusTransaction) regTxStore.getTransaction();
+		
+		addConsensus(regTx);
+		
+		//退出的账户
+		if(tx instanceof ViolationTransaction) {
+			
+			//违规被提出共识，删除证据
+			ViolationTransaction vtx = (ViolationTransaction)tx;
+			ViolationEvidence violationEvidence = vtx.getViolationEvidence();
+			Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
+			delete(evidenceHash.getBytes());
+			
+			//加上之前减去的信用值
+			AccountStore accountInfo = getAccountInfo(hash160);
+			long certChange = 0;
+			if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+				certChange = Configure.CERT_CHANGE_TIME_OUT;
+			} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+				certChange = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
+			}
+			accountInfo.setCert(accountInfo.getCert() - certChange);
+			saveAccountInfo(accountInfo);
+		}
 	}
 }

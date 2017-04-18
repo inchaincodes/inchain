@@ -158,7 +158,15 @@ public class BusinessRecordController implements SubPageController {
     	datas.sort(new Comparator<BusinessEntity>() {
 			@Override
 			public int compare(BusinessEntity o1, BusinessEntity o2) {
-				return o2.getTime() > o1.getTime() ? 1 : -1;
+				long v1 = o1.getTime();
+				long v2 = o2.getTime();
+				if(v1 == v2) {
+					return 0;
+				} else if(v1 > v2) {
+					return -1;
+				} else {
+					return 1;
+				}
 			}
 		});
     	

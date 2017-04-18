@@ -98,7 +98,10 @@ public class InventoryMessageProcess implements MessageProcess {
 	//处理明细
 	private void processInventoryItem(final Peer peer, final InventoryItem inventoryItem) {
 		//如果已经接收并处理过了，就跳过
-		if(filter.contains(inventoryItem.getHash().getBytes())) {
+		if(filter.contains(inventoryItem.getHash().getBytes()) && dataSynchronizeHandler.hasComplete()) {
+			if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
+				peer.addAndGetBestBlockHeight();
+			}
 			return;
 		} else if(inventoryItem.getType() == InventoryItem.Type.NewBlock) {
 			//新区块诞生
@@ -225,7 +228,7 @@ public class InventoryMessageProcess implements MessageProcess {
 	private void blockInventory(final InventoryItem inventoryItem, Peer peer) {
 		blockLocker.lock();
 		try {
-			if(filter.contains(inventoryItem.getHash().getBytes())) {
+			if(filter.contains(inventoryItem.getHash().getBytes()) && dataSynchronizeHandler.hasComplete()) {
 				return;
 			}
 //			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));

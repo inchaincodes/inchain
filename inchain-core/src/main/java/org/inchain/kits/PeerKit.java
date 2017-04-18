@@ -102,6 +102,7 @@ public class PeerKit {
 		
 		//ping task
 		startPingTask();
+		
 	}
 
 	//异步启动
@@ -167,7 +168,7 @@ public class PeerKit {
 						peer.ping().get(5, TimeUnit.SECONDS);
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
-						log.info("节点{}无法Ping通，{}, {}", peer.getAddress(), TimeService.currentTimeMillis(), e.getMessage());
+						log.info("节点{}无法Ping通，{}", peer.getAddress(), TimeService.currentTimeMillis());
 //						if(!network.blockIsNewestStatus()) {
 //							peer.close();
 //						}
@@ -184,6 +185,28 @@ public class PeerKit {
 		
 		//检查本机是否需要上报地址
 		waitForPeers(minConnectionCount, checkBroadcastAddrListener);
+	}
+	
+	/**
+	 * 重置所以节点
+	 */
+	public void resetPeers() {
+		
+		for (Peer peer : outPeers) {
+			peer.close();
+		}
+		for (Peer peer : inPeers) {
+			peer.close();
+		}
+		outPeers.clear();
+		inPeers.clear();
+		peerDiscovery.shutdown();
+		try {
+			Thread.sleep(1000l);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		peerDiscovery.startSync();
 	}
 	
 	/*
@@ -579,7 +602,15 @@ public class PeerKit {
 		list.sort(new Comparator<TimeItem>() {
 			@Override
 			public int compare(TimeItem o1, TimeItem o2) {
-				return o1.getCount() < o2.getCount() ? 1:-1;
+				int v1 = o1.getCount();
+				int v2 = o2.getCount();
+				if(v1 == v2) {
+					return 0;
+				} else if(v1 > v2) {
+					return -1;
+				} else {
+					return 1;
+				}
 			}
 		});
 		return list.get(0).getTimeOffset();

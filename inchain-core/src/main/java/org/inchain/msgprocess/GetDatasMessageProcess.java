@@ -69,12 +69,12 @@ public class GetDatasMessageProcess implements MessageProcess {
 				txInventory(inventoryItem, peer);
 			} else if(inventoryItem.getType() == InventoryItem.Type.Block){
 				//获取区块数据
-				BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
-				if(blockStore == null) {
+				Block block = getBlock(inventoryItem);
+				if(block == null) {
 					sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
-					continue;
+				} else {
+					sendMessage(peer, block);
 				}
-				sendMessage(peer, blockStore.getBlock());
 			} else if(inventoryItem.getType() == InventoryItem.Type.Consensus) {
 				//共识消息
 				ConsensusMessage consensusMessage = consensusMeeting.getMeetingMessage(inventoryItem.getHash());
@@ -130,18 +130,24 @@ public class GetDatasMessageProcess implements MessageProcess {
 	 * 下载新区块
 	 */
 	private void newBlockInventory(InventoryItem inventoryItem, Peer peer) {
+		Block block = getBlock(inventoryItem);
+		if(block == null) {
+			sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
+		} else {
+			sendMessage(peer, new NewBlockMessage(peer.getNetwork(), block.baseSerialize()));
+		}
+	}
+
+	private Block getBlock(InventoryItem inventoryItem) {
 		Block block = null;
 		
 		BlockStore blockStore = blockStoreProvider.getBlock(inventoryItem.getHash().getBytes());
 		if(blockStore == null) {
 			block = blockForkService.getBlock(inventoryItem.getHash());
-			if(block == null) {
-				sendMessage(peer, new DataNotFoundMessage(network, inventoryItem.getHash()));
-				return;
-			}
+		} else {
+			block = blockStore.getBlock();
 		}
-		block = blockStore.getBlock();
-		sendMessage(peer, new NewBlockMessage(peer.getNetwork(), block.baseSerialize()));
+		return block;
 	}
 
 }

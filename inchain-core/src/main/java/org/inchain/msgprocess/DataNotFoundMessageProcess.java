@@ -26,6 +26,7 @@ public class DataNotFoundMessageProcess implements MessageProcess {
 		
 		DataNotFoundMessage dataNotFoundMessage = (DataNotFoundMessage) message;
 		
+		log.info("信息没有找到 {}", dataNotFoundMessage);
 		
 		return new MessageProcessResult(dataNotFoundMessage.getHash(), false);
 	}

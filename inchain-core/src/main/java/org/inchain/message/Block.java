@@ -13,7 +13,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.transaction.Transaction;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +140,13 @@ public class Block extends BlockHeader {
 			throw new VerificationException("block merkle hash error");
 		}
 		
+		//区块最大限制
+		int blockSize = baseSerialize().length;
+		if(blockSize > Definition.MAX_BLOCK_SIZE) {
+			log.error("区块大小超过限制 {} , {}", getHeight(), getHash());
+			throw new VerificationException("区块大小超过限制");
+		}
+		
 		//验证交易是否合法
 		Coin coinbaseFee = Coin.ZERO; //coinbase 交易包含的金额，主要是手续费
 		
@@ -162,7 +169,7 @@ public class Block extends BlockHeader {
 		}
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		//获取该高度的奖励
-		Coin rewardCoin = ConsensusRewardCalculationUtil.calculatReward(getHeight());
+		Coin rewardCoin = ConsensusCalculationUtil.calculatReward(getHeight());
 		//不小于奖励，不大于总量
 		if(coinbaseFee.isLessThan(rewardCoin) || coinbaseFee.isGreaterThan(Coin.MAX)) {
 			log.warn("交易费不正确");
@@ -175,7 +182,7 @@ public class Block extends BlockHeader {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Block [hash=");
-		builder.append(hash);
+		builder.append(getHash());
 		builder.append(", preHash=");
 		builder.append(preHash);
 		builder.append(", merkleHash=");

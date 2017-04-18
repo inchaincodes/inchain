@@ -4,11 +4,11 @@ import org.inchain.Configure;
 import org.inchain.core.Coin;
 
 /**
- * 共识奖励计算工具
+ * 共识计算工具
  * @author ln
  *
  */
-public final class ConsensusRewardCalculationUtil {
+public final class ConsensusCalculationUtil {
 
 	/**
 	 * 奖励总数，总理的十分之一
@@ -25,7 +25,7 @@ public final class ConsensusRewardCalculationUtil {
 	/**
 	 * 开始发放奖励的区块高度
 	 */
-	public final static long START_HEIGHT = 100l;
+	public final static long START_HEIGHT = 5000l;
 	/**
 	 * 每多少个区块奖励减半，也就是奖励周期，这里设置1年的出块数
 	 */
@@ -101,25 +101,38 @@ public final class ConsensusRewardCalculationUtil {
 	 * @param currentConsensusSize
 	 * @return Coin
 	 */
-	public static Coin calculatRecognizance(int currentConsensusSize) {
+	public static Coin calculatRecognizance(int currentConsensusSize, long height) {
 		
 		//max is (Math.log((double)300)/Math.log((double)2))
-		double max = 2468d;
 		
-		double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
-		double nlgn = lgN*currentConsensusSize;
-		long res = (long) (Configure.CONSENSUS_MAX_RECOGNIZANCE.value * (nlgn/max));
-		
-		if(res > Configure.CONSENSUS_MAX_RECOGNIZANCE.value) {
-			return Configure.CONSENSUS_MAX_RECOGNIZANCE;
-		} else if(res < Configure.CONSENSUS_MIN_RECOGNIZANCE.value) {
-			return Configure.CONSENSUS_MIN_RECOGNIZANCE;
-		} else {
-			if(res > Coin.COIN_VALUE * 100000) {
-				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 10000)).multiply(10000);
+		if(height < 33000 || height > 785000) {
+			double max = 2468d;
+			
+			double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
+			double nlgn = lgN*currentConsensusSize;
+			long res = (long) (Configure.CONSENSUS_MAX_RECOGNIZANCE.value * (nlgn/max));
+			
+			if(res > Configure.CONSENSUS_MAX_RECOGNIZANCE.value) {
+				return Configure.CONSENSUS_MAX_RECOGNIZANCE;
+			} else if(res < Configure.CONSENSUS_MIN_RECOGNIZANCE.value) {
+				return Configure.CONSENSUS_MIN_RECOGNIZANCE;
 			} else {
-				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 1000)).multiply(1000);
+				if(res > Coin.COIN_VALUE * 100000) {
+					return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 10000)).multiply(10000);
+				} else {
+					return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 1000)).multiply(1000);
+				}
 			}
+		} else {
+			return Coin.COIN.multiply(1000);
+		}
+	}
+	
+	public static long getConsensusCredit(long height) {
+		if(height < 33000 || height > 785000) {
+			return Configure.CONSENSUS_CREDIT;
+		} else {
+			return -10l;
 		}
 	}
 	
@@ -128,7 +141,7 @@ public final class ConsensusRewardCalculationUtil {
 		
 		int size = 308;
 		for (int i = 1; i <= size; i ++) {
-			System.out.println(i+"   "+calculatRecognizance(i));
+			System.out.println(i+"   "+calculatRecognizance(i, 5000000));
 		}
 	}
 }

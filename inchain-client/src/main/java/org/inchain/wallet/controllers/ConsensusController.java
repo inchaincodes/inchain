@@ -10,7 +10,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
-import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
@@ -24,7 +23,7 @@ import org.inchain.listener.Listener;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.AccountStore;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.Context;
 import org.inchain.wallet.entity.ConensusEntity;
@@ -176,11 +175,13 @@ public class ConsensusController implements SubPageController {
             		buttonId.setDisable(false);
         	} else {
         		nowStatus = 0;
-        		if(accountStore.getCert() >= Configure.CONSENSUS_CREDIT) {
-					//共识保证金
-					Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(consensusPool.getCurrentConsensus());
+        		//共识保证金
+        		BlockHeader bestBlockHeader = InchainInstance.getInstance().getAppKit().getNetwork().getBestBlockHeader();
+        		long credit = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
+        		if(accountStore.getCert() >= credit) {
+					Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(bestBlockHeader.getPeriodCount(), bestBlockHeader.getHeight());
         			//可参与共识
-        			statusLabelId.setText("参与共识所需信用 " + Configure.CONSENSUS_CREDIT + " , 共识需要提交保证金 " + recognizance.toText() + " INS");
+        			statusLabelId.setText("参与共识所需信用 " + credit + " , 共识需要提交保证金 " + recognizance.toText() + " INS");
         			//余额
         			Coin balance = accountKit.getBalance();
         			if(balance.isLessThan(recognizance)) {
@@ -192,7 +193,7 @@ public class ConsensusController implements SubPageController {
         			}
         		} else {
         			//不可参与共识
-        			statusLabelId.setText("您离共识所需信用 " + Configure.CONSENSUS_CREDIT + " 还差 " + (Configure.CONSENSUS_CREDIT - accountStore.getCert()));
+        			statusLabelId.setText("您离共识所需信用 " + credit + " 还差 " + (credit - accountStore.getCert()));
         			
         			buttonId.setText("申请共识");
         			buttonId.setDisable(true);
@@ -211,7 +212,15 @@ public class ConsensusController implements SubPageController {
 	    	datas.sort(new Comparator<ConensusEntity>() {
 				@Override
 				public int compare(ConensusEntity o1, ConensusEntity o2) {
-					return o2.getTime() > o1.getTime() ? 1 : -1;
+					long v1 = o1.getTime();
+					long v2 = o2.getTime();
+					if(v1 == v2) {
+						return 0;
+					} else if(v1 > v2) {
+						return -1;
+					} else {
+						return 1;
+					}
 				}
 			});
 	    	
@@ -251,7 +260,7 @@ public class ConsensusController implements SubPageController {
     		tip = "您当前正在共识中，确认要退出共识吗？";
     	} else {
     		BlockHeader bestBlockHeader = InchainInstance.getInstance().getAppKit().getNetwork().getBestBlockHeader();
-    		Coin recognizance = ConsensusRewardCalculationUtil.calculatRecognizance(bestBlockHeader.getPeriodCount());
+    		Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(bestBlockHeader.getPeriodCount(), bestBlockHeader.getHeight());
     		tip = "参与共识会扣除 " + recognizance.toText() + "保证金，将在退出共识时返还，确定继续吗？";
     	}
     	ConfirmDailog dailog = new ConfirmDailog(Context.getMainStage(), tip,1);

@@ -1,12 +1,15 @@
 package org.inchain.msgprocess;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.inchain.core.Peer;
 import org.inchain.core.Result;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
 import org.inchain.message.Message;
@@ -50,6 +53,9 @@ public class BlockMessageProcess implements MessageProcess {
 	@Autowired
 	private BlockValidator blockValidator;
 	
+	//错误的hash列表
+	private List<Sha256Hash> errorHashs = new ArrayList<Sha256Hash>();
+	
 	/**
 	 * 接收到区块消息，进行区块合法性验证，如果验证通过，则收录，然后转发区块
 	 */
@@ -59,10 +65,9 @@ public class BlockMessageProcess implements MessageProcess {
 		if(log.isDebugEnabled()) {
 			log.debug("down block : {}", message);
 		}
+		Block block = (Block) message;
 		
 		lock.lock();
-		
-		Block block = (Block) message;
 		
 		try {
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
@@ -79,6 +84,29 @@ public class BlockMessageProcess implements MessageProcess {
 				
 				MessageProcessResult result = replyRejectMessage(block);
 				result.setErrorCode(verifyReuslt.getErrorCode());
+				
+				if(result.getErrorCode() == BlockValidator.ERROR_CODE_HEIGHT_ERROR) {
+					//掉块容错处理
+					//当运行过程中，如果由于网络或者其它原因，导致中间断掉1个或者多个块没有收到，那么这里进行监控并处理
+					//监控方法是连续达到的3个块以上，处理办法为重置网络，同步到最新
+					int errorHashsSize = errorHashs.size();
+					boolean equals = false;
+					if(errorHashsSize > 0) {
+						equals = block.getPreHash().equals(errorHashs.get(errorHashsSize - 1));
+					}
+					if(!equals || errorHashsSize > 3) {
+						errorHashs.clear();
+					} else if(errorHashsSize == 3) {
+						//连续3个块出错，重置下载
+						BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
+						if(block.getHeight() - bestBlockHeader.getBlockHeader().getHeight() < 20) {
+							//重置
+							peerKit.resetPeers();
+							errorHashs.clear();
+						}
+					}
+					errorHashs.add(block.getHash());
+				}
 				
 				return result;
 			}

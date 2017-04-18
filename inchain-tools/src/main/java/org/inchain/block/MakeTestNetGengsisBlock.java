@@ -23,7 +23,7 @@ import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -79,7 +79,7 @@ public class MakeTestNetGengsisBlock {
 			System.out.println(address.getBase58());
 			System.out.println("==========================");
 			
-			coinBaseTx.addOutput(Coin.MAX.subtract(ConsensusRewardCalculationUtil.TOTAL_REWARD), 0, address);
+			coinBaseTx.addOutput(Coin.MAX.subtract(ConsensusCalculationUtil.TOTAL_REWARD), 0, address);
 			coinBaseTx.verify();
 			
 			txs.add(coinBaseTx);

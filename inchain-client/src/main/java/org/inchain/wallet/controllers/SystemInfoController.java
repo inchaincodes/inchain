@@ -12,7 +12,7 @@ import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
-import org.inchain.utils.ConsensusRewardCalculationUtil;
+import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,11 +118,11 @@ public class SystemInfoController implements SubPageController{
 				    		consensusStatus.setText("未参与共识");
 				    	}
 				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
-				    	consensusBonusNumber.setText(ConsensusRewardCalculationUtil.calculatReward(appKit.getNetwork().getBestHeight()).toText() + " INS");
+				    	consensusBonusNumber.setText(ConsensusCalculationUtil.calculatReward(appKit.getNetwork().getBestHeight()).toText() + " INS");
 				    	
 				    	totalAmount.setText(Coin.MAX.toText() + " INS");
-				    	rewardTotalAmount.setText(ConsensusRewardCalculationUtil.TOTAL_REWARD.toText() + " INS");
-				    	rewardAmount.setText(ConsensusRewardCalculationUtil.calculatTotal(appKit.getNetwork().getBestHeight()).toText() + " INS");
+				    	rewardTotalAmount.setText(ConsensusCalculationUtil.TOTAL_REWARD.toText() + " INS");
+				    	rewardAmount.setText(ConsensusCalculationUtil.calculatTotal(appKit.getNetwork().getBestHeight()).toText() + " INS");
 				    	
 //				    	networkNumber.setText(String.valueOf(peerKit.getAvailablePeersCount()));
 				    }

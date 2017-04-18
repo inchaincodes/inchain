@@ -277,7 +277,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		//获取当前的共识段开始点
 		long periodStartTime = bestBlockHeader.getPeriodStartTime();
 		//创世块的时间或者整个网络停止很长的时间之后，这里应该设置为最新时间
-		if(TimeService.currentTimeSeconds() - periodStartTime > 180) {
+		if(bestBlockHeader.getHeight() < 10) {
 			//以当前时间为开始时间
 			periodStartTime = TimeService.currentTimeSeconds();
 		}
@@ -291,6 +291,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		initNewMeetingRound();
 		
 		log.info("start metting : {}", currentMetting);
+		
+		oldMettings.clear();
 		
 		//加载之前5轮的共识信息
 		for (int i = 0; i < 5; i++) {
@@ -814,7 +816,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		if(result == null) {
 			//错误的区，如果接收，会引起灾难
 			try {
-				Thread.sleep(300l);
+				Thread.sleep(100l);
 			} catch (InterruptedException e) {
 				if(log.isDebugEnabled()) {
 					log.debug("{}", e.getMessage());
