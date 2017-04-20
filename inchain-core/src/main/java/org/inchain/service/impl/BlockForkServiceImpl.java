@@ -169,15 +169,17 @@ public class BlockForkServiceImpl implements BlockForkService {
 			localBestHashLastTime = TimeService.currentTimeMillis();
 			hasReset = false;
 		} else {
-			//是否到达1分钟没有变化的条件
-			if(TimeService.currentTimeMillis() - localBestHashLastTime > 60000l && !hasReset) {
+			//是否到达设定时间区块没有变化的条件
+			//3分钟
+			int timeout = 3;
+			if(TimeService.currentTimeMillis() - localBestHashLastTime > timeout * 60000l && !hasReset) {
 				//达到条件，触发
 				hasReset = true;
 				
 				dataSynchronizeHandler.reset();
 				peerKit.resetPeers();
 				
-				log.info("触发了1分钟本地高度没改变的条件，重置网络");
+				log.info("触发了{}分钟本地高度没改变的条件，重置网络", timeout);
 				return;
 			}
 		}

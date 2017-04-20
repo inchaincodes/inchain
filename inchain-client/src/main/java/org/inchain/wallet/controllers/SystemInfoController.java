@@ -1,5 +1,6 @@
 package org.inchain.wallet.controllers;
 
+import java.net.URL;
 import java.util.Date;
 
 import org.inchain.Configure;
@@ -14,10 +15,15 @@ import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
+import org.inchain.wallet.utils.Callback;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javafx.application.Platform;
+import javafx.event.Event;
+import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 
 /**
@@ -69,6 +75,35 @@ public class SystemInfoController implements SubPageController{
     	InchainInstance instance = InchainInstance.getInstance();
     	appKit = instance.getAppKit();
     	accountKit = instance.getAccountKit();
+    	
+    	consensusStatus.setOnMouseClicked(new EventHandler<Event>() {
+			@Override
+			public void handle(Event event) {
+				Integer status = (Integer) consensusStatus.getUserData();
+				if(status == null || status.intValue() == 0) {
+					return;
+				}
+				if(status.intValue() == 1) {
+					//解密账户
+	    			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+			        FXMLLoader loader = new FXMLLoader(location);
+			        final AccountKit accountKitTemp = accountKit;
+					DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
+						@Override
+						public void ok(Object param) {
+							if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+								try {
+									ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+									consensusMeeting.waitMining();
+								} finally {
+									accountKitTemp.resetKeys();
+								}
+							}
+						}
+					});
+				}
+			}
+		});
 	}
 
 	/*
@@ -107,12 +142,21 @@ public class SystemInfoController implements SubPageController{
 				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
 				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
 				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
-				    		if(miningInfo.getPeriodStartTime() > miningInfo.getBeginTime()) {
-				    			consensusStatus.setText("正在等待进入共识队列");
-				    		} else if(miningInfo.getEndTime() <= TimeService.currentTimeSeconds()) {
-				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + ((miningInfo.getPeriodStartTime() + miningInfo.getPeriodCount() * Configure.BLOCK_GEN_TIME) - TimeService.currentTimeSeconds()) + "秒");
+				    		
+				    		consensusStatus.setUserData(0);
+				    		if(miningInfo.getBeginTime() == 0l) {
+				    			if(consensusMeeting.getAccount() == null) {
+					    			consensusStatus.setText("点我输入密码进行共识");
+					    			consensusStatus.setUserData(1);
+				    			} else {
+				    				consensusStatus.setText("正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
+				    			}
+				    		} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
+				    			consensusStatus.setText("正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
+				    		} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
+				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
 				    		} else {
-				    			consensusStatus.setText("正在排队\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
+				    			consensusStatus.setText("正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒");
 				    		}
 				    	} else {
 				    		consensusStatus.setText("未参与共识");

@@ -11,7 +11,6 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.paint.*?>
 <?import javafx.scene.text.*?>
-<?import wallettemplate.controls.*?>
 
 <AnchorPane maxHeight="Infinity" maxWidth="Infinity" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.MainController">
   <children>
@@ -74,7 +73,7 @@
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font>
                      <tooltip>
-                        <Tooltip fx:id="networkInfosTipId" text="主动连接：0\r\n被动连接：0" />
+                        <Tooltip fx:id="networkInfosTipId" text="0" />
                      </tooltip></Label>
                </children>
             </HBox>

@@ -3,6 +3,7 @@ package org.inchain.wallet.controllers;
 import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.awt.TrayIcon.MessageType;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,12 +12,17 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.core.DataSynchronizeHandler;
+import org.inchain.core.Definition;
 import org.inchain.core.Peer;
 import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
+import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
@@ -26,6 +32,8 @@ import org.inchain.store.TransactionStore;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.listener.StartupListener;
+import org.inchain.wallet.utils.Callback;
+import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -161,6 +169,62 @@ public class MainController {
     	
     	//刷新当前显示页面的数据
     	refreshCurrentPageData();
+    	
+    	checkConsensusStatus();
+	}
+
+	//检查当前共识状态，如果是在共识队列中，则要求输入密码
+	private void checkConsensusStatus() {
+		new Thread() {
+			@Override
+			public void run() {
+				try {
+					Thread.sleep(3000l);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
+				final AccountKit accountKit = SpringContextUtils.getBean(AccountKit.class);
+				DataSynchronizeHandler dataSynchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
+				
+				while(true) {
+					
+					if(dataSynchronizeHandler.hasComplete()) {
+						if(accountKit.checkConsensusing() && accountKit.accountIsEncrypted()) {
+							//解密账户
+							URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+							final FXMLLoader loader = new FXMLLoader(location);
+							final AccountKit accountKitTemp = accountKit;
+							Platform.runLater(new Runnable() {
+							    @Override
+							    public void run() {
+									DailogUtil.showDailog(loader, "输入钱包密码进行共识", new Callback() {
+										@Override
+										public void ok(Object param) {
+											if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+												try {
+													ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+													consensusMeeting.waitMining();
+												} finally {
+													accountKitTemp.resetKeys();
+												}
+											}
+										}
+									});
+							    }
+							});
+						}
+						break;
+					} else {
+						try {
+							Thread.sleep(1000l);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}.start();
 	}
 
 	/*

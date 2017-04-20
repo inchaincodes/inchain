@@ -114,8 +114,16 @@ public class TransactionValidator {
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 		if(verifyTX != null) {
-			result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
-			return validatorResult;
+			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
+			long blockHeight = verifyTX.getHeight();
+			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
+			if(blockHeaderStore == null) {
+				//重置
+				blockStoreProvider.revokedTransaction(verifyTX);
+			} else {
+				result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
+				return validatorResult;
+			}
 		}
 		//如果是转帐交易
 		//TODO 以下代码请使用状态模式重构

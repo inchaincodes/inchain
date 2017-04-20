@@ -3,7 +3,6 @@ package org.inchain.service.impl;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -108,14 +107,13 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 	}
 
 	/**
-	 * 移除曾经增加的信用记录，用于处理分叉区块时，主链上的块回滚时调用
+	 * 移除最近的记录，主链上的块回滚时调用
 	 * @param type		类型，参考 Definition 里的定义
 	 * @param hash160	信用获得人
-	 * @param time			凭证所在的区块时间
 	 * @return boolean
 	 */
 	@Override
-	public boolean removeCredit(int type, byte[] hash160, long time) {
+	public boolean removeCredit(int type, byte[] hash160) {
 		Map<ByteHash, List<Long>> map = container.get(type);
 		if(map == null) {
 			return false;
@@ -124,15 +122,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 		if(times == null || times.size() == 0) {
 			return false;
 		}
-		Iterator<Long> it = times.iterator();
-		while(it.hasNext()) {
-			Long t = it.next();
-			if(t.longValue() == time) {
-				it.remove();
-				return true;
-			}
-		}
-		return false;
+		return times.remove(0) != null;
 	}
 
 	/**

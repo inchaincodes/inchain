@@ -13,6 +13,8 @@ public class MiningInfos {
 	private int periodCount;
 	//当前轮开始时间
 	private long periodStartTime;
+	//当前轮结束时间
+	private long periodEndTime;
 	//我的账户hash
 	private byte[] hash160;
 	//我的时段开始时间
@@ -55,5 +57,11 @@ public class MiningInfos {
 	}
 	public void setPeriodStartTime(long periodStartTime) {
 		this.periodStartTime = periodStartTime;
+	}
+	public long getPeriodEndTime() {
+		return periodEndTime;
+	}
+	public void setPeriodEndTime(long periodEndTime) {
+		this.periodEndTime = periodEndTime;
 	}
 }

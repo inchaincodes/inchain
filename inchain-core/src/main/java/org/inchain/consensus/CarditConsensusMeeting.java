@@ -100,6 +100,9 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	//上几轮的共识信息
 	private List<MeetingItem> oldMettings = new ArrayList<MeetingItem>();
 
+	//是否允许打包
+	private boolean canPackage;
+	//是否正在打包中
 	private boolean packageing;
 	//共识调度器状态，0等待初始化，1初始化中，2初始化成功，共识中，3初始化失败
 	private int meetingStatus = 0;
@@ -271,8 +274,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	protected void init() {
 		
 		//分析当前共识状态
-		BlockHeader bestBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
-		
+		BlockHeaderStore bestBlockStore = blockStoreProvider.getBestBlockHeader();
+		if(bestBlockStore == null) {
+			return;
+		}
+		BlockHeader bestBlockHeader = bestBlockStore.getBlockHeader();
 		
 		//获取当前的共识段开始点
 		long periodStartTime = bestBlockHeader.getPeriodStartTime();
@@ -285,7 +291,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		
 		//获取开始时的共识列表
 		//利用当前的快照倒推
-		List<ConsensusAccount> consensusList = analysisConsensusSnapshots(bestBlockHeader.getPeriodStartTime());
+		List<ConsensusAccount> consensusList = analysisConsensusSnapshots(periodStartTime);
 		
 		currentMetting = new MeetingItem(this, periodStartTime, consensusList);
 		initNewMeetingRound();
@@ -325,7 +331,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 打包数据出新块
 	 */
 	public void doPackage() {
-		if(packageing) {
+		if(packageing || !canPackage) {
 			return;
 		}
 		packageing = true;
@@ -743,7 +749,6 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 重新设置会议
 	 */
 	private void resetMeeting(Block block) {
-		log.info("======================= 重置了");
 		currentMetting = new MeetingItem(CarditConsensusMeeting.this, oldMettings.get(0).getPeriodEndTime(), consensusPool.listSnapshots());
 		initNewMeetingRound();
 		meetingRound.set(meetingRound.get() - 1);
@@ -780,6 +785,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		meetingRound = new AtomicInteger();
 		currentMetting.setMyPackageTime(0);
 		currentMetting.setMyPackageTimeEnd(0);
+		
+		currentMetting.startConsensus();
 	}
 	
 	public Account getAccount() {
@@ -874,6 +881,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		infos.setBeginTime(currentMetting.getMyPackageTime());
 		infos.setEndTime(currentMetting.getMyPackageTimeEnd());
 		infos.setPeriodStartTime(currentMetting.getPeriodStartTime());
+		infos.setPeriodEndTime(currentMetting.getPeriodEndTime());
 		return infos;
 	}
 
@@ -972,6 +980,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 
 	 */
 	private void startPeerMonitor() {
+		//初始化是允许打包的，当连接的节点为0时，则不继续打包，否则就本地分叉了
+		canPackage = true;
 		//监控节点变化
 		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
@@ -981,13 +991,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				if(inCount + outCount == 0) {
 					//判断当前是否正在共识中
 					if(currentMetting != null && currentMetting.getTimePeriod() != -1) {
-						//停止
-						packageing = false;
-						mining.reset(true);
-						
-						//重置
-						init();
+						canPackage = false;
 					}
+				} else {
+					//重新上线，继续共识
+					canPackage = true;
 				}
 			}
 		});
