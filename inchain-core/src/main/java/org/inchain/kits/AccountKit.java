@@ -1252,9 +1252,14 @@ public class AccountKit {
 			
 			accountList.add(account);
 			
-			blockStoreProvider.addAccountFilter(account.getAddress().getHash160());
+			byte[] hash160 = account.getAddress().getHash160();
+			blockStoreProvider.addAccountFilter(hash160);
+			transactionStoreProvider.addAddress(hash160);
 			
 			return account;
+		} catch (Exception e) {
+			log.error("初始化认证账户出错：{}", e.getMessage(), e);
+			throw new VerificationException(e);
 		} finally {
 			locker.unlock();
 		}
@@ -1315,6 +1320,7 @@ public class AccountKit {
 					result.setHash(cutx.getHash());
 					
 					account.setBody(accountBody);
+					account.setAccountTransaction(cutx);
 					
 					//签名帐户
 					account.signAccount(account.getMgEckeys()[0], account.getMgEckeys()[1]);
@@ -2097,6 +2103,7 @@ public class AccountKit {
 		TransactionListener tl = new TransactionListener() {
 			@Override
 			public void newTransaction(TransactionStore tx) {
+				
 				//更新余额
 				loadBalanceFromChainstateAndUnconfirmedTransaction(getAccountHash160s());
 				if(transactionListener != null) {

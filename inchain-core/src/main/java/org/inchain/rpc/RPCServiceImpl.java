@@ -23,6 +23,7 @@ import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
+import org.inchain.consensus.MiningInfos;
 import org.inchain.core.AccountKeyValue;
 import org.inchain.core.AntifakeCode;
 import org.inchain.core.AntifakeInfosResult;
@@ -36,6 +37,7 @@ import org.inchain.core.Product;
 import org.inchain.core.ProductKeyValue;
 import org.inchain.core.RepeatBlockViolationEvidence;
 import org.inchain.core.Result;
+import org.inchain.core.TimeService;
 import org.inchain.core.VerifyAntifakeCodeResult;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.core.exception.VerificationException;
@@ -1932,6 +1934,46 @@ public class RPCServiceImpl implements RPCService {
 		json.put("success", true);
 		return json;
 	}
+	
+	/**
+	 * 查看当前共识状态
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject getConsensusStatus() throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		if(accountKit.checkConsensusing()) {
+    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+    		consensusMeeting.waitMeeting();
+    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
+    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
+    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
+    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
+    		
+    		String msg = null;
+    		if(miningInfo.getBeginTime() == 0l) {
+    			if(consensusMeeting.getAccount() == null) {
+    				msg = "但钱包已加密不能打包，需要再次申请共识";
+    			} else {
+    				msg = "正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
+    			}
+    		} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
+    			msg = "正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒,当前轮开始时间：" + periodStartTime + ",我的共识时间：" + beginTime + " - " + endTime;
+    		} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
+    			msg = "正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
+    		} else {
+    			msg = "正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒";
+    		}
+    		
+    		json.put("message", "当前已在共识中。" + msg);
+    	} else {
+    		json.put("message", "未参与共识");
+    	}
+		
+		json.put("success", true);
+		return json;
+	}
 
 	/**
 	 * 注册共识
@@ -1955,18 +1997,20 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 		
-		//当前是否已经在共识了
-		if(accountKit.checkConsensusing()) {
-			json.put("success", false);
-			json.put("message", "当前已经在共识状态中了");
-			return json;
-		}
-		
 		//判断账户是否加密
 		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
+			return json;
+		}
+		
+		//当前是否已经在共识了
+		//延迟重置账户
+		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+		if(accountKit.checkConsensusing() && consensusMeeting.getAccount() != null) {
+			json.put("success", false);
+			json.put("message", "当前已经在共识状态中了");
 			return json;
 		}
 		
@@ -1979,6 +2023,15 @@ public class RPCServiceImpl implements RPCService {
 				return json;
 			}
 		}
+		
+		if(accountKit.checkConsensusing() && consensusMeeting.getAccount() == null) {
+			consensusMeeting.waitMining();
+			accountKit.resetKeys();
+			json.put("success", true);
+			json.put("message", "成功加入共识");
+			return json;
+		}
+		
 		try {
 			Result result = accountKit.registerConsensus();
 			if(!result.isSuccess()) {

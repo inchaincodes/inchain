@@ -800,6 +800,11 @@ public class RPCHanlder {
 			return rpcService.getConsensusCount();
 		}
 		
+		//查看当前共识状态
+		case "getconsensusstatus": {
+			return rpcService.getConsensusStatus();
+		}
+		
 		//注册共识
 		case "regconsensus": {
 			if(params.length() > 0 && password == null) {
@@ -893,6 +898,8 @@ public class RPCHanlder {
 		sb.append("\n");
 		sb.append(" --- 共识相关 --- \n");
 		sb.append("  getconsensus                    获取共识节点列表\n");
+		sb.append("  getconsensuscount               获取共识节点数量\n");
+		sb.append("  getconsensusstatus              获取当前共识状态\n");
 		sb.append("  regconsensus                    注册共识\n");
 		sb.append("  remconsensus                    退出共识\n");
 		sb.append("\n");

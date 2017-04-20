@@ -226,6 +226,13 @@ public interface RPCService {
 	JSONObject getConsensusCount() throws JSONException;
 
 	/**
+	 * 查看当前共识状态
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	JSONObject getConsensusStatus() throws JSONException;
+	
+	/**
 	 * 注册共识
 	 * @param password
 	 * @return JSONObject
