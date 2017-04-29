@@ -964,6 +964,7 @@ public final class MiningService implements Mining {
 								tempAccount.setTrEckeys(null);
 								tempAccount.setEcKey(null);
 								consensusMeeting.setAccount(tempAccount);
+								consensusMeeting.resetCurrentMeetingItem();
 							} catch (CloneNotSupportedException e) {
 								log.error("初始化共识时，设置共识账户出错:", e);
 							}

@@ -365,6 +365,8 @@ public class MeetingItem implements Cloneable {
 		}
 		builder.append(", index=");
 		builder.append(index);
+		builder.append(", userCount=");
+		builder.append(consensusList.size());
 		builder.append("]");
 		return builder.toString();
 	}

@@ -4,6 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.utils.RequestUtil;
 import org.inchain.utils.Utils;
@@ -46,11 +49,19 @@ public final class TimeService {
 	private final static Date systemStartTime = new Date();
 	
 	private long lastInitTime;
+	private boolean running;
 	
-	public TimeService() {
+	@PostConstruct
+	public void start() {
 		startSyn();
 	}
+	
+	@PreDestroy
+	public void stop() {
+		running = false;
+	}
 
+	
 	/**
 	 * 异步启动时间服务
 	 */
@@ -94,6 +105,8 @@ public final class TimeService {
 	private void initError() {
 		//1分钟后重试
 		lastInitTime = System.currentTimeMillis() - 60000l;
+		
+		log.info("---------------本地时间调整出错---------------");
 	}
 	
 	private void initSuccess() {
@@ -113,14 +126,17 @@ public final class TimeService {
 		//如果用户在运行过程中自己去调整电脑的时候，这是他的问题，出错也无可厚非
 		
 		long lastTime = System.currentTimeMillis();
-		while(true) {
+		
+		running = true;
+		
+		while(running) {
 			//动态调整网络时间
 			
 			long newTime = System.currentTimeMillis();
 			if(Math.abs(newTime - lastTime) > TIME_OFFSET_BOUNDARY) {
 				log.info("本地时间调整了：{}", newTime - lastTime);
 				initTime();
-			} else if(lastInitTime - currentTimeMillis() > TIME_REFRESH_TIME) {
+			} else if(currentTimeMillis() - lastInitTime > TIME_REFRESH_TIME) {
 				//每隔一段时间更新网络时间
 				initTime();
 			}
