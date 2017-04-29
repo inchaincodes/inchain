@@ -7,7 +7,6 @@ rem
 rem $Id: inchain.bat,v 1.0 2016/11/17 ln$
 rem ---------------------------------------------------------------------------
 
-
 rem 设置java运行环境
 rem Make sure prerequisite environment variables are set
 if not "%JAVA_HOME%" == "" goto gotJavaHome
@@ -16,9 +15,6 @@ echo This environment variable is needed to run this program
 goto end
 :gotJavaHome
 if not exist "%JAVA_HOME%\bin\java.exe" goto noJavaHome
-if not exist "%JAVA_HOME%\bin\javaw.exe" goto noJavaHome
-if not exist "%JAVA_HOME%\bin\jdb.exe" goto noJavaHome
-if not exist "%JAVA_HOME%\bin\javac.exe" goto noJavaHome
 goto okJavaHome
 :noJavaHome
 echo The JAVA_HOME environment variable is not defined correctly
