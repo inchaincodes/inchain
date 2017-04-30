@@ -14,9 +14,13 @@ done
 # Get standard environment variables
 JAVA_OPTS="-server -Xms512m -Xmx1024m"
 
-
-PRGDIR=`dirname "$PRG"`
-SERVER_HOME=`cd "$PRGDIR/.." ; pwd`
+SOURCE="$0"
+while [ -h "$SOURCE"  ]; do # resolve $SOURCE until the file is no longer a symlink
+    DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /*  ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+SERVER_HOME="$( cd -P "$( dirname "$SOURCE"  )" && pwd  )"
 
 if [ -z "$JAVA_HOME" ]; then
   JAVA_HOME=$SERVER_HOME/jre
