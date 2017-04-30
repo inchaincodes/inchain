@@ -13,7 +13,6 @@ import java.net.URL;
 
 import javax.swing.ImageIcon;
 
-import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
@@ -21,7 +20,6 @@ import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
 import org.inchain.wallet.listener.WindowCloseEvent;
 import org.inchain.wallet.utils.ConfirmDailog;
-import org.inchain.wallet.utils.DailogUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,21 +181,26 @@ public class Main extends Decoration implements ActionListener {
 			if(!(event instanceof WindowCloseEvent)) {
 				return;
 			}
-            if(SystemTray.isSupported()) {
-        		//隐藏，可双击托盘恢复
-        		hide();
-        		if(!hideTip) {
-        			TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
-        			if(trayIcons != null && trayIcons.length > 0) {
-        				trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
-        			}
-        			hideTip = true;
-        		}
-        	} else {
-        		//退出程序
-        		exit();
-        	}
+	        if(SystemTray.isSupported()) {
+	    		//隐藏，可双击托盘恢复
+	    		hide();
+	    		if(!hideTip && !isMac()) {
+					hideTip = true;
+					TrayIcon[] trayIcons = SystemTray.getSystemTray().getTrayIcons();
+					if(trayIcons != null && trayIcons.length > 0) {
+						trayIcons[0].displayMessage("温馨提示", "印链客户端已最小化到系统托盘，双击可再次显示", MessageType.INFO);
+					}
+	    		}
+	    	} else {
+	    		//退出程序
+	    		exit();
+	    	}
 		});
+	}
+	
+	private boolean isMac() {
+		String osName = System.getProperty("os.name").toLowerCase();
+		return osName.indexOf("mac") != -1;
 	}
 
 	/*
