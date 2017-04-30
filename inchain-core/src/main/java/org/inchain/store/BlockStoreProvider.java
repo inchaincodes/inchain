@@ -1170,4 +1170,45 @@ public class BlockStoreProvider extends BaseStoreProvider {
 //		
 //		System.exit(0);
 	}
+
+	public void resetConsensusQueue() {
+		log.info("=========重置共识队列=======");
+		//从创始快开始遍历所有区块
+		BlockStore blockStore = network.getGengsisBlock();
+		Sha256Hash nextHash = blockStore.getBlock().getHash();
+		
+		//清除共识队列
+		consensusPool.clearAll();
+		
+		while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
+			BlockStore nextBlockStore = getBlock(nextHash.getBytes());
+			if(nextBlockStore == null) {
+				break;
+			}
+			List<Transaction> txs = nextBlockStore.getBlock().getTxs();
+			for (Transaction tx : txs) {
+				if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+					//注册
+					RegConsensusTransaction reg = (RegConsensusTransaction) tx;
+					chainstateStoreProvider.addConsensus(reg);
+				} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS ||
+						tx.getType() == Definition.TYPE_VIOLATION) {
+					byte[] hash160 = null;
+					if(tx instanceof RemConsensusTransaction) {
+						//主动退出共识
+						RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+						hash160 = remTransaction.getHash160();
+					} else {
+						//违规被提出共识
+						ViolationTransaction vtx = (ViolationTransaction)tx;
+						hash160 = vtx.getViolationEvidence().getAudienceHash160();
+					}
+					//从集合中删除共识节点
+					chainstateStoreProvider.deleteConsensusFromCollection(hash160);
+				}
+			}
+			nextHash = nextBlockStore.getNextHash();
+		}
+		log.info("=========重置共识队列完成=======");
+	}
 }

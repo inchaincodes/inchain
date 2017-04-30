@@ -130,16 +130,26 @@ public class DataSynchronizeHandler implements Runnable {
 		}
 		
 		if(localHeight >= bestHeight) {
-			synchronousStatus = 2;
-			consensusMeeting.resetCurrentMeetingItem();
-			//同步完成之后，检查区块是否是最优的，有没有被恶意节点误导引起分叉
-			//TODO
-			if(log.isDebugEnabled()) {
-				log.debug("区块同步完成！");
-			}
+			//本地最新区块
+			BlockHeader bestBlockHeader = network.getBestBlockHeader();
 			//触发监听器
 			for (BlockDownendListener blockDownendListener : blockDownendListeners) {
 				blockDownendListener.downend(localHeight);
+			}
+			//同步完成之后，检查区块是否是最优的，有没有被恶意节点误导引起分叉
+			//TODO
+			//重置当前轮共识会议
+			consensusMeeting.resetCurrentMeetingItem();
+			//验证共识人数是否正确
+			int currentMeetingPeriodCount = consensusMeeting.getCurrentMeetingPeriodCount();
+			if(currentMeetingPeriodCount != bestBlockHeader.getPeriodCount()) {
+				//共识队列有问题，需要重置
+				blockStoreProvider.resetConsensusQueue();
+				consensusMeeting.resetCurrentMeetingItem();
+			}
+			synchronousStatus = 2;
+			if(log.isDebugEnabled()) {
+				log.debug("区块同步完成！");
 			}
 		} else {
 			synchronousStatus = 1;

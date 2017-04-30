@@ -55,4 +55,9 @@ public interface ConsensusPool {
 	 * @return Sha256Hash
 	 */
 	public Sha256Hash getTx(byte[] hash160);
+	
+	/**
+	 * 清除共识数据
+	 */
+	public void clearAll();
 }

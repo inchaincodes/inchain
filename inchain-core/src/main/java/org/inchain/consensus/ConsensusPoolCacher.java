@@ -211,4 +211,11 @@ public class ConsensusPoolCacher implements ConsensusPool {
 	public int getCurrentConsensus() {
 		return container.size();
 	}
+
+	@Override
+	public void clearAll() {
+		chainstateStoreProvider.delete(Configure.CONSENSUS_ACCOUNT_KEYS);
+		container.clear();
+		txContainer.clear();
+	}
 }
