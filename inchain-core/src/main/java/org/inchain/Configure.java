@@ -22,8 +22,14 @@ public final class Configure {
 
 	private final static Properties property = new Properties();
 	
+	public static String SERVER_HOME = System.getProperty("serverHome");
+	
 	static {
 		try {
+			if(StringUtil.isEmpty(SERVER_HOME)) {
+				SERVER_HOME = System.getProperty("user.dir");
+				System.setProperty("serverHome", SERVER_HOME);
+			}
 			oloadProperties();
 		} catch (IOException e) {
 			log.error("加载配置文件出错", e);
@@ -81,13 +87,10 @@ public final class Configure {
 	 */
 	public final static int MINING_MATURE_COUNT = 1000;	// getProperty("block.gen.time", 1000);
 	
-	public static String USER_DIR = System.getProperty("user.dir");
-	public static String SERVER_HOME = System.getProperty("serverHome");
-	
 	/**
 	 * 数据存储目录
 	 */
-	public static String DATA_DIR = getProperty("data.dir", (StringUtil.isEmpty(SERVER_HOME) ? USER_DIR : SERVER_HOME).concat("/data"));
+	public static String DATA_DIR = getProperty("data.dir", SERVER_HOME + File.separator +"data");
 	/**
 	 * 账户存储目录
 	 */
