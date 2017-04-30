@@ -7,6 +7,7 @@ import java.util.Properties;
 
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,10 +80,14 @@ public final class Configure {
 	 * 挖矿奖励冻结区块数
 	 */
 	public final static int MINING_MATURE_COUNT = 1000;	// getProperty("block.gen.time", 1000);
+	
+	public static String USER_DIR = System.getProperty("user.dir");
+	public static String SERVER_HOME = System.getProperty("serverHome");
+	
 	/**
 	 * 数据存储目录
 	 */
-	public static String DATA_DIR = getProperty("data.dir", System.getProperty("user.dir").concat("/data"));
+	public static String DATA_DIR = getProperty("data.dir", (StringUtil.isEmpty(SERVER_HOME) ? USER_DIR : SERVER_HOME).concat("/data"));
 	/**
 	 * 账户存储目录
 	 */
