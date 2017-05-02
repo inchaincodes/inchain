@@ -1759,29 +1759,29 @@ public class AccountKit {
 		if(!validPassword(password)) {
 			return new Result(false, "密码错误");
 		}
-		for (Account account : accountList) {
-			if(account.getAccountType() == network.getSystemAccountVersion()) {
-				//普通账户的解密
-				account.resetKey(password);
-				ECKey eckey = account.getEcKey();
-				try {
-					account.setEcKey(eckey.decrypt(password));
-				} catch (Exception e) {
-					log.error("解密失败, "+e.getMessage(), e);
-					account.setEcKey(eckey);
-					return new Result(false, "密码错误");
-				}
-			} else if(account.getAccountType() == network.getCertAccountVersion()) {
-				//认证账户的解密
-				ECKey[] keys = null;
-				if(type == Definition.TX_VERIFY_MG) {
-					keys = account.decryptionMg(password);
-				} else {
-					keys = account.decryptionTr(password);
-				}
-				if(keys == null) {
-					return new Result(false, "密码错误");
-				}
+		Account account = getDefaultAccount();
+		System.out.println(account.getAddress().getBase58());
+		if(account.getAccountType() == network.getSystemAccountVersion()) {
+			//普通账户的解密
+			account.resetKey(password);
+			ECKey eckey = account.getEcKey();
+			try {
+				account.setEcKey(eckey.decrypt(password));
+			} catch (Exception e) {
+				log.error("解密失败, "+e.getMessage(), e);
+				account.setEcKey(eckey);
+				return new Result(false, "密码错误");
+			}
+		} else if(account.getAccountType() == network.getCertAccountVersion()) {
+			//认证账户的解密
+			ECKey[] keys = null;
+			if(type == Definition.TX_VERIFY_MG) {
+				keys = account.decryptionMg(password);
+			} else {
+				keys = account.decryptionTr(password);
+			}
+			if(keys == null) {
+				return new Result(false, "密码错误");
 			}
 		}
 		return new Result(true, "解密成功");

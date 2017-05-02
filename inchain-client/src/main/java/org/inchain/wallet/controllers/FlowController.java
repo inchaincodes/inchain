@@ -70,9 +70,9 @@ public class FlowController implements SubPageController{
 	 * */
 	private void define() {
 		
-		String antifakeCode = antifakeCodeId.getText();
-		String customize = customizeId.getText();
-		String description = descriptionId.getText();
+		String antifakeCode = antifakeCodeId.getText().trim();
+		String customize = customizeId.getText().trim();
+		String description = descriptionId.getText().trim();
 		
 		if("".equals(antifakeCode)) {
 			antifakeCodeId.requestFocus();

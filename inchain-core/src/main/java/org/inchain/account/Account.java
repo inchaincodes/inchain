@@ -431,11 +431,10 @@ public class Account implements Cloneable {
 	public boolean isEncrypted() {
 		if(accountType == network.getSystemAccountVersion()) {
 			//普通账户
-			
-			if(ecKey == null) {
-				return false;
-			}
 			//没有私钥也代表已加密
+			if(ecKey == null) {
+				return true;
+			}
 			try {
 				ecKey.getPrivKey();
 			} catch (Exception e) {

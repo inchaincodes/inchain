@@ -32,12 +32,12 @@ public class TransferController extends DailogController{
 	}
 	 
 	private void transfer() {
-		if(StringUtil.isEmpty(receiverId.getText())) {
+		if(StringUtil.isEmpty(receiverId.getText().trim())) {
 			receiverId.requestFocus();
 			DailogUtil.showTipDailogCenter("请输入接收人的地址/别名！",getThisStage());
 			return;
 		}
-		if(StringUtil.isEmpty(remarkId.getText())) {
+		if(StringUtil.isEmpty(remarkId.getText().trim())) {
 			remarkId.requestFocus();
 			DailogUtil.showTipDailogCenter("请输入转让备注！",getThisStage());
 			return;
@@ -46,8 +46,8 @@ public class TransferController extends DailogController{
 		Map<String, Object> map = new HashMap<String, Object>();
 		
 		map.put("controller", this);
-		map.put("receiver", receiverId.getText());
-		map.put("remark", remarkId.getText());
+		map.put("receiver", receiverId.getText().trim());
+		map.put("remark", remarkId.getText().trim());
 		
 		callback.ok(map);
 	}

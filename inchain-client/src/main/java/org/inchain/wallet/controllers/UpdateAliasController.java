@@ -63,7 +63,7 @@ public class UpdateAliasController extends DailogController {
 	private void doSave() throws UnsupportedEncodingException {
 		
 		//校验
-		String alias = aliasId.getText();
+		String alias = aliasId.getText().trim();
 		if(StringUtils.isEmpty(alias)) {
 			aliasId.requestFocus();
 			DailogUtil.showTipDailogCenter("别名不能为空", getThisStage());

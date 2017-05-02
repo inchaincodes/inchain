@@ -9,7 +9,6 @@ import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
-import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
@@ -153,7 +152,7 @@ public class SendAmountController implements SubPageController {
     	NetworkParams network = InchainInstance.getInstance().getAppKit().getNetwork();
     	
     	//接收地址
-    	String address = receiveAddressId.getText();
+    	String address = receiveAddressId.getText().trim();
     	//验证接收地址
     	if("".equals(address)) {
     		receiveAddressId.requestFocus();
@@ -183,7 +182,7 @@ public class SendAmountController implements SubPageController {
     	Coin feeCoin = null;
     	//验证手续费
     	try {
-    		feeCoin = Coin.parseCoin(fee);
+    		feeCoin = Coin.parseCoin(fee.trim());
 		} catch (Exception e) {
 			sendAmountId.requestFocus();
     		DailogUtil.showTip("错误的手续费金额");
@@ -193,7 +192,7 @@ public class SendAmountController implements SubPageController {
     		feeCoin = Coin.parseCoin("0.01");
     	}
     	
-    	String amount = sendAmountId.getText();
+    	String amount = sendAmountId.getText().trim();
     	Coin money = null;
     	//验证金额
     	if("".equals(amount)) {
@@ -223,7 +222,7 @@ public class SendAmountController implements SubPageController {
     	}
     	
     	//交易备注不能超过30字节
-    	String remark = remarkId.getText();
+    	String remark = remarkId.getText().trim();
     	byte[] remarkBytes = null;
 		try {
 			remarkBytes = remark.getBytes("utf-8");
@@ -250,7 +249,9 @@ public class SendAmountController implements SubPageController {
 				DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
 					@Override
 					public void ok(Object param) {
-						if(!accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR)) {
+						Account account = accountKit.getDefaultAccount();
+						if(!((!account.isCertAccount() && account.isEncrypted()) ||
+								(account.isCertAccount() && account.isEncryptedOfTr()))) {
 							try {
 								sendMoney(accountKitTemp, addressTemp, moneyTemp, feeCoinTemp, remarkBytesTemp);
 							} finally {

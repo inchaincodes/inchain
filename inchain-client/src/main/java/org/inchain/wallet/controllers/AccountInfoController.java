@@ -5,7 +5,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 
 import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
@@ -115,67 +114,65 @@ public class AccountInfoController implements SubPageController {
 	 */
 	public void initDatas() {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-		List<Account> accountList = accountKit.getAccountList();
-
-		if (accountList != null && accountList.size() > 0) {
-			Account account = accountList.get(0);
-			if (accountInfoListener != null) {
-				accountInfoListener.onLoad(account);
-			}
-			// 设置内页的余额
-			final Address address = account.getAddress();
-			// 自己的账户信息
-			AccountStore accountStore = accountKit.getAccountInfo();
-			// 自己的交易信息
-			TransactionStoreProvider transactionStoreProvider = SpringContextUtils
-					.getBean(TransactionStoreProvider.class);
-			Platform.runLater(new Runnable() {
-				@Override
-				public void run() {
-					totalBalanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
-					canUseBlanaceId.setText(address.getBalance().toText());
-					canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
-					addressId.setText(address.getBase58());
-					certId.setText(String.valueOf(accountStore.getCert()));
-					transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));
-					if (accountKit.accountIsEncrypted()) {
-						encryptionStatusId.setText("已加密");
+		Account account = accountKit.getDefaultAccount();
+		if(account == null) {
+			return;
+		}
+		if (accountInfoListener != null) {
+			accountInfoListener.onLoad(account);
+		}
+		// 设置内页的余额
+		final Address address = account.getAddress();
+		// 自己的账户信息
+		AccountStore accountStore = accountKit.getAccountInfo();
+		// 自己的交易信息
+		TransactionStoreProvider transactionStoreProvider = SpringContextUtils
+				.getBean(TransactionStoreProvider.class);
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				totalBalanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
+				canUseBlanaceId.setText(address.getBalance().toText());
+				canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
+				addressId.setText(address.getBase58());
+				certId.setText(String.valueOf(accountStore.getCert()));
+				transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));
+				if (accountKit.accountIsEncrypted()) {
+					encryptionStatusId.setText("已加密");
+				} else {
+					encryptionStatusId.setText("未加密,为了资金安全,请加密钱包");
+				}
+				if (accountKit.checkConsensusing()) {
+					consensusStatusId.setText("正在共识中");
+				} else {
+					consensusStatusId.setText("未参与共识");
+				}
+				if (!Arrays.equals(alias, accountStore.getAlias())) {
+					aliasStatus = 1;
+					alias = accountStore.getAlias();
+				}
+				// 别名是否已设置
+				if (accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
+					// 未设置
+					// 是否达到条件
+					if (accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
+						aliasId.setText("别名未设置");
+						aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
+						aliasButtonId.setTooltip(new Tooltip("设置别名"));
 					} else {
-						encryptionStatusId.setText("未加密,为了资金安全,请加密钱包");
+						aliasId.setText("信用值达到" + Configure.REG_ALIAS_CREDIT + "后可免费设置别名");
+						aliasButtonId.setDisable(true);
 					}
-					if (accountKit.checkConsensusing()) {
-						consensusStatusId.setText("正在共识中");
-					} else {
-						consensusStatusId.setText("未参与共识");
-					}
-					if (!Arrays.equals(alias, accountStore.getAlias())) {
-						aliasStatus = 1;
-						alias = accountStore.getAlias();
-					}
-					// 别名是否已设置
-					if (accountStore.getAlias() == null || accountStore.getAlias().length == 0) {
-						// 未设置
-						// 是否达到条件
-						if (accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
-							aliasId.setText("别名未设置");
-							aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
-							aliasButtonId.setTooltip(new Tooltip("设置别名"));
-						} else {
-							aliasId.setText("信用值达到" + Configure.REG_ALIAS_CREDIT + "后可免费设置别名");
-							aliasButtonId.setDisable(true);
-						}
-					} else {
-						try {
-							aliasId.setText(new String(accountStore.getAlias(), "utf-8"));
-							aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
-							aliasButtonId.setTooltip(new Tooltip("修改别名"));
-						} catch (UnsupportedEncodingException e) {
-						}
+				} else {
+					try {
+						aliasId.setText(new String(accountStore.getAlias(), "utf-8"));
+						aliasButtonId.setDisable(aliasStatus == 2 ? true : false);
+						aliasButtonId.setTooltip(new Tooltip("修改别名"));
+					} catch (UnsupportedEncodingException e) {
 					}
 				}
-			});
-		}
-
+			}
+		});
 	}
 
 	public void setAccountInfoListener(AccountInfoListener accountInfoListener) {
@@ -349,7 +346,7 @@ public class AccountInfoController implements SubPageController {
 
 	private void updateAlias() throws UnsupportedEncodingException {
 		// 校验
-		String alias = aliasId.getText();
+		String alias = aliasId.getText().trim();
 		if (StringUtils.isEmpty(alias)) {
 			aliasId.requestFocus();
 			DailogUtil.showTip("别名不能为空");
@@ -373,7 +370,7 @@ public class AccountInfoController implements SubPageController {
 
 	private void setAlias() throws UnsupportedEncodingException {
 		// 校验
-		String alias = aliasId.getText();
+		String alias = aliasId.getText().trim();
 		if (StringUtils.isEmpty(alias)) {
 			aliasId.requestFocus();
 			DailogUtil.showTip("别名不能为空");

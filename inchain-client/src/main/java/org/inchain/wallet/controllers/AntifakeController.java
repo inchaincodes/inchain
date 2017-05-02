@@ -117,9 +117,9 @@ public class AntifakeController implements SubPageController {
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	
     	//防伪码内容
-    	String antifakeCode = antifakeCodeId.getText();
+    	String antifakeCode = antifakeCodeId.getText().trim();
     	//防伪密码内容
-    	String antifakePassword = antifakePasswordId.getText();
+    	String antifakePassword = antifakePasswordId.getText().trim();
     	//验证接收地址
     	if("".equals(antifakeCode)) {
     		antifakeCodeId.requestFocus();
