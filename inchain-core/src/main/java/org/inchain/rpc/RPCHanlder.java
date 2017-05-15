@@ -5,9 +5,11 @@ import java.io.IOException;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.core.Product;
 import org.inchain.core.exception.AddressFormatException;
 import org.inchain.core.exception.VerificationException;
@@ -103,6 +105,14 @@ public class RPCHanlder {
 		case "help":  {
 			result.put("success", true);
 			result.put("commands", getHelpCommands());
+			
+			return result;
+		}
+		
+		//获取当前版本信息
+		case "getversion":  {
+			result.put("success", true);
+			result.put("version", Definition.LIBRARY_SUBVER);
 			
 			return result;
 		}
@@ -826,6 +836,14 @@ public class RPCHanlder {
 		//获取连接节点信息
 		case "getpeers": {
 			result = rpcService.getPeers();
+			
+			result.put("success", true);
+			return result;
+		}
+		
+		//获取连接节点数量
+		case "getpeercount": {
+			result = rpcService.getPeerCount();
 			
 			result.put("success", true);
 			return result;

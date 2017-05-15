@@ -44,7 +44,7 @@ public class PeerKit {
 	private static final org.slf4j.Logger log = LoggerFactory.getLogger(PeerKit.class);
 
 	//默认最大节点连接数，这里指单向连接，被动连接的数量
-	private static final int DEFAULT_MAX_IN_CONNECTION = 200;
+	private static final int DEFAULT_MAX_IN_CONNECTION = 2000;
 	
 	private static final Set<String> LOCAL_ADDRESS = IpUtil.getIps();
 	

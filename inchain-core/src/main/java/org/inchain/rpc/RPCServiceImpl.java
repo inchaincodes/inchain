@@ -2140,6 +2140,23 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 	
+
+	/**
+	 * 获取连接节点数量
+	 * @return JSONObject
+	 */
+	public JSONObject getPeerCount() throws JSONException {
+		
+		JSONObject json = new JSONObject();
+		
+		int totalCount = peerKit.getConnectedCount();
+		int availableCount = peerKit.getAvailablePeersCount();
+		
+		json.put("totalCount", totalCount).put("availableCount", availableCount);
+		
+		return json;
+	}
+	
 	/**
 	 * 通过公钥得到地址
 	 * @param pubkey

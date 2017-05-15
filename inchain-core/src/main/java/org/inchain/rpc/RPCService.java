@@ -253,6 +253,12 @@ public interface RPCService {
 	 * @return JSONObject
 	 */
 	JSONObject getPeers() throws JSONException;
+	
+	/**
+	 * 获取连接节点数量
+	 * @return JSONObject
+	 */
+	JSONObject getPeerCount() throws JSONException;
 
 	/**
 	 * 加密钱包

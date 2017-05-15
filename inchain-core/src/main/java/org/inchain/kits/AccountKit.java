@@ -1760,7 +1760,6 @@ public class AccountKit {
 			return new Result(false, "密码错误");
 		}
 		Account account = getDefaultAccount();
-		System.out.println(account.getAddress().getBase58());
 		if(account.getAccountType() == network.getSystemAccountVersion()) {
 			//普通账户的解密
 			account.resetKey(password);

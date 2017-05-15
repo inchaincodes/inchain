@@ -433,7 +433,7 @@ public class Account implements Cloneable {
 			//普通账户
 			//没有私钥也代表已加密
 			if(ecKey == null) {
-				return true;
+				return false;
 			}
 			try {
 				ecKey.getPrivKey();
