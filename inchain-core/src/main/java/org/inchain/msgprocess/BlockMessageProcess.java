@@ -88,18 +88,18 @@ public class BlockMessageProcess implements MessageProcess {
 				if(result.getErrorCode() == BlockValidator.ERROR_CODE_HEIGHT_ERROR) {
 					//掉块容错处理
 					//当运行过程中，如果由于网络或者其它原因，导致中间断掉1个或者多个块没有收到，那么这里进行监控并处理
-					//监控方法是连续达到的3个块以上，处理办法为重置网络，同步到最新
+					//监控方法是连续达到的6个块以上，处理办法为重置网络，同步到最新
 					int errorHashsSize = errorHashs.size();
 					boolean equals = false;
 					if(errorHashsSize > 0) {
 						equals = block.getPreHash().equals(errorHashs.get(errorHashsSize - 1));
 					}
-					if(!equals || errorHashsSize > 3) {
+					if(!equals || errorHashsSize > 6) {
 						errorHashs.clear();
-					} else if(errorHashsSize == 3) {
-						//连续3个块出错，重置下载
+					} else if(errorHashsSize == 6) {
+						//连续N个块出错，重置下载
 						BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
-						if(block.getHeight() - bestBlockHeader.getBlockHeader().getHeight() < 20) {
+						if(block.getHeight() - bestBlockHeader.getBlockHeader().getHeight() < 10) {
 							//重置
 							peerKit.resetPeers();
 							errorHashs.clear();

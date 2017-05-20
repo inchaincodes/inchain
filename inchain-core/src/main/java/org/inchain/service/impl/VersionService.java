@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.channels.FileChannel;
-import java.util.Date;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -17,7 +16,8 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.Configure;
-import org.inchain.utils.DateUtil;
+import org.inchain.core.Definition;
+import org.inchain.listener.VersionUpdateListener;
 import org.inchain.utils.RequestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +37,9 @@ public class VersionService {
 	private boolean runing;
 	
 	private int runModel;
+	//是否有新版本
+	private boolean hasNew;
+	private JSONObject versionJsonInfo;
 	
 	@PostConstruct
 	public void init() {
@@ -55,14 +58,110 @@ public class VersionService {
 		runing = false;
 	}
 
+	/**
+	 * 检查最新
+	 * @return JSONObject
+	 * @throws JSONException 
+	 */
+	public JSONObject check() throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		if(hasNew && versionJsonInfo != null) {
+			json.put("success", true).put("newVersion", true)
+			.put("version", versionJsonInfo.getString("version"))
+			.put("fileList", versionJsonInfo.getJSONArray("filelist"));
+		} else {
+			json.put("success", true).put("newVersion", false);
+		}
+		
+		return json;
+	}
+	
+	/**
+	 * 更新版本
+	 * @param listener
+	 * @throws JSONException 
+	 */
+	public void update(VersionUpdateListener listener) throws JSONException {
+		
+		if(!hasNew) {
+			return;
+		}
+		
+		//版本不一致，需要更新
+		JSONArray filelist = versionJsonInfo.getJSONArray("filelist");
+		//保存目录
+		File parent = new File(Configure.DATA_DIR).getParentFile();
+		
+		if(listener != null) {
+			listener.startDownload();
+		}
+		
+		for (int i = 0; i < filelist.length(); i++) {
+			String fileurl = filelist.getString(i);
+			String fileFullUrl = "http://test.update.inchain.org" + fileurl;
+			
+			byte[] content = RequestUtil.get(fileFullUrl);
+			
+			File file = new File(parent, fileurl + ".update");
+			
+			if(!file.exists()) {
+				file.getParentFile().mkdirs();
+			}
+			try {
+				FileOutputStream fos = new FileOutputStream(file);
+				fos.write(content);
+				fos.flush();
+				fos.close();
+				
+				File oldFile = new File(parent, fileurl);
+
+				if(oldFile.exists()) {
+					//备份旧版本
+					File bakFile = new File(parent, fileurl + ".bak");
+					nioTransferCopy(oldFile, bakFile);
+				}
+				nioTransferCopy(file, oldFile);
+				
+				file.delete();
+				
+				if(listener != null) {
+					listener.downloading(fileurl, (float)(i+1)/filelist.length());
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		//成功后回写文件
+		writeToFile(versionJsonInfo);
+		if(listener != null) {
+			listener.onComplete();
+		}
+	}
+	
+	/**
+	 * 获取最新版本
+	 * @return String
+	 * @throws JSONException
+	 */
+	public String getNewestVersion() throws JSONException {
+		String version = "unknown";
+		if(versionJsonInfo != null) {
+			version = versionJsonInfo.getString("version");
+		}
+		return version;
+	}
+
 	protected void startVersionCheck() {
 		runing = true;
 		
-		while(runing) {
+		while(runing && !hasNew) {
 			try {
-				//每5分钟检测一次
-				Thread.sleep(300000l);
+				//每分钟检测一次
+				Thread.sleep(5000l);
 				checkAndDown();
+				Thread.sleep(55000l);
 			} catch (Exception e) {
 			}
 		}
@@ -78,86 +177,86 @@ public class VersionService {
 			return;
 		}
 		//远程版本
-		JSONObject json = new JSONObject(response);
-		//与本地版本进行对比
-		JSONObject localVersion = readFromFile();
-		if(localVersion.has("version") && !json.getString("version").equals(localVersion.getString("version"))) {
-			//版本不一致，需要更新
-			JSONArray filelist = json.getJSONArray("filelist");
-			//保存目录
-			File parent = new File(Configure.DATA_DIR).getParentFile();
+		versionJsonInfo = new JSONObject(response);
+		
+		if(!versionJsonInfo.getString("version").equals(Definition.LIBRARY_SUBVER)) {
 			
-			for (int i = 0; i < filelist.length(); i++) {
-				String fileurl = filelist.getString(i);
-				String fileFullUrl = "http://test.update.inchain.org" + fileurl;
-				
-				byte[] content = RequestUtil.get(fileFullUrl);
-				
-				File file = new File(parent, fileurl + ".update");
-				
-				if(!file.exists()) {
-					file.getParentFile().mkdirs();
-				}
-				try {
-					FileOutputStream fos = new FileOutputStream(file);
-					fos.write(content);
-					fos.flush();
-					fos.close();
-					System.out.println(file);
-					
-					File oldFile = new File(parent, fileurl);
-
-					File bakFile = new File(parent, fileurl + ".bak");
-					
-					nioTransferCopy(oldFile, bakFile);
-					nioTransferCopy(file, oldFile);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			hasNew = true;
 			
-			//成功后回写文件
-			writeToFile(json);
-			
-			//重新启动
-    		try {
-    			if(runModel == 1) {
-    				if(System.getProperty("os.name").toUpperCase().contains("LINUX")) {
-	    				String path = "nohup " + System.getProperty("user.dir") + "/bin/inchain restart &";
-	    				
-	    				log.info("运行命令：{}", path);
-    				}
-    			} else {
-    				//只针对win添加计划任务重启
-    				if(System.getProperty("os.name").toUpperCase().contains("WINDOWS")) {
-    					String path = System.getProperty("user.dir") + "\\inchain.exe";
-    					
-    					Date startTime = new Date(System.currentTimeMillis() + 60000);
-    					String time = DateUtil.convertDate(startTime, "HH:mm:ss");
-    					String date = DateUtil.convertDate(startTime, "yyyy/MM/dd");
-    					String cmd = "schtasks /create /tn inchain_autoupdate /tr \"" + path + "\" /sc ONCE /st " + time + " /sd " + date + " /F";
-    					Runtime.getRuntime().exec(cmd);
-    					
-    					log.info("重新启动：{}", cmd);
-    					
-    					while(true) {
-	    		            String seconds = DateUtil.convertDate(new Date(), "ss");
-	    		            int i = Integer.parseInt(seconds);
-	    		            if(i > 50) {
-		    		            //关闭程序
-		    		            System.exit(0);
-	    		            }
-    					}
-    				}
-    			}
-			} catch (IOException e) {
-				log.error("", e);
-			}
-		} else if(!localVersion.has("version")) {
-			//第一次写文件
-			writeToFile(json);
+//			//版本不一致，需要更新
+//			JSONArray filelist = versionJsonInfo.getJSONArray("filelist");
+//			//保存目录
+//			File parent = new File(Configure.DATA_DIR).getParentFile();
+//			
+//			for (int i = 0; i < filelist.length(); i++) {
+//				String fileurl = filelist.getString(i);
+//				String fileFullUrl = "http://test.update.inchain.org" + fileurl;
+//				
+//				byte[] content = RequestUtil.get(fileFullUrl);
+//				
+//				File file = new File(parent, fileurl + ".update");
+//				
+//				if(!file.exists()) {
+//					file.getParentFile().mkdirs();
+//				}
+//				try {
+//					FileOutputStream fos = new FileOutputStream(file);
+//					fos.write(content);
+//					fos.flush();
+//					fos.close();
+//					System.out.println(file);
+//					
+//					File oldFile = new File(parent, fileurl);
+//
+//					File bakFile = new File(parent, fileurl + ".bak");
+//					
+//					nioTransferCopy(oldFile, bakFile);
+//					nioTransferCopy(file, oldFile);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//			
+//			//成功后回写文件
+//			writeToFile(versionJsonInfo);
+//			
+//			//重新启动
+//    		try {
+//    			if(runModel == 1) {
+//    				if(System.getProperty("os.name").toUpperCase().contains("LINUX")) {
+//	    				String path = "nohup " + System.getProperty("user.dir") + "/bin/inchain restart &";
+//	    				
+//	    				log.info("运行命令：{}", path);
+//    				}
+//    			} else {
+//    				//只针对win添加计划任务重启
+//    				if(System.getProperty("os.name").toUpperCase().contains("WINDOWS")) {
+//    					String path = System.getProperty("user.dir") + "\\inchain.exe";
+//    					
+//    					Date startTime = new Date(System.currentTimeMillis() + 60000);
+//    					String time = DateUtil.convertDate(startTime, "HH:mm:ss");
+//    					String date = DateUtil.convertDate(startTime, "yyyy/MM/dd");
+//    					String cmd = "schtasks /create /tn inchain_autoupdate /tr \"" + path + "\" /sc ONCE /st " + time + " /sd " + date + " /F";
+//    					Runtime.getRuntime().exec(cmd);
+//    					
+//    					log.info("重新启动：{}", cmd);
+//    					
+//    					while(true) {
+//	    		            String seconds = DateUtil.convertDate(new Date(), "ss");
+//	    		            int i = Integer.parseInt(seconds);
+//	    		            if(i > 50) {
+//		    		            //关闭程序
+//		    		            System.exit(0);
+//	    		            }
+//    					}
+//    				}
+//    			}
+//			} catch (IOException e) {
+//				log.error("", e);
+//			}
 		}
 	}
+	
 	private static void nioTransferCopy(File source, File target) {  
 	    FileChannel in = null;  
 	    FileChannel out = null;  

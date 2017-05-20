@@ -3,16 +3,20 @@ package org.inchain.wallet.controllers;
 import java.net.URL;
 import java.util.Date;
 
-import org.inchain.Configure;
+import javax.annotation.PreDestroy;
+
+import org.codehaus.jettison.json.JSONObject;
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.MiningInfos;
 import org.inchain.core.Coin;
+import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
 import org.inchain.core.TimeService;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
+import org.inchain.service.impl.VersionService;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.inchain.wallet.utils.Callback;
@@ -24,6 +28,7 @@ import javafx.application.Platform;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 
 /**
@@ -52,6 +57,10 @@ public class SystemInfoController implements SubPageController{
 	public Label rewardAmount;		//已产出奖励数
 	public Label sortId;
 	
+	public Button updateId;			//更新
+	
+	private boolean runing;
+	
 	private AppKit appKit;
 	private AccountKit accountKit;
 	
@@ -61,8 +70,40 @@ public class SystemInfoController implements SubPageController{
 	 */
 	public void initialize() {
 		initListeners();
+		Thread updateTh = new Thread() {
+			@Override
+			public void run() {
+				 startVersionCheck();
+			}
+		};
+		updateTh.setName("updateVersion service");
+		updateTh.start();
+	}
+	@PreDestroy
+	public void stop() {
+		runing = false;
 	}
 
+	protected void startVersionCheck() {
+		runing = true;
+		
+		VersionService versionService = SpringContextUtils.getBean(VersionService.class);
+		
+		while(runing) {
+			try {
+				Thread.sleep(10000l);
+				//检查是否有更新
+				JSONObject result = versionService.check();
+				
+				if(result.getBoolean("success") && result.getBoolean("newVersion")) {
+					updateId.setVisible(true);
+				}
+				Thread.sleep(50000l);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
 	@Override
 	public void initDatas() {
 		startShowTime();
@@ -104,6 +145,17 @@ public class SystemInfoController implements SubPageController{
 				}
 			}
 		});
+    	//更新按钮
+    	updateId.setOnMouseClicked(new EventHandler<Event>() {
+			@Override
+			public void handle(Event event) {
+				
+				//弹出更新弹窗
+				URL location = getClass().getResource("/resources/template/updateVersion.fxml");
+				FXMLLoader loader = new FXMLLoader(location);
+				DailogUtil.showDailog(loader, "更新版本");
+			}
+		});
 	}
 
 	/*
@@ -135,28 +187,33 @@ public class SystemInfoController implements SubPageController{
 				    	} else if(appKit.getNetwork().getLocalServices() ==2) {
 				    		network.setText("测试网络");
 				    	}
-				    	if(accountKit.checkConsensusing()) {
+						if(accountKit.checkConsensusing()) {
 				    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
-				    		consensusMeeting.waitMeeting();
-				    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
-				    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
-				    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
-				    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
-				    		
-				    		consensusStatus.setUserData(0);
-				    		if(miningInfo.getBeginTime() == 0l) {
-				    			if(consensusMeeting.getAccount() == null) {
-					    			consensusStatus.setText("点我输入密码进行共识");
-					    			consensusStatus.setUserData(1);
+				    		DataSynchronizeHandler dataSynchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
+				    		if(dataSynchronizeHandler.hasComplete()) {
+				    			consensusMeeting.waitMeeting();
+				    			MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
+				    			String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
+				    			String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
+				    			String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
+				    			
+				    			consensusStatus.setUserData(0);
+				    			if(miningInfo.getBeginTime() == 0l) {
+				    				if(consensusMeeting.getAccount() == null) {
+				    					consensusStatus.setText("点我输入密码进行共识");
+				    					consensusStatus.setUserData(1);
+				    				} else {
+				    					consensusStatus.setText("正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
+				    				}
+				    			} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
+				    				consensusStatus.setText("正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
+				    			} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
+				    				consensusStatus.setText("正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
 				    			} else {
-				    				consensusStatus.setText("正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
+				    				consensusStatus.setText("正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒");
 				    			}
-				    		} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
-				    			consensusStatus.setText("正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒\n当前轮开始时间：" + periodStartTime + "\n我的共识时间：" + beginTime + " - " + endTime);
-				    		} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
-				    			consensusStatus.setText("正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒");
 				    		} else {
-				    			consensusStatus.setText("正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒");
+				    			consensusStatus.setText("区块同步中···");
 				    		}
 				    	} else {
 				    		consensusStatus.setText("未参与共识");

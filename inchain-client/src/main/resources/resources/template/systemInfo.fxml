@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.*?>
 <?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
@@ -42,6 +43,14 @@
                               <Insets left="84.0" />
                            </HBox.margin>
                         </Label>
+                        <Button fx:id="updateId" mnemonicParsing="false" text="立即更新" visible="false">
+                           <HBox.margin>
+                              <Insets left="20.0" />
+                           </HBox.margin>
+                           <cursor>
+                              <Cursor fx:constant="HAND" />
+                           </cursor>
+                        </Button>
                      </children>
                      <VBox.margin>
                         <Insets top="10.0" />

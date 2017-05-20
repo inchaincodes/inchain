@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox alignment="CENTER" prefHeight="242.0" prefWidth="460.0" stylesheets="@../css/Settings.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.UpdateController">
+   <children>
+      <HBox alignment="CENTER">
+         <children>
+            <Label fx:id="tip" />
+            <Label fx:id="progressId" text="0%">
+               <HBox.margin>
+                  <Insets left="30.0" />
+               </HBox.margin>
+            </Label>
+         </children>
+         <VBox.margin>
+            <Insets bottom="10.0" />
+         </VBox.margin>
+      </HBox>
+      <ProgressBar fx:id="progressBarId" minHeight="10.0" prefHeight="7.0" prefWidth="372.0" progress="0.0" />
+      <Label fx:id="hintId" text="更新已完成，请手动重启钱包客户端" visible="false">
+         <VBox.margin>
+            <Insets top="30.0" />
+         </VBox.margin>
+      </Label>
+      <Button fx:id="closeId" mnemonicParsing="false" prefHeight="23.0" prefWidth="126.0" text="关闭客户端" visible="false">
+         <VBox.margin>
+            <Insets top="40.0" />
+         </VBox.margin>
+         <cursor>
+            <Cursor fx:constant="HAND" />
+         </cursor>
+      </Button>
+   </children>
+</VBox>

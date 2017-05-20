@@ -265,7 +265,7 @@ public class DataSynchronizeHandler implements Runnable {
 		List<Item> list = new ArrayList<Item>();
 		
 		for (Peer peer : peers) {
-			if(peer.getPeerVersionMessage() == null) {
+			if(peer.getPeerVersionMessage() == null || !peer.isHandshake()) {
 				continue;
 			}
 			//根据hash判断，则获取初始连接时的版本信息里面的高度和hash

@@ -170,8 +170,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 			hasReset = false;
 		} else {
 			//是否到达设定时间区块没有变化的条件
-			//3分钟
-			int timeout = 3;
+			int timeout = 5;
 			if(TimeService.currentTimeMillis() - localBestHashLastTime > timeout * 60000l && !hasReset) {
 				//达到条件，触发
 				hasReset = true;
@@ -333,7 +332,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		//判断该链是否最优，也就是超过当前的主链没有，如果超过，则可重置主链为当前链
 		//再次查询本地最新高度
 		localBestBlock = network.getBestBlockHeader();
-		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() && blockForkChains.size() > 1) {
+		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() && blockForkChains.size() > 10) {
 			//回滚主链上的块，知道最新块为preBlock
 			while(true) {
 				BlockStore bestBlock = blockStoreProvider.getBestBlock();

@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -14,6 +13,7 @@ import org.inchain.core.Product;
 import org.inchain.core.exception.AddressFormatException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
+import org.inchain.service.impl.VersionService;
 import org.inchain.utils.Base58;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
@@ -63,6 +63,8 @@ public class RPCHanlder {
 	private NetworkParams network;
 	@Autowired
 	private RPCService rpcService;
+	@Autowired
+	private VersionService versionService;
 	
 	/**
 	 * 处理命令
@@ -113,6 +115,28 @@ public class RPCHanlder {
 		case "getversion":  {
 			result.put("success", true);
 			result.put("version", Definition.LIBRARY_SUBVER);
+			
+			String newestVersion = versionService.getNewestVersion();
+			
+			result.put("newestversion", newestVersion);
+			
+			return result;
+		}
+		
+		//更新版本
+		case "updateversion":  {
+			result.put("success", true);
+			
+			JSONObject json = versionService.check();
+			
+			if(json.getBoolean("success") && json.getBoolean("newVersion")) {
+				
+				versionService.update(null);
+				result.put("message", "更新成功，请重启客户端");
+				
+			} else {
+				result.put("message", "无需更新");
+			}
 			
 			return result;
 		}
