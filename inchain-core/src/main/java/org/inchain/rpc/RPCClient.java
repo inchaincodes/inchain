@@ -53,29 +53,32 @@ public class RPCClient {
 	private PrintWriter pw;
 	
 	public static void main(String[] args) throws IOException, JSONException {
-		args = new String[12];
-		args[0] = "-rpc_host";
-		args[1] = "localhost";
-		args[2] = "-rpc_port";
-		args[3] = "8632";
-		args[4] = "-rpc_user";
-		args[5] = "user";
-		args[6] = "-rpc_password";
-		args[7] = "xSdfuKUCUbhODtLYcMcr";
-		args[8] = "getblock";
-		args[9] = "359071";
-		args[10] = "5.111";
-		args[11] = "0";
+//		args = new String[12];
+//		args[0] = "-rpc_host";
+//		args[1] = "localhost";
+//		args[2] = "-rpc_port";
+//		args[3] = "8632";
+//		args[4] = "-rpc_user";
+//		args[5] = "user";
+//		args[6] = "-rpc_password";
+//		args[7] = "xbrPirYKpMXQByhkrqMb";
+//		args[8] = "getblock";
+//		args[9] = "359071";
+//		args[10] = "5.111";
+//		args[11] = "0";
+//		
+//		int count = 0;
+//		long time = System.currentTimeMillis();
+////		while(count < 100000) {
+//			String result = new RPCClient().processCmd(args);
+//			printMsg(result);
+//			count++;
+////		}
+//		
+//		System.out.println("耗时："+(System.currentTimeMillis() - time)+"ms");
 		
-		int count = 0;
-		long time = System.currentTimeMillis();
-		while(count < 100000) {
-			String result = new RPCClient().processCmd(args);
-			printMsg(result);
-			count++;
-		}
-		
-		System.out.println("耗时："+(System.currentTimeMillis() - time)+"ms");
+		String result = new RPCClient().processCmd(args);
+		printMsg(result);
 	}
 
 	/*
