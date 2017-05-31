@@ -18,14 +18,19 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.listener.BlockDownendListener;
 import org.inchain.listener.ConnectionChangedListener;
+import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.message.GetBlocksMessage;
+import org.inchain.msgprocess.BlockMessageProcess;
+import org.inchain.msgprocess.GetBlocksMessageProcess;
+import org.inchain.msgprocess.MessageProcessResult;
 import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockStoreProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.concurrent.SettableListenableFuture;
 
 /**
  * 数据同步器
@@ -56,9 +61,24 @@ public class DataSynchronizeHandler implements Runnable {
 	private PeerKit peerKit;
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
+	@Autowired
+	private BlockMessageProcess blockMessageProcess;
 	
 	private int synchronousStatus = -1; //0等待同步，1同步中，2同步完成
 	private boolean initSynchronous = true; //是否初始同步，也就是第一次程序启动的同步
+	
+	//下载消息
+	private GetBlocksMessage downingMessage;
+	//同步开始高度
+	private long startHeight;
+	//同步停止高度
+	private long stopHeight;
+	//最后同步块hash
+	private Sha256Hash lastDownHash;
+	//本地最新块是否是分叉块
+	private boolean localBestBlockIsFork;
+	//下载监听
+	private SettableListenableFuture<Boolean> downloadFuture;
 	
 	/**
 	 * 初始化，监听节点连接变化
@@ -183,6 +203,9 @@ public class DataSynchronizeHandler implements Runnable {
 			}
 			List<Boolean> results = new ArrayList<Boolean>();
 			
+			//假设本地最新区块时分叉块，在同步过程中只要发现一个能衔接上的，就不是分叉了
+			localBestBlockIsFork = true;
+			
 			for (Peer peer : newestPeers) {
 				try {
 					while(true) {
@@ -194,12 +217,33 @@ public class DataSynchronizeHandler implements Runnable {
 						Sha256Hash startHash = blockHeader.getHash();
 						
 						Sha256Hash stopHash = Sha256Hash.ZERO_HASH;
-						peer.sendMessage(new GetBlocksMessage(network, startHash, stopHash));
-						boolean result = peer.waitBlockDownComplete(startHash);
-						results.add(result);
-						if(!result) {
+						
+						downingMessage = new GetBlocksMessage(network, startHash, stopHash);
+						startHeight = blockHeader.getHeight();
+						stopHeight = bestHeight;
+						downloadFuture = new SettableListenableFuture<Boolean>();
+						
+						peer.sendMessage(downingMessage);
+						
+						try {
+							boolean result = downloadFuture.get(600, TimeUnit.SECONDS);
+							if(result) {
+								results.add(result);
+							} else {
+								results.add(result);
+								break;
+							}
+						} catch (Exception e) {
+							results.add(false);
 							break;
 						}
+						
+//						boolean result = peer.waitBlockDownComplete(startHash);
+//						results.add(result);
+//						if(!result) {
+//							break;
+//						}
+						
 					}
 				} catch (Exception e) {
 					results.add(false);
@@ -216,11 +260,15 @@ public class DataSynchronizeHandler implements Runnable {
 				}
 			}
 			if(fail) {
-				log.error("同步区块出错：本地最新块可能是分叉块");
-				//TODO
-				//撤销本地最新块重试
-				blockStoreProvider.revokedNewestBlock();
-				
+				//下载失败，判断最新块是否是分叉块
+				if(localBestBlockIsFork) {
+					log.error("同步区块出错：本地最新块可能是分叉块");
+					//撤销本地最新块重试
+					blockStoreProvider.revokedNewestBlock();
+				} else {
+					//不是分叉块，那么很有可能是本地数据损坏了，造成不能同步
+					blockStoreProvider.resetData();
+				}
 			}
 			Thread t = new Thread() {
 				@Override
@@ -245,10 +293,46 @@ public class DataSynchronizeHandler implements Runnable {
 	}
 
 	/**
+	 * 停止同步服务
+	 */
+	public void stop() {
+		synchronousStatus = 2;
+	}
+	
+	/**
 	 * 重置下载服务
 	 */
 	public void reset() {
 		synchronousStatus = 0;
+	}
+	
+	/**
+	 * 处理下载的区块
+	 * @param block
+	 */
+	public void processData(Block block) {
+		if(downingMessage != null) {
+			if(localBestBlockIsFork && block.getPreHash().equals(downingMessage.getStartHash())) {
+				localBestBlockIsFork = false;
+			}
+			if(block.getPreHash().equals(downingMessage.getStartHash()) || (lastDownHash != null && lastDownHash.equals(block.getPreHash()))) {
+				MessageProcessResult processResult = blockMessageProcess.process(block, null);
+				if(!processResult.isSuccess()) {
+					downloadFuture.set(false);
+					return;
+				}
+				
+				lastDownHash = block.getHash();
+				
+				if(downingMessage.getStopHash().equals(Sha256Hash.ZERO_HASH)) {
+					if((block.getHeight() - startHeight >= GetBlocksMessageProcess.MAX_COUNT) || block.getHeight() == stopHeight) {
+						downloadFuture.set(true);
+					}
+				} else if(downingMessage.getStopHash().equals(block.getHash())) {
+					downloadFuture.set(true);
+				}
+			}
+		}
 	}
 	
 	/**

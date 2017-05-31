@@ -236,6 +236,7 @@ public class MeetingItem implements Cloneable {
 		
 		result.setPeriodStartTime(periodStartTime);
 		result.setIndex(index);
+		result.setPeriodCount(consensusList.size());
 		
 		return result;
 	}

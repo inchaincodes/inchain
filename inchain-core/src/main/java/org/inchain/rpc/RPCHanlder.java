@@ -902,6 +902,11 @@ public class RPCHanlder {
 			return rpcService.getPrivatekey(address, pw);
 		}
 		
+		//查看账户的私钥
+		case "resetdata": {
+			return rpcService.resetData();
+		}
+		
 		default:
 			result.put("success", false).put("message", "没有找到的命令" + command);
 			return result;
@@ -946,7 +951,8 @@ public class RPCHanlder {
 		sb.append("  remconsensus                    退出共识\n");
 		sb.append("\n");
 		sb.append(" --- 节点相关 --- \n");
-		sb.append("  getpeers                        获取连接节点信息\n");
+		sb.append("  getpeers                        获取连接节点列表\n");
+		sb.append("  getpeercount                    获取连接节点数量\n");
 		sb.append("\n");
 		sb.append(" --- 业务相关 --- \n");
 		sb.append("  createproduct [productinfo] [password]                               认证账户创建商品[仅适用于认证账户]\n");
@@ -969,7 +975,10 @@ public class RPCHanlder {
 		sb.append("  getsubaccounts [certAddress]                                                                            获取认证商家子账户列表\n");
 		sb.append("  getsubaccountcount [certAddress]                                                                        获取认证商家子账户数量\n");
 		sb.append("  checkissubaccount [certAddress] [address]                                                               检查是否是商家的子账户\n");
-		
+		sb.append("\n");
+		sb.append(" --- 系统相关 --- \n");
+		sb.append("  getversion                                                               获取系统版本信息\n");
+		sb.append("  updateversion                                                            更新版本\n");
 		
 		return sb.toString();
 	}

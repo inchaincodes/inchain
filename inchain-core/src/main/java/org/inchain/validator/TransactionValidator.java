@@ -464,7 +464,7 @@ public class TransactionValidator {
 					//验证该轮的时段
 					int index = getConsensusPeriod(hash160, currentPeriodStartTime);
 					if(index == -1) {
-						result.setResult(false, "证据不成立，该人不在共识列表中");
+						result.setResult(false, "证据不成立，该人不在本轮共识列表中");
 						return validatorResult;
 					}
 					BlockHeaderStore currentStartBlockHeaderStore = blockStoreProvider.getHeaderByHeight(startBlockHeader.getHeight() + 1);
@@ -475,7 +475,13 @@ public class TransactionValidator {
 					BlockHeader currentStartBlockHeader = currentStartBlockHeaderStore.getBlockHeader();
 					while(true) {
 						if(currentStartBlockHeader.getTimePeriod() == index) {
-							result.setResult(false, "证据不成立");
+							log.info("========================{} - {}", currentStartBlockHeader.getBlockHeader().getPeriodCount(), currentStartBlockHeader.getBlockHeader().getHeight());
+							log.info("========================{} - {}", currentPeriodStartTime, currentStartBlockHeader.getBlockHeader().getPeriodStartTime());
+							log.info("{}  -  {}  -  {}", Address.fromP2PKHash(network, network.getSystemAccountVersion(), hash160).getBase58(), 
+									Address.fromP2PKHash(network, network.getSystemAccountVersion(), currentStartBlockHeader.getBlockHeader().getHash160()).getBase58(),
+									currentStartBlockHeader.getBlockHeader());
+							log.info("========================");
+							result.setResult(false, "证据不成立,本轮有出块");
 							return validatorResult;
 						}
 						if(currentStartBlockHeader.getTimePeriod() < index) {
@@ -494,12 +500,12 @@ public class TransactionValidator {
 					//验证上一轮的时段
 					index = getConsensusPeriod(hash160, previousPeriodStartTime);
 					if(index == -1) {
-						result.setResult(false, "证据不成立，该人不在共识列表中");
+						result.setResult(false, "证据不成立，该人不在上一轮共识列表中");
 						return validatorResult;
 					}
 					while(true) {
 						if(startBlockHeader.getTimePeriod() == index) {
-							result.setResult(false, "证据不成立");
+							result.setResult(false, "证据不成立,上一轮有出块");
 							return validatorResult;
 						}
 						if(startBlockHeader.getTimePeriod() < index) {

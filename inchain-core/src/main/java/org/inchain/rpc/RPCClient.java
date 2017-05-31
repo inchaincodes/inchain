@@ -53,22 +53,29 @@ public class RPCClient {
 	private PrintWriter pw;
 	
 	public static void main(String[] args) throws IOException, JSONException {
-//		args = new String[12];
-//		args[0] = "-rpc_host";
-//		args[1] = "localhost";
-//		args[2] = "-rpc_port";
-//		args[3] = "8632";
-//		args[4] = "-rpc_user";
-//		args[5] = "user";
-//		args[6] = "-rpc_password";
-//		args[7] = "klJZKtyloogQzZRTHPKj";
-//		args[8] = "help";
-//		args[9] = "tb1LkNUTGgtPBhu5MNGoK8Hdfp3tJi7nKa";
-//		args[10] = "5.111";
-//		args[11] = "0";
+		args = new String[12];
+		args[0] = "-rpc_host";
+		args[1] = "localhost";
+		args[2] = "-rpc_port";
+		args[3] = "8632";
+		args[4] = "-rpc_user";
+		args[5] = "user";
+		args[6] = "-rpc_password";
+		args[7] = "xSdfuKUCUbhODtLYcMcr";
+		args[8] = "getblock";
+		args[9] = "359071";
+		args[10] = "5.111";
+		args[11] = "0";
 		
-		String result = new RPCClient().processCmd(args);
-		printMsg(result);
+		int count = 0;
+		long time = System.currentTimeMillis();
+		while(count < 100000) {
+			String result = new RPCClient().processCmd(args);
+			printMsg(result);
+			count++;
+		}
+		
+		System.out.println("耗时："+(System.currentTimeMillis() - time)+"ms");
 	}
 
 	/*
@@ -103,14 +110,22 @@ public class RPCClient {
 			//初始化rpc服务器信息
 			initServer(optionsInfos);
 			
+			JSONObject result = null;
+			
+//			int count = 0;
+//			long time = System.currentTimeMillis();
+//			while(count < 100000) {
 			//发送钱包命令到rpc服务器
 			sendCommands(remoteCommandsInfos);
 			
 			//接收服务器响应
-			JSONObject result = receiveResult();
+			result = receiveResult();
 			
 			//判断是否需要输入信息才能继续
 			result = processInput(result);
+//			count++;
+//			}
+//			System.out.println("耗时："+(System.currentTimeMillis() - time)+"ms");
 			return result.toString(6).toString();
 		} finally {
 			close();

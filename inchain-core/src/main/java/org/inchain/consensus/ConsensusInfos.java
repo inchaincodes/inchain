@@ -25,6 +25,7 @@ public class ConsensusInfos {
 	private long endTime;	//当前共识人的块周期结束时间
 	private long periodStartTime;	//当前轮开始的时间
 	private int index;
+	private int periodCount;
 	
 	public ConsensusInfos(int result) {
 		this.result = result;
@@ -85,6 +86,14 @@ public class ConsensusInfos {
 
 	public void setIndex(int index) {
 		this.index = index;
+	}
+	
+	public int getPeriodCount() {
+		return periodCount;
+	}
+
+	public void setPeriodCount(int periodCount) {
+		this.periodCount = periodCount;
 	}
 
 	@Override

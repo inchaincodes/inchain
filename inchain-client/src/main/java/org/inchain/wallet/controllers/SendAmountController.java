@@ -166,7 +166,14 @@ public class SendAmountController implements SubPageController {
     			//可能是别名
     			ChainstateStoreProvider chainstateStoreProvider = SpringContextUtils.getBean(ChainstateStoreProvider.class);
     			
-    			AccountStore accountInfo = chainstateStoreProvider.getAccountInfoByAlias(address.getBytes());
+    			AccountStore accountInfo = null;
+				try {
+					accountInfo = chainstateStoreProvider.getAccountInfoByAlias(address.getBytes("utf-8"));
+				} catch (UnsupportedEncodingException e1) {
+					receiveAddressId.requestFocus();
+	        		DailogUtil.showTip("错误的别名");
+	        		return;
+				}
     			if(accountInfo == null) {
 	        		receiveAddressId.requestFocus();
 	        		DailogUtil.showTip("错误的接收地址或别名");

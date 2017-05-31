@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
@@ -100,8 +101,15 @@ public class Peer extends PeerSocketHandler {
 		} else{
 			executorService.submit(new Thread(){
 				public void run() {
-					MessageProcessResult result = messageProcess.process(message, Peer.this);
-					processMessageResult(message, result);
+					//消息处理
+					//当同步区块时，把消息交给同步器处理，其它情况则交给响应的消息处理器
+					if(message instanceof Block && !(message instanceof NewBlockMessage)) {
+						DataSynchronizeHandler synchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
+						synchronizeHandler.processData((Block) message);
+					} else {
+						MessageProcessResult result = messageProcess.process(message, Peer.this);
+						processMessageResult(message, result);
+					}
 				};
 			});
 		}

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.shape.*?>
 <?import javafx.scene.*?>
 <?import javafx.scene.text.*?>
 <?import javafx.geometry.*?>
@@ -11,23 +12,9 @@
    <children>
       <VBox alignment="CENTER" fillWidth="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <VBox alignment="CENTER" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
+            <VBox alignment="CENTER" fillWidth="false">
                <children>
-                  <HBox alignment="CENTER_LEFT" prefWidth="480.0">
-                     <children>
-                        <Label text="信息">
-                           <HBox.margin>
-                              <Insets left="65.0" />
-                           </HBox.margin>
-                           <font>
-                              <Font name="Microsoft YaHei" size="14.0" />
-                           </font>
-                        </Label>
-                     </children>
-                     <VBox.margin>
-                        <Insets bottom="-2" />
-                     </VBox.margin>
-                  </HBox>
+                  <Line endX="100.0" startX="-300.0" stroke="#4977b2" />
                   <HBox alignment="CENTER_LEFT" prefWidth="480.0">
                      <children>
                         <Label text="版本：">
@@ -53,7 +40,7 @@
                         </Button>
                      </children>
                      <VBox.margin>
-                        <Insets top="10.0" />
+                        <Insets top="15.0" />
                      </VBox.margin>
                   </HBox>
                   <HBox alignment="CENTER_LEFT" fillHeight="false" prefWidth="480.0">
@@ -87,26 +74,15 @@
                         </Label>
                      </children>
                      <VBox.margin>
-                        <Insets bottom="10.0" top="10.0" />
+                        <Insets bottom="15.0" top="10.0" />
                      </VBox.margin>
                   </HBox>
                </children>
             </VBox>
-            <VBox alignment="CENTER_LEFT" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
+            <VBox alignment="CENTER" fillWidth="false">
                <children>
-                  <HBox prefWidth="480.0">
-                     <children>
-                        <Label text="时间">
-                           <HBox.margin>
-                              <Insets left="65.0" />
-                           </HBox.margin>
-                        </Label>
-                     </children>
-                     <VBox.margin>
-                        <Insets />
-                     </VBox.margin>
-                  </HBox>
-                  <VBox prefWidth="480.0">
+                  <Line endX="100.0" startX="-300.0" stroke="#4977b2" />
+                  <VBox alignment="CENTER" prefWidth="480.0">
                      <children>
                         <HBox alignment="CENTER_LEFT">
                            <children>
@@ -121,6 +97,9 @@
                                  </HBox.margin>
                               </Label>
                            </children>
+                           <VBox.margin>
+                              <Insets top="15.0" />
+                           </VBox.margin>
                         </HBox>
                         <HBox alignment="CENTER_LEFT">
                            <children>
@@ -153,12 +132,12 @@
                               </Label>
                            </children>
                            <VBox.margin>
-                              <Insets top="10.0" />
+                              <Insets bottom="15.0" top="10.0" />
                            </VBox.margin>
                         </HBox>
                      </children>
                      <VBox.margin>
-                        <Insets bottom="10.0" top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </VBox>
                </children>
@@ -166,20 +145,9 @@
                   <Insets />
                </VBox.margin>
             </VBox>
-            <VBox alignment="CENTER" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
+            <VBox alignment="CENTER" fillWidth="false">
                <children>
-                  <HBox alignment="CENTER_LEFT" prefWidth="480.0">
-                     <children>
-                        <Label text="区块">
-                           <HBox.margin>
-                              <Insets left="65.0" />
-                           </HBox.margin>
-                        </Label>
-                     </children>
-                     <VBox.margin>
-                        <Insets />
-                     </VBox.margin>
-                  </HBox>
+                  <Line endX="100.0" startX="-300.0" stroke="#4977b2" />
                   <VBox prefWidth="480.0">
                      <children>
                         <HBox alignment="CENTER_LEFT" fillHeight="false">
@@ -196,7 +164,7 @@
                               </Label>
                            </children>
                            <VBox.margin>
-                              <Insets left="100.0" />
+                              <Insets left="100.0" top="15.0" />
                            </VBox.margin>
                         </HBox>
                         <HBox alignment="CENTER_LEFT" fillHeight="false">
@@ -264,12 +232,12 @@
                               </Label>
                            </children>
                            <VBox.margin>
-                              <Insets left="100.0" top="10.0" />
+                              <Insets bottom="15.0" left="100.0" top="10.0" />
                            </VBox.margin>
                         </HBox>
                      </children>
                      <VBox.margin>
-                        <Insets bottom="10.0" top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </VBox>
                </children>
@@ -277,20 +245,9 @@
                   <Insets />
                </VBox.margin>
             </VBox>
-            <VBox alignment="CENTER_LEFT" fillWidth="false" style="-fx-border-color: transparent transparent #6da9e9 transparent;">
+            <VBox alignment="CENTER" fillWidth="false">
                <children>
-                  <HBox alignment="CENTER_LEFT" prefWidth="480.0">
-                     <children>
-                        <Label text="共识">
-                           <HBox.margin>
-                              <Insets left="65.0" />
-                           </HBox.margin>
-                        </Label>
-                     </children>
-                     <VBox.margin>
-                        <Insets />
-                     </VBox.margin>
-                  </HBox>
+                  <Line endX="100.0" startX="-300.0" stroke="#4977b2" />
                   <VBox alignment="CENTER" prefWidth="480.0">
                      <children>
                         <HBox alignment="CENTER_LEFT">
@@ -307,7 +264,7 @@
                               </Label>
                            </children>
                            <VBox.margin>
-                              <Insets />
+                              <Insets top="15.0" />
                            </VBox.margin>
                         </HBox>
                         <HBox alignment="CENTER_LEFT">
@@ -346,7 +303,7 @@
                         </HBox>
                      </children>
                      <VBox.margin>
-                        <Insets bottom="10.0" top="10.0" />
+                        <Insets />
                      </VBox.margin>
                   </VBox>
                </children>

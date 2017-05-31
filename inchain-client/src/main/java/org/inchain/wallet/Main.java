@@ -70,8 +70,24 @@ public class Main extends Decoration implements ActionListener {
     	
 		//设置程序标题
 		stage.setTitle(Constant.APP_TITLE);
+		
 		//设置程序图标
 		stage.getIcons().add(new Image(getClass().getResourceAsStream(Constant.APP_ICON)));
+		if (isMac()) {
+            java.awt.Image dockIcon = new ImageIcon(getClass().getResource(Constant.APP_ICON)).getImage();
+            try {
+                Class<?> cls = Class.forName("com.apple.eawt.Application");
+                Object application = cls.newInstance().getClass().getMethod("getApplication").invoke(null);
+                application.getClass().getMethod("setDockIconImage", java.awt.Image.class).invoke(application, dockIcon);
+            } catch (Exception  e) {
+            }
+
+        } else {
+            //设置程序标题
+            stage.setTitle(Constant.APP_TITLE);
+            //设置程序图标
+            stage.getIcons().add(new Image(getClass().getResourceAsStream(Constant.APP_ICON)));
+        }
 		
 		//初始化系统托盘
         initSystemTray();

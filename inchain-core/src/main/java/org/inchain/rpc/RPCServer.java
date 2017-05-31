@@ -90,6 +90,8 @@ public class RPCServer implements Server {
 		init();
 		log.info("will start rpc service on port {}", Integer.parseInt(property.getProperty("rpc_port")));
 		server = new ServerSocket(Integer.parseInt(property.getProperty("rpc_port")));
+		server.setReuseAddress(true);
+		
 		log.debug("rpc service started");
 		isRunning = true;
 		while (isRunning) {
@@ -117,6 +119,7 @@ public class RPCServer implements Server {
 		private PrintWriter pw;
 		
 		public RPCRequestCertification(Socket socket) throws IOException {
+			socket.setReuseAddress(true);
 			this.socket = socket;
 			this.br = new BufferedReader(new InputStreamReader(socket.getInputStream(), "utf-8"));
 			this.pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "utf-8"));
@@ -140,21 +143,23 @@ public class RPCServer implements Server {
 				//认证通过，处理业务逻辑
 				writeMessage(true, "ok");
 				
-				JSONObject commandInfos = readMessage();
-				if(commandInfos == null) {
-					writeMessage(false, "rpc命令获取失败");
-					return;
-				}
-				
-				JSONObject result = rpcHanlder.hanlder(commandInfos);
-				
-				if(result.has("needInput") && result.getBoolean("needInput")) {
-					writeMessage(result);
-					JSONObject inputInfos = readMessage();
-					result = rpcHanlder.hanlder(commandInfos, inputInfos);
-					writeMessage(result);
-				} else {
-					writeMessage(result);
+				while(true) {
+					JSONObject commandInfos = readMessage();
+					if(commandInfos == null) {
+						writeMessage(false, "rpc命令获取失败");
+						return;
+					}
+					
+					JSONObject result = rpcHanlder.hanlder(commandInfos);
+					
+					if(result.has("needInput") && result.getBoolean("needInput")) {
+						writeMessage(result);
+						JSONObject inputInfos = readMessage();
+						result = rpcHanlder.hanlder(commandInfos, inputInfos);
+						writeMessage(result);
+					} else {
+						writeMessage(result);
+					}
 				}
 			} catch (JSONException | IOException e) {
 				try {
@@ -172,7 +177,12 @@ public class RPCServer implements Server {
 		}
 		
 		private JSONObject readMessage() throws JSONException, IOException {
-			return new JSONObject(br.readLine());
+			String message = br.readLine();
+			if(StringUtil.isEmpty(message)) {
+				return null;
+			} else {
+				return new JSONObject(message);
+			}
 		}
 		
 		private void writeMessage(boolean success, String msg) throws JSONException {

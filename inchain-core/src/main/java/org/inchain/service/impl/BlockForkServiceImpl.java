@@ -64,8 +64,8 @@ public class BlockForkServiceImpl implements BlockForkService {
 	private Sha256Hash localBestHash;
 	//本地最新高度hash更新时间
 	private long localBestHashLastTime;
-	//是否重置
-	private boolean hasReset;
+	//是否重置网络，重新同步
+	private boolean hasResetNetwork;
 	
 	//违规列表锁
 	private Lock penalizeLock = new ReentrantLock();
@@ -167,13 +167,13 @@ public class BlockForkServiceImpl implements BlockForkService {
 		if(!bestBlockHeader.getHash().equals(localBestHash)) {
 			localBestHash = bestBlockHeader.getHash();
 			localBestHashLastTime = TimeService.currentTimeMillis();
-			hasReset = false;
+			hasResetNetwork = false;
 		} else {
 			//是否到达设定时间区块没有变化的条件
 			int timeout = 5;
-			if(TimeService.currentTimeMillis() - localBestHashLastTime > timeout * 60000l && !hasReset) {
+			if(TimeService.currentTimeMillis() - localBestHashLastTime > timeout * 60000l && !hasResetNetwork) {
 				//达到条件，触发
-				hasReset = true;
+				hasResetNetwork = true;
 				
 				dataSynchronizeHandler.reset();
 				peerKit.resetPeers();

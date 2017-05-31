@@ -391,21 +391,14 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	 */
 	public boolean reloadTransaction(List<byte[]> hash160s) {
 		
-		//清除老数据
-		DBIterator iterator = db.getSourceDb().iterator();
-		while(iterator.hasNext()) {
-			Entry<byte[], byte[]> item = iterator.next();
-			byte[] key = item.getKey();
-			
-			delete(key);
-		}
+		clean();
 		
 		//写入新列表
-		byte[] addresses = new byte[hash160s.size() * Address.LENGTH];
+		byte[] addressesBytes = new byte[hash160s.size() * Address.LENGTH];
 		for (int i = 0; i < hash160s.size(); i++) {
-			System.arraycopy(hash160s.get(i), 0, addresses, i * Address.LENGTH, Address.LENGTH);
+			System.arraycopy(hash160s.get(i), 0, addressesBytes, i * Address.LENGTH, Address.LENGTH);
 		}
-		put(ADDRESSES_KEY, addresses);
+		put(ADDRESSES_KEY, addressesBytes);
 		
 		this.addresses = hash160s;
 		
@@ -437,6 +430,25 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		}
 		
 		return true;
+	}
+
+	/**
+	 * 清理数据
+	 */
+	public void clean() {
+		//清除老数据
+		DBIterator iterator = db.getSourceDb().iterator();
+		while(iterator.hasNext()) {
+			Entry<byte[], byte[]> item = iterator.next();
+			byte[] key = item.getKey();
+			delete(key);
+		}
+		//写入新列表
+		byte[] addressesBytes = new byte[addresses.size() * Address.LENGTH];
+		for (int i = 0; i < addresses.size(); i++) {
+			System.arraycopy(addresses.get(i), 0, addressesBytes, i * Address.LENGTH, Address.LENGTH);
+		}
+		put(ADDRESSES_KEY, addressesBytes);
 	}
 	
 	/**

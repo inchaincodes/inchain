@@ -474,4 +474,10 @@ public interface RPCService {
 	 */
 	JSONObject getPrivatekey(String address, String password) throws JSONException;
 
+	/**
+	 * 重建数据
+	 * @return JSONObject
+	 */
+	JSONObject resetData() throws JSONException;
+
 }

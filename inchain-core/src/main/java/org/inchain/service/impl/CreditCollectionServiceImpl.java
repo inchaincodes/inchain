@@ -175,6 +175,15 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 		
 		return true;
 	}
+	
+	/**
+	 * 清理数据
+	 */
+	@Override
+	public boolean clean() {
+		container.clear();
+		return true;
+	}
 
 	static class ByteHash {
 		byte[] hash;

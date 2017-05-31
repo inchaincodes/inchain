@@ -39,4 +39,10 @@ public interface CreditCollectionService {
 	 * @return boolean
 	 */
 	boolean onload();
+	
+	/**
+	 * 清理
+	 * @return boolean
+	 */
+	boolean clean();
 }

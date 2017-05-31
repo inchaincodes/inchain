@@ -2234,6 +2234,23 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 	
+	/**
+	 * 重建数据
+	 * @return JSONObject
+	 */
+	public JSONObject resetData() throws JSONException {
+		JSONObject json = new JSONObject();
+		
+		new Thread("reset data thread") {
+			public void run() {
+				blockStoreProvider.resetData();
+			};
+		}.start();
+		
+		json.put("success", true).put("message", "数据重建已启动，异步执行中，查看logo关注进度和结果");
+		return json;
+	}
+	
 	/*
 	 * 转换tx为json
 	 */

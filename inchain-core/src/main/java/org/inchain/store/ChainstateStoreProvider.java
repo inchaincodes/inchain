@@ -3,6 +3,7 @@ package org.inchain.store;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,6 +24,7 @@ import org.inchain.transaction.business.RelevanceSubAccountTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
 import org.inchain.transaction.business.RemoveSubAccountTransaction;
 import org.inchain.transaction.business.ViolationTransaction;
+import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -161,22 +163,19 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		
 		//找出位置在哪里
 		//判断在列表里面才更新，否则就被清空了
-		boolean hashExist = false;
 		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
 			byte[] addressHashsTemp = Arrays.copyOfRange(subAccounts, j, j + Address.HASH_LENGTH);
 			if(Arrays.equals(addressHashsTemp, relevancSubAccountTx.getRelevanceHashs())) {
-				hashExist = true;
 				System.arraycopy(subAccounts, 0, newSubAccounts, 0, j);
-				System.arraycopy(subAccounts, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newSubAccounts, j, subAccounts.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
-				break;
+				int newIndex = j + Address.HASH_LENGTH + Sha256Hash.LENGTH;
+				if(newIndex < subAccounts.length) {
+					System.arraycopy(subAccounts, newIndex, newSubAccounts, j, subAccounts.length - newIndex);
+				}
+				put(subAccountKey, newSubAccounts);
+				return true;
 			}
 		}
-		if(hashExist) {
-			put(subAccountKey, newSubAccounts);
-			return true;
-		} else {
-			return false;
-		}
+		return false;
 	}
 	
 	/**
@@ -196,23 +195,20 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		
 		//找出位置在哪里
 		//判断在列表里面才更新，否则就被清空了
-		boolean hashExist = false;
 		for (int j = 0; j < subAccounts.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
 			byte[] addressHashsTemp = Arrays.copyOfRange(subAccounts, j, j + Address.HASH_LENGTH);
 			byte[] txhash = Arrays.copyOfRange(subAccounts, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH);
 			if(Arrays.equals(addressHashsTemp, removeSubAccountTx.getRelevanceHashs()) && Arrays.equals(txhash, removeSubAccountTx.getTxhash().getBytes())) {
-				hashExist = true;
 				System.arraycopy(subAccounts, 0, newSubAccounts, 0, j);
-				System.arraycopy(subAccounts, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newSubAccounts, j, subAccounts.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
-				break;
+				int newIndex = j + Address.HASH_LENGTH + Sha256Hash.LENGTH;
+				if(newIndex < subAccounts.length) {
+					System.arraycopy(subAccounts, newIndex, newSubAccounts, j, subAccounts.length - newIndex);
+				}
+				put(subAccountKey, newSubAccounts);
+				return true;
 			}
 		}
-		if(hashExist) {
-			put(subAccountKey, newSubAccounts);
-			return true;
-		} else {
-			return false;
-		}
+		return false;
 	}
 	
 	/**
@@ -416,6 +412,15 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 */
 	public boolean revokedUpdateAccountAlias(byte[] hash160, byte[] alias) {
 		//TODO
+		//增加信用
+		AccountStore accountInfo = getAccountInfo(hash160);
+		if(accountInfo == null) {
+			return false;
+		}
+		accountInfo.setCert(accountInfo.getCert() - Configure.UPDATE_ALIAS_SUB_CREDIT);
+		saveAccountInfo(accountInfo);
+		put(Sha256Hash.hash(alias), hash160);
+		
 		return true;
 	}
 	
@@ -462,19 +467,18 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		
 		//找出位置在哪里
 		//判断在列表里面才更新，否则就被清空了
-		boolean hashExist = false;
 		for (int j = 0; j < circulations.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
 			byte[] addressHashsTemp = Arrays.copyOfRange(circulations, j, j + Address.LENGTH);
 			byte[] txHashByte = Arrays.copyOfRange(circulations, j + Address.LENGTH, j + Address.LENGTH + Sha256Hash.LENGTH);
 			if(Arrays.equals(addressHashsTemp, hash160) && Arrays.equals(txHash.getBytes(), txHashByte)) {
-				hashExist = true;
 				System.arraycopy(circulations, 0, newCirculations, 0, j);
-				System.arraycopy(circulations, j + (Address.LENGTH + Sha256Hash.LENGTH), newCirculations, j, circulations.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
-				break;
+				int newIndex = j + Address.LENGTH + Sha256Hash.LENGTH;
+				if(newIndex < circulations.length) {
+					System.arraycopy(circulations, newIndex, newCirculations, j, circulations.length - newIndex);
+				}
+				put(circulationKey, circulations);
+				return;
 			}
-		}
-		if(hashExist) {
-			put(circulationKey, circulations);
 		}
 	}
 
@@ -607,24 +611,24 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 		byte[] newTransfers = new byte[transfers.length - (Address.HASH_LENGTH + Sha256Hash.LENGTH)];
 		
-		boolean hashExist = false;
 		for (int j = 0; j < transfers.length; j += (Address.HASH_LENGTH + Sha256Hash.LENGTH)) {
 			byte[] addressHashsTemp = Arrays.copyOfRange(transfers, j, j + Address.HASH_LENGTH);
 			byte[] txHashByte = Arrays.copyOfRange(transfers, j + Address.HASH_LENGTH, j + Address.HASH_LENGTH + Sha256Hash.LENGTH);
 			if(Arrays.equals(addressHashsTemp, hash160) && Arrays.equals(txHash.getBytes(), txHashByte)) {
-				hashExist = true;
 				System.arraycopy(transfers, 0, newTransfers, 0, j);
-				System.arraycopy(transfers, j + (Address.HASH_LENGTH + Sha256Hash.LENGTH), newTransfers, j, transfers.length - j - (Address.HASH_LENGTH + Sha256Hash.LENGTH));
-				break;
+				
+				int newIndex = j + Address.HASH_LENGTH + Sha256Hash.LENGTH;
+				if(newIndex < transfers.length) {
+					System.arraycopy(transfers, j + newIndex, newTransfers, j, transfers.length - newIndex);
+				}
+				put(transferKey, newTransfers);
+				
+				AccountStore accountInfo = getAccountInfo(hash160);
+				//扣除信用
+				accountInfo.setCert(accountInfo.getCert() - Configure.TRANSFER_ANTIFAKECODE_SUB_CREDIT);
+				saveAccountInfo(accountInfo);
+				return;
 			}
-		}
-		if(hashExist) {
-			put(transferKey, newTransfers);
-			
-			AccountStore accountInfo = getAccountInfo(hash160);
-			//扣除信用
-			accountInfo.setCert(accountInfo.getCert() - Configure.TRANSFER_ANTIFAKECODE_SUB_CREDIT);
-			saveAccountInfo(accountInfo);
 		}
 	}
 	
@@ -841,18 +845,19 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			
 			//找出位置在哪里
 			//判断在列表里面才更新，否则就被清空了
-			boolean hashExist = false;
 			for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
 				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
 				if(Arrays.equals(addressHash160, hash160)) {
-					hashExist = true;
 					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
-					System.arraycopy(consensusAccountHash160s, j + (Address.LENGTH + Sha256Hash.LENGTH), newConsensusHash160s, j, consensusAccountHash160s.length - j - (Address.LENGTH + Sha256Hash.LENGTH));
+					
+					int newIndex = j + Address.LENGTH + Sha256Hash.LENGTH;
+					if(newIndex < consensusAccountHash160s.length) {
+						System.arraycopy(consensusAccountHash160s, newIndex, newConsensusHash160s, j, consensusAccountHash160s.length - newIndex);
+					}
+					
+					put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
 					break;
 				}
-			}
-			if(hashExist) {
-				put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
 			}
 			//从共识缓存器里中移除
 			consensusPool.delete(hash160);
@@ -953,6 +958,16 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			}
 			accountInfo.setCert(accountInfo.getCert() - certChange);
 			saveAccountInfo(accountInfo);
+		}
+	}
+
+	public void clean() {
+		//清除老数据
+		DBIterator iterator = db.getSourceDb().iterator();
+		while(iterator.hasNext()) {
+			Entry<byte[], byte[]> item = iterator.next();
+			byte[] key = item.getKey();
+			delete(key);
 		}
 	}
 }

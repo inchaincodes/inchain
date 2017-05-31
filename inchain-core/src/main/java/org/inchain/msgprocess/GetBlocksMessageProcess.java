@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class GetBlocksMessageProcess implements MessageProcess {
 	
-	private final static int MAX_COUNT = 1000;
+	public final static int MAX_COUNT = 1000;
 
 	private Logger log = LoggerFactory.getLogger(getClass());
 

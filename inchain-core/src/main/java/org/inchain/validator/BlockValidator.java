@@ -67,10 +67,16 @@ public class BlockValidator {
 			if(log.isDebugEnabled()) {
 				log.debug("新区块验证信息：{}", currentInfos);
 			}
+			
 			//如果返回的是不确定，则通过
 			if(currentInfos.getResult() == ConsensusInfos.RESULT_UNCERTAIN) {
-				log.warn("不确定的时段", block);
+				log.warn("不确定的时段, {}", block);
 				return new Result(false, "uncertain");
+			}
+			
+			if(currentInfos.getPeriodCount() != block.getPeriodCount()) {
+				log.error("区块的时段人数和当前轮次人数不一致，不合法的区块, {}", block);
+				return new Result(false, "区块的时段人数和当前轮次人数不一致，不合法的区块");
 			}
 			
 			if(!Arrays.equals(currentInfos.getHash160(), block.getHash160())) {
@@ -122,6 +128,11 @@ public class BlockValidator {
 			block.verifyScript();
 		} catch (Exception e) {
 			return new Result(false, "签名错误");
+		}
+		
+		//验证区块的交易是否正确
+		if(block.getTxCount() != block.getTxs().size()) {
+			return new Result(false, "区块交易数量不正确");
 		}
 		
 		//验证交易是否合法

@@ -121,12 +121,10 @@ public class Block extends BlockHeader {
 	 */
 	public Sha256Hash getHash() {
 		Sha256Hash id = Sha256Hash.twiceOf(baseSerialize());
-		if(hash != null) {
-			Utils.checkState(hash.equals(id), "区块信息不正确");
-		} else {
+		if(hash == null) {
 			hash = id;
 		}
-		return id;
+		return hash;
 	}
 	
 	/**
