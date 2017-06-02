@@ -12,6 +12,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.PeerKit;
 import org.inchain.message.Block;
+import org.inchain.message.BlockHeader;
 import org.inchain.message.Message;
 import org.inchain.message.RejectMessage;
 import org.inchain.network.NetworkParams;
@@ -70,10 +71,19 @@ public class BlockMessageProcess implements MessageProcess {
 		lock.lock();
 		
 		try {
+			//区块是否已经存在
 			BlockHeaderStore header = blockStoreProvider.getHeader(block.getHash().getBytes());
 			if(header != null) {
-				//已经存在
-				return replyRejectMessage(block);
+				//已经存在，但是判断是否是最新的区块，如果不是最新的区块，则说明数据有问题，则自动修复
+				BlockHeader bestBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
+				if(header.getBlockHeader().getHeight() > bestBlockHeader.getHeight()) {
+					//重复的块比本地的最新区块还大，那么修复
+					BlockStore errorBlock = blockStoreProvider.getBlock(header.getBlockHeader().getHash().getBytes());
+					blockStoreProvider.revokedBlock(errorBlock.getBlock());
+				} else {
+					//已经存在，返回失败
+					return replyRejectMessage(block);
+				}
 			}
 			
 			//验证区块消息的合法性

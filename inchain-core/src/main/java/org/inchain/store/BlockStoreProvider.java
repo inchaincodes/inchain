@@ -409,45 +409,52 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		blockLock.lock();
 		try {
 			Block bestBlock = getBestBlock().getBlock();
-			
 			if(bestBlock.getHash().equals(network.getGengsisBlock().getBlock().getHash())) {
 				//创世块，禁止
 				return null;
 			}
-			
-			Sha256Hash bestBlockHash = bestBlock.getHash();
-			
-			chainstateStoreProvider.put(bestBlock.getHash().getBytes(), bestBlock.baseSerialize());
-			
-			//回滚块信息
-			db.delete(bestBlockHash.getBytes());
-			
-			byte[] heightBytes = new byte[4]; 
-			Utils.uint32ToByteArrayBE(bestBlock.getHeight(), heightBytes, 0);
-			
-			db.delete(heightBytes);
-			
-			//更新最新区块
-			db.put(bestBlockKey, bestBlock.getPreHash().getBytes());
-			
-			//更新上一区块的指针
-			if(!Sha256Hash.ZERO_HASH.equals(bestBlock.getPreHash())) {
-				BlockHeaderStore preBlockHeader = getHeader(bestBlock.getPreHash().getBytes());
-				preBlockHeader.setNextHash(Sha256Hash.ZERO_HASH);
-				db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
-			}
-			
-			//回滚交易
-			//反转交易，保证回滚时序正确
-			//TODO
-			for (int i = (int) (bestBlock.getTxCount() - 1); i >= 0 ; i--) {
-				TransactionStore txs = new TransactionStore(network, bestBlock.getTxs().get(i), bestBlock.getHeight(), null);
-				
-				revokedTransaction(txs);
-			}
+			revokedBlock(bestBlock);
 			return bestBlock;
 		} finally {
 			blockLock.unlock();
+		}
+	}
+
+	/**
+	 * 回滚区块
+	 * @param block
+	 */
+	public void revokedBlock(Block block) {
+		
+		Sha256Hash bestBlockHash = block.getHash();
+		
+		chainstateStoreProvider.put(bestBlockHash.getBytes(), block.baseSerialize());
+		
+		//回滚块信息
+		db.delete(bestBlockHash.getBytes());
+		
+		byte[] heightBytes = new byte[4]; 
+		Utils.uint32ToByteArrayBE(block.getHeight(), heightBytes, 0);
+		
+		db.delete(heightBytes);
+		
+		//更新最新区块
+		db.put(bestBlockKey, block.getPreHash().getBytes());
+		
+		//更新上一区块的指针
+		if(!Sha256Hash.ZERO_HASH.equals(block.getPreHash())) {
+			BlockHeaderStore preBlockHeader = getHeader(block.getPreHash().getBytes());
+			preBlockHeader.setNextHash(Sha256Hash.ZERO_HASH);
+			db.put(preBlockHeader.getBlockHeader().getHash().getBytes(), preBlockHeader.baseSerialize());
+		}
+		
+		//回滚交易
+		//反转交易，保证回滚时序正确
+		//TODO
+		for (int i = (int) (block.getTxCount() - 1); i >= 0 ; i--) {
+			TransactionStore txs = new TransactionStore(network, block.getTxs().get(i), block.getHeight(), null);
+			
+			revokedTransaction(txs);
 		}
 	}
 	
@@ -1124,6 +1131,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			
 			BlockStore blockStore = network.getGengsisBlock();
 			Sha256Hash nextHash = blockStore.getBlock().getHash();
+			long bestBlockHeight = blockStore.getBlock().getHeight();
 			
 			List<Long> badBlock = new ArrayList<Long>();
 			
@@ -1132,6 +1140,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				if(nextBlockStore == null) {
 					break;
 				}
+				bestBlockHeight = nextBlockStore.getBlock().getHeight();
+				
 				List<Transaction> txs = nextBlockStore.getBlock().getTxs();
 				
 				long txCount = nextBlockStore.getBlock().getTxCount();
@@ -1142,7 +1152,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				nextHash = nextBlockStore.getNextHash();
 			}
 	
-			log.info("分析区块完整性分析完成，有{}个损坏的区块", badBlock.size());
+			BlockHeader bestBlockHeader = getBestBlockHeader().getBlockHeader();
+			
+			log.info("分析区块完整性分析完成，有{}个损坏的区块，本地最新区块{}，实际最新区块{}", badBlock.size(), bestBlockHeader.getHeight(), bestBlockHeight);
+			
+			//最新高度，重置
+			if(bestBlockHeader.getHeight() > bestBlockHeight) {
+				BlockStore newBestBlockStore = getBlockByHeight(bestBlockHeight);
+				log.info("重置最新区块为{} - {}", newBestBlockStore.getBlock().getHeight(), newBestBlockStore.getBlock().getHash());
+				db.put(bestBlockKey, newBestBlockStore.getBlock().getHash().getBytes());
+			}
 			
 			for (Long height : badBlock) {
 				log.info("损坏的区块高度为{}", height);
@@ -1150,18 +1169,17 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			
 			//重置
 			if(badBlock.size() > 0) {
+				
+				long realHeight = badBlock.get(0).longValue();
+				
 				log.info("开始修复");
 				while(true) {
-					revokedNewestBlock();
 					BlockHeaderStore bestBlock = getBestBlockHeader();
-					
-					log.info("修复中···当前最新区块高度为{}，还差{}个块", bestBlock.getBlockHeader().getHeight(), bestBlock.getBlockHeader().getHeight() - badBlock.get(0));
-					
-					if(bestBlock.getBlockHeader().getHeight() < badBlock.get(0).longValue()) {
+					if(bestBlock.getBlockHeader().getHeight() < realHeight) {
 						break;
 					}
+					revokedNewestBlock();
 				}
-				
 				log.info("数据回滚成功，开始重置共识队列");
 			}
 

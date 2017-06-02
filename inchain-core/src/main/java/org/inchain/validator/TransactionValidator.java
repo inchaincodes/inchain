@@ -20,6 +20,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
 import org.inchain.mempool.MempoolContainer;
+import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
@@ -117,12 +118,36 @@ public class TransactionValidator {
 			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
 			long blockHeight = verifyTX.getHeight();
 			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
+			//如果对应的区块不存在，则证明这笔交易是脏数据，应该清除掉
 			if(blockHeaderStore == null) {
 				//重置
 				blockStoreProvider.revokedTransaction(verifyTX);
 			} else {
-				result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
-				return validatorResult;
+				//如果存在，则验证交易的合法性，包括对应的区块是否存在，区块存在情况下，区块是否包含该笔交易
+				
+				//先验证是否包含该笔交易
+				List<Sha256Hash> txHashs = blockHeaderStore.getBlockHeader().getTxHashs();
+				boolean exist = false;
+				for (Sha256Hash txHash : txHashs) {
+					if(txHash.equals(tx.getHash())) {
+						exist = true;
+						break;
+					}
+				}
+				if(exist) {
+					//存在，代表合法的，判断区块是否在合法范围内
+					Block block = blockStoreProvider.getBestBlock().getBlock();
+					if(block.getHeight() < blockHeight) {
+						//重置
+						blockStoreProvider.revokedTransaction(verifyTX);
+					} else {
+						result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
+						return validatorResult;
+					}
+				} else {
+					//不存在，则代表存储的该笔交易为脏数据，清除掉
+					blockStoreProvider.revokedTransaction(verifyTX);
+				}
 			}
 		}
 		//如果是转帐交易
@@ -475,12 +500,6 @@ public class TransactionValidator {
 					BlockHeader currentStartBlockHeader = currentStartBlockHeaderStore.getBlockHeader();
 					while(true) {
 						if(currentStartBlockHeader.getTimePeriod() == index) {
-							log.info("========================{} - {}", currentStartBlockHeader.getBlockHeader().getPeriodCount(), currentStartBlockHeader.getBlockHeader().getHeight());
-							log.info("========================{} - {}", currentPeriodStartTime, currentStartBlockHeader.getBlockHeader().getPeriodStartTime());
-							log.info("{}  -  {}  -  {}", Address.fromP2PKHash(network, network.getSystemAccountVersion(), hash160).getBase58(), 
-									Address.fromP2PKHash(network, network.getSystemAccountVersion(), currentStartBlockHeader.getBlockHeader().getHash160()).getBase58(),
-									currentStartBlockHeader.getBlockHeader());
-							log.info("========================");
 							result.setResult(false, "证据不成立,本轮有出块");
 							return validatorResult;
 						}

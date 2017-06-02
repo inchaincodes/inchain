@@ -309,7 +309,11 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 				if(Sha256Hash.ZERO_HASH.equals(hash)) {
 					break;
 				}
-				bestBlockHeader = blockStoreProvider.getHeader(hash.getBytes()).getBlockHeader();
+				BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(hash.getBytes());
+				if(blockHeaderStore == null) {
+					break;
+				}
+				bestBlockHeader = blockHeaderStore.getBlockHeader();
 				
 				if(bestBlockHeader.getPeriodStartTime() != startTime) {
 					break;

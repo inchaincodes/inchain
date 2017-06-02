@@ -75,4 +75,15 @@ public class BlockHeaderStore extends Store {
 	public void setBlockHeader(BlockHeader blockHeader) {
 		this.blockHeader = blockHeader;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("BlockHeaderStore [blockHeader=");
+		builder.append(blockHeader);
+		builder.append(", nextHash=");
+		builder.append(nextHash);
+		builder.append("]");
+		return builder.toString();
+	}
 }

@@ -102,7 +102,7 @@ public class Peer extends PeerSocketHandler {
 			executorService.submit(new Thread(){
 				public void run() {
 					//消息处理
-					//当同步区块时，把消息交给同步器处理，其它情况则交给响应的消息处理器
+					//当同步区块时，把消息交给同步器处理，其它情况则交给相应的消息处理器
 					if(message instanceof Block && !(message instanceof NewBlockMessage)) {
 						DataSynchronizeHandler synchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
 						synchronizeHandler.processData((Block) message);
