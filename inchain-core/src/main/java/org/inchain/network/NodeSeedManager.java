@@ -54,4 +54,11 @@ public class NodeSeedManager implements SeedManager {
 	public boolean addDnsSeed(String domain) {
 		return false;
 	}
+	
+	/**
+	 * 重置种子节点
+	 */
+	public void reset() {
+		list = new ArrayList<Seed>();
+	}
 }

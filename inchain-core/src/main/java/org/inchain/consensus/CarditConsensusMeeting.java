@@ -127,6 +127,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	}
 
 	int count = 0;
+	
 	/**
 	 * 共识会议
 	 */
@@ -327,6 +328,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			MeetingItem metting = new MeetingItem(this, bestBlockHeader.getPeriodStartTime(), oldConsensusList);
 			metting.startConsensus();
 			oldMettings.add(metting);
+			
+			//consensusListCacher
 		}
 		log.info("old metting size : {}", oldMettings.size());
 	}
@@ -389,72 +392,90 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 */
 	public List<ConsensusAccount> analysisConsensusSnapshots(long periodStartTime) {
 		
-		List<ConsensusAccount> consensusList = consensusPool.listSnapshots();
-		
-		byte[] endBlockHashBytes = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHash().getBytes();
-		while(true) {
-			BlockStore blockStore = blockStoreProvider.getBlock(endBlockHashBytes);
-			if(blockStore == null || blockStore.getBlock() == null) {
-				break;
-			}
-			
-			Block block = blockStore.getBlock();
-			if(block.getHeight() == 0l || block.getPeriodStartTime() < periodStartTime) {
-				break;
-			}
-			
-			List<Transaction> txList = block.getTxs();
-			for (Transaction transaction : txList) {
-				//共识的注册与退出
-				if(transaction.getType() == Definition.TYPE_REG_CONSENSUS) {
-					//注册新的，那么删除掉
-					RegConsensusTransaction regTx = (RegConsensusTransaction) transaction;
-					Iterator<ConsensusAccount> it = consensusList.iterator();
-					while(it.hasNext()) {
-						ConsensusAccount consensusAccount = it.next();
-						if(Arrays.equals(regTx.getHash160(), consensusAccount.getHash160())) {
-							it.remove();
-							break;
-						}
-					}
-				} else if(transaction.getType() == Definition.TYPE_REM_CONSENSUS || transaction.getType() == Definition.TYPE_VIOLATION) {
-					//删除掉的，新增进去
-					byte[] hash160 = null;
-					
-					if(transaction.getType() == Definition.TYPE_REM_CONSENSUS) {
-						//主动退出共识
-						RemConsensusTransaction remTx = (RemConsensusTransaction) transaction;
-						hash160 = remTx.getHash160();
-					} else {
-						//违规惩罚交易
-						ViolationTransaction vtx = (ViolationTransaction) transaction;
-						hash160 = vtx.getViolationEvidence().getAudienceHash160();
-					}
-					//这里面用不到公钥，所以不用设置
-					consensusList.add(new ConsensusAccount(hash160, null));
-				}
-			}
-			
-			if(block.getPeriodStartTime() < periodStartTime) {
-				break;
-			} else {
-				endBlockHashBytes = block.getPreHash().getBytes();
-			}
-			
+		//判断是否当前轮
+		if(currentMetting != null && currentMetting.getPeriodStartTime() == periodStartTime) {
+			return currentMetting.getConsensusList();
 		}
-		//排序
-		consensusList.sort(new Comparator<ConsensusAccount>() {
-			@Override
-			public int compare(ConsensusAccount o1, ConsensusAccount o2) {
-				if(o1.getSortValue() == null) {
-					o1.setSortValue(Sha256Hash.twiceOf((periodStartTime + o1.getHash160Hex()).getBytes()));
-				}
-				if(o2.getSortValue() == null) {
-					o2.setSortValue(Sha256Hash.twiceOf((periodStartTime + o2.getHash160Hex()).getBytes()));
-				}
-				return o1.getSortValue().toString().compareTo(o2.getSortValue().toString());
+		
+		//不是当前轮，那么去历史轮里查找
+		List<ConsensusAccount> consensusList = null;
+		
+		for (MeetingItem meetingItem : oldMettings) {
+			if(meetingItem.getPeriodStartTime() == periodStartTime) {
+				consensusList = meetingItem.getConsensusList();
+				break;
 			}
-		});
+		}
+		//内存没找到，那么只有去查询了
+		if(consensusList == null) {
+			consensusList = consensusPool.listSnapshots();
+			
+			byte[] endBlockHashBytes = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHash().getBytes();
+			while(true) {
+				BlockStore blockStore = blockStoreProvider.getBlock(endBlockHashBytes);
+				if(blockStore == null || blockStore.getBlock() == null) {
+					break;
+				}
+				
+				Block block = blockStore.getBlock();
+				if(block.getHeight() == 0l || block.getPeriodStartTime() < periodStartTime) {
+					break;
+				}
+				
+				List<Transaction> txList = block.getTxs();
+				for (Transaction transaction : txList) {
+					//共识的注册与退出
+					if(transaction.getType() == Definition.TYPE_REG_CONSENSUS) {
+						//注册新的，那么删除掉
+						RegConsensusTransaction regTx = (RegConsensusTransaction) transaction;
+						Iterator<ConsensusAccount> it = consensusList.iterator();
+						while(it.hasNext()) {
+							ConsensusAccount consensusAccount = it.next();
+							if(Arrays.equals(regTx.getHash160(), consensusAccount.getHash160())) {
+								it.remove();
+								break;
+							}
+						}
+					} else if(transaction.getType() == Definition.TYPE_REM_CONSENSUS || transaction.getType() == Definition.TYPE_VIOLATION) {
+						//删除掉的，新增进去
+						byte[] hash160 = null;
+						
+						if(transaction.getType() == Definition.TYPE_REM_CONSENSUS) {
+							//主动退出共识
+							RemConsensusTransaction remTx = (RemConsensusTransaction) transaction;
+							hash160 = remTx.getHash160();
+						} else {
+							//违规惩罚交易
+							ViolationTransaction vtx = (ViolationTransaction) transaction;
+							hash160 = vtx.getViolationEvidence().getAudienceHash160();
+						}
+						//这里面用不到公钥，所以不用设置
+						consensusList.add(new ConsensusAccount(hash160, null));
+					}
+				}
+				
+				if(block.getPeriodStartTime() < periodStartTime) {
+					break;
+				} else {
+					endBlockHashBytes = block.getPreHash().getBytes();
+				}
+				
+			}
+			//排序
+			consensusList.sort(new Comparator<ConsensusAccount>() {
+				@Override
+				public int compare(ConsensusAccount o1, ConsensusAccount o2) {
+					if(o1.getSortValue() == null) {
+						o1.setSortValue(Sha256Hash.twiceOf((periodStartTime + o1.getHash160Hex()).getBytes()));
+					}
+					if(o2.getSortValue() == null) {
+						o2.setSortValue(Sha256Hash.twiceOf((periodStartTime + o2.getHash160Hex()).getBytes()));
+					}
+					return o1.getSortValue().toString().compareTo(o2.getSortValue().toString());
+				}
+			});
+		}
+		
 		return consensusList;
 	}
 	

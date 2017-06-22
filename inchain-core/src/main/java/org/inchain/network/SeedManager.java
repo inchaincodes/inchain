@@ -35,4 +35,9 @@ public interface SeedManager {
 	 * @return boolean
 	 */
 	boolean hasMore();
+	
+	/**
+	 * 重置种子节点
+	 */
+	void reset();
 }

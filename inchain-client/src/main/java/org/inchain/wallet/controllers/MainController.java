@@ -42,6 +42,7 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.chart.PieChart.Data;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
@@ -376,6 +377,7 @@ public class MainController {
 		//注入区块变化监听器
     	InchainInstance instance = InchainInstance.getInstance();
     	AppKit appKit = instance.getAppKit();
+    	DataSynchronizeHandler dataSynchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
     	appKit.addBlockChangedListener(new BlockChangedListener() {
 			@Override
 			public void onChanged(final long localNewestHeight, final long netNewestHeight, final Sha256Hash localNewestHash,
@@ -446,7 +448,7 @@ public class MainController {
 			public void onNotice(int type, String title, String message) {
 				//如果是同步过程中，则不提示
 				boolean blockNewest = appKit.getNetwork().blockIsNewestStatus();
-				if(!blockNewest) {
+				if(!blockNewest || !dataSynchronizeHandler.hasComplete()) {
 					return;
 				}
 				

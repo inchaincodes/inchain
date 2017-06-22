@@ -3,9 +3,10 @@ package org.inchain.store;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -19,6 +20,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
+import org.inchain.core.ByteHash;
 import org.inchain.core.Coin;
 import org.inchain.core.DataSynchronizeHandler;
 import org.inchain.core.Definition;
@@ -29,8 +31,10 @@ import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
+import org.inchain.network.PeerDiscovery;
 import org.inchain.script.Script;
 import org.inchain.service.CreditCollectionService;
+import org.inchain.service.SystemStatusService;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
@@ -80,9 +84,20 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	private ConsensusMeeting consensusMeeting;
 	@Autowired
 	private CreditCollectionService creditCollectionService;
+	@Autowired
+	private SystemStatusService systemStatusService;
 
 	//新交易监听器
 	private TransactionListener transactionListener;
+	
+	//缓存
+	private final int CACHER_SIZE = 3000;
+	//区块头信息缓存
+	private Map<ByteHash, byte[]> blockHeaderCacher = new HashMap<ByteHash, byte[]>();
+	//区块高度和hash映射缓存
+	private Map<ByteHash, byte[]> blockHeightHashCacher = new HashMap<ByteHash, byte[]>();
+	//最新区块hash缓存
+	private byte[] bestHashCacher = null;
 	
 	//单例
 	BlockStoreProvider() {
@@ -99,6 +114,33 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		return null;
 	}
 	
+	@PostConstruct
+	public void init() {
+		initCacher();
+	}
+	
+	private void initCacher() {
+		//初始化一些缓存数据
+		Sha256Hash hash = getBestBlockHeader().getBlockHeader().getHash();
+		int count = CACHER_SIZE;
+		while(count -- > 0) {
+			if(Sha256Hash.ZERO_HASH.equals(hash)) {
+				break;
+			}
+			BlockHeaderStore blockHeader = getHeader(hash.getBytes());
+			if(blockHeader == null) {
+				break;
+			}
+			blockHeaderCacher.put(new ByteHash(hash.getBytes()), blockHeader.getBlockHeader().baseSerialize());
+			
+			byte[] heightBytes = new byte[4]; 
+			Utils.uint32ToByteArrayBE(blockHeader.getBlockHeader().getHeight(), heightBytes, 0);
+			blockHeightHashCacher.put(new ByteHash(heightBytes), hash.getBytes());
+			
+			hash = blockHeader.getBlockHeader().getPreHash();
+		}	
+	}
+
 	/**
 	 * 保存区块完整的区块信息
 	 * @param blockStore
@@ -142,15 +184,22 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			}
 			
 			//保存块头
-			db.put(hash.getBytes(), blockStore.serializeHeaderToBytes());
+			byte[] blockHeaderBytes = blockStore.serializeHeaderToBytes();
+			db.put(hash.getBytes(), blockHeaderBytes);
+			//写入区块头信息缓存
+			blockHeaderCacher.put(new ByteHash(hash.getBytes()), blockHeaderBytes);
 			
 			byte[] heightBytes = new byte[4]; 
 			Utils.uint32ToByteArrayBE(block.getHeight(), heightBytes, 0);
 			
 			db.put(heightBytes, hash.getBytes());
+			//写入区块高度与hash映射缓存
+			blockHeightHashCacher.put(new ByteHash(heightBytes), hash.getBytes());
+			//TODO 更新过期缓存
 			
 			//更新最新区块
 			db.put(bestBlockKey, hash.getBytes());
+			bestHashCacher = hash.getBytes();
 			
 			//更新上一区块的指针
 			if(!Sha256Hash.ZERO_HASH.equals(block.getPreHash())) {
@@ -169,6 +218,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				revokedNewestBlock();
 				//重新存储
 				saveBlock(blockStore);
+			}
+			
+			if(blockHeaderCacher.size() > 2 * CACHER_SIZE) {
+				blockHeaderCacher.clear();
+				blockHeightHashCacher.clear();
+				initCacher();
 			}
 			blockLock.unlock();
 		}
@@ -414,6 +469,11 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				return null;
 			}
 			revokedBlock(bestBlock);
+			//更新最新区块
+			byte[] bestBlockHashBytes = bestBlock.getPreHash().getBytes();
+			db.put(bestBlockKey, bestBlockHashBytes);
+			bestHashCacher = bestBlockHashBytes;
+			
 			return bestBlock;
 		} finally {
 			blockLock.unlock();
@@ -438,8 +498,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		
 		db.delete(heightBytes);
 		
-		//更新最新区块
-		db.put(bestBlockKey, block.getPreHash().getBytes());
+		//删除区块头信息缓存
+		blockHeaderCacher.remove(new ByteHash(bestBlockHash.getBytes()));
+		blockHeightHashCacher.remove(new ByteHash(heightBytes));
 		
 		//更新上一区块的指针
 		if(!Sha256Hash.ZERO_HASH.equals(block.getPreHash())) {
@@ -808,7 +869,14 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * @return BlockHeaderStore
 	 */
 	public BlockHeaderStore getHeader(byte[] hash) {
-		byte[] content = db.get(hash);
+		
+		byte[] content = null;
+		content = blockHeightHashCacher.get(new ByteHash(hash));
+		
+		if(content == null) {
+			content = db.get(hash);
+		}
+		
 		if(content == null) {
 			return null;
 		}
@@ -826,7 +894,13 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		byte[] heightBytes = new byte[4]; 
 		Utils.uint32ToByteArrayBE(height, heightBytes, 0);
 		
-		byte[] hash = db.get(heightBytes);
+		byte[] hash = null;
+		
+		hash = blockHeightHashCacher.get(new ByteHash(heightBytes));
+		
+		if(hash == null) {
+			hash = db.get(heightBytes);
+		}
 		if(hash == null) {
 			return null;
 		}
@@ -923,10 +997,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		
 		byte[] bestBlockHash = null;
 		try {
-			if(db == null) {
-				return null;
+			if(bestHashCacher == null) {
+				bestBlockHash = db.get(bestBlockKey);
+				bestHashCacher = bestBlockHash;
+			} else {
+				bestBlockHash = bestHashCacher;
 			}
-			bestBlockHash = db.get(bestBlockKey);
 		} catch (Exception e) {
 			return null;
 		} finally {
@@ -1119,9 +1195,13 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		}
 		reseting = true;
 		
+		//设置系统状态
+		int oldStatus = systemStatusService.getStatus();
+		systemStatusService.setStatus(SystemStatusService.DATA_RESET);
+		
 		DataSynchronizeHandler handler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
 		try {
-			handler.stop();
+			handler.downloading();
 			
 			//第一步，检查区块数据的完整性
 			//若发现有数据不完整的块，则重新下载该块
@@ -1160,7 +1240,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			if(bestBlockHeader.getHeight() > bestBlockHeight) {
 				BlockStore newBestBlockStore = getBlockByHeight(bestBlockHeight);
 				log.info("重置最新区块为{} - {}", newBestBlockStore.getBlock().getHeight(), newBestBlockStore.getBlock().getHash());
-				db.put(bestBlockKey, newBestBlockStore.getBlock().getHash().getBytes());
+				
+				byte[] bestBlockHashBytes = newBestBlockStore.getBlock().getHash().getBytes();
+				db.put(bestBlockKey, bestBlockHashBytes);
+				bestHashCacher = bestBlockHashBytes;
 			}
 			
 			for (Long height : badBlock) {
@@ -1216,8 +1299,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			}
 			log.info("修复完成，当前最新区块高度为{}，等待数据重新同步", getBestBlockHeader().getBlockHeader().getHeight());
 		} finally {
-			reseting = false;
+			//重置节点信息
+			PeerDiscovery peerDiscovery = SpringContextUtils.getBean(PeerDiscovery.class);
+			peerDiscovery.reset();
+			
+			//重新同步数据
 			handler.reset();
+			//设置系统状态为之前的
+			systemStatusService.setStatus(oldStatus);
+			
+			reseting = false;
 		}
 	}
 	

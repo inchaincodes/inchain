@@ -24,6 +24,7 @@ import org.inchain.wallet.listener.AccountInfoListener;
 import org.inchain.wallet.utils.Callback;
 import org.inchain.wallet.utils.ConfirmDailog;
 import org.inchain.wallet.utils.DailogUtil;
+import org.inchain.wallet.utils.TipsWindows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -79,6 +80,7 @@ public class AccountInfoController implements SubPageController {
 	private byte[] alias;
 	// 编辑按钮状态 flase编辑 true确认
 	private boolean aliasButtonStatus = true;
+	private boolean importing;
 
 	/**
 	 * FXMLLoader 调用的初始化
@@ -115,7 +117,7 @@ public class AccountInfoController implements SubPageController {
 	public void initDatas() {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 		Account account = accountKit.getDefaultAccount();
-		if(account == null) {
+		if(account == null || importing) {
 			return;
 		}
 		if (accountInfoListener != null) {
@@ -438,10 +440,24 @@ public class AccountInfoController implements SubPageController {
 		// 默认备份文件名
 		fileChooser.setInitialFileName("wallet_backup_"
 				.concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmm")));
-		File file = fileChooser.showOpenDialog(Context.getMainStage());
+		final File file = fileChooser.showOpenDialog(Context.getMainStage());
 		if (file == null) {
 			return;
 		}
+
+		importing = true;
+		TipsWindows tips = new TipsWindows(null, "钱包导入中，请稍候···");
+		tips.show();
+		new Thread() {
+			public void run() {
+				doImport(file);
+				tips.close();
+				importing = false;
+			}
+		}.start();
+	}
+
+	private void doImport(File file) {
 		// 用户选择的完整路径
 		String walletFilePath = file.getAbsolutePath();
 		// 去掉用户自己设置的后缀.dat
@@ -450,19 +466,35 @@ public class AccountInfoController implements SubPageController {
 		}
 		// 备份
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+		
 		try {
 			Result result = accountKit.importWallet(walletFilePath);
 			if (result.isSuccess()) {
 				// 更新余额及交易记录
 				accountKit.getTransactionListener().newTransaction(null);
-				DailogUtil.showTip(result.getMessage());
+				Platform.runLater(new Runnable() {
+				    @Override
+				    public void run() {
+				    	DailogUtil.showTip(result.getMessage());
+					}
+				});
 			} else {
 				log.error("导入钱包失败,{}", result);
-				DailogUtil.showTip("导入钱包失败," + result.getMessage());
+				Platform.runLater(new Runnable() {
+				    @Override
+				    public void run() {
+				    	DailogUtil.showTip("导入钱包失败," + result.getMessage());
+					}
+				});
 			}
 		} catch (Exception e) {
 			log.error("导入钱包时出错 {} ", e.getMessage(), e);
-			DailogUtil.showTip("导入钱包时出错" + e.getMessage());
+			Platform.runLater(new Runnable() {
+			    @Override
+			    public void run() {
+					DailogUtil.showTip("导入钱包时出错" + e.getMessage());
+				}
+			});
 		}
 	}
 

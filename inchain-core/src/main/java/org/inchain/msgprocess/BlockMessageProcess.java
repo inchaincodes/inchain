@@ -109,7 +109,7 @@ public class BlockMessageProcess implements MessageProcess {
 					} else if(errorHashsSize == 6) {
 						//连续N个块出错，重置下载
 						BlockHeaderStore bestBlockHeader = blockStoreProvider.getBestBlockHeader();
-						if(block.getHeight() - bestBlockHeader.getBlockHeader().getHeight() < 10) {
+						if(block.getHeight() - bestBlockHeader.getBlockHeader().getHeight() < 6) {
 							//重置
 							peerKit.resetPeers();
 							errorHashs.clear();

@@ -24,7 +24,7 @@ public class RemoteSeedManager implements SeedManager {
 	
 	private final static Set<String> SEED_DOMAINS = new HashSet<String>(); 
 	
-	private final List<Seed> list = new ArrayList<Seed>();
+	private List<Seed> list = new ArrayList<Seed>();
 	
 	private volatile boolean hasInit;
 	
@@ -122,5 +122,13 @@ public class RemoteSeedManager implements SeedManager {
 	@Override
 	public boolean addDnsSeed(String domain) {
 		return SEED_DOMAINS.add(domain);
+	}
+	
+	/**
+	 * 重置种子节点
+	 */
+	public void reset() {
+		hasInit = false;
+		list = new ArrayList<Seed>();
 	}
 }

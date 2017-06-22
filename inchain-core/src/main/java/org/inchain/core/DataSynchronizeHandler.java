@@ -300,6 +300,13 @@ public class DataSynchronizeHandler implements Runnable {
 	}
 	
 	/**
+	 * 设置为下载中
+	 */
+	public void downloading() {
+		synchronousStatus = 1;
+	}
+	
+	/**
 	 * 重置下载服务
 	 */
 	public void reset() {
@@ -332,6 +339,16 @@ public class DataSynchronizeHandler implements Runnable {
 					downloadFuture.set(true);
 				}
 			}
+		}
+	}
+	
+	/**
+	 * 当收到对等节点返回数据没有找到的消息时，调用该方法触发结果
+	 * 如果为拉取区块没有找到，则设置下载失败
+	 */
+	public void dataNotFoundCheck(Sha256Hash hash) {
+		if(downloadFuture != null && downingMessage != null && downingMessage.getStartHash().equals(hash)) {
+			downloadFuture.set(false);
 		}
 	}
 	

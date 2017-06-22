@@ -83,4 +83,9 @@ public interface PeerDiscovery {
 	 */
 	public void checkMyserviceAndReport();
 
+	/**
+	 * 重置节点信息
+	 * 该方法会清楚本地保存的节点，在重置本地数据时会调用
+	 */
+	public void reset();
 }

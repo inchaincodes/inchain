@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class BlockValidator {
 
+	//区块高度错误
 	public final static int ERROR_CODE_HEIGHT_ERROR = 1;
 	
 	private Logger log = LoggerFactory.getLogger(getClass());

@@ -136,7 +136,6 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	 */
 	private void start() {
 		locker.lock();
-		
 		try {
 			//读取节点列表信息
 			//TODO
@@ -560,6 +559,22 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				log.debug("本机能对外提供服务, 已通过{}个节点广播到p2p网络中", broadcastCount);
 			}
 		}
+	}
+	
+	/**
+	 * 重置节点信息
+	 * 该方法会清楚本地保存的节点，在重置本地数据时会调用
+	 */
+	public void reset() {
+		shutdown();
+		
+		File file = new File(PEER_INFO_SAVE_FILE);
+		file.delete();
+		
+		hasLoadDns = false;
+		network.getSeedManager().reset();
+		
+		startSync();
 	}
 	
 	/**

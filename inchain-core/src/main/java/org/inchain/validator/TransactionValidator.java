@@ -402,7 +402,7 @@ public class TransactionValidator {
 				long consensusCredit = ConsensusCalculationUtil.getConsensusCredit(blockHeader.getHeight());
 				if(credit < consensusCredit) {
 					//信用不够
-					result.setResult(false, "信用值过低");
+					result.setResult(false, "信用值过低 " + credit + "  " + consensusCredit);
 					return validatorResult;
 				}
 				

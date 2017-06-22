@@ -1,7 +1,6 @@
 package org.inchain.service.impl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +8,7 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 
 import org.inchain.Configure;
+import org.inchain.core.ByteHash;
 import org.inchain.core.Definition;
 import org.inchain.core.TimeService;
 import org.inchain.crypto.Sha256Hash;
@@ -183,30 +183,5 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 	public boolean clean() {
 		container.clear();
 		return true;
-	}
-
-	static class ByteHash {
-		byte[] hash;
-
-		public ByteHash(byte[] hash) {
-			this.hash = hash;
-		}
-		
-		@Override
-		public boolean equals(Object obj) {
-			if(obj == null || !(obj instanceof ByteHash)) {
-				return false;
-			}
-			ByteHash temp = (ByteHash)obj;
-			if(hash == null || temp.hash == null) {
-				return false;
-			}
-			return Arrays.equals(hash, temp.hash);
-		}
-		
-		@Override
-		public int hashCode() {
-			return Arrays.hashCode(hash);
-		}
 	}
 }

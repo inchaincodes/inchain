@@ -322,7 +322,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		} else {
 			//2、上一个块不是最新块，也就是从之前的分叉了，这时候的交易验证就要复杂一些，因为不能受后面块的影响
 			//TODO 暂时先做丢弃处理
-			if(localBestBlock.getHeight() - block.getHeight() > 3) {
+			if(localBestBlock.getHeight() - block.getHeight() > 10) {
 				log.info("分叉块不是最新的块，丢弃处理， 高度：{}， hash： {}, 打包人： {}", block.getHeight(), block.getHash(), new Address(network, block.getHash160()).getBase58());
 				discardBlock(blockForkStore);
 				return false;
@@ -332,7 +332,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 		//判断该链是否最优，也就是超过当前的主链没有，如果超过，则可重置主链为当前链
 		//再次查询本地最新高度
 		localBestBlock = network.getBestBlockHeader();
-		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() && blockForkChains.size() > 10) {
+		if(preBlock.getHeight() + (blockForkChains == null ? 0 : blockForkChains.size()) > localBestBlock.getHeight() && blockForkChains.size() > 4) {
 			//回滚主链上的块，知道最新块为preBlock
 			while(true) {
 				BlockStore bestBlock = blockStoreProvider.getBestBlock();

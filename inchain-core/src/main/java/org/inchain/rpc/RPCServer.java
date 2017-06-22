@@ -59,7 +59,7 @@ public class RPCServer implements Server {
 	 * RPC服务启动方法，启动之后监听本地端口 {@link org.inchain.Configure.RPC_SERVER_PORT}提供服务
 	 * 
 	 */
-	private static ExecutorService executor = Executors.newSingleThreadExecutor();
+	private static ExecutorService executor = Executors.newCachedThreadPool();
 
 	@Autowired
 	private RPCHanlder rpcHanlder;

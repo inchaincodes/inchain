@@ -13,13 +13,16 @@ import java.net.URL;
 
 import javax.swing.ImageIcon;
 
+import org.inchain.SpringContextUtils;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.listener.Listener;
+import org.inchain.service.SystemStatusService;
 import org.inchain.wallet.controllers.MainController;
 import org.inchain.wallet.controllers.StartPageController;
 import org.inchain.wallet.listener.WindowCloseEvent;
 import org.inchain.wallet.utils.ConfirmDailog;
+import org.inchain.wallet.utils.TipsWindows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,9 +104,52 @@ public class Main extends Decoration implements ActionListener {
 		showOnStartPage(stage);
 	}
 	
+	TipsWindows tips = null;
 	private void showRealPage() throws IOException {
 		//显示界面
 		show();
+		//增加一个修复监听器，如果发生数据修复情况，则弹出提示框
+		Thread t = new Thread() {
+			@Override
+			public void run() {
+				SystemStatusService systemStatusService = SpringContextUtils.getBean(SystemStatusService.class);
+				boolean repair = false;
+				
+				while(true) {
+					boolean nowStatus = systemStatusService.isDataReset();
+					if(repair && !nowStatus) {
+						repair = false;
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								//关闭
+								tips.close();
+								tips = null;
+							}
+						});
+					} else if(!repair && nowStatus) {
+						repair = true;
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								if(tips == null) {
+									tips = new TipsWindows(null, "数据修复中，请耐心等待···");
+								}
+								//显示
+								tips.show();
+							}
+						});
+					}
+					try {
+						Thread.sleep(1000l);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		};
+		t.setName("data repair monitor");
+		t.start();
 	}
 
 	//显示启动界面

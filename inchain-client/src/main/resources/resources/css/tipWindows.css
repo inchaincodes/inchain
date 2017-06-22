@@ -1,0 +1,9 @@
+.root {
+	-fx-background-color: rgba(63,63,63,0.8);
+}
+
+Label{
+	-fx-text-fill: #fff;
+    -fx-font-name:Microsoft YaHei;
+    -fx-font-size:16;
+}
