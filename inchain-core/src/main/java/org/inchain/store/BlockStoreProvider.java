@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -90,6 +92,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	//新交易监听器
 	private TransactionListener transactionListener;
 	
+	//异步顺序执行，以免有处理时间较长的线程阻塞，影响性能
+	private ExecutorService executorService = Executors.newSingleThreadExecutor();
+	
 	//缓存
 	private final int CACHER_SIZE = 3000;
 	//区块头信息缓存
@@ -101,7 +106,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	
 	//单例
 	BlockStoreProvider() {
-		super(Configure.DATA_BLOCK);
+		super(Configure.DATA_BLOCK, 50 * 1048576, 20 * 1048576);
 	}
 
 	@Override
@@ -117,11 +122,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	@PostConstruct
 	public void init() {
 		initCacher();
+//		test();
 	}
 	
 	private void initCacher() {
 		//初始化一些缓存数据
-		Sha256Hash hash = getBestBlockHeader().getBlockHeader().getHash();
+		BlockHeaderStore bestBlockHeader = getBestBlockHeader();
+		if(bestBlockHeader == null) {
+			return;
+		}
+		Sha256Hash hash = bestBlockHeader.getBlockHeader().getHash();
 		int count = CACHER_SIZE;
 		while(count -- > 0) {
 			if(Sha256Hash.ZERO_HASH.equals(hash)) {
@@ -213,11 +223,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		} finally {
 			//检查区块数据的完整性
 			BlockStore blockStoreTemp = getBlock(blockStore.getBlock().getHash().getBytes());
-			if(blockStoreTemp.getBlock().getTxs().size() != blockStore.getBlock().getTxCount()) {
+			if(blockStoreTemp.getBlock().getTxs().size() != (int)blockStore.getBlock().getTxCount()) {
 				//交易存储不完整
 				revokedNewestBlock();
-				//重新存储
-				saveBlock(blockStore);
+//				//重新存储
+//				saveBlock(blockStore);
+				throw new VerificationException("区块保存不完整，实际交易数量为" + blockStore.getBlock().getTxCount() + " , 保存数量为" + blockStoreTemp.getBlock().getTxs());
 			}
 			
 			if(blockHeaderCacher.size() > 2 * CACHER_SIZE) {
@@ -512,7 +523,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		//回滚交易
 		//反转交易，保证回滚时序正确
 		//TODO
-		for (int i = (int) (block.getTxCount() - 1); i >= 0 ; i--) {
+		for (int i = (int) (block.getTxs().size() - 1); i >= 0 ; i--) {
 			TransactionStore txs = new TransactionStore(network, block.getTxs().get(i), block.getHeight(), null);
 			
 			revokedTransaction(txs);
@@ -756,13 +767,18 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 * 检查交易是否与我有关，并且更新状态
 	 * @param txs
 	 */
-	public void checkIsMineAndUpdate(TransactionStore txs) {
-		Transaction transaction = txs.getTransaction();
-		
-		boolean isMine = checkTxIsMine(transaction);
-		if(isMine) {
-			updateMineTx(txs);
-		}
+	public void checkIsMineAndUpdate(final TransactionStore txs) {
+		executorService.execute(new Runnable() {
+			@Override
+			public void run() {
+				Transaction transaction = txs.getTransaction();
+				
+				boolean isMine = checkTxIsMine(transaction);
+				if(isMine) {
+					updateMineTx(txs);
+				}
+			}
+		});
 	}
 
 	/**
@@ -876,7 +892,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		if(content == null) {
 			content = db.get(hash);
 		}
-		
+
 		if(content == null) {
 			return null;
 		}
@@ -944,6 +960,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			for (Sha256Hash txHash : header.getBlockHeader().getTxHashs()) {
 				TransactionStore tx = getTransaction(txHash.getBytes());
 				if(tx == null) {
+					log.error("Block height {} , tx {} not found", header.getBlockHeader().getHeight(), txHash);
 					continue;
 				}
 				txs.add(tx.getTransaction());
@@ -1211,6 +1228,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			
 			BlockStore blockStore = network.getGengsisBlock();
 			Sha256Hash nextHash = blockStore.getBlock().getHash();
+			Sha256Hash lastBlockHash = null;
 			long bestBlockHeight = blockStore.getBlock().getHeight();
 			
 			List<Long> badBlock = new ArrayList<Long>();
@@ -1230,8 +1248,16 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					badBlock.add(nextBlockStore.getBlock().getHeight());
 				}
 				nextHash = nextBlockStore.getNextHash();
+				lastBlockHash = nextBlockStore.getBlock().getHash();
 			}
-	
+
+			BlockHeaderStore bestBlockHeaderStore = getBestBlockHeader();
+
+			if(bestBlockHeaderStore == null) {
+				db.put(bestBlockKey, lastBlockHash.getBytes());
+				bestHashCacher = lastBlockHash.getBytes();
+				bestBlockHeaderStore = getBestBlockHeader();
+			}
 			BlockHeader bestBlockHeader = getBestBlockHeader().getBlockHeader();
 			
 			log.info("分析区块完整性分析完成，有{}个损坏的区块，本地最新区块{}，实际最新区块{}", badBlock.size(), bestBlockHeader.getHeight(), bestBlockHeight);
@@ -1298,6 +1324,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				nextHash = nextBlockStore.getNextHash();
 			}
 			log.info("修复完成，当前最新区块高度为{}，等待数据重新同步", getBestBlockHeader().getBlockHeader().getHeight());
+		} catch (Exception e) {
+			log.error("修复数据出错", e);
 		} finally {
 			//重置节点信息
 			PeerDiscovery peerDiscovery = SpringContextUtils.getBean(PeerDiscovery.class);
@@ -1355,7 +1383,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	}
 
 
-//	@PostConstruct
 	public void test() {
 		SpringContextUtils.setNetwork(network);
 		try {
@@ -1368,87 +1395,76 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		BlockStore blockStore = network.getGengsisBlock();
 		Sha256Hash nextHash = blockStore.getBlock().getHash();
 		
-		Address address = Address.fromBase58(network, "tb7CF9ATjRayoiRqeG5iT1ChCFVxd1mBP3");
+		Address address = Address.fromBase58(network, "toMahRViJBfKJ49QzYymKVb6JqNCLxTPN4");
 		
 		Set<String> sets = new HashSet<String>();
+		
+		Sha256Hash hash1 = Sha256Hash.wrap("eb51fabc9f888ee0e0787004f9026b1371fb205805e943a09c1b900191ecbc77");
+		Sha256Hash hash2 = Sha256Hash.wrap("501931df0230f8e0a3f74d985e12d1258991295a51a673b613289997274056b2");
+		Sha256Hash hash3 = Sha256Hash.wrap("d257ce8652d65fda6860178916b4ee3aae8763ba031c311c4d1f8c81633f9712");
+
+		log.info("======================");
 		
 		while(!nextHash.equals(Sha256Hash.ZERO_HASH)) {
 			BlockStore nextBlockStore = getBlock(nextHash.getBytes());
 			
 			List<Transaction> txs = nextBlockStore.getBlock().getTxs();
-//			if(txs.size() > 2) {
-//				log.info("============== block height {}, tx count is {}, size is {} bytes", nextBlockStore.getBlock().getHeight(), txs.size(), nextBlockStore.getBlock().baseSerialize().length);
-//			}
-//			if(nextBlockStore.getBlock().getHeight() == 356l) {
-//				log.info("========= {}", nextBlockStore.getBlock());
-//			}
+			Block block = nextBlockStore.getBlock();
+			if(block.getHeight() == 3600) {
+				log.info("block height 3600 tx count is {}, real tx count is {}", block.getTxCount(), block.getTxs().size());
+			}
 			
 			for (Transaction tx : txs) {
-				if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
-					//注册
-					RegConsensusTransaction reg = (RegConsensusTransaction) tx;
-					sets.add(reg.getOperator());
-				} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
-					RemConsensusTransaction rem = (RemConsensusTransaction) tx;
-					sets.remove(rem.getOperator());
-				} else if(tx.getType() == Definition.TYPE_VIOLATION) {
-					ViolationTransaction vtx = (ViolationTransaction) tx;
-					byte[] h160 = vtx.getViolationEvidence().getAudienceHash160();
-					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(h160);
-					sets.remove(accountInfo.getAddress());
+				if(tx.getHash().equals(hash1) || tx.getHash().equals(hash2) || tx.getHash().equals(hash3)) {
+					log.info("{} , {} ", tx.getHash(), Coin.valueOf(tx.getOutput(1).getValue()).toText());
+				}
+				
+				List<TransactionInput> inputs = tx.getInputs();
+				if(inputs == null) {
+					continue;
+				}
+				for (TransactionInput transactionInput : inputs) {
+					List<TransactionOutput> froms = transactionInput.getFroms();
+					for (TransactionOutput output : froms) {
+						if((output.getParent().getHash().equals(hash1) && output.getIndex() == 1) ||
+								(output.getParent().getHash().equals(hash2) && output.getIndex() == 1) ||
+								(output.getParent().getHash().equals(hash3) && output.getIndex() == 1)) {
+							log.info("有引用{}", output.getParent().getHash());
+						}
+					}
 				}
 			}
 			
 			nextHash = nextBlockStore.getNextHash();
+			
+			if(nextHash.equals(Sha256Hash.ZERO_HASH)) {
+				log.info("一共处理{}个区块", nextBlockStore.getBlock().getHeight());
+			}
 		}
 		
-		log.info("共识节点数量{}", sets.size());
+		byte[] s1 = new byte[Sha256Hash.LENGTH + 1];
+		System.arraycopy(hash1.getBytes(), 0, s1, 0, Sha256Hash.LENGTH);
+		s1[Sha256Hash.LENGTH] = (byte)1;
 		
-//		BlockStore bs = getBlockByHeight(126l);
-//		Block block = bs.getBlock();
-//		long time = System.currentTimeMillis();
-//		for (Transaction tx : block.getTxs()) {
-//			tx.verify();
-//			TransactionValidatorResult res = transactionValidator.valDo(tx, block.getTxs()).getResult();
-//			System.out.println(res);
-//		}
-//		System.out.println("验证耗时："+(System.currentTimeMillis() - time) + " ms");
-//		
-//		Block bestBlock = getBestBlock().getBlock();
-//		
-//		while(true) {
-//			
-//			if(bestBlock.getHeight() == 125l) {
-//				break;
-//			}
-//			revokedNewestBlock();
-//			bestBlock = getBestBlock().getBlock();
-//		}
-//		System.out.println("best block height "+bestBlock.getHeight());
-//		
-//		time = System.currentTimeMillis();
-//		
-//		for (Transaction tx : block.getTxs()) {
-//			MempoolContainer.getInstace().add(tx);
-//		}
-//		
-//		System.out.println("放入内存耗时："+(System.currentTimeMillis() - time) + " ms");
-//		
-//		time = System.currentTimeMillis();
-//		
-//		miningService.mining();
-//		
-//		System.out.println("打包耗时："+(System.currentTimeMillis() - time) + " ms");
-//		
-//		time = System.currentTimeMillis();
-//		
-//		try {
-//			saveBlock(bs);
-//		} catch (VerificationException | IOException e) {
-//			e.printStackTrace();
-//		}
-//		System.out.println("入库耗时："+(System.currentTimeMillis() - time) + " ms");
-//		
-//		System.exit(0);
+		byte[] r1 = chainstateStoreProvider.getBytes(s1);
+		log.info("{}", r1);
+		
+		byte[] s2 = new byte[Sha256Hash.LENGTH + 1];
+		System.arraycopy(hash2.getBytes(), 0, s2, 0, Sha256Hash.LENGTH);
+		s2[Sha256Hash.LENGTH] = (byte)1;
+		
+		byte[] r2 = chainstateStoreProvider.getBytes(s2);
+		log.info("{}", r2);
+		
+		byte[] s3 = new byte[Sha256Hash.LENGTH + 1];
+		System.arraycopy(hash3.getBytes(), 0, s3, 0, Sha256Hash.LENGTH);
+		s3[Sha256Hash.LENGTH] = (byte)1;
+		
+		byte[] r3 = chainstateStoreProvider.getBytes(s3);
+		log.info("{}", r3);
+		
+		
+		log.info("======================");
+		
 	}
 }

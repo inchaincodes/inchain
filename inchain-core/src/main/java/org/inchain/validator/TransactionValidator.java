@@ -115,40 +115,44 @@ public class TransactionValidator {
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 		if(verifyTX != null) {
-			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
-			long blockHeight = verifyTX.getHeight();
-			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
-			//如果对应的区块不存在，则证明这笔交易是脏数据，应该清除掉
-			if(blockHeaderStore == null) {
-				//重置
-				blockStoreProvider.revokedTransaction(verifyTX);
-			} else {
-				//如果存在，则验证交易的合法性，包括对应的区块是否存在，区块存在情况下，区块是否包含该笔交易
-				
-				//先验证是否包含该笔交易
-				List<Sha256Hash> txHashs = blockHeaderStore.getBlockHeader().getTxHashs();
-				boolean exist = false;
-				for (Sha256Hash txHash : txHashs) {
-					if(txHash.equals(tx.getHash())) {
-						exist = true;
-						break;
-					}
-				}
-				if(exist) {
-					//存在，代表合法的，判断区块是否在合法范围内
-					Block block = blockStoreProvider.getBestBlock().getBlock();
-					if(block.getHeight() < blockHeight) {
-						//重置
-						blockStoreProvider.revokedTransaction(verifyTX);
-					} else {
-						result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
-						return validatorResult;
-					}
-				} else {
-					//不存在，则代表存储的该笔交易为脏数据，清除掉
-					blockStoreProvider.revokedTransaction(verifyTX);
-				}
-			}
+			
+			result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
+			return validatorResult;
+			
+//			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
+//			long blockHeight = verifyTX.getHeight();
+//			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
+//			//如果对应的区块不存在，则证明这笔交易是脏数据，应该清除掉
+//			if(blockHeaderStore == null) {
+//				//重置
+//				blockStoreProvider.revokedTransaction(verifyTX);
+//			} else {
+//				//如果存在，则验证交易的合法性，包括对应的区块是否存在，区块存在情况下，区块是否包含该笔交易
+//				
+//				//先验证是否包含该笔交易
+//				List<Sha256Hash> txHashs = blockHeaderStore.getBlockHeader().getTxHashs();
+//				boolean exist = false;
+//				for (Sha256Hash txHash : txHashs) {
+//					if(txHash.equals(tx.getHash())) {
+//						exist = true;
+//						break;
+//					}
+//				}
+//				if(exist) {
+//					//存在，代表合法的，判断区块是否在合法范围内
+//					Block block = blockStoreProvider.getBestBlock().getBlock();
+//					if(block.getHeight() < blockHeight) {
+//						//重置
+//						blockStoreProvider.revokedTransaction(verifyTX);
+//					} else {
+//						result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
+//						return validatorResult;
+//					}
+//				} else {
+//					//不存在，则代表存储的该笔交易为脏数据，清除掉
+//					blockStoreProvider.revokedTransaction(verifyTX);
+//				}
+//			}
 		}
 		//如果是转帐交易
 		//TODO 以下代码请使用状态模式重构
@@ -218,32 +222,32 @@ public class TransactionValidator {
 					byte[] state = chainstateStoreProvider.getBytes(statusKey);
 					if((state == null || Arrays.equals(state, new byte[]{ 1 })) && txs != null && !txs.isEmpty()) {
 						//没有状态，则可能是在 txs 里，txs里面不能有2笔对此的引用，否则就造成了双花
-						int count = 0;
-						for (Transaction t : txs) {
-							if(t.getHash().equals(tx.getHash())) {
-								continue;
-							}
-							List<TransactionInput> inputsTemp = t.getInputs();
-							if(inputsTemp == null || inputsTemp.size() == 0) {
-								continue;
-							}
-							for (TransactionInput in : t.getInputs()) {
-								List<TransactionOutput> fromsTemp = in.getFroms();
-								if(fromsTemp == null || fromsTemp.size() == 0) {
-									break;
-								}
-								for (TransactionOutput fromTemp : fromsTemp) {
-									if(fromTemp.getParent() != null && fromTemp.getParent().getHash().equals(fromId) && fromTemp.getIndex() == index) {
-										count++;
-									}
-								}
-							}
-						}
-						if(count > 1) {
-							//双花了
-							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "同一块多个交易引用了同一个输入");
-							return validatorResult;
-						}
+//						int count = 0;
+//						for (Transaction t : txs) {
+//							if(t.getHash().equals(tx.getHash())) {
+//								continue;
+//							}
+//							List<TransactionInput> inputsTemp = t.getInputs();
+//							if(inputsTemp == null || inputsTemp.size() == 0) {
+//								continue;
+//							}
+//							for (TransactionInput in : t.getInputs()) {
+//								List<TransactionOutput> fromsTemp = in.getFroms();
+//								if(fromsTemp == null || fromsTemp.size() == 0) {
+//									break;
+//								}
+//								for (TransactionOutput fromTemp : fromsTemp) {
+//									if(fromTemp.getParent() != null && fromTemp.getParent().getHash().equals(fromId) && fromTemp.getIndex() == index) {
+//										count++;
+//									}
+//								}
+//							}
+//						}
+//						if(count > 1) {
+//							//双花了
+//							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "同一块多个交易引用了同一个输入");
+//							return validatorResult;
+//						}
 					} else if(Arrays.equals(state, new byte[]{2})) {
 						//已经花费了
 						result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了已花费的交易");

@@ -42,6 +42,7 @@ import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
+import org.inchain.filter.InventoryFilter;
 import org.inchain.listener.NoticeListener;
 import org.inchain.listener.TransactionListener;
 import org.inchain.mempool.MempoolContainer;
@@ -810,9 +811,7 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
-//			List<Transaction> txList = new ArrayList<Transaction>();
-//			long now = System.currentTimeMillis();
-//			for (int i = 0; i < 20000; i++) {
+			List<Transaction> txList = new ArrayList<Transaction>();
 			
 			Address receiveAddress = null;
 			try {
@@ -937,16 +936,8 @@ public class AccountKit {
 	
 			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 			boolean success = MempoolContainer.getInstace().add(tx);
-//			txList.add(tx);
-//			transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-////			}
-//			System.out.println("构建交易耗时："+(System.currentTimeMillis() - now)+"ms");
-//			now = System.currentTimeMillis();
-//			
-//			for (Transaction transaction : txList) {
-//				peerKit.broadcastMessage(transaction);
-//			}
-//			System.out.println("广播耗时："+(System.currentTimeMillis() - now)+"ms, 成功广播" +txList.size()+"条交易");
+			txList.add(tx);
+			transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
 			
 			BroadcastResult broadcastResult = null;
 			
@@ -973,6 +964,176 @@ public class AccountKit {
 				broadcastResult.setMessage("重复的交易，禁止广播");
 			}
 			return broadcastResult;
+		} finally {
+			locker.unlock();
+		}
+	}
+	
+	/**
+	 * 发送普通交易到指定地址
+	 * @param to   base58的地址
+	 * @param money	发送金额
+	 * @param fee	手续费
+	 * @return String
+	 * @throws MoneyNotEnoughException
+	 */
+	//测试方法，将来会删掉的
+	public BroadcastResult sendMoney1(String to, Coin money, Coin fee, byte[] remark, String address, String password) throws MoneyNotEnoughException {
+		//参数不能为空
+		Utils.checkNotNull(to);
+		
+		locker.lock();
+		try {
+			List<Transaction> txList = new ArrayList<Transaction>();
+			
+			long now = System.currentTimeMillis();
+			
+			Address receiveAddress = null;
+			try {
+				receiveAddress = Address.fromBase58(network, to);
+			} catch (Exception e) {
+				throw new VerificationException("错误的接收地址");
+			}
+			
+			//发送的金额必须大于0
+			if(money.compareTo(Coin.ZERO) <= 0) {
+				throw new RuntimeException("发送的金额需大于0");
+			}
+			
+			if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
+				fee = Coin.ZERO;
+			}
+			
+			if(accountList == null || accountList.size() == 0) {
+				throw new VerificationException("没有可用账户");
+			}
+			
+			for (int i = 0; i < 20000; i++) {
+				
+				//账户是否已加密
+				Account account = null;
+				
+				if(StringUtil.isEmpty(address)) {
+					account = getDefaultAccount();
+				} else {
+					account = getAccount(address);
+				}
+				
+				if(account == null) {
+					throw new VerificationException("地址不存在或错误");
+				}
+				
+				if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+						(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
+					if(StringUtil.isEmpty(password)) {
+						throw new VerificationException("账户已加密");
+					}
+					
+					if(account.getAccountType() == network.getSystemAccountVersion()) {
+						ECKey eckey = account.getEcKey().decrypt(password);
+						account.setEcKey(eckey);
+					} else {
+						ECKey[] eckeys = account.decryptionTr(password);
+						if(eckeys == null) {
+							throw new VerificationException("密码错误");
+						}
+					}
+				}
+				
+				//如果是认证账户，但是没有被收录进链里，则账户不可用
+				if(account.isCertAccount() && account.getAccountTransaction() == null) {
+					throw new VerificationException("账户不可用");
+				}
+				
+				Address myAddress = account.getAddress();
+				
+				//当前余额可用余额
+				Coin balance = myAddress.getBalance();
+				
+				//检查余额是否充足
+				if(money.add(fee).compareTo(balance) > 0) {
+					throw new MoneyNotEnoughException("余额不足");
+				}
+				
+				Transaction tx = new Transaction(network);
+				tx.setTime(TimeService.currentTimeMillis());
+				tx.setLockTime(TimeService.currentTimeMillis());
+				tx.setType(Definition.TYPE_PAY);
+				tx.setVersion(Definition.VERSION);
+				tx.setRemark(remark);
+				
+				Coin totalInputCoin = Coin.ZERO;
+				
+				TransactionInput input = new TransactionInput();
+				
+				if(i == 0) {
+					//选择输入
+					List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
+					
+					for (TransactionOutput output : fromOutputs) {
+						input.addFrom(output);
+						totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+					}
+				} else {
+					TransactionOutput output = txList.get(txList.size() - 1).getOutput(1);
+					input.addFrom(output);
+					totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+				}
+				//创建一个输入的空签名
+				if(account.getAccountType() == network.getSystemAccountVersion()) {
+					//普通账户的签名
+					input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+				} else {
+					//认证账户的签名
+					input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+				}
+				tx.addInput(input);
+				
+				//交易输出
+				tx.addOutput(money, receiveAddress);
+				//是否找零
+				if(totalInputCoin.compareTo(money.add(fee)) > 0) {
+					tx.addOutput(totalInputCoin.subtract(money.add(fee)), myAddress);
+				}
+				
+				//签名交易
+				final LocalTransactionSigner signer = new LocalTransactionSigner();
+				try {
+					if(account.getAccountType() == network.getSystemAccountVersion()) {
+						//普通账户的签名
+						signer.signInputs(tx, account.getEcKey());
+					} else {
+						//认证账户的签名
+						signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+					}
+				} catch (Exception e) {
+					log.error(e.getMessage(), e);
+					BroadcastResult broadcastResult = new BroadcastResult();
+					broadcastResult.setSuccess(false);
+					broadcastResult.setMessage("签名失败");
+					return broadcastResult;
+				}
+				//验证交易是否合法
+				ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+				if(!rs.getResult().isSuccess()) {
+					throw new VerificationException(rs.getResult().getMessage());
+				}
+				
+				//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+				boolean success = MempoolContainer.getInstace().add(tx);
+				txList.add(tx);
+			}
+			System.out.println("构建交易耗时："+(System.currentTimeMillis() - now)+"ms");
+			now = System.currentTimeMillis();
+			
+			InventoryFilter filter = SpringContextUtils.getBean(InventoryFilter.class);
+			for (Transaction transaction : txList) {
+				peerKit.broadcastMessage(transaction);
+				filter.insert(transaction.getHash().getBytes());
+			}
+			System.out.println("广播耗时："+(System.currentTimeMillis() - now)+"ms, 成功广播" +txList.size()+"条交易");
+			
+			return new BroadcastResult(true, "成功");
 		} finally {
 			locker.unlock();
 		}

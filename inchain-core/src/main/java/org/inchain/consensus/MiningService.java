@@ -160,6 +160,7 @@ public final class MiningService implements Mining {
 				log.debug("{}", e.getMessage());
 			}
 		}
+		log.info("开始打包 , 本地内存交易数量 {}", MempoolContainer.getInstace().getTxCount());
 		
 		//被打包的交易列表
 		List<Transaction> transactionList = new ArrayList<Transaction>();
@@ -170,13 +171,13 @@ public final class MiningService implements Mining {
 		BloomFilter inputFilter = new BloomFilter(100000, 0.0001, RandomUtil.randomLong());
 		
 		int txsSize = 0;
-		int maxTxsSize = Definition.MAX_BLOCK_SIZE - 200;
+		int maxTxsSize = Definition.MAX_BLOCK_SIZE - 10000;
 		
 		while (true) {
 			//每次获取内存里面的一个交易
-			Transaction tx = mempool.get();
+			Transaction tx = null;
 			
-			while(tx != null) {
+			while((tx = mempool.get()) != null) {
 				if(txsSize > maxTxsSize) {
 					break;
 				}
@@ -209,7 +210,6 @@ public final class MiningService implements Mining {
 				if(TimeService.currentTimeMillis() - beginTime >= Configure.BLOCK_GEN__MILLISECOND_TIME || forcedStopModel == 1) {
 					break;
 				}
-				tx = mempool.get();
 			}
 			//如果时间到了，那么退出打包，然后广区块
 			if(TimeService.currentTimeMillis() - beginTime >= Configure.BLOCK_GEN__MILLISECOND_TIME || forcedStopModel == 1) {
@@ -295,7 +295,7 @@ public final class MiningService implements Mining {
 
 		try {
 
-			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} , 内存交易数 {} , 待定交易数 {}", block.getHeight(), DateUtil.convertDate(new Date(block.getTime() * 1000)), transactionList.size(), fee, MempoolContainer.getInstace().getTxCount(), transactionMessageProcess.getPendingTxCount());
+			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} , 内存交易数 {}", block.getHeight(), DateUtil.convertDate(new Date(block.getTime() * 1000)), transactionList.size(), fee, MempoolContainer.getInstace().getTxCount());
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			}
@@ -611,10 +611,6 @@ public final class MiningService implements Mining {
 				return false;
 			}
 			if(tx.isPaymentTransaction()) {
-				long now = System.currentTimeMillis();
-				
-				System.out.println("交易自检查耗时："+(System.currentTimeMillis() - now)+"ms");
-				
 				//交易的txid不能和区块里面的交易重复
 				TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 				if(verifyTX != null) {
@@ -675,7 +671,7 @@ public final class MiningService implements Mining {
 										throw new VerificationException("引用了不存在或不可用的交易");
 									} else {
 										//在内存池里面，那么就把本笔交易扔回内存池，等待下次打包
-										MempoolContainer.getInstace().add(tx);
+//										MempoolContainer.getInstace().add(tx);
 										throw new VerificationException("该交易打包顺序不对");
 									}
 								}

@@ -120,10 +120,12 @@ public class Block extends BlockHeader {
 	 * @return Sha256Hash
 	 */
 	public Sha256Hash getHash() {
-		Sha256Hash id = Sha256Hash.twiceOf(baseSerialize());
 		if(hash == null) {
-			hash = id;
+			hash = Sha256Hash.twiceOf(baseSerialize());
 		}
+//		if(!hash.equals(Sha256Hash.twiceOf(baseSerialize()))) {
+//			throw new VerificationException("区块信息不正确 " + height);
+//		}
 		return hash;
 	}
 	
@@ -139,8 +141,7 @@ public class Block extends BlockHeader {
 		}
 		
 		//区块最大限制
-		int blockSize = baseSerialize().length;
-		if(blockSize > Definition.MAX_BLOCK_SIZE) {
+		if(length > Definition.MAX_BLOCK_SIZE) {
 			log.error("区块大小超过限制 {} , {}", getHeight(), getHash());
 			throw new VerificationException("区块大小超过限制");
 		}
@@ -152,6 +153,10 @@ public class Block extends BlockHeader {
 		boolean coinbase = false;
 		
 		List<Transaction> txs = getTxs();
+		//验证交易数量
+		if(txs.size() != (int) txCount) {
+			throw new VerificationException("交易数量不正确");
+		}
 		for (Transaction tx : txs) {
 			//区块的第一个交易必然是coinbase交易，除第一个之外的任何交易都不应是coinbase交易，否则出错
 			if(!coinbase) {

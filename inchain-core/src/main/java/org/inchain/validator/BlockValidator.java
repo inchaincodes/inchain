@@ -1,5 +1,6 @@
 package org.inchain.validator;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -7,11 +8,13 @@ import java.util.List;
 import org.inchain.Configure;
 import org.inchain.consensus.ConsensusInfos;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.core.ByteHash;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.Result;
 import org.inchain.core.TimeService;
 import org.inchain.core.exception.VerificationException;
+import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
@@ -20,9 +23,12 @@ import org.inchain.service.CreditCollectionService;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStoreProvider;
 import org.inchain.transaction.Transaction;
+import org.inchain.transaction.TransactionInput;
+import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.CreditTransaction;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,13 +100,13 @@ public class BlockValidator {
 			
 			//允许块的时间和当前时间不超过1个时段的误差，否则验证不通过
 			//这个条件的判断，会导致时间不准的节点出错，但是不判断则会给系统带来极大风险，是否放宽条件？  TODO
-			long timeDiff = TimeService.currentTimeSeconds() - (block.getPeriodStartTime() + (block.getTimePeriod() +1) * Configure.BLOCK_GEN_TIME);
-			if(Math.abs(timeDiff) > Configure.BLOCK_GEN_TIME) {
+			long timeDiff = TimeService.currentTimeSeconds() - (block.getPeriodStartTime() + (block.getTimePeriod() + 1) * Configure.BLOCK_GEN_TIME);
+			if(Math.abs(timeDiff) > 6 * Configure.BLOCK_GEN_TIME) {
 				return new Result(false, "新区块时间误差过大，拒绝接收");
 			}
 			
 			BlockHeader bestBlock = networkParams.getBestBlockHeader();
-			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && bestBlock.getTimePeriod() >= block.getTimePeriod()) {
+			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && (bestBlock.getTimePeriod() - block.getTimePeriod() > 6)) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");
 			}
 			
@@ -117,6 +123,8 @@ public class BlockValidator {
 	 * @return boolean
 	 */
 	public Result verifyBlock(Block block) {
+		long now = System.currentTimeMillis();
+		
 		try {
 			if(!block.verify()) {
 				return new Result(false);
@@ -135,6 +143,9 @@ public class BlockValidator {
 		if(block.getTxCount() != block.getTxs().size()) {
 			return new Result(false, "区块交易数量不正确");
 		}
+		
+//		log.info("===============验证区块基本信息和签名耗时：{} ms", (System.currentTimeMillis() - now));
+//		now = System.currentTimeMillis();
 		
 		//验证交易是否合法
 		Coin coinbaseFee = Coin.ZERO; //coinbase 交易包含的金额，主要是手续费
@@ -171,6 +182,41 @@ public class BlockValidator {
 				fee = fee.add(rs.getResult().getFee());
 			}
 		}
+		
+//		log.info("===============验证交易耗时：{} ms", (System.currentTimeMillis() - now));
+		now = System.currentTimeMillis();
+		
+		//验证本区块的双花
+		List<ByteHash> outputIndexHashArray = new ArrayList<ByteHash>();
+		for (Transaction t : txs) {
+			List<TransactionInput> inputsTemp = t.getInputs();
+			if(inputsTemp == null || inputsTemp.size() == 0) {
+				continue;
+			}
+			for (TransactionInput in : t.getInputs()) {
+				List<TransactionOutput> fromsTemp = in.getFroms();
+				if(fromsTemp == null || fromsTemp.size() == 0) {
+					continue;
+				}
+				for (TransactionOutput fromTemp : fromsTemp) {
+					byte[] statusKey = fromTemp.getKey();
+					
+					ByteHash byteHash = new ByteHash(statusKey);
+					if(outputIndexHashArray.contains(byteHash)) {
+						log.warn("存在双花交易");
+						//TODO 主网需要去掉判断
+						if(block.getHeight() > 630000) {
+							return new Result(false, "存在双花交易");
+						}
+					} else {
+						outputIndexHashArray.add(byteHash);
+					}
+				}
+			}
+		}
+		
+//		log.info("===============验证双花耗时：{} ms", (System.currentTimeMillis() - now));
+		
 		//验证金额，coinbase交易的费用必须等于交易手续费
 		//获取该高度的奖励
 		Coin rewardCoin = ConsensusCalculationUtil.calculatReward(block.getHeight());
@@ -187,6 +233,7 @@ public class BlockValidator {
 			blockForkService.addBlockFork(block);
 			return new Result(false, ERROR_CODE_HEIGHT_ERROR, "block info warn newblock {}, localblock {}");
 		}
+		
 		return new Result(true);
 	}
 	

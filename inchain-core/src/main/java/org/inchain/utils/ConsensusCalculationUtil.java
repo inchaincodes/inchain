@@ -105,7 +105,7 @@ public final class ConsensusCalculationUtil {
 		
 		//max is (Math.log((double)300)/Math.log((double)2))
 		
-		if(height < 33000 || height > 785000) {
+		if(height < 33000 || height > 546000) {
 			double max = 2468d;
 			
 			double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
@@ -129,7 +129,7 @@ public final class ConsensusCalculationUtil {
 	}
 	
 	public static long getConsensusCredit(long height) {
-		if(height < 33000 || height > 785000) {
+		if(height < 33000 || height > 546000) {
 			return Configure.CONSENSUS_CREDIT;
 		} else {
 			return -10l;

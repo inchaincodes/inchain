@@ -436,6 +436,21 @@ public class Transaction extends Message {
     	return "tx: " +getHash() + " inputSize:" + (inputs == null ? 0:inputs.size()) + " outputSize:" + (outputs == null ? 0:outputs.size());
     }
     
+    @Override
+    public boolean equals(Object obj) {
+    	if(obj == null) {
+    		return false;
+    	}
+    	if(!(obj instanceof Transaction)) {
+    		return false;
+    	}
+    	Transaction other = (Transaction) obj;
+    	if(other.getHash() == null) {
+    		return false;
+    	}
+    	return getHash().equals(other.getHash());
+    }
+    
     public TransactionInput getInput(int index) {
         return inputs.get(index);
     }

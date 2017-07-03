@@ -292,11 +292,12 @@ public class PeerKit {
 		@Override
 		public void run() {
 			try {
-				if(outPeers.size() >= maxConnectionCount) {
+				int availablePeersCount = getAvailablePeersCount();
+				if(availablePeersCount >= maxConnectionCount) {
 					return;
 				}
 				
-				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - outPeers.size());
+				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - availablePeersCount);
 				if(seedList != null && seedList.size() > 0) {
 					for (final Seed seed : seedList) {
 						//排除与自己的连接
@@ -500,6 +501,25 @@ public class PeerKit {
 			}
 		}
 		return count;
+	}
+	
+	/**
+	 * 已连接并完成握手的节点数量
+	 * @return int[]
+	 */
+	public int[] getAvailablePeersCounts() {
+		int[] counts = new int[2];
+		for (Peer peer : inPeers) {
+			if(peer.isHandshake()) {
+				counts[0]++;
+			}
+		}
+		for (Peer peer : outPeers) {
+			if(peer.isHandshake()) {
+				counts[1]++;
+			}
+		}
+		return counts;
 	}
 
 	/**

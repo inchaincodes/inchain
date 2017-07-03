@@ -70,9 +70,9 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		if(log.isDebugEnabled()) {
 			log.debug("new block : {}", block.getHash());
 		}
-		log.info("new block : 当前时间{}, 时间偏移{}, 出块时间{}, 哈希 {}, 高度 {}, 交易数量 {}, 打包人 {}, 开始时间 {}, 当前位置 {}, 本轮人数 {}",
+		log.info("new block : 当前时间{}, 时间偏移{}, 出块时间{}, 哈希 {}, 高度 {}, 交易数量 {}, 区块大小 {}, 打包人 {}, 开始时间 {}, 当前位置 {}, 本轮人数 {}",
 				DateUtil.convertDate(new Date(TimeService.currentTimeMillis())), TimeService.getNetTimeOffset(), DateUtil.convertDate(new Date(block.getTime() * 1000)), 
-				block.getHash(), block.getHeight(), block.getTxCount(), new Address(network, block.getHash160()).getBase58(), DateUtil.convertDate(new Date(block.getPeriodStartTime()*1000)), block.getTimePeriod(), block.getPeriodCount());
+				block.getHash(), block.getHeight(), block.getTxCount(), block.baseSerialize().length, new Address(network, block.getHash160()).getBase58(), DateUtil.convertDate(new Date(block.getPeriodStartTime()*1000)), block.getTimePeriod(), block.getPeriodCount());
 		
 		//验证新区块
 		Result valResult = blockValidator.doVal(block);
@@ -87,7 +87,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 		//最值该节点的最新高度
 		network.setBestHeight(block.getHeight());
 		
-		//区块不能喝已有的重复
+		//区块不能和已有的重复
 		BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeader(block.getHash().getBytes());
 		if(blockHeaderStore != null) {
 			return new MessageProcessResult(block.getHash(), false);
@@ -137,7 +137,7 @@ public class NewBlockMessageProcess extends BlockMessageProcess {
 			filter = new BloomFilter(10000, 0.0001, RandomUtil.randomLong());
 		}
 		
-		log.info("{} success", block.getHeight());
+		log.info("{} success, mem tx count {}", block.getHeight(), MempoolContainer.getInstace().getTxCount());
 		
 		return result;
 	}

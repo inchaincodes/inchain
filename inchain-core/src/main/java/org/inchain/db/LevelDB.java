@@ -21,7 +21,7 @@ public class LevelDB implements Db {
 	
 	private DB db = null;
 	
-	private static final long LEVELDB_READ_CACHE_DEFAULT = 10 * 1048576;
+	private static final long LEVELDB_READ_CACHE_DEFAULT = 16 * 1048576;
     private static final int LEVELDB_WRITE_CACHE_DEFAULT = 2 * 1048576;
     
 	//DB读写缓存大小
@@ -63,7 +63,7 @@ public class LevelDB implements Db {
         options.cacheSize(leveldbReadCache);
         options.writeBufferSize(leveldbWriteCache);
         options.maxOpenFiles(10000);
-        // options.blockSize(1024*1024*50);
+//        options.blockSize(1024*1024*50);
         try {
             db = Iq80DBFactory.factory.open(new File(filename), options);
         } catch (IOException e) {
