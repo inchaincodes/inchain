@@ -24,6 +24,7 @@ import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.AppKit;
+import org.inchain.kits.PeerKit;
 import org.inchain.listener.BlockChangedListener;
 import org.inchain.listener.ConnectionChangedListener;
 import org.inchain.listener.NoticeListener;
@@ -410,18 +411,31 @@ public class MainController {
 			}
 		});
     	
+    	final PeerKit peerKit = instance.getPeerKit();
     	//网络变化监听器
     	appKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
 			public void onChanged(final int inCount, final int outCount, final CopyOnWriteArrayList<Peer> inPeers,
 					final CopyOnWriteArrayList<Peer> outPeers) {
-				Platform.runLater(new Runnable() {
-				    @Override
-				    public void run() {
-						networkInfosNumId.setText(String.valueOf(inCount + outCount));
-						networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outCount, inCount));
-				    }
-				});
+				new Thread() {
+					public void run() {
+						try {
+							Thread.sleep(1000l);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+						Platform.runLater(new Runnable() {
+							@Override
+							public void run() {
+								int[] counts = peerKit.getAvailablePeersCounts();
+								int inPeerCount = counts[0];
+								int outPeerCount = counts[1];
+								networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount));
+								networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outPeerCount, inPeerCount));
+							}
+						});
+					};
+				}.start();
 			}
 		});
     	
