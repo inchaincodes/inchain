@@ -28,10 +28,6 @@ public class TestNetworkParams extends NetworkParams {
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.253.3", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.254.99", Configure.DEFAULT_PORT)));
 
-//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.100", Configure.DEFAULT_PORT)));
-//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.11", Configure.DEFAULT_PORT)));
-//    	seedManager.add(new Seed(new InetSocketAddress("192.168.1.13", Configure.DEFAULT_PORT)));
-		
     	init();
 	}
     
@@ -45,8 +41,7 @@ public class TestNetworkParams extends NetworkParams {
 		
 		id = ID_TESTNET;
 		
-		packetMagic = 629266568l;
-//		packetMagic = 629266569l;
+		packetMagic = 629266569l;
 		
 		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}
