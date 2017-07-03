@@ -900,6 +900,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		AccountStore accountInfo = new AccountStore(network);
 		accountInfo.setHash160(tx.getHash160());
 		accountInfo.setType(tx.isSystemAccount() ? network.getSystemAccountVersion() : network.getCertAccountVersion());
+		accountInfo.setStatus((byte)0);
 		accountInfo.setCert(0);
 		accountInfo.setAccountBody(accountBody);
 		accountInfo.setBalance(Coin.ZERO.value);

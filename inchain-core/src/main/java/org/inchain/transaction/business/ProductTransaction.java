@@ -46,7 +46,6 @@ public class ProductTransaction extends CommonlyTransaction {
 		if(product == null) {
 			new VerificationException("商品信息不存在");
 		}
-		
 		//是否认证用户
 		if(!isCertAccount()) {
 			new VerificationException("普通账户不支持创建商品");

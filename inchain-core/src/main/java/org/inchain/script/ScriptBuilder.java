@@ -550,16 +550,15 @@ public class ScriptBuilder {
 		if(signs == null) {
 			return new ScriptBuilder()
 					.data(new byte[]{})
-					.data(new byte[]{})
 					.op(OP_VERTR)
 					.data(txid)
 					.data(hash160)
 					.build();
 		} else {
-			Utils.checkState(signs.length == 2, "签名不正确");
+			Utils.checkState(signs.length == 1, "签名不正确"); //facjas
 			return new ScriptBuilder()
 					.data(signs[0])
-					.data(signs[1])
+					//data(signs[1])  //facjas
 					.op(OP_VERTR)
 					.data(txid)
 					.data(hash160)
@@ -609,16 +608,28 @@ public class ScriptBuilder {
 	 * @return Script
 	 */
 	public static Script createCertAccountScript(int type, Sha256Hash txid, byte[] hash160, byte[] sign1, byte[] sign2) {
-		return new ScriptBuilder()
-				.op(type == Definition.TX_VERIFY_MG ? ScriptOpCodes.OP_VERMG : ScriptOpCodes.OP_VERTR)
-				.data(txid.getBytes())
-				.op(OP_PUBKEY)
-				.data(hash160)
-				.op(OP_EQUALVERIFY)
-	    		.data(sign1)
-	    		.data(sign2)
-	            .op(OP_CHECKSIG)
-	            .build();
+        if(type == Definition.TX_VERIFY_MG) {
+            return new ScriptBuilder()
+                    .op(ScriptOpCodes.OP_VERMG)
+                    .data(txid.getBytes())
+                    .op(OP_PUBKEY)
+                    .data(hash160)
+                    .op(OP_EQUALVERIFY)
+                    .data(sign1)
+                    .data(sign2)
+                    .op(OP_CHECKSIG)
+                    .build();
+        }else{
+            return new ScriptBuilder()
+                    .op(ScriptOpCodes.OP_VERTR)
+                    .data(txid.getBytes())
+                    .op(OP_PUBKEY)
+                    .data(hash160)
+                    .op(OP_EQUALVERIFY)
+                    .data(sign1)
+                    .op(OP_CHECKSIG)
+                    .build();
+        }
 	}
 	
 	/**

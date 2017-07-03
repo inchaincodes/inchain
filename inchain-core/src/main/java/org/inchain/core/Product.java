@@ -17,25 +17,31 @@ import org.slf4j.LoggerFactory;
 public class Product {
 
 	private static Logger log = LoggerFactory.getLogger(Product.class);
-	
+
+
 	public Product(byte[] contents) {
 		parse(contents);
 	}
 	
 	public Product(List<ProductKeyValue> contents) {
 		this.contents = contents;
+		this.status = 0;
 	}
 	
 	public Product(ProductKeyValue[] contents) {
+		this.status = 0;
 		this.contents = Arrays.asList(contents);
 	}
-	
+
+
+	private  byte status;
 	//产品信息
 	private List<ProductKeyValue> contents;
 	
 	public final byte[] serialize() {
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
 		try {
+			bos.write(status);
 			if(contents != null) {
 				for (ProductKeyValue keyValuePair : contents) {
 					byte[] keyValue = keyValuePair.toByte();
@@ -63,6 +69,9 @@ public class Product {
 			return;
 		}
 		int cursor = 0;
+		status = content[cursor];
+		cursor ++;
+
 		contents = new ArrayList<ProductKeyValue>();
 		while(true) {
 			VarInt varint = new VarInt(content, cursor);
@@ -95,8 +104,15 @@ public class Product {
 		return null;
 	}
 
+	public void setStatus(byte status){
+		this.status = status;
+	}
+
+	public byte getStatus(){
+		return this.status;
+	}
 	@Override
 	public String toString() {
-		return "Product [contents=" + contents + "]";
+		return "Product [ status = "+ status +",contents=" + contents + "]";
 	}
 }

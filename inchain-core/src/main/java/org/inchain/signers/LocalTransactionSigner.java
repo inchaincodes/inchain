@@ -87,9 +87,9 @@ public class LocalTransactionSigner implements TransactionSigner {
             List<ScriptChunk> chunks = inputScript.getChunks();
             
             Utils.checkState(chunks.size() == 5);
-            Utils.checkState(eckeys.length == 2);
+            Utils.checkState(eckeys.length == 1);
             
-            byte[][] signs = new byte[2][];
+            byte[][] signs = new byte[1][];
             for (int j = 0; j < eckeys.length; j++) {
 	            TransactionSignature signature = tx.calculateSignature(i, eckeys[j], inputScript.getProgram(), Transaction.SigHash.ALL);
 	            signs[j] = signature.encode();

@@ -346,6 +346,21 @@ public class TransactionValidator {
 					result.setResult(false, "不合法的产品引用");
 					return validatorResult;
 				}
+
+				//检查产品状态是否可用  facjas
+				if(ptx.getProduct().getStatus() ==1 ) {
+					result.setResult(false, "产品状态为不可用");
+					return validatorResult;
+				}
+
+				//检查用户是否为认证账户，检查用户状态是否可用
+				byte[] hash160 = atx.getHash160();
+				AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+				if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()|| accountInfo.getStatus() != 0) {
+					result.setResult(false, "只有激活状态下的认证账户才能创建防伪码");
+					return validatorResult;
+				}
+
 				//防伪码不能重复
 				try {
 					byte[] txid = chainstateStoreProvider.getBytes(atx.getAntifakeCode());
@@ -617,6 +632,14 @@ public class TransactionValidator {
 				result.setResult(false, "签名错误");
 				return validatorResult;
 			}
+			//检查用户是否为认证账户，检查用户状态是否可用
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion() || accountInfo.getStatus() !=0 ) {
+				result.setResult(false, "只有激活状态下的认证账户才能修改");
+				return validatorResult;
+			}
+
+
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
 			
 			//认证帐户，就需要判断是否经过认证的

@@ -1138,30 +1138,31 @@ public class Script {
 				stack.add(sigValid ? new byte[] {1} : new byte[] {});
 			}
 		} else if(script.isSentToCertAccountAddress()) {
-			if(stack.size() < 4) {
-    			throw new ScriptException("验证签名，栈里元素少于4");
+			if(stack.size() < 2) {
+    			throw new ScriptException("验证签名，栈里元素少于2");
     		}
         	
-			byte[] pubkey2 = stack.pollLast();
+			//byte[] pubkey2 = stack.pollLast();
 			byte[] pubkey1 = stack.pollLast();
-        	byte[] sign2 = stack.pollLast();
+        	//byte[] sign2 = stack.pollLast();
         	byte[] sign1 = stack.pollLast();
         	
-        	//清楚验证脚本
-	    	TransactionSignature sig  = TransactionSignature.decode(sign2);
+        	//清楚验证脚本 facjas
+	    	//TransactionSignature sig  = TransactionSignature.decode(sign2);
         	
-        	Sha256Hash hash = tx.hashForSignature(index, script.program, (byte) sig.sighashFlags);
+        	//Sha256Hash hash = tx.hashForSignature(index, script.program, (byte) sig.sighashFlags);
+
+            //sigValid = ECKey.verify(hash.getBytes(), sig, pubkey2);
+
+
  	        boolean sigValid = false;
  	        
- 	        sigValid = ECKey.verify(hash.getBytes(), sig, pubkey2);
- 	        
- 	        if(sigValid) {
- 	        	sig  = TransactionSignature.decode(sign1);
- 	        	
- 	        	hash = tx.hashForSignature(index, script.program, (byte) sig.sighashFlags);
+            TransactionSignature sig  = TransactionSignature.decode(sign1);
+
+            Sha256Hash hash = tx.hashForSignature(index, script.program, (byte) sig.sighashFlags);
  	 	        
- 	 	        sigValid = ECKey.verify(hash.getBytes(), sig, pubkey1);
- 	        }
+            sigValid = ECKey.verify(hash.getBytes(), sig, pubkey1);
+
  	        
  			if (opcode == OP_CHECKSIG) {
  				stack.add(sigValid ? new byte[] {1} : new byte[] {});
@@ -1415,25 +1416,37 @@ public class Script {
                 		if (opcode == OP_CHECKSIG)
                             stack.add(new byte[] {1});
                 	} else {
-                		if(stack.size() < 5) {
-                			throw new ScriptException("验证签名，栈里元素少于4");
-                		}
 
-                    	byte[] sign2 = stack.pollLast();
-                    	byte[] sign1 = stack.pollLast();
-            			byte[] pubkey2 = stack.pollLast();
-            			byte[] pubkey1 = stack.pollLast();
-                    	byte[] hash = stack.pollLast();
-                    	
-             	        boolean sigValid = ECKey.verify(hash, sign2, pubkey2);
-             	        
-             	        if(sigValid) {
-             	 	        sigValid = ECKey.verify(hash, sign1, pubkey1);
-             	        }
-             	        
-             			if (opcode == OP_CHECKSIG) {
-             				stack.add(sigValid ? new byte[] {1} : new byte[] {});
-             			}
+                		if(stack.size() != 3 && stack.size() != 5) {
+                			throw new ScriptException("验证签名，栈里元素数量不正确");
+                		}
+                		if(stack.size() == 5) {
+                            //verify mg
+                            byte[] sign2 = stack.pollLast();
+                            byte[] sign1 = stack.pollLast();
+                            byte[] pubkey2 = stack.pollLast();
+                            byte[] pubkey1 = stack.pollLast();
+                            byte[] hash = stack.pollLast();
+
+                            boolean sigValid = ECKey.verify(hash, sign2, pubkey2);
+
+                            if (sigValid) {
+                                sigValid = ECKey.verify(hash, sign1, pubkey1);
+                            }
+
+                            if (opcode == OP_CHECKSIG) {
+                                stack.add(sigValid ? new byte[]{1} : new byte[]{});
+                            }
+                        } else {
+                            //verify tr
+                            byte[] sign = stack.pollLast();
+                            byte[] pubkey = stack.pollLast();
+                            byte[] hash = stack.pollLast();
+                            boolean sigValid = ECKey.verify(hash, sign, pubkey);
+                            if (opcode == OP_CHECKSIG) {
+                                stack.add(sigValid ? new byte[]{1} : new byte[]{});
+                            }
+                        }
                 	}
                     break;
                 }
@@ -1643,14 +1656,24 @@ public class Script {
 	 * @return boolean
 	 */
 	public boolean isCertAccount() {
-		return chunks.size() == 8 &&
-				(chunks.get(0).equalsOpCode(OP_VERMG) ||
-						chunks.get(0).equalsOpCode(OP_VERTR)) &&
-				chunks.get(1).data.length == Sha256Hash.LENGTH &&
-        		chunks.get(2).equalsOpCode(OP_PUBKEY) &&
-        		chunks.get(3).data.length == Address.LENGTH &&
-        		chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
-        		chunks.get(7).equalsOpCode(OP_CHECKSIG);
+	    //facjas
+
+
+		return (chunks.size() == 8 &&
+				    (chunks.get(0).equalsOpCode(OP_VERMG) &&
+				    chunks.get(1).data.length == Sha256Hash.LENGTH &&
+        		    chunks.get(2).equalsOpCode(OP_PUBKEY) &&
+        		    chunks.get(3).data.length == Address.LENGTH &&
+        		    chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
+        		    chunks.get(7).equalsOpCode(OP_CHECKSIG))
+        		||
+                (chunks.size() == 7 &&
+                        (chunks.get(0).equalsOpCode(OP_VERTR))) &&
+                chunks.get(1).data.length == Sha256Hash.LENGTH &&
+                chunks.get(2).equalsOpCode(OP_PUBKEY) &&
+                chunks.get(3).data.length == Address.LENGTH &&
+                chunks.get(4).equalsOpCode(OP_EQUALVERIFY) &&
+                chunks.get(6).equalsOpCode(OP_CHECKSIG));    // 认证用户交易密钥只有一对 ，facjas
 	}
 	
 	/**

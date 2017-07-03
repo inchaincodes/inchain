@@ -1666,7 +1666,7 @@ public class AccountKit {
 		BigInteger trPri1 = AccountTool.genPrivKey1(prikeySeed, trPw.getBytes());
 		
 		BigInteger mgPri2 = AccountTool.genPrivKey2(prikeySeed, mgPw.getBytes());
-		BigInteger trPri2 = AccountTool.genPrivKey2(prikeySeed, trPw.getBytes());
+		//BigInteger trPri2 = AccountTool.genPrivKey2(prikeySeed, trPw.getBytes()); //facjas
 
 		//默认生成一个系统帐户
 
@@ -1679,7 +1679,7 @@ public class AccountKit {
 		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
 		
 		ECKey trkey1 = ECKey.fromPrivate(trPri1);
-		ECKey trkey2 = ECKey.fromPrivate(trPri2);
+		// ECKey trkey2 = ECKey.fromPrivate(trPri2);  //facjas
 		
 		//帐户信息
 		Account account = new Account(network);
@@ -1688,11 +1688,12 @@ public class AccountKit {
 		account.setAddress(address);
 		account.setPriSeed(key.getPubKey(true)); //存储压缩后的种子私匙
 		account.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
-		account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
+		account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true)});//存储交易公匙
+		//account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
 		account.setBody(accountBody);
 		
 		//签名帐户
-		account.signAccount(mgkey1, mgkey2);
+		account.signAccount(mgkey1,mgkey2);
 		
 		File accountFile = new File(accountDir + File.separator,  address.getBase58()+".dat");
 		if(!accountFile.getParentFile().exists()) {
@@ -1709,8 +1710,8 @@ public class AccountKit {
 		//广播帐户注册消息
 		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody);
 
-		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], trEckeys[1]);
-		
+		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], null);
+		//log.info("create user {}"+ Hex.encode(tx.baseSerialize()));
 		peerKit.broadcastMessage(tx);
 		
 		account.setAccountTransaction(tx);

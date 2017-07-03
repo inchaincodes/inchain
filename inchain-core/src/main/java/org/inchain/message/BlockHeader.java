@@ -195,10 +195,10 @@ public class BlockHeader extends Message {
 			ECDSASignature ecSign = keys[0].sign(headerHash);
 			byte[] sign1 = ecSign.encodeToDER();
 			
-			ecSign = keys[1].sign(headerHash);
-			byte[] sign2 = ecSign.encodeToDER();
+//			ecSign = keys[1].sign(headerHash);
+//			byte[] sign2 = ecSign.encodeToDER();
 			
-			scriptSig = ScriptBuilder.createCertAccountScript(Definition.TX_VERIFY_TR, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, sign2);
+			scriptSig = ScriptBuilder.createCertAccountScript(Definition.TX_VERIFY_TR, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, null);
 		} else {
 			//普通账户
 			ECKey key = account.getEcKey();

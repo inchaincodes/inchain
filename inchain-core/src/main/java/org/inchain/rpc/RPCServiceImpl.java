@@ -1602,7 +1602,7 @@ public class RPCServiceImpl implements RPCService {
 		AccountStore info = accountKit.getAccountInfo(address);
 		json.put("type", info.getType());
 		json.put("adderss", new Address(network, info.getType(), info.getHash160()).getBase58());
-		
+		json.put("status",info.getStatus());
 		Coin[] blanaces = getAccountBalance(address);
 		json.put("blanace", blanaces[0].add(blanaces[1]).value);
 		json.put("canUseBlanace", blanaces[0].value);

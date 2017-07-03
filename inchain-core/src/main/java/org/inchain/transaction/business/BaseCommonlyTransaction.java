@@ -17,6 +17,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
 import org.inchain.transaction.Transaction;
+import org.inchain.utils.Hex;
 
 /**
  * 其它交易均继承该类
@@ -148,9 +149,10 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			
 			ECDSASignature ecSign = keys[0].sign(hash);
 			byte[] sign1 = ecSign.encodeToDER();
-			
-			ecSign = keys[1].sign(hash);
-			byte[] sign2 = ecSign.encodeToDER();
+
+			//facjas
+			//ecSign = keys[1].sign(hash);
+			byte[] sign2 = new byte[0];
 			
 			Sha256Hash txhash = null;
 			
@@ -161,6 +163,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 			}
 			
 			scriptSig = ScriptBuilder.createCertAccountScript(type, txhash, account.getAddress().getHash160(), sign1, sign2);
+			//scriptSig = ScriptBuilder.createCertAccountScript(type, Sha256Hash.wrap("474b0c43c0caa173830dcac976a26dcb6181c6de533d6e4f058bedb7e8f6189d"), Hex.decode("2b59fb5a63c362ead608707ee8641dec80eca302"), sign1, sign2);
 		} else {
 			//普通账户
 			ECKey key = account.getEcKey();

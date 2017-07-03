@@ -27,6 +27,8 @@ public class AccountStore extends Store {
 	//账户类型
 	private int type;
 	private byte[] hash160;
+	//账户状态
+	private byte status;
 	//别名
 	private byte[] alias;
 	private byte[][] pubkeys;
@@ -53,7 +55,8 @@ public class AccountStore extends Store {
 	protected void serializeToStream(OutputStream stream) throws IOException {
 		stream.write(type);
 		stream.write(hash160);
-		
+		stream.write(status);
+
 		if(alias == null) {
 			stream.write(new VarInt(0).encode());
 		} else {
@@ -76,6 +79,7 @@ public class AccountStore extends Store {
 		Utils.int64ToByteStreamLE(lastModifyTime, stream);
 		Utils.int64ToByteStreamLE(createTime, stream);
 		Utils.int64ToByteStreamLE(cert, stream);
+
 		stream.write(accountBody.serialize());
 	}
 	
@@ -83,7 +87,8 @@ public class AccountStore extends Store {
 	protected void parse() throws ProtocolException {
 		type = readBytes(1)[0] & 0xff;
 		hash160 = readBytes(Address.LENGTH);
-		
+		status = readBytes(1)[0];
+
 		int aliasLength = (int) readVarInt();
 		if(aliasLength > 0) {
 			alias = readBytes(aliasLength);
@@ -96,7 +101,7 @@ public class AccountStore extends Store {
 				readBytes((int) readVarInt()),
 				readBytes((int) readVarInt()),
 				readBytes((int) readVarInt()),
-				readBytes((int) readVarInt())
+				//readBytes((int) readVarInt())
 				};
 			infoTxid = readHash();
 		}
@@ -104,6 +109,7 @@ public class AccountStore extends Store {
 		lastModifyTime = readInt64();
 		createTime = readInt64();
 		cert = readInt64();
+
 		
 		if(cursor < payload.length) {
 			accountBody = new AccountBody(Arrays.copyOfRange(payload, cursor, payload.length));
@@ -196,5 +202,13 @@ public class AccountStore extends Store {
 	
 	public byte[] getAlias() {
 		return alias;
+	}
+
+	public byte getStatus(){
+		return status;
+	}
+
+	public void setStatus(byte status){
+		this.status = status;
 	}
 }

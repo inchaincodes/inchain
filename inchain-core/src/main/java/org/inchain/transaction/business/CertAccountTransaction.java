@@ -51,10 +51,11 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 		if(mgPubkeys == null || mgPubkeys.length != 2) {
 			throw new VerificationException("账户管理公钥个数不正确");
 		}
-		
+
+		/*
 		if(trPubkeys == null || trPubkeys.length != 2) {
 			throw new VerificationException("交易公钥个数不正确");
-		}
+		}*/
 		
 		if(scriptBytes == null) {
 			throw new VerificationException("缺少签名信息");
@@ -96,13 +97,16 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 		//签名
 		ECDSASignature ecSign1 = key1.sign(hash);
 		byte[] sign1 = ecSign1.encodeToDER();
-		
-		ECDSASignature ecSign2 = key2.sign(hash);
-		byte[] sign2 = ecSign2.encodeToDER();
-		
+
+		byte[] sign2  = null;
+		if(type == Definition.TX_VERIFY_MG ){
+			ECDSASignature ecSign2 = key2.sign(hash);
+			sign2 = ecSign2.encodeToDER();
+		}
 		scriptSig = ScriptBuilder.createCertAccountScript(type, txid, hash160, sign1, sign2);
 		scriptBytes = scriptSig.getProgram();
 	}
+
 	
 	/**
 	 * 清楚交易验证脚本

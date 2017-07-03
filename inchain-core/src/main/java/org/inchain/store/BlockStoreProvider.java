@@ -378,12 +378,13 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			Sha256Hash oldHash = null;
 			
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(rtx.getHash160());
-			byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0], rtx.getTrPubkeys()[1]};
+			byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0]};
 			if(accountInfo == null) {
 				accountInfo = chainstateStoreProvider.createNewAccountInfo(rtx, rtx.getBody(), pubkeys);
 			} else {
 				oldHash = accountInfo.getInfoTxid();
 				accountInfo.setAccountBody(rtx.getBody());
+				accountInfo.setStatus((byte)0);
 				accountInfo.setLastModifyTime(rtx.getTime());
 				accountInfo.setInfoTxid(rtx.getHash());
 				accountInfo.setPubkeys(pubkeys);
