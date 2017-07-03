@@ -47,7 +47,7 @@ public final class Definition {
 	/**
      * Inchain 核心程序版本
      */
-    public static final String INCHAIN_VERSION = "0.22";
+    public static final String INCHAIN_VERSION = "0.23";
 
     /**
      * 版本完整信息
