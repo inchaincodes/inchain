@@ -24,11 +24,11 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class Account implements Cloneable {
-	
+
 	private static Logger log = LoggerFactory.getLogger(Account.class);
-	
+
 	private NetworkParams network;
-	
+
 	//账户类型
 	private int accountType;
 	//帐户状态
@@ -45,26 +45,26 @@ public class Account implements Cloneable {
 	private AccountBody body;
 	//帐户信息签名
 	private byte[][] signs;
-	
+
 	//解密后的管理私钥
 	private ECKey[] mgEckeys;
 	//解密后的交易私钥
 	private ECKey[] trEckeys;
-	
+
 	//eckey，只有系统类型的账户才会有
 	private ECKey ecKey;
-	
+
 	//认证账户对应最新的交易信息
 	private Transaction accountTransaction;
 	private Sha256Hash txhash;
-	
+
 	public Account() {
 	}
-	
+
 	public Account(NetworkParams network) {
 		this.network = network;
 	}
-	
+
 	/**
 	 * 序列化帐户信息
 	 * @return byte[]
@@ -74,13 +74,13 @@ public class Account implements Cloneable {
 		ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(size());
 		try {
 			bos.write(status);//状态，待激活
-			
+
 			bos.write(address.getVersion());//类型
 			bos.write(address.getHash160());
-			
+
 			bos.write(priSeed.length);
 			bos.write(priSeed);
-			
+
 
 			if(mgPubkeys != null) {
 				for (byte[] mgPubkey : mgPubkeys) {
@@ -88,7 +88,7 @@ public class Account implements Cloneable {
 					bos.write(mgPubkey);
 				}
 			}
-			
+
 			if(trPubkeys != null) {
 				for (byte[] trPubkey : trPubkeys) {
 					bos.write(trPubkey.length);
@@ -114,7 +114,7 @@ public class Account implements Cloneable {
 		} finally {
 			bos.close();
 		}
-    }
+	}
 
 	/**
 	 * 反序列化
@@ -124,7 +124,7 @@ public class Account implements Cloneable {
 	public static Account parse(byte[] datas, NetworkParams network) {
 		return parse(datas, 0, network);
 	}
-	
+
 	/**
 	 * 反序列化
 	 * @param datas
@@ -132,11 +132,11 @@ public class Account implements Cloneable {
 	 * @return Account
 	 */
 	public static Account parse(byte[] datas, int offset, NetworkParams network) {
-		
+
 		Account account = new Account();
-		
+
 		account.network = network;
-		
+
 		int cursor = offset;
 		//状态
 		account.setStatus(datas[cursor]);
@@ -145,38 +145,38 @@ public class Account implements Cloneable {
 		int type = datas[cursor] & 0xff;
 		account.setAccountType(type);
 		cursor ++;
-		
+
 		//hash 160
 		byte[] hash160 = readBytes(cursor, 20, datas);
 		Address address = Address.fromP2PKHash(network, type, hash160);
 		account.setAddress(address);
 		cursor += 20;
-		
+
 		if(type == network.getSystemAccountVersion()) {
 			//私匙
 			int length = datas[cursor] & 0xff;
 			cursor ++;
 			account.setPriSeed(readBytes(cursor, length, datas));
 			cursor += length;
-			
+
 			//公匙
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] pubkey = readBytes(cursor, length, datas);
 			cursor += length;
 			account.setMgPubkeys(new byte[][] {pubkey});
-			
+
 			//主体
 			cursor += 4;
-			
+
 			//签名
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign1 = readBytes(cursor, length, datas);
 			cursor += length;
-			
+
 			account.setSigns(new byte[][] {sign1});
-			
+
 			//eckey
 			account.resetKey();
 		} else if(type == network.getCertAccountVersion()) {
@@ -185,52 +185,55 @@ public class Account implements Cloneable {
 			cursor ++;
 			account.setPriSeed(readBytes(cursor, length, datas));
 			cursor += length;
-			
+
 			//帐户管理公匙
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] mgPubkey1 = readBytes(cursor, length, datas);
 			cursor += length;
-			
+
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] mgPubkey2 = readBytes(cursor, length, datas);
-			
+
 			account.setMgPubkeys(new byte[][] {mgPubkey1, mgPubkey2});
 			cursor += length;
-			
+
 			//交易公匙
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] trPubkey1 = readBytes(cursor, length, datas);
 			cursor += length;
-			
+			account.setTrPubkeys(new byte[][] {trPubkey1});
+			/*
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] trPubkey2 = readBytes(cursor, length, datas);
-			
-			account.setTrPubkeys(new byte[][] {trPubkey1, trPubkey2});
 			cursor += length;
-			
+			account.setTrPubkeys(new byte[][] {trPubkey1, trPubkey2});
+			*/
+			account.setTrPubkeys(new byte[][] {trPubkey1});
+
 			//主体
 			length = (int) Utils.readUint32(datas, cursor);
 			cursor += 4;
 			account.setBody(new AccountBody(readBytes(cursor, length, datas)));
 			cursor += length;
-			
+
 			//签名
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign1 = readBytes(cursor, length, datas);
 			cursor += length;
+			/*
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign2 = readBytes(cursor, length, datas);
 			cursor += length;
-			
-			account.setSigns(new byte[][] {sign1, sign2});
+			*/
+			account.setSigns(new byte[][] {sign1});
 		}
-		
+
 		return account;
 	}
 
@@ -242,7 +245,7 @@ public class Account implements Cloneable {
 			resetKey(null);
 		}
 	}
-	
+
 	public void resetKey(String password) {
 		if(accountType != network.getSystemAccountVersion()) {
 			return;
@@ -268,7 +271,7 @@ public class Account implements Cloneable {
 			}
 		}
 	}
-	
+
 	private static byte[] readBytes(int offset, int length, byte[] datas) {
 		byte[] des = new byte[length];
 		System.arraycopy(datas, offset, des, 0, length);
@@ -293,9 +296,9 @@ public class Account implements Cloneable {
 				size += trPubkey.length + 1;
 			}
 		}
-		
+
 		size += body == null? 4:body.serialize().length + 4;
-		
+
 		if(signs != null) {
 			for (byte[] sign : signs) {
 				size += sign.length + 1;
@@ -309,10 +312,10 @@ public class Account implements Cloneable {
 	 * @return Script
 	 */
 	public Script signTreade(String pwd) {
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 签名账户
 	 * @throws IOException
@@ -340,31 +343,31 @@ public class Account implements Cloneable {
 			Sha256Hash hash = Sha256Hash.of(serialize());
 			ECDSASignature signature1 = mgkey1.sign(hash);
 			//签名结果
-	        byte[] signbs1 = signature1.encodeToDER();
-	        signs = new byte[][] {signbs1};
+			byte[] signbs1 = signature1.encodeToDER();
+			signs = new byte[][] {signbs1};
 		} else if(mgkey1 != null && mgkey2 != null) {
 			//用户帐户管理私匙签名
 			Sha256Hash hash = Sha256Hash.of(serialize());
 			ECDSASignature signature1 = mgkey1.sign(hash);
 			//签名结果
-	        byte[] signbs1 = signature1.encodeToDER();
-	        ECDSASignature signature2 = mgkey2.sign(hash);
-	        //签名结果
-	        byte[] signbs2 = signature2.encodeToDER();
-	        
-	        signs = new byte[][] {signbs1, signbs2};
+			byte[] signbs1 = signature1.encodeToDER();
+			ECDSASignature signature2 = mgkey2.sign(hash);
+			//签名结果
+			byte[] signbs2 = signature2.encodeToDER();
+
+			signs = new byte[][] {signbs1, signbs2};
 		}
 	}
 
 	/**
 	 * 验证帐户的签名是否合法
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public void verify() throws IOException {
 
 		byte[][] tempSigns = signs;
 		signs = null;
-		
+
 		for (int i = 0; i < tempSigns.length; i++) {
 			byte[] sign = tempSigns[i];
 			ECKey key1 = ECKey.fromPublicOnly(mgPubkeys[i]);
@@ -375,7 +378,7 @@ public class Account implements Cloneable {
 		}
 		signs = tempSigns;
 	}
-	
+
 	/**
 	 * 解密管理私钥
 	 * @return ECKey[]
@@ -384,12 +387,12 @@ public class Account implements Cloneable {
 
 		ECKey seedPri = ECKey.fromPublicOnly(priSeed);
 		byte[] seedPribs = seedPri.getPubKey(false);
-		
+
 		BigInteger mgPri1 = AccountTool.genPrivKey1(seedPribs, mgPw.getBytes());
 		BigInteger mgPri2 = AccountTool.genPrivKey2(seedPribs, mgPw.getBytes());
 		ECKey mgkey1 = ECKey.fromPrivate(mgPri1);
 		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
-		
+
 		//验证密码是否正确
 		if(Arrays.equals(mgkey1.getPubKey(true), mgPubkeys[0]) && Arrays.equals(mgkey2.getPubKey(true), mgPubkeys[1])) {
 			mgEckeys = new ECKey[] {mgkey1, mgkey2};
@@ -399,7 +402,7 @@ public class Account implements Cloneable {
 			return null;
 		}
 	}
-	
+
 	/**
 	 * 解密交易私钥
 	 * @return ECKey[]
@@ -408,20 +411,27 @@ public class Account implements Cloneable {
 
 		ECKey seedPri = ECKey.fromPublicOnly(priSeed);
 		byte[] seedPribs = seedPri.getPubKey(false);
-		
+
 		BigInteger trPri1 = AccountTool.genPrivKey1(seedPribs, trPw.getBytes());
 		BigInteger trPri2 = AccountTool.genPrivKey2(seedPribs, trPw.getBytes());
 		ECKey trkey1 = ECKey.fromPrivate(trPri1);
 		ECKey trkey2 = ECKey.fromPrivate(trPri2);
-		
+
+		if(trPubkeys.length==2){
 		//验证密码是否正确
-		if(Arrays.equals(trkey1.getPubKey(true), trPubkeys[0]) && Arrays.equals(trkey2.getPubKey(true), trPubkeys[1])) {
-			trEckeys = new ECKey[] {trkey1, trkey2};
-			return trEckeys;
-		} else {
-			log.error("解密交易私钥时出错，密码不正确");
-			return null;
+			if(Arrays.equals(trkey1.getPubKey(true), trPubkeys[0]) && Arrays.equals(trkey2.getPubKey(true), trPubkeys[1])) {
+				trEckeys = new ECKey[]{trkey1, trkey2};
+				return trEckeys;
+			}
 		}
+		if(trPubkeys.length==1){
+			if(Arrays.equals(trkey1.getPubKey(true), trPubkeys[0])) {
+				trEckeys = new ECKey[]{trkey1};
+				return trEckeys;
+			}
+		}
+		log.error("解密交易私钥时出错，密码不正确");
+		return null;
 	}
 
 	/**
@@ -453,7 +463,7 @@ public class Account implements Cloneable {
 			return true;
 		}
 	}
-	
+
 	/**
 	 * 认证账户管理私钥是否已加密
 	 * @return boolean
@@ -475,7 +485,7 @@ public class Account implements Cloneable {
 			return result;
 		}
 	}
-	
+
 	/**
 	 * 认证账户交易私钥是否已加密
 	 * @return boolean
@@ -497,7 +507,7 @@ public class Account implements Cloneable {
 			return result;
 		}
 	}
-	
+
 	/**
 	 * 账户是否是认证账户
 	 * @return boolean
@@ -505,7 +515,7 @@ public class Account implements Cloneable {
 	public boolean isCertAccount() {
 		return accountType == network.getCertAccountVersion();
 	}
-	
+
 	/**
 	 * 认证账户，获取账户信息最新交易
 	 * @return Transaction
@@ -513,7 +523,7 @@ public class Account implements Cloneable {
 	public Transaction getAccountTransaction() {
 		return accountTransaction;
 	}
-	
+
 	/**
 	 * 设置认证账户信息对应最新交易
 	 * @param accountTransaction
@@ -521,12 +531,12 @@ public class Account implements Cloneable {
 	public void setAccountTransaction(Transaction accountTransaction) {
 		this.accountTransaction = accountTransaction;
 	}
-	
+
 	@Override
 	public Account clone() throws CloneNotSupportedException {
 		return (Account) super.clone();
 	}
-	
+
 	public Address getAddress() {
 		return address;
 	}
@@ -592,15 +602,15 @@ public class Account implements Cloneable {
 	public void setAccountType(int accountType) {
 		this.accountType = accountType;
 	}
-	
+
 	public void setEcKey(ECKey ecKey) {
 		this.ecKey = ecKey;
 	}
-	
+
 	public ECKey getEcKey() {
 		return ecKey;
 	}
-	
+
 	public NetworkParams getNetwork() {
 		return network;
 	}
