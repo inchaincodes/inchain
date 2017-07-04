@@ -192,7 +192,7 @@ public class MainController {
 				while(true) {
 					
 					if(dataSynchronizeHandler.hasComplete()) {
-						if(accountKit.checkConsensusing() && accountKit.accountIsEncrypted()) {
+						if(accountKit.checkConsensusing(null) && accountKit.accountIsEncrypted()) {
 							//解密账户
 							URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 							final FXMLLoader loader = new FXMLLoader(location);

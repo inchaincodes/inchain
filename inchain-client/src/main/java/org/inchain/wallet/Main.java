@@ -374,7 +374,7 @@ public class Main extends Decoration implements ActionListener {
 	public void exit() {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	//当前共识状态，是否正在共识中
-    	boolean consensusStatus = accountKit.checkConsensusing();
+    	boolean consensusStatus = accountKit.checkConsensusing(null);
     	if(consensusStatus) {
     		Platform.runLater(new Runnable() {
 				@Override

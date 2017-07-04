@@ -8,6 +8,7 @@ import javax.annotation.PreDestroy;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.SpringContextUtils;
 import org.inchain.consensus.ConsensusMeeting;
+import org.inchain.consensus.ConsensusPool;
 import org.inchain.consensus.MiningInfos;
 import org.inchain.core.Coin;
 import org.inchain.core.DataSynchronizeHandler;
@@ -187,7 +188,7 @@ public class SystemInfoController implements SubPageController{
 				    	} else if(appKit.getNetwork().getLocalServices() ==2) {
 				    		network.setText("测试网络");
 				    	}
-						if(accountKit.checkConsensusing()) {
+						if(accountKit.checkConsensusing(null)) {
 				    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
 				    		DataSynchronizeHandler dataSynchronizeHandler = SpringContextUtils.getBean(DataSynchronizeHandler.class);
 				    		if(dataSynchronizeHandler.hasComplete()) {
@@ -218,7 +219,8 @@ public class SystemInfoController implements SubPageController{
 				    	} else {
 				    		consensusStatus.setText("未参与共识");
 				    	}
-				    	consensusNodeNumber.setText(String.valueOf(accountKit.getConsensusAccounts().size()));
+						ConsensusPool consensusPoll = SpringContextUtils.getBean(ConsensusPool.class);
+				    	consensusNodeNumber.setText(String.valueOf(consensusPoll.getCurrentConsensus()));
 				    	consensusBonusNumber.setText(ConsensusCalculationUtil.calculatReward(appKit.getNetwork().getBestHeight()).toText() + " INS");
 				    	
 				    	totalAmount.setText(Coin.MAX.toText() + " INS");

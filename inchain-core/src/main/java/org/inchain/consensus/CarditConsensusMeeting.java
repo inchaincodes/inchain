@@ -449,8 +449,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 							ViolationTransaction vtx = (ViolationTransaction) transaction;
 							hash160 = vtx.getViolationEvidence().getAudienceHash160();
 						}
-						//这里面用不到公钥，所以不用设置
-						consensusList.add(new ConsensusAccount(hash160, null));
+						consensusList.add(new ConsensusAccount(hash160));
 					}
 				}
 				

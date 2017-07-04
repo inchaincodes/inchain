@@ -171,7 +171,7 @@ public class MakeTestNetGengsisBlock {
 				
 				if(i < 3) {
 					//注册共识账户到区块里
-					RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, Definition.VERSION, System.currentTimeMillis());
+					RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, Definition.VERSION, System.currentTimeMillis(), account.getAddress().getHash160());
 					regConsensusTransaction.sign(account);
 					
 					regConsensusTransaction.verify();

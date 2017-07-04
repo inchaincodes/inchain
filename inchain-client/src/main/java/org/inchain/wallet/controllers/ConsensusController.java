@@ -156,7 +156,7 @@ public class ConsensusController implements SubPageController {
     	consensusNumberId.setText("" + consensusPool.getCurrentConsensus());
     	
     	//当前共识状态，是否正在共识中
-    	boolean consensusStatus = accountKit.checkConsensusing();
+    	boolean consensusStatus = accountKit.checkConsensusing(null);
     	if (nowStatus == 1) {
     		if(!consensusStatus && type == 0) {
     			nowStatus = 0;
@@ -253,7 +253,7 @@ public class ConsensusController implements SubPageController {
     public void addOrDeleteConsensus() {
     	AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	//当前共识状态，是否正在共识中
-    	boolean consensusStatus = accountKit.checkConsensusing();
+    	boolean consensusStatus = accountKit.checkConsensusing(null);
     	
     	String tip = null;
     	if(consensusStatus) {
@@ -326,7 +326,7 @@ public class ConsensusController implements SubPageController {
 			type = 0;
 		} else {
 			//注册共识
-			result = accountKit.registerConsensus();
+			result = accountKit.registerConsensus(null);
 			type = 1;
 		}    	
 

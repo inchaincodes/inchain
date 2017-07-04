@@ -596,7 +596,6 @@ public class PeerKit {
 	
 	/**
 	 * 大多数时间相近节点的时间偏移
-	 * @param peers
 	 * @return long
 	 */
 	private long getNetTimeOffsetFromPeers() {

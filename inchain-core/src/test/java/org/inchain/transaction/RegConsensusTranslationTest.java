@@ -26,7 +26,7 @@ public class RegConsensusTranslationTest extends UnitBaseTestCase {
 		
 		//共识账户
 		ECKey key = ECKey.fromPrivate(new BigInteger("61914497277584841097702477783063064420681667313180238384957944936487927892583"));
-		RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, 1l, 1478070769l);
+		RegConsensusTransaction regConsensusTransaction = new RegConsensusTransaction(network, 1l, 1478070769l, null);
 		Address address = AccountTool.newAddress(network, key);
 		
 		Account account = new Account(network);

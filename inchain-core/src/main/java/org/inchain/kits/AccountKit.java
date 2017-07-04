@@ -26,9 +26,7 @@ import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
-import org.inchain.consensus.ConsensusMeeting;
-import org.inchain.consensus.ConsensusPool;
-import org.inchain.consensus.MiningInfos;
+import org.inchain.consensus.*;
 import org.inchain.core.AntifakeCode;
 import org.inchain.core.AntifakeInfosResult;
 import org.inchain.core.BroadcastMakeAntifakeCodeResult;
@@ -2408,19 +2406,20 @@ public class AccountKit {
 	 * @return List<AccountStore>
 	 */
 	public List<AccountStore> getConsensusAccounts() {
-		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
+		List<ConsensusModel> list = consensusPool.getContainer();
 		List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
-		if(consensusAccounts == null) {
+		if(list == null) {
 			return consensusAccountList;
 		}
-		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH + Sha256Hash.LENGTH)) {
-			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
+		for (ConsensusModel consensusModel : list) {
+			byte[] hash160 = consensusModel.getApplicant();
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore == null) {
 				continue;
 			}
 			consensusAccountList.add(accountStore);
 		}
+
 		return consensusAccountList;
 	}
 	
@@ -2465,9 +2464,12 @@ public class AccountKit {
 	 * 检查当前账户是否在共识中状态
 	 * @return boolean
 	 */
-	public boolean checkConsensusing() {
+	public boolean checkConsensusing(byte[] hash160) {
 		if(accountList == null || accountList.size() == 0) {
 			return false;
+		}
+		if(hash160 != null) {
+			return consensusPool.contains(hash160);
 		}
 		for (Account account : accountList) {
 			if(consensusPool.contains(account.getAddress().getHash160())) {
@@ -2481,7 +2483,7 @@ public class AccountKit {
 	 * 注册成为共识节点
 	 * @return Result
 	 */
-	public Result registerConsensus() {
+	public Result registerConsensus(String packagerAddress) {
 		//选取第一个可注册共识的账户进行广播
 		try {
 			BlockHeader bestBlockHeader = network.getBestBlockHeader();
@@ -2505,8 +2507,20 @@ public class AccountKit {
 					if(fromOutputs == null || fromOutputs.size() == 0) {
 						return new Result(false, "余额不足,不能申请共识;当前共识人数" + currentConsensusSize + ",所需保证金 " + recognizance.toText() + " INS");
 					}
-					
-					RegConsensusTransaction tx = new RegConsensusTransaction(network, Definition.VERSION, bestBlockHeader.getPeriodStartTime());
+					//是否有指定的打包人
+					byte[] packager = null;
+					if(packagerAddress == null) {
+						packager = getDefaultAccount().getAddress().getHash160();
+					} else {
+						try {
+							Address per = Address.fromBase58(network, packagerAddress);
+							packager = per.getHash160();
+							//验证信用是否达标
+						} catch (Exception e) {
+							return new Result(false, "指定共识人不正确");
+						}
+					}
+					RegConsensusTransaction tx = new RegConsensusTransaction(network, Definition.VERSION, bestBlockHeader.getPeriodStartTime(), packager);
 					
 					TransactionInput input = new TransactionInput();
 					for (TransactionOutput output : fromOutputs) {
@@ -2553,10 +2567,12 @@ public class AccountKit {
 					tx.verify();
 					tx.verifyScript();
 					
-					if(account.getAddress().getBalance().isLessThan(recognizance)) {
-						return new Result(false, "保证金不足,不能申请共识;当前共识人数" + currentConsensusSize + ",所需保证金 " + recognizance.toText() + " INS");
+					//验证交易
+					TransactionValidatorResult valRes = transactionValidator.valDo(tx).getResult();
+					if(!valRes.isSuccess()) {
+						return new Result(false, valRes.getMessage());
 					}
-					
+
 					//加入内存池
 					MempoolContainer.getInstace().add(tx);
 					
@@ -2593,7 +2609,14 @@ public class AccountKit {
 					TransactionInput input = new TransactionInput(tx.getOutput(0));
 					input.setScriptBytes(new byte[0]);
 					remConsensus.addInput(input);
-					remConsensus.addOutput(Coin.valueOf(tx.getOutput(0).getValue()), account.getAddress());
+
+					RegConsensusTransaction regTx = (RegConsensusTransaction) tx;
+					int accountType = network.getSystemAccountVersion();
+					if(regTx.isCertAccount()) {
+						accountType = network.getCertAccountVersion();
+					}
+					remConsensus.addOutput(Coin.valueOf(tx.getOutput(0).getValue()), new Address(network, accountType, regTx.getHash160()));
+
 					remConsensus.sign(account);
 					
 					remConsensus.verify();

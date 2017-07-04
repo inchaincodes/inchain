@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Date;
 
+import org.inchain.account.Address;
 import org.inchain.core.Definition;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
@@ -20,8 +21,11 @@ import org.inchain.utils.Utils;
  */
 public class RegConsensusTransaction extends BaseCommonlyTransaction {
 
+	//申请时的时段
 	private long periodStartTime;
-	
+	//指定打包人
+	private byte[] packager;
+
 	public RegConsensusTransaction(NetworkParams network, byte[] payloadBytes) {
 		super(network, payloadBytes, 0);
 	}
@@ -30,12 +34,13 @@ public class RegConsensusTransaction extends BaseCommonlyTransaction {
 		super(network, payloadBytes, offset);
 	}
 	
-	public RegConsensusTransaction(NetworkParams network, long version, long periodStartTime) {
+	public RegConsensusTransaction(NetworkParams network, long version, long periodStartTime, byte[] packager) {
 		super(network);
 		
 		this.type = Definition.TYPE_REG_CONSENSUS;
 		this.version = version;
 		this.periodStartTime = periodStartTime;
+		this.packager = packager;
 	}
 
 	/**
@@ -48,6 +53,11 @@ public class RegConsensusTransaction extends BaseCommonlyTransaction {
 		if(type != Definition.TYPE_REG_CONSENSUS) {
 			throw new VerificationException("交易类型错误");
 		}
+
+		if(packager == null || packager.length != Address.LENGTH) {
+			throw new VerificationException("指定共识人不正确");
+		}
+
 	}
 
 	/**
@@ -66,6 +76,8 @@ public class RegConsensusTransaction extends BaseCommonlyTransaction {
 		super.serializeToStream(stream);
 		
 		Utils.uint32ToByteStreamLE(periodStartTime, stream);
+
+		stream.write(packager);
 	}
 	
 	/**
@@ -74,9 +86,10 @@ public class RegConsensusTransaction extends BaseCommonlyTransaction {
 	@Override
 	protected void parse() throws ProtocolException {
 		super.parse();
-		
+
 		periodStartTime = readUint32();
-		
+		packager = readBytes(Address.LENGTH);
+
 		length = cursor - offset;
 	}
 	
@@ -98,6 +111,10 @@ public class RegConsensusTransaction extends BaseCommonlyTransaction {
 
 	public Script getScriptSig() {
 		return scriptSig;
+	}
+
+	public byte[] getPackager() {
+		return packager;
 	}
 
 	public void setScriptSig(Script scriptSig) {

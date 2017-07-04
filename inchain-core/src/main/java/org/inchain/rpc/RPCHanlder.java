@@ -844,7 +844,12 @@ public class RPCHanlder {
 			if(params.length() > 0 && password == null) {
 				password = params.getString(0);
 			}
-			result = rpcService.regConsensus(password);
+			String consensusAddress = null;
+			int rewardRate = 0;
+			if(params.length() > 1) {
+				consensusAddress = params.getString(1);
+			}
+			result = rpcService.regConsensus(password, consensusAddress);
 			return result;
 		}
 		

@@ -1943,7 +1943,7 @@ public class RPCServiceImpl implements RPCService {
 	public JSONObject getConsensusStatus() throws JSONException {
 		JSONObject json = new JSONObject();
 		
-		if(accountKit.checkConsensusing()) {
+		if(accountKit.checkConsensusing(null)) {
     		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
     		consensusMeeting.waitMeeting();
     		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
@@ -1981,12 +1981,12 @@ public class RPCServiceImpl implements RPCService {
 	 * @return JSONObject
 	 * @throws JSONException 
 	 */
-	public JSONObject regConsensus(String password) throws JSONException {
+	public JSONObject regConsensus(String password, String consensusAddress) throws JSONException {
 		
 		JSONObject json = new JSONObject();
 		
 		//判断信用是否足够
-		long cert = getAccountCredit(null);
+		long cert = getAccountCredit(consensusAddress);
 		
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
@@ -2004,11 +2004,20 @@ public class RPCServiceImpl implements RPCService {
 			json.put("inputTip", "输入钱包密码参与共识");
 			return json;
 		}
-		
+		byte[] hash160 = null;
+		if(StringUtil.isEmpty(consensusAddress)) {
+			hash160 = accountKit.getDefaultAccount().getAddress().getHash160();
+		} else {
+			try {
+				hash160 = Address.fromBase58(network, consensusAddress).getHash160();
+			} catch (Exception e) {
+				throw new VerificationException("错误的共识地址");
+			}
+		}
 		//当前是否已经在共识了
 		//延迟重置账户
 		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
-		if(accountKit.checkConsensusing() && consensusMeeting.getAccount() != null) {
+		if(accountKit.checkConsensusing(hash160) && consensusMeeting.getAccount() != null) {
 			json.put("success", false);
 			json.put("message", "当前已经在共识状态中了");
 			return json;
@@ -2024,7 +2033,7 @@ public class RPCServiceImpl implements RPCService {
 			}
 		}
 		
-		if(accountKit.checkConsensusing() && consensusMeeting.getAccount() == null) {
+		if(accountKit.checkConsensusing(hash160) && consensusMeeting.getAccount() == null) {
 			consensusMeeting.waitMining();
 			accountKit.resetKeys();
 			json.put("success", true);
@@ -2033,7 +2042,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 		
 		try {
-			Result result = accountKit.registerConsensus();
+			Result result = accountKit.registerConsensus(consensusAddress);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -2069,7 +2078,7 @@ public class RPCServiceImpl implements RPCService {
 		//判断信用是否足够
 		
 		//当前是否已经在共识了
-		if(!accountKit.checkConsensusing()) {
+		if(!accountKit.checkConsensusing(null)) {
 			json.put("success", false);
 			json.put("message", "当前没有在共识中");
 			return json;

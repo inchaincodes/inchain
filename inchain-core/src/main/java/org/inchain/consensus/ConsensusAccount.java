@@ -16,19 +16,13 @@ import org.inchain.utils.Hex;
 public class ConsensusAccount {
 
 	private byte[] hash160;
-	private byte[][] pubkeys;
-	
+
 	private int length;
 	private String hash160Hex;
 	private Sha256Hash sortValue;
 	
-	public ConsensusAccount(byte[] hash160, byte[][] pubkeys) {
+	public ConsensusAccount(byte[] hash160) {
 		this.hash160 = hash160;
-		this.pubkeys = pubkeys;
-	}
-	
-	public ConsensusAccount(byte[] content) {
-		parse(content, 0);
 	}
 	
 	public ConsensusAccount(byte[] content, int offset) {
@@ -40,17 +34,7 @@ public class ConsensusAccount {
 		ByteArrayTool byteArray = new ByteArrayTool();
 		
 		byteArray.append(hash160);
-		
-		if(pubkeys == null) {
-			byteArray.append(0);
-		} else {
-			byteArray.append(pubkeys.length);
-			for (byte[] pubkey : pubkeys) {
-				byteArray.append(new VarInt(pubkey.length).encode());
-				byteArray.append(pubkey);
-			}
-		}
-		
+
 		return byteArray.toArray();
 	}
 	
@@ -61,20 +45,7 @@ public class ConsensusAccount {
 		hash160 = new byte[Address.LENGTH];
 		System.arraycopy(content, cursor, hash160, 0, Address.LENGTH);
 		cursor += hash160.length;
-		
-		int count = content[cursor];
-		cursor++;
-		
-		pubkeys = new byte[count][];
-		
-		for (int i = 0; i < count; i++) {
-			VarInt varint = new VarInt(content, cursor);
-			cursor += varint.getOriginalSizeInBytes();
-			
-			byte[] pubkey = new byte[(int) varint.value];
-			System.arraycopy(content, cursor, pubkey, 0, pubkey.length);
-			cursor += pubkey.length;
-		}
+
 		length = cursor - offset;
 	}
 	
@@ -84,12 +55,6 @@ public class ConsensusAccount {
 	}
 	public void setHash160(byte[] hash160) {
 		this.hash160 = hash160;
-	}
-	public byte[][] getPubkeys() {
-		return pubkeys;
-	}
-	public void setPubkeys(byte[][] pubkeys) {
-		this.pubkeys = pubkeys;
 	}
 	public int getLength() {
 		return length;

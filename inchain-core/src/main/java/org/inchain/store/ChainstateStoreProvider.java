@@ -1,5 +1,6 @@
 package org.inchain.store;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
+import org.inchain.consensus.ConsensusModel;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.core.Coin;
 import org.inchain.core.ViolationEvidence;
@@ -762,12 +764,14 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 				consensusAccountHash160s = new byte[0];
 			}
 			byte[] hash160 = tx.getHash160();
-			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + (Address.LENGTH + Sha256Hash.LENGTH)];
+			byte[] packager = tx.getPackager();
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length + (2 * Address.LENGTH + Sha256Hash.LENGTH)];
 			System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, consensusAccountHash160s.length);
 			System.arraycopy(hash160, 0, newConsensusHash160s, consensusAccountHash160s.length, Address.LENGTH);
-			System.arraycopy(tx.getHash().getBytes(), 0, newConsensusHash160s, consensusAccountHash160s.length + Address.LENGTH, Sha256Hash.LENGTH);
+			System.arraycopy(packager, 0, newConsensusHash160s, consensusAccountHash160s.length + Address.LENGTH, Address.LENGTH);
+			System.arraycopy(tx.getHash().getBytes(), 0, newConsensusHash160s, consensusAccountHash160s.length + 2 * Address.LENGTH, Sha256Hash.LENGTH);
 			put(Configure.CONSENSUS_ACCOUNT_KEYS, newConsensusHash160s);
-	
+
 			//添加账户信息，如果不存在的话
 			AccountStore accountInfo = getAccountInfo(hash160);
 			if(accountInfo == null) {
@@ -778,10 +782,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 				//不确定的账户，现在可以确定下来了
 				updateAccountInfo(accountInfo, tx);
 			}
-			//公钥
-			byte[][] pubkeys = accountInfo.getPubkeys();
 			//添加到共识缓存器里
-			consensusPool.add(tx.getHash160(), tx.getHash(), pubkeys);
+			consensusPool.add(new ConsensusModel(tx.getHash(), tx.getHash160(), tx.getPackager()));
 		} catch (Exception e) {
 			log.error("出错了{}", e.getMessage(), e);
 		} finally {
@@ -845,12 +847,13 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			
 			//找出位置在哪里
 			//判断在列表里面才更新，否则就被清空了
-			for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			for (int j = 0; j < consensusAccountHash160s.length; j += (2 * Address.LENGTH + Sha256Hash.LENGTH)) {
 				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
-				if(Arrays.equals(addressHash160, hash160)) {
+				byte[] packager = Arrays.copyOfRange(consensusAccountHash160s, j + Address.LENGTH, j + 2 * Address.LENGTH);
+				if(Arrays.equals(addressHash160, hash160) || Arrays.equals(packager, hash160)) {
 					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
 					
-					int newIndex = j + Address.LENGTH + Sha256Hash.LENGTH;
+					int newIndex = j + 2 * Address.LENGTH + Sha256Hash.LENGTH;
 					if(newIndex < consensusAccountHash160s.length) {
 						System.arraycopy(consensusAccountHash160s, newIndex, newConsensusHash160s, j, consensusAccountHash160s.length - newIndex);
 					}

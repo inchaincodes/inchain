@@ -421,7 +421,7 @@ public class TransactionValidator {
 				long consensusCredit = ConsensusCalculationUtil.getConsensusCredit(blockHeader.getHeight());
 				if(credit < consensusCredit) {
 					//信用不够
-					result.setResult(false, "信用值过低 " + credit + "  " + consensusCredit);
+					result.setResult(false, "共识账户信用值过低 " + credit + "  " + consensusCredit);
 					return validatorResult;
 				}
 				
@@ -468,7 +468,7 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 				//违规证据是否已经被处理
-				Sha256Hash evidenceHash = vtx.getViolationEvidence().getEvidenceHash();
+				Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
 				byte[] ptxHashBytes = chainstateStoreProvider.getBytes(evidenceHash.getBytes());
 				if(ptxHashBytes != null) {
 					result.setResult(false, "该违规已经被处理，不需要重复处理");

@@ -13,10 +13,9 @@ public interface ConsensusPool {
 
 	/**
 	 * 新增共识结点
-	 * @param hash160
-	 * @param txhash 
+	 * @param consensusModel
 	 */
-	public void add(byte[] hash160, Sha256Hash txhash, byte[][] pubkey);
+	public void add(ConsensusModel consensusModel);
 	
 	/**
 	 * 移除共识节点
@@ -60,4 +59,10 @@ public interface ConsensusPool {
 	 * 清除共识数据
 	 */
 	public void clearAll();
+
+	/**
+	 * 获取最新共识列表
+	 * @return List<ConsensusModel>
+	 */
+	public List<ConsensusModel> getContainer();
 }

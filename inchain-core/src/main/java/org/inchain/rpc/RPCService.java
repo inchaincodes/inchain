@@ -234,11 +234,12 @@ public interface RPCService {
 	
 	/**
 	 * 注册共识
-	 * @param password
+	 * @param password 			当前申请账户的账户密码
+	 * @param consensusAddress 	指定共识账户
 	 * @return JSONObject
 	 * @throws JSONException 
 	 */
-	JSONObject regConsensus(String password) throws JSONException;
+	JSONObject regConsensus(String password, String consensusAddress) throws JSONException;
 
 	/**
 	 * 退出共识

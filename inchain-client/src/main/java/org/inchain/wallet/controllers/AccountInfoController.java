@@ -144,7 +144,7 @@ public class AccountInfoController implements SubPageController {
 				} else {
 					encryptionStatusId.setText("未加密,为了资金安全,请加密钱包");
 				}
-				if (accountKit.checkConsensusing()) {
+				if (accountKit.checkConsensusing(null)) {
 					consensusStatusId.setText("正在共识中");
 				} else {
 					consensusStatusId.setText("未参与共识");
