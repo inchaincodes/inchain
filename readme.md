@@ -106,17 +106,17 @@ version
 |1|localServices|uint8|哪个网络服务|
 |4|client version|uint32|客户端版本|
 |8|local time|uint64|时间戳|
-|30|local peer address|PeerAddress|本地服务地址|
-|30|remote peer address|PeerAddress|本地服务地址|
-|4|ver length|uint32|版本字符串长度|
-|?|Version String|char[?]|版本字符串|
+|30|local peer address|PeerAddress|本机地址|
+|30|remote peer address|PeerAddress|请求者地址|
+|4|UserAgent length|uint32|版本字符串长度|
+|?|UserAgent|char[?]|版本字符串|
 |4|best block height|uint32|最适合高度|
 |32|best block hash|char[32]|最适合高度块Hash字符串|
 |8|nonce|int64|随机数|
 
 ---
 verack
-> 收到Version消息后，抽取nonce，回复VerAck消息。
+> 收到Version消息后，抽取nonce，响应version命令。
 
 
 |尺寸|字段|数据类型|说明|
@@ -134,7 +134,7 @@ ping
 
 ---
 pong
-> 心跳协议，响应对等节点探测。
+> 心跳协议，响应ping命令。
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
@@ -150,7 +150,7 @@ getaddr
 
 ---
 addr
-> 响应GetAddressMessage消息，返回本地握手成功的节点信息。
+> 响应getaddr命令，返回本地握手成功的节点信息。
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
@@ -169,7 +169,7 @@ inv
 
 ---
 getdatas
-> 向对等节点发送下载数据的消息，包括区块和交易，一般用于回应inv消息。
+> 向对等节点发送下载数据的消息，包括区块和交易，一般用于回应inv命令。
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
@@ -193,6 +193,15 @@ block
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
+|4|version|uint32|版本|
+|32|merkleHash|sha256|merkle根节点hash|
+|4|Timespan|uint32|时间戳|
+|4|height|uint32|高度|
+|4|period count|uint32|该时段共识人数|
+|4|period time|uint32|时段，一轮共识中的第几个时间段，可验证对应的共识人|
+|4|period start time|uint32|本轮开始的时间点，单位（秒）|
+|4|script length|uint32|签名脚本长度|
+|?|script|char[?]|签名脚本，包含共识打包人信息和签名|
 |?*?|Transactions|tx[]|交易列表|
 
 ---
@@ -201,7 +210,7 @@ notfound
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|32|hash|sha256||
+|32|hash|sha256|getblock命令请求的交易或区块hash|
 
 TX协议
 ---
