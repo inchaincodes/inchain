@@ -806,18 +806,24 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			ViolationTransaction vtx = (ViolationTransaction)tx;
 			hash160 = vtx.getViolationEvidence().getAudienceHash160();
 		}
-		
+
 		//从集合中删除共识节点
 		deleteConsensusFromCollection(hash160);
-		
+
 		//退出的账户
 		if(tx instanceof ViolationTransaction) {
+
 			//违规被提出共识，增加规则证据到状态里，以便查证
 			ViolationTransaction vtx = (ViolationTransaction)tx;
 			ViolationEvidence violationEvidence = vtx.getViolationEvidence();
 			Sha256Hash evidenceHash = violationEvidence.getEvidenceHash();
 			put(evidenceHash.getBytes(), tx.getHash().getBytes());
-			
+
+			//如果是惩罚，则对委托人进行处理
+			TransactionStore regTxStore = blockStoreProvider.getTransaction(tx.getInput(0).getFroms().get(0).getParent().getHash().getBytes());
+			RegConsensusTransaction regtx = (RegConsensusTransaction) regTxStore.getTransaction();
+			hash160 = regtx.getHash160();
+
 			//减去相应的信用值
 			AccountStore accountInfo = getAccountInfo(hash160);
 			long certChange = 0;
@@ -843,12 +849,14 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			//从共识账户列表中删除
 			byte[] consensusAccountHash160s = getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 			
-			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (2 * Address.LENGTH + Sha256Hash.LENGTH)];
 			
 			//找出位置在哪里
 			//判断在列表里面才更新，否则就被清空了
 			for (int j = 0; j < consensusAccountHash160s.length; j += (2 * Address.LENGTH + Sha256Hash.LENGTH)) {
+				//委托人
 				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
+				//被委托人
 				byte[] packager = Arrays.copyOfRange(consensusAccountHash160s, j + Address.LENGTH, j + 2 * Address.LENGTH);
 				if(Arrays.equals(addressHash160, hash160) || Arrays.equals(packager, hash160)) {
 					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
@@ -945,7 +953,9 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		
 		//退出的账户
 		if(tx instanceof ViolationTransaction) {
-			
+			//委托人
+			hash160 = regTx.getHash160();
+
 			//违规被提出共识，删除证据
 			ViolationTransaction vtx = (ViolationTransaction)tx;
 			ViolationEvidence violationEvidence = vtx.getViolationEvidence();

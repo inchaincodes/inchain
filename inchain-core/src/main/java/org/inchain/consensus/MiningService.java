@@ -217,14 +217,17 @@ public final class MiningService implements Mining {
 			}
 
 			try {
-				Thread.sleep(10l);
+				Thread.sleep(50l);
 			} catch (InterruptedException e) {
 				if(log.isDebugEnabled()) {
 					log.debug("{}", e.getMessage());
 				}
 			}
 		}
-		
+
+		//获取我的时段开始时间
+		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
+
 		//本地最新区块
 		BlockHeader bestBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
 		
@@ -242,7 +245,16 @@ public final class MiningService implements Mining {
 		
 		//获得当前高度的奖励
 		Coin consensusRreward = ConsensusCalculationUtil.calculatReward(currentHeight);
-		coinBaseTx.addOutput(fee.add(consensusRreward), accountKit.getAccountList().get(0).getAddress());
+
+		//奖励发放给委托人
+		byte[] hash160 = miningInfos.getCommissioned();
+
+		if(Arrays.equals(account.getAddress().getHash160(), hash160)) {
+			coinBaseTx.addOutput(fee.add(consensusRreward), account.getAddress());
+		} else {
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+			coinBaseTx.addOutput(fee.add(consensusRreward), new Address(network, accountStore.getType(), accountStore.getHash160()));
+		}
 		coinBaseTx.verify();
 		
 		//加入coinbase交易到交易列表
@@ -259,9 +271,6 @@ public final class MiningService implements Mining {
 			}
 		}
 
-		//获取我的时段开始时间
-		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
-		
 		//遵守系统规则，如果出现特殊情况，当前网络时间超过了我的时段，停止广播，等待处罚
 		if(miningInfos.getEndTime() + Configure.BLOCK_GEN_TIME / 2 < TimeService.currentTimeSeconds() ) {
 			log.info("打包高度为 {} 的块时超时，停止广播，我的开始时间{}, 结束时间{}, 当前时间{}", currentHeight, DateUtil.convertDate(new Date(miningInfos.getBeginTime() * 1000)), DateUtil.convertDate(new Date(miningInfos.getEndTime() * 1000)), DateUtil.convertDate(new Date(TimeService.currentTimeMillis())));

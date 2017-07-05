@@ -2464,6 +2464,25 @@ public class AccountKit {
 	 * 检查当前账户是否在共识中状态
 	 * @return boolean
 	 */
+	public boolean checkIsConsensusingPackager(byte[] hash160) {
+		if(accountList == null || accountList.size() == 0) {
+			return false;
+		}
+		if(hash160 != null) {
+			return consensusPool.isPackager(hash160);
+		}
+		for (Account account : accountList) {
+			if(consensusPool.isPackager(account.getAddress().getHash160())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * 检查当前账户是否在共识中状态
+	 * @return boolean
+	 */
 	public boolean checkConsensusing(byte[] hash160) {
 		if(accountList == null || accountList.size() == 0) {
 			return false;

@@ -22,10 +22,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.core.ByteHash;
-import org.inchain.core.Coin;
-import org.inchain.core.DataSynchronizeHandler;
-import org.inchain.core.Definition;
+import org.inchain.core.*;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -351,23 +348,23 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				//退出共识
 				chainstateStoreProvider.removeConsensus(tx);
 				
-				byte[] hash160 = null;
-				if(tx instanceof RemConsensusTransaction) {
-					//主动退出共识
-					RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
-					hash160 = remTransaction.getHash160();
-				} else {
-					//违规被提出共识
-					ViolationTransaction vtx = (ViolationTransaction)tx;
-					hash160 = vtx.getViolationEvidence().getAudienceHash160();
-				}
+//				byte[] hash160 = null;
+//				if(tx instanceof RemConsensusTransaction) {
+//					//主动退出共识
+//					RemConsensusTransaction remTransaction = (RemConsensusTransaction)tx;
+//					hash160 = remTransaction.getHash160();
+//				} else {
+//					//违规被提出共识
+//					ViolationTransaction vtx = (ViolationTransaction)tx;
+//					hash160 = vtx.getViolationEvidence().getAudienceHash160();
+//				}
 
-				//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
-				Account consensusAccount = consensusMeeting.getAccount();
-				if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), hash160)) {
-					//下一轮停止共识
-					consensusMeeting.resetCurrentMeetingItem();
-				}
+//				//乖节点遵守系统规则，被T则停止共识，否则就会被排除链外
+//				Account consensusAccount = consensusMeeting.getAccount();
+//				if(consensusAccount != null && Arrays.equals(consensusAccount.getAddress().getHash160(), hash160)) {
+//					//下一轮停止共识
+//					consensusMeeting.resetCurrentMeetingItem();
+//				}
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 				tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
@@ -798,8 +795,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 	 */
 	public boolean checkTxIsMine(Transaction transaction, byte[] hash160) {
 		//是否是跟自己有关的交易
-		if(transaction.getType() == Definition.TYPE_PAY || 
-				transaction.getType() == Definition.TYPE_COINBASE) {
+		if(transaction.isPaymentTransaction()) {
 			//普通交易
 			//输入
 			List<TransactionInput> inputs = transaction.getInputs();
@@ -844,17 +840,34 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				}
 			}
-		} else if(transaction.getType() == Definition.TYPE_CREDIT ||
-				transaction.getType() == Definition.TYPE_VIOLATION) {
-			//特殊的交易，增加信用和违规处理，很大可能是别人发起的交易
-			byte[] hash160Temp = null;
-			if(transaction.getType() == Definition.TYPE_CREDIT) {
-				CreditTransaction ctx = (CreditTransaction) transaction;
-				hash160Temp = ctx.getOwnerHash160();
-			} else if(transaction.getType() == Definition.TYPE_VIOLATION) {
+			if(transaction.getType() == Definition.TYPE_VIOLATION) {
+				//特殊的交易，违规处理，很大可能是别人发起的交易
 				ViolationTransaction vtx = (ViolationTransaction) transaction;
-				hash160Temp = vtx.getViolationEvidence().getAudienceHash160();
+				byte[]	hash160Temp = vtx.getViolationEvidence().getAudienceHash160();
+				//有一种情况，委托共识处理人是被委托人，但实际上是处理的委托人
+				byte[] outputHash160 = vtx.getOutput(0).getScript().getAccountHash160();
+				if(!Arrays.equals(outputHash160, hash160Temp)) {
+					if(vtx.getViolationEvidence().getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+						//超时未出块，被惩罚人是委托人
+						hash160Temp = outputHash160;
+					} else {
+						//重复出块
+						TransactionStore regTxStore = getTransaction(vtx.getOutput(0).getParent().getHash().getBytes());
+						if(regTxStore == null) {
+							return false;
+						}
+						RegConsensusTransaction regTx = (RegConsensusTransaction) regTxStore.getTransaction();
+						hash160Temp = regTx.getHash160();
+					}
+				}
+				if(hash160Temp != null && ((hash160 == null && accountFilter.contains(hash160Temp)) || (hash160 != null && Arrays.equals(hash160, hash160Temp)))) {
+					return true;
+				}
 			}
+		} else if(transaction.getType() == Definition.TYPE_CREDIT) {
+			//特殊的交易，增加信用，很大可能是别人发起的交易
+			CreditTransaction ctx = (CreditTransaction) transaction;
+			byte[] hash160Temp = ctx.getOwnerHash160();
 			if(hash160Temp != null && ((hash160 == null && accountFilter.contains(hash160Temp)) || (hash160 != null && Arrays.equals(hash160, hash160Temp)))) {
 				return true;
 			}

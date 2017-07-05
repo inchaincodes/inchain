@@ -25,7 +25,7 @@ public final class ConsensusCalculationUtil {
 	/**
 	 * 开始发放奖励的区块高度
 	 */
-	public final static long START_HEIGHT = 5000l;
+	public final static long START_HEIGHT = 20l;
 	/**
 	 * 每多少个区块奖励减半，也就是奖励周期，这里设置1年的出块数
 	 */
@@ -105,35 +105,27 @@ public final class ConsensusCalculationUtil {
 		
 		//max is (Math.log((double)300)/Math.log((double)2))
 		
-		if(height < 33000 || height > 546000) {
-			double max = 2468d;
-			
-			double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
-			double nlgn = lgN*currentConsensusSize;
-			long res = (long) (Configure.CONSENSUS_MAX_RECOGNIZANCE.value * (nlgn/max));
-			
-			if(res > Configure.CONSENSUS_MAX_RECOGNIZANCE.value) {
-				return Configure.CONSENSUS_MAX_RECOGNIZANCE;
-			} else if(res < Configure.CONSENSUS_MIN_RECOGNIZANCE.value) {
-				return Configure.CONSENSUS_MIN_RECOGNIZANCE;
-			} else {
-				if(res > Coin.COIN_VALUE * 100000) {
-					return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 10000)).multiply(10000);
-				} else {
-					return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 1000)).multiply(1000);
-				}
-			}
+		double max = 2468d;
+
+		double lgN = Math.log((double)currentConsensusSize)/Math.log((double)2);
+		double nlgn = lgN*currentConsensusSize;
+		long res = (long) (Configure.CONSENSUS_MAX_RECOGNIZANCE.value * (nlgn/max));
+
+		if(res > Configure.CONSENSUS_MAX_RECOGNIZANCE.value) {
+			return Configure.CONSENSUS_MAX_RECOGNIZANCE;
+		} else if(res < Configure.CONSENSUS_MIN_RECOGNIZANCE.value) {
+			return Configure.CONSENSUS_MIN_RECOGNIZANCE;
 		} else {
-			return Coin.COIN.multiply(1000);
+			if(res > Coin.COIN_VALUE * 100000) {
+				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 10000)).multiply(10000);
+			} else {
+				return Coin.COIN.multiply(res/(Coin.COIN_VALUE * 1000)).multiply(1000);
+			}
 		}
 	}
 	
 	public static long getConsensusCredit(long height) {
-		if(height < 33000 || height > 546000) {
-			return Configure.CONSENSUS_CREDIT;
-		} else {
-			return -10l;
-		}
+		return Configure.CONSENSUS_CREDIT;
 	}
 	
 	public static void main(String[] args) {

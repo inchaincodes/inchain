@@ -17,6 +17,8 @@ public class MiningInfos {
 	private long periodEndTime;
 	//我的账户hash
 	private byte[] hash160;
+	//我的委托人
+	private byte[] commissioned;
 	//我的时段开始时间
 	private long beginTime;
 	//我的时段结束时间
@@ -63,5 +65,11 @@ public class MiningInfos {
 	}
 	public void setPeriodEndTime(long periodEndTime) {
 		this.periodEndTime = periodEndTime;
+	}
+	public byte[] getCommissioned() {
+		return commissioned;
+	}
+	public void setCommissioned(byte[] commissioned) {
+		this.commissioned = commissioned;
 	}
 }

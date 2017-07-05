@@ -841,13 +841,19 @@ public class RPCHanlder {
 		
 		//注册共识
 		case "regconsensus": {
-			if(params.length() > 0 && password == null) {
-				password = params.getString(0);
-			}
 			String consensusAddress = null;
-			int rewardRate = 0;
-			if(params.length() > 1) {
-				consensusAddress = params.getString(1);
+			if(params.length() == 1) {
+				String param1 = params.getString(0);
+				try {
+					Address.fromBase58(network, param1);
+					consensusAddress = param1;
+				} catch (Exception e) {
+					password = params.getString(0);
+				}
+			}
+			if(params.length() == 2) {
+				consensusAddress = params.getString(0);
+				password = params.getString(1);
 			}
 			result = rpcService.regConsensus(password, consensusAddress);
 			return result;

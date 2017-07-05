@@ -39,6 +39,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.store.BlockHeaderStore;
 import org.inchain.store.BlockStore;
 import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.RegConsensusTransaction;
 import org.inchain.transaction.business.RemConsensusTransaction;
@@ -409,19 +410,19 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		//内存没找到，那么只有去查询了
 		if(consensusList == null) {
 			consensusList = consensusPool.listSnapshots();
-			
+
 			byte[] endBlockHashBytes = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHash().getBytes();
 			while(true) {
 				BlockStore blockStore = blockStoreProvider.getBlock(endBlockHashBytes);
 				if(blockStore == null || blockStore.getBlock() == null) {
 					break;
 				}
-				
+
 				Block block = blockStore.getBlock();
 				if(block.getHeight() == 0l || block.getPeriodStartTime() < periodStartTime) {
 					break;
 				}
-				
+
 				List<Transaction> txList = block.getTxs();
 				for (Transaction transaction : txList) {
 					//共识的注册与退出
@@ -431,7 +432,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 						Iterator<ConsensusAccount> it = consensusList.iterator();
 						while(it.hasNext()) {
 							ConsensusAccount consensusAccount = it.next();
-							if(Arrays.equals(regTx.getHash160(), consensusAccount.getHash160())) {
+							if(Arrays.equals(regTx.getHash160(), consensusAccount.getCommissioned())) {
 								it.remove();
 								break;
 							}
@@ -439,26 +440,26 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 					} else if(transaction.getType() == Definition.TYPE_REM_CONSENSUS || transaction.getType() == Definition.TYPE_VIOLATION) {
 						//删除掉的，新增进去
 						byte[] hash160 = null;
-						
-						if(transaction.getType() == Definition.TYPE_REM_CONSENSUS) {
-							//主动退出共识
-							RemConsensusTransaction remTx = (RemConsensusTransaction) transaction;
-							hash160 = remTx.getHash160();
-						} else {
-							//违规惩罚交易
-							ViolationTransaction vtx = (ViolationTransaction) transaction;
-							hash160 = vtx.getViolationEvidence().getAudienceHash160();
+
+						//注册共识的交易
+						Sha256Hash txhash = transaction.getInput(0).getFroms().get(0).getParent().getHash();
+
+						TransactionStore regTxStore = blockStoreProvider.getTransaction(txhash.getBytes());
+						if(regTxStore == null) {
+							break;
 						}
-						consensusList.add(new ConsensusAccount(hash160));
+						RegConsensusTransaction regTx = (RegConsensusTransaction) regTxStore.getTransaction();
+
+						consensusList.add(new ConsensusAccount(regTx.getHash160(), regTx.getPackager()));
 					}
 				}
-				
+
 				if(block.getPeriodStartTime() < periodStartTime) {
 					break;
 				} else {
 					endBlockHashBytes = block.getPreHash().getBytes();
 				}
-				
+
 			}
 			//排序
 			consensusList.sort(new Comparator<ConsensusAccount>() {
@@ -900,6 +901,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		//判断是否已经被切换
 		MiningInfos infos = new MiningInfos();
 		infos.setHash160(currentMetting.getMyHash160());
+		infos.setCommissioned(currentMetting.getCommissioned());
 		infos.setTimePeriod(currentMetting.getTimePeriod());
 		infos.setPeriodCount(currentMetting.getPeriodCount());
 		infos.setBeginTime(currentMetting.getMyPackageTime());
