@@ -41,6 +41,8 @@ public class MeetingItem implements Cloneable {
 	private boolean hasPackage;
 	//我的hash160
 	private byte[] myHash160;
+	//我的委托人
+	private byte[] commissioned;
 	//我的打包时间
 	private long myPackageTime;
 	private long myPackageTimeEnd;
@@ -158,6 +160,7 @@ public class MeetingItem implements Cloneable {
 			ConsensusAccount consensusAccount = consensusList.get(i);
 			if(Arrays.equals(myHash160, consensusAccount.getHash160())) {
 				this.myHash160 = myHash160;
+				this.commissioned = consensusAccount.getCommissioned();
 				myPackageTime = periodStartTime + (i * Configure.BLOCK_GEN_TIME);
 				myPackageTimeEnd = myPackageTime + Configure.BLOCK_GEN_TIME;
 				
@@ -328,6 +331,11 @@ public class MeetingItem implements Cloneable {
 	public byte[] getMyHash160() {
 		return myHash160;
 	}
+
+	public byte[] getCommissioned() {
+		return commissioned;
+	}
+
 	public boolean isInit() {
 		return init;
 	}

@@ -15,14 +15,18 @@ import org.inchain.utils.Hex;
  */
 public class ConsensusAccount {
 
+	//打包人
 	private byte[] hash160;
+	//委托人
+	private byte[] commissioned;
 
 	private int length;
 	private String hash160Hex;
 	private Sha256Hash sortValue;
 	
-	public ConsensusAccount(byte[] hash160) {
+	public ConsensusAccount(byte[] hash160, byte[] commissioned) {
 		this.hash160 = hash160;
+		this.commissioned = commissioned;
 	}
 	
 	public ConsensusAccount(byte[] content, int offset) {
@@ -70,6 +74,10 @@ public class ConsensusAccount {
 	}
 	public void setSortValue(Sha256Hash sortValue) {
 		this.sortValue = sortValue;
+	}
+
+	public byte[] getCommissioned() {
+		return commissioned;
 	}
 
 	@Override

@@ -2294,8 +2294,7 @@ public class RPCServiceImpl implements RPCService {
 			json.put("scriptSig", bctx.getScriptSig());
 		}
 		
-		if(tx.getType() == Definition.TYPE_COINBASE || 
-				tx.getType() == Definition.TYPE_PAY) {
+		if(tx.isPaymentTransaction()) {
 			
 			//是否是转出
 			boolean isSendout = false;

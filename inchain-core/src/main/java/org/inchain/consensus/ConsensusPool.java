@@ -21,13 +21,20 @@ public interface ConsensusPool {
 	 * 移除共识节点
 	 */
 	public void delete(byte[] hash160);
-	
+
 	/**
 	 * 判断是否是共识节点
 	 * @param hash160
 	 * @return boolean
 	 */
 	public boolean contains(byte[] hash160);
+
+	/**
+	 * 判断是否是共识打包节点
+	 * @param hash160
+	 * @return boolean
+	 */
+	public boolean isPackager(byte[] hash160);
 	
 	/**
 	 * 获取共识节点的公钥

@@ -63,7 +63,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		}
 		for (int i = 0; i < consensusAccounts.length; i += (2 * Address.LENGTH + Sha256Hash.LENGTH)) {
 			byte[] applicant = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
-			byte[] packager = Arrays.copyOfRange(consensusAccounts, i, i + 2 * Address.LENGTH);
+			byte[] packager = Arrays.copyOfRange(consensusAccounts, i + Address.LENGTH, i + 2 * Address.LENGTH);
 			byte[] txhash = Arrays.copyOfRange(consensusAccounts, i + 2 * Address.LENGTH, i + 2 * Address.LENGTH + Sha256Hash.LENGTH);
 			add(new ConsensusModel(Sha256Hash.wrap(txhash), applicant, packager));
 		}
@@ -95,6 +95,20 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		}
 	}
 	
+	/**
+	 * 判断是否是共识打包节点
+	 * @param hash160
+	 * @return boolean
+	 */
+	public boolean isPackager(byte[] hash160) {
+		for(ConsensusModel consensusModelTemp: consensusModels) {
+			if(Arrays.equals(consensusModelTemp.getPackager(), hash160)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * 判断是否是共识节点
 	 * @param hash160
@@ -146,7 +160,7 @@ public class ConsensusPoolCacher implements ConsensusPool {
 		List<ConsensusAccount> list = new ArrayList<ConsensusAccount>();
 
 		for(ConsensusModel consensusModel: consensusModels) {
-			list.add(new ConsensusAccount(consensusModel.getPackager()));
+			list.add(new ConsensusAccount(consensusModel.getPackager(), consensusModel.getApplicant()));
 		}
 		
 		return list;
