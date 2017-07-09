@@ -2221,7 +2221,6 @@ public class RPCServiceImpl implements RPCService {
 		}
 		
 		if(account.isEncrypted()) {
-			account.decryptionMg(password);
 			//普通账户的解密
 			account.resetKey(password);
 			ECKey eckey = account.getEcKey();
@@ -2230,7 +2229,8 @@ public class RPCServiceImpl implements RPCService {
 			} catch (Exception e) {
 				log.error("解密失败, "+e.getMessage(), e);
 				account.setEcKey(eckey);
-				json.put("success", false).put("message", e.getMessage());
+				json.put("success", false).put("message", "密码错误");
+				return json;
 			}
 		}
 		

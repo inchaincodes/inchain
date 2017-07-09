@@ -38,21 +38,7 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.BaseCommonlyTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.transaction.business.GeneralAntifakeTransaction;
-import org.inchain.transaction.business.RegAliasTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.UpdateAliasTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -459,6 +445,18 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
 			chainstateStoreProvider.antifakeTransfer(attx.getAntifakeCode(), attx.getHash160(), attx.getReceiveHashs(), attx.getHash());
+		} else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+			//资产登记
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction) tx;
+			chainstateStoreProvider.assetsRegister(assetsRegisterTx);
+		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+			//资产发行
+			AssetsIssuedTransaction assetsIssuedTx = (AssetsIssuedTransaction) tx;
+			chainstateStoreProvider.assetsIssued(assetsIssuedTx);
+		} else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
+			//资产交易
+			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
+			chainstateStoreProvider.assetsTransfer(assetsTransferTx);
 		}
 		//交易是否与我有关
 		checkIsMineAndUpdate(txs);
@@ -876,9 +874,20 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			if((hash160 == null && accountFilter.contains(commonlytx.getHash160())) || (hash160 != null && Arrays.equals(hash160, commonlytx.getHash160()))) {
 				return true;
 			}
+			//防伪码转让
 			if(transaction.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 				AntifakeTransferTransaction atx = (AntifakeTransferTransaction) transaction;
 				if((hash160 == null && accountFilter.contains(atx.getReceiveHash160())) || (hash160 != null && Arrays.equals(hash160, atx.getReceiveHash160()))) {
+					return true;
+				}
+			} else if(transaction.getType() == Definition.TYPE_ASSETS_ISSUED) {
+				AssetsIssuedTransaction assetsIssuedTx = (AssetsIssuedTransaction) transaction;
+				if((hash160 == null && accountFilter.contains(assetsIssuedTx.getReceiver())) || (hash160 != null && Arrays.equals(hash160, assetsIssuedTx.getReceiver()))) {
+					return true;
+				}
+			} else if(transaction.getType() == Definition.TYPE_ASSETS_TRANSFER) {
+				AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) transaction;
+				if((hash160 == null && accountFilter.contains(assetsTransferTx.getReceiver())) || (hash160 != null && Arrays.equals(hash160, assetsTransferTx.getReceiver()))) {
 					return true;
 				}
 			}

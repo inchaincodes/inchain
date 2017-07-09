@@ -24,31 +24,12 @@ import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
-import org.inchain.store.AccountStore;
-import org.inchain.store.BlockHeaderStore;
-import org.inchain.store.BlockStoreProvider;
-import org.inchain.store.ChainstateStoreProvider;
-import org.inchain.store.TransactionStore;
+import org.inchain.store.*;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.BaseCommonlyTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CertAccountUpdateTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.GeneralAntifakeTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RegAliasTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.UpdateAliasTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
 import org.slf4j.Logger;
@@ -593,6 +574,25 @@ public class TransactionValidator {
 						return validatorResult;
 					}
 				}
+			} else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+				//资产登记
+				//验证登记费用是否正确
+				Coin registerFee = Coin.COIN.multiply(10000);
+				if(!Coin.valueOf(outputs.get(0).getValue()).equals(registerFee)) {
+					result.setResult(false, "资产登记费用不正确");
+					return validatorResult;
+				}
+				//TODO
+
+				AssetsRegisterTransaction artx = (AssetsRegisterTransaction) tx;
+				//验证编码是否重复
+				byte[] code = artx.getCode();
+				//key不能直接为code
+				byte[] codeResult = chainstateStoreProvider.getBytes(code);
+				if(codeResult != null) {
+					result.setResult(false, "已被占用的资产编码");
+					return validatorResult;
+				}
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册
@@ -860,6 +860,41 @@ public class TransactionValidator {
 				result.setResult(false, "没有权限转让");
 				return validatorResult;
 			}
+		}  else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+			//资产发行
+			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
+
+			byte[] opertioner =  aitx.getHash160();
+			Sha256Hash assetsTxHash = aitx.getAssetsHash();
+			//验证操作人是否合法
+			TransactionStore assetsRegisterTxStore = blockStoreProvider.getTransaction(assetsTxHash.getBytes());
+			if(assetsRegisterTxStore == null) {
+				result.setResult(false, "资产不存在");
+				return validatorResult;
+			}
+
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction) assetsRegisterTxStore.getTransaction();
+			if(!Arrays.equals(assetsRegisterTx.getHash160(), opertioner)) {
+				result.setResult(false, "没有权限发行该资产");
+				return validatorResult;
+			}
+
+		} else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
+			//资产交易
+			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
+
+			byte[] sender =  assetsTransferTx.getHash160();
+			byte[] receiver = assetsTransferTx.getReceiver();
+			Sha256Hash assetsTxHash = assetsTransferTx.getAssetsHash();
+			//验证资产是否存在
+			TransactionStore assetsRegisterTxStore = blockStoreProvider.getTransaction(assetsTxHash.getBytes());
+			if(assetsRegisterTxStore == null) {
+				result.setResult(false, "资产不存在");
+				return validatorResult;
+			}
+			//验证余额是否充足
+			//TODO
+
 		}
 
 		result.setSuccess(true);
