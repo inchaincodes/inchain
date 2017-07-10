@@ -129,7 +129,17 @@ public interface RPCService {
 	 * @throws JSONException 
 	 */
 	JSONObject updateCertAccount(AccountBody body, String mgpw, String address) throws JSONException;
-	
+
+	/**
+	 * 吊销认证账户信息
+	 * @param revokeAddress
+	 * @param mgpw
+	 * @param address
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject revokeCertAccount(String revokeAddress, String mgpw,String address) throws JSONException;
+
 	/**
 	 * 认证账户修改密码
 	 * @param oldMgpw

@@ -261,7 +261,7 @@ public class RPCHanlder {
 			} catch (JSONException e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
-					result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex]");
+					result.put("message", "缺少参数，命令用法：updatecertaccount [body hex] [pw]");
 					return result;
 				}
 				result.put("success", false);
@@ -270,6 +270,31 @@ public class RPCHanlder {
 			
 			return result;
 		}
+
+		//修改认证账户信息
+			case "revokecertaccount": {
+
+				try {
+					String revokeAddress = params.getString(0);
+					String pw = params.getString(1);
+					String address = null;
+					if(params.length() > 2) {
+						address = params.getString(2);
+					}
+
+					result = rpcService.revokeCertAccount(revokeAddress, pw, address);
+				} catch (JSONException e) {
+					if(e instanceof JSONException) {
+						result.put("success", false);
+						result.put("message", "缺少参数，命令用法：revokecertaccount [revokeaddress] [trpw] [address]");
+						return result;
+					}
+					result.put("success", false);
+					result.put("message", "创建时出错：" + e.getMessage());
+				}
+
+				return result;
+			}
 		
 		//修改认证账户密码
 		case "certaccounteditpassword": {
