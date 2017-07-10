@@ -27,6 +27,10 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 	protected byte[][] mgPubkeys;
 	//交易公匙
 	protected byte[][] trPubkeys;
+
+	protected byte[] superhash160;
+
+	protected int level;
 	
 	public CertAccountTransaction(NetworkParams params) throws ProtocolException {
 		super(params);
@@ -154,6 +158,22 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 
 	public void setScript(Script script) {
 		this.scriptSig = script;
+	}
+
+	public void setSuperhash160(byte[] hash160){
+		this.superhash160 = hash160;
+	}
+
+	public byte[] getSuperhash160(){
+		return this.superhash160;
+	}
+
+	public int getLevel(){
+		return this.level;
+	}
+
+	public void setLevel(int level){
+		this.level = level;
 	}
 	
 }

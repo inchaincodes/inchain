@@ -158,8 +158,17 @@ public final class Configure {
 	 * 转让防伪码消耗信用值
 	 */
 	public final static long TRANSFER_ANTIFAKECODE_SUB_CREDIT = -1;
-	
-	
+
+	/**
+	 * 认证账户level最大值
+	 */
+	public final static int MAX_CERT_LEVEL = 3;
+
+	/**
+	 * 被吊销的认证账户
+	 */
+	public final static int REVOKED_CERT_LEVEL = 0;
+
 	/**
 	 * 参与共识所需的信用点
 	 */
@@ -179,7 +188,7 @@ public final class Configure {
 	 * 转账获得信用点数 - 间隔时间 ， 秒数
 	 */
 	public final static long CERT_CHANGE_PAY_INTERVAL_SECOND = CERT_CHANGE_PAY_INTERVAL / 1000l;
-	
+
 	/**
 	 * 超时未出块惩罚信用点数
 	 */
@@ -188,31 +197,36 @@ public final class Configure {
 	 * 严重违规的惩罚信用点数
 	 */
 	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999999;
-	
+
 	/** 参与共识所需最低保证金 -- 1 W ins **/
 	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);
 	/** 参与共识所需最高保证金 -- 100 W ins **/
 	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(1000000);
-	
+
 
 	/*************  交易相关配置   begin  *****************/
-	
+
 	/**
 	 * 转账时为花费交易选择机制
 	 * 1 以交易数据小优先，该种机制尽量选择一笔输入
 	 * 2 优先使用零钱
 	 */
 	public final static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
-	
+
 	/*************  交易相关配置   end  *****************/
-	
+
 	/*************  系统级配置   begin  *****************/
-	
+
 	/**
 	 * 认证账户列表存储键
 	 */
 	public final static byte[] CERT_ACCOUNT_KEYS = Sha256Hash.hashTwice("cert_account_keys".getBytes());
-	
+
+
+	/**
+	 * 共识账户列表存储键
+	 */
+	public final static byte[] REVOKED_CERT_ACCOUNT_KEYS = Sha256Hash.hashTwice("revoked_cert_account_keys".getBytes());
 	/**
 	 * 共识账户列表存储键
 	 */

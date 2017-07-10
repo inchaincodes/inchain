@@ -2,6 +2,7 @@ package org.inchain.account;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Arrays;
 
@@ -35,6 +36,9 @@ public class Account implements Cloneable {
 	private byte status;
 	//帐户地址
 	private Address address;
+	//认证账户签发上级hash160
+	private byte[] supervisor;
+	private int level;
 	//私匙种子
 	private byte[] priSeed;
 	//管理公匙
@@ -63,6 +67,8 @@ public class Account implements Cloneable {
 
 	public Account(NetworkParams network) {
 		this.network = network;
+		this.supervisor = new byte[20];
+		this.level = 0;
 	}
 
 	/**
@@ -77,9 +83,15 @@ public class Account implements Cloneable {
 
 			bos.write(address.getVersion());//类型
 			bos.write(address.getHash160());
+			bos.write(supervisor);
+			bos.write(level);
 
-			bos.write(priSeed.length);
-			bos.write(priSeed);
+			if(priSeed !=null) {
+				bos.write(priSeed.length);
+				bos.write(priSeed);
+			}else{
+				bos.write(0);
+			}
 
 
 			if(mgPubkeys != null) {
@@ -152,12 +164,24 @@ public class Account implements Cloneable {
 		account.setAddress(address);
 		cursor += 20;
 
+		byte[] supervisor = readBytes(cursor, 20, datas);
+		account.setSupervisor(supervisor);
+		cursor += 20;
+
+		int level = datas[cursor] & 0xff;
+		account.setlevel(level);
+		cursor ++;
+
 		if(type == network.getSystemAccountVersion()) {
 			//私匙
 			int length = datas[cursor] & 0xff;
 			cursor ++;
-			account.setPriSeed(readBytes(cursor, length, datas));
-			cursor += length;
+			if(length>0) {
+				account.setPriSeed(readBytes(cursor, length, datas));
+				cursor += length;
+			}else {
+				account.setPriSeed(new byte[0]);
+			}
 
 			//公匙
 			length = datas[cursor] & 0xff;
@@ -183,8 +207,12 @@ public class Account implements Cloneable {
 			//私匙种子
 			int length = datas[cursor] & 0xff;
 			cursor ++;
-			account.setPriSeed(readBytes(cursor, length, datas));
-			cursor += length;
+			if(length>0) {
+				account.setPriSeed(readBytes(cursor, length, datas));
+				cursor += length;
+			}else {
+			account.setPriSeed(new byte[0]);
+			}
 
 			//帐户管理公匙
 			length = datas[cursor] & 0xff;
@@ -284,7 +312,10 @@ public class Account implements Cloneable {
 	 */
 	public final int size() {
 		int size = 1+1+20; //状态+类型+hash160
-		size += priSeed.length + 1;
+		if (priSeed == null)
+			size+=1;
+		else
+			size += priSeed.length + 1;
 
 		if(trPubkeys != null) {
 			for (byte[] mgPubkey : mgPubkeys) {
@@ -640,5 +671,21 @@ public class Account implements Cloneable {
 
 	public void setTxhash(Sha256Hash txhash) {
 		this.txhash = txhash;
+	}
+
+	public void setSupervisor(byte[] supervisor){
+		this.supervisor = supervisor;
+	}
+
+	public byte[] getSupervisor(){
+		return this.supervisor;
+	}
+
+	public void setlevel(int level){
+		this.level=level;
+	}
+
+	public int getLevel(){
+		return this.level;
 	}
 }

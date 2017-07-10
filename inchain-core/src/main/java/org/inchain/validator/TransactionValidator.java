@@ -24,7 +24,11 @@ import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
-import org.inchain.store.*;
+import org.inchain.store.AccountStore;
+import org.inchain.store.BlockHeaderStore;
+import org.inchain.store.BlockStoreProvider;
+import org.inchain.store.ChainstateStoreProvider;
+import org.inchain.store.TransactionStore;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
@@ -337,8 +341,14 @@ public class TransactionValidator {
 				//检查用户是否为认证账户，检查用户状态是否可用
 				byte[] hash160 = atx.getHash160();
 				AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
-				if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()|| accountInfo.getStatus() != 0) {
+				if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()|| accountInfo.getStatus() != 0||accountInfo.getLevel()>Configure.MAX_CERT_LEVEL) {
 					result.setResult(false, "只有激活状态下的认证账户才能创建防伪码");
+					return validatorResult;
+				}
+
+				//检查账户是否被吊销
+				if(chainstateStoreProvider.isCertAccountRevoked(hash160)){
+					result.setResult(false, "认证账户被吊销");
 					return validatorResult;
 				}
 
@@ -353,7 +363,16 @@ public class TransactionValidator {
 					result.setResult(false, "验证防伪码是否重复时出错，错误信息：" + e.getMessage());
 					return validatorResult;
 				}
-			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+			}else if(tx.getType() == Definition.TYPE_CREATE_PRODUCT){
+				//检查账户是否被吊销
+				ProductTransaction ptx = (ProductTransaction) tx;
+				if(chainstateStoreProvider.isCertAccountRevoked(ptx.getHash160())){
+					result.setResult(false, "认证账户被吊销");
+					return validatorResult;
+				}
+
+			}
+			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证交易
 				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 				
@@ -605,6 +624,11 @@ public class TransactionValidator {
 				result.setResult(false, "注册的账户重复");
 				return validatorResult;
 			}
+
+			if(regTx.getLevel()>Configure.MAX_CERT_LEVEL){
+				result.setResult(false, "签发该账户的上级账户不具备该权限");
+				return validatorResult;
+			}
 			
 			//验证账户注册，必须是超级账号签名的才能注册
 			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
@@ -647,7 +671,40 @@ public class TransactionValidator {
 				result.setResult(false, "错误的签名，账户不匹配");
 				return validatorResult;
 			}
-		} else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
+		}else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){
+			CertAccountRevokeTransaction revokeTx = (CertAccountRevokeTransaction) tx;
+			byte[] hash160 = revokeTx.getHash160();
+			byte[] revokehash160 = revokeTx.getRevokeHash160();
+			if(revokeTx.getLevel() >= Configure.MAX_CERT_LEVEL){
+				result.setResult(false, "签发该账户的上级账户不具备该权限");
+				return validatorResult;
+			}
+			//检查用户是否为认证账户，检查用户状态是否可用
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
+			AccountStore raccountinfo  = chainstateStoreProvider.getAccountInfo(revokehash160);
+
+			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion() || accountInfo.getStatus() !=0 ) {
+				result.setResult(false, "只有激活状态下的认证账户才能修改");
+				return validatorResult;
+			}
+			if(raccountinfo == null){
+				result.setResult(false, "被吊销的账户不存在");
+				return validatorResult;
+			}
+			//检查账户是否被吊销
+			if(chainstateStoreProvider.isCertAccountRevoked(hash160)){
+				result.setResult(false, "认证账户被吊销");
+				return validatorResult;
+			}
+
+			if(accountInfo.getLevel() == 2 && !Arrays.equals(raccountinfo.getSupervisor(),accountInfo.getHash160()) || accountInfo.getLevel()>2){
+				result.setResult(false, "不具备吊销该账户的权限");
+				return validatorResult;
+			}
+
+
+		}
+		else if(tx.getType() == Definition.TYPE_GENERAL_ANTIFAKE) {
 			//普通防伪码验证
 			//仅两种情况需要验证
 			//1 当商品是区块里存在的，那么验证商家是否合法
@@ -728,6 +785,15 @@ public class TransactionValidator {
 				result.setResult(false, "只有认证账户才能添加子账户");
 				return validatorResult;
 			}
+			if(accountInfo.getLevel()==Configure.REVOKED_CERT_LEVEL){
+				result.setResult(false, "该认证账户已经被吊销");
+				return validatorResult;
+			}
+			//检查账户是否被吊销
+			if(chainstateStoreProvider.isCertAccountRevoked(hash160)){
+				result.setResult(false, "认证账户被吊销");
+				return validatorResult;
+			}
 			//添加的账户是否达到上限,100个
 			int count = chainstateStoreProvider.getSubAccountCount(hash160);
 			if(count > 100) {
@@ -748,6 +814,11 @@ public class TransactionValidator {
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
 				result.setResult(false, "只有认证账户才能添加子账户");
+				return validatorResult;
+			}
+			//检查账户是否被吊销
+			if(chainstateStoreProvider.isCertAccountRevoked(hash160)){
+				result.setResult(false, "认证账户被吊销");
 				return validatorResult;
 			}
 			//验证是否存在
@@ -860,6 +931,12 @@ public class TransactionValidator {
 				result.setResult(false, "没有权限转让");
 				return validatorResult;
 			}
+		}else if(tx.getType() == Definition.TYPE_CREATE_PRODUCT ){
+			ProductTransaction ptx = (ProductTransaction)tx;
+			if (chainstateStoreProvider.isCertAccountRevoked(((ProductTransaction) tx).getHash160())){
+				result.setResult(false, "账户已经被吊销，无法创建商品");
+				return validatorResult;
+			}
 		}  else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			//资产发行
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
@@ -924,5 +1001,4 @@ public class TransactionValidator {
 		}
 		return -1;
 	}
-
 }

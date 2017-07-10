@@ -29,6 +29,8 @@ public class AccountStore extends Store {
 	private byte[] hash160;
 	//账户状态
 	private byte status;
+	private int level;
+	private byte[] supervisor;
 	//别名
 	private byte[] alias;
 	private byte[][] pubkeys;
@@ -56,6 +58,9 @@ public class AccountStore extends Store {
 		stream.write(type);
 		stream.write(hash160);
 		stream.write(status);
+		stream.write(level);
+		stream.write(new VarInt(supervisor.length).encode());
+		stream.write(supervisor);
 
 		if(alias == null) {
 			stream.write(new VarInt(0).encode());
@@ -88,6 +93,8 @@ public class AccountStore extends Store {
 		type = readBytes(1)[0] & 0xff;
 		hash160 = readBytes(Address.LENGTH);
 		status = readBytes(1)[0];
+		level = readBytes(1)[0] & 0xff;
+		supervisor = readBytes((int)readVarInt());
 
 		int aliasLength = (int) readVarInt();
 		if(aliasLength > 0) {
@@ -211,4 +218,12 @@ public class AccountStore extends Store {
 	public void setStatus(byte status){
 		this.status = status;
 	}
+
+	public int getLevel(){return  this.level;}
+
+	public void setLevel(int level){this.level = level;}
+
+	public byte[] getSupervisor(){return this.supervisor;}
+
+	public void setSupervisor(byte[] supervisor){this.supervisor = supervisor;}
 }

@@ -162,7 +162,7 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 				txhash = account.getTxhash();
 			}
 			
-			scriptSig = ScriptBuilder.createCertAccountScript(type, txhash, account.getAddress().getHash160(), sign1, sign2);
+			scriptSig = ScriptBuilder.createCertAccountScript(type, txhash, account.getAddress().getHash160(), sign1, null);
 			//scriptSig = ScriptBuilder.createCertAccountScript(type, Sha256Hash.wrap("474b0c43c0caa173830dcac976a26dcb6181c6de533d6e4f058bedb7e8f6189d"), Hex.decode("2b59fb5a63c362ead608707ee8641dec80eca302"), sign1, sign2);
 		} else {
 			//普通账户

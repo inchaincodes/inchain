@@ -22,7 +22,10 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.core.*;
+import org.inchain.core.ByteHash;
+import org.inchain.core.Coin;
+import org.inchain.core.DataSynchronizeHandler;
+import org.inchain.core.Definition;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -235,6 +238,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				if(Arrays.equals(creditTransaction.getHash160(), creditTransaction.getOwnerHash160())) {
 					//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 					accountInfo = chainstateStoreProvider.createNewAccountInfo(creditTransaction, AccountBody.empty(), new byte[][] {creditTransaction.getPubkey()});
+					accountInfo.setSupervisor(creditTransaction.getOwnerHash160());
+					accountInfo.setLevel(0);
 				} else {
 					//不存在时，直接写入信用
 					accountInfo = new AccountStore(network);
@@ -246,6 +251,8 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					accountInfo.setCreateTime(tx.getTime());
 					accountInfo.setLastModifyTime(tx.getTime());
 					accountInfo.setInfoTxid(tx.getHash());
+					accountInfo.setLevel(0);
+					accountInfo.setSupervisor(creditTransaction.getOwnerHash160());
 					accountInfo.setType(network.getSystemAccountVersion());
 					
 					//获取公钥，理论上有转账记录
@@ -364,9 +371,13 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			byte[][] pubkeys = new byte[][] {rtx.getMgPubkeys()[0], rtx.getMgPubkeys()[1], rtx.getTrPubkeys()[0]};
 			if(accountInfo == null) {
 				accountInfo = chainstateStoreProvider.createNewAccountInfo(rtx, rtx.getBody(), pubkeys);
+				accountInfo.setSupervisor(rtx.getSuperhash160());
+				accountInfo.setLevel(rtx.getLevel());
 			} else {
 				oldHash = accountInfo.getInfoTxid();
 				accountInfo.setAccountBody(rtx.getBody());
+				accountInfo.setLevel(rtx.getLevel());
+				accountInfo.setSupervisor(rtx.getSuperhash160());
 				accountInfo.setStatus((byte)0);
 				accountInfo.setLastModifyTime(rtx.getTime());
 				accountInfo.setInfoTxid(rtx.getHash());
@@ -736,7 +747,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					}
 				}
 			}
-		} else {
+		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE) {
+			//TODO
+		}else {
 			//TODO
 		}
 		
