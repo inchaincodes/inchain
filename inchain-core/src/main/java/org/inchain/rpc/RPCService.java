@@ -118,7 +118,7 @@ public interface RPCService {
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	JSONObject newCertAccount(String mgpw, String trpw, AccountBody body, String certpw) throws JSONException;
+	JSONObject newCertAccount(String mgpw, String trpw, AccountBody body, String certpw,String managerAddress) throws JSONException;
 	
 	/**
 	 * 修改认证账户信息
