@@ -41,8 +41,8 @@ public class CertAccountRegisterTransactionTest extends TestNetBaseTestCase {
 		
 		Account account = accountKit.createNewCertAccount("inchain123456", "inchain123", body, "inchain123456");
 		System.out.println("hash160: " + Hex.encode(account.getAddress().getHash160()));
-		
-		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
+		Account managerAccount = accountKit.getDefaultAccount();
+		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),managerAccount.getAddress().getHash160(),managerAccount.getLevel());
 		
 		ECKey[] eckeys = account.decryptionMg("inchain123456");
 		tx.calculateSignature(Sha256Hash.wrap(Hex.decode("d936ad91a50e918ebb8376c7335fb7d16255333ea859d64d7d4d1f309052c8f8")), eckeys[0], eckeys[1]);
