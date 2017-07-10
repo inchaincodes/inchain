@@ -48,9 +48,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TransactionValidator {
-	
-	private final static Logger log = LoggerFactory.getLogger(TransactionValidator.class);
-	
+
+	private final static Logger log = LoggerFactory.getLogger(org.inchain.validator.TransactionValidator.class);
+
 	@Autowired
 	private NetworkParams network;
 	@Autowired
@@ -74,7 +74,7 @@ public class TransactionValidator {
 	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx) {
 		return valDo(tx, null);
 	}
-	
+
 	/**
 	 * 交易验证器，验证交易的输入输出是否合法
 	 * @param tx	待验证的交易
@@ -82,7 +82,7 @@ public class TransactionValidator {
 	 * @return ValidatorResult<TransactionValidatorResult>
 	 */
 	public ValidatorResult<TransactionValidatorResult> valDo(Transaction tx, List<Transaction> txs) {
-		
+
 		final TransactionValidatorResult result = new TransactionValidatorResult();
 		ValidatorResult<TransactionValidatorResult> validatorResult = new ValidatorResult<TransactionValidatorResult>() {
 			@Override
@@ -90,20 +90,20 @@ public class TransactionValidator {
 				return result;
 			}
 		};
-		
+
 		tx.verify();
 		//验证交易的合法性
 		if(tx instanceof BaseCommonlyTransaction) {
 			((BaseCommonlyTransaction)tx).verifyScript();
 		}
-		
+
 		//交易的txid不能和区块里面的交易重复
 		TransactionStore verifyTX = blockStoreProvider.getTransaction(tx.getHash().getBytes());
 		if(verifyTX != null) {
-			
+
 			result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
 			return validatorResult;
-			
+
 //			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
 //			long blockHeight = verifyTX.getHeight();
 //			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
@@ -145,7 +145,7 @@ public class TransactionValidator {
 			//验证交易的输入来源，是否已花费的交易，同时验证金额
 			Coin txInputFee = Coin.ZERO;
 			Coin txOutputFee = Coin.ZERO;
-			
+
 			//验证本次交易的输入
 			List<TransactionInput> inputs = tx.getInputs();
 			for (TransactionInput input : inputs) {
@@ -163,7 +163,7 @@ public class TransactionValidator {
 					}
 					Sha256Hash fromId = fromTx.getHash();
 					int index = output.getIndex();
-					
+
 					//如果引用已经是完整的交易，则不查询
 					if(fromTx.getOutputs() == null || fromTx.getOutputs().isEmpty()) {
 						//需要设置引用的完整交易
@@ -191,7 +191,7 @@ public class TransactionValidator {
 						output.setScript(preTransaction.getOutput(index).getScript());
 						fromTx = preTransaction;
 					}
-					
+
 					TransactionOutput preOutput = fromTx.getOutput(index);
 					txInputFee = txInputFee.add(Coin.valueOf(preOutput.getValue()));
 					output.setValue(preOutput.getValue());
@@ -201,7 +201,7 @@ public class TransactionValidator {
 					} else if(!Arrays.equals(scriptBytes, preOutput.getScriptBytes())) {
 						throw new VerificationException("错误的输入格式，不同的交易赎回脚本不能合并");
 					}
-					
+
 					//验证交易不能双花
 					byte[] statusKey = output.getKey();
 					byte[] state = chainstateStoreProvider.getBytes(statusKey);
@@ -284,7 +284,7 @@ public class TransactionValidator {
 						ViolationTransaction vt = (ViolationTransaction) tx;
 						//证据
 						ViolationEvidence violationEvidence = vt.getViolationEvidence();
-						
+
 						if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK && !Arrays.equals(selfAccount, ouputAccount)) {
 							result.setResult(false, "超时不出块,保证金的输出不合法,应该是保证金所属者");
 							return validatorResult;
@@ -375,13 +375,13 @@ public class TransactionValidator {
 			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证交易
 				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
-				
+
 				byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode());
 				if(antifakeCodeVerifyMakeTxHash == null) {
 					result.setResult(false, "防伪码不存在");
 					return validatorResult;
 				}
-				
+
 				TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
 				if(txStore == null || txStore.getTransaction() == null) {
 					result.setResult(false, "防伪码生成交易不存在");
@@ -395,10 +395,10 @@ public class TransactionValidator {
 				//保证该防伪码没有被验证
 				byte[] txStatus = antifakeCodeVerifyMakeTx.getHash().getBytes();
 				byte[] txIndex = new byte[txStatus.length + 1];
-				
+
 				System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
 				txIndex[txIndex.length - 1] = 0;
-				
+
 				byte[] status = chainstateStoreProvider.getBytes(txIndex);
 				if(status != null && Arrays.equals(status, new byte[] { 2 })) {
 					result.setResult(false, "防伪码已被验证");
@@ -414,7 +414,7 @@ public class TransactionValidator {
 					result.setResult(false, "账户不存在");
 					return validatorResult;
 				}
-				
+
 				//判断是否达到共识条件
 				long credit = (accountStore == null ? 0 : accountStore.getCert());
 				BlockHeader blockHeader = blockStoreProvider.getBlockHeaderByperiodStartTime(regConsensusTx.getPeriodStartTime());
@@ -424,7 +424,7 @@ public class TransactionValidator {
 					result.setResult(false, "共识账户信用值过低 " + credit + "  " + consensusCredit);
 					return validatorResult;
 				}
-				
+
 				//判断是否已经是共识节点
 				if(consensusPool.contains(hash160)) {
 					//已经是共识节点了
@@ -460,7 +460,7 @@ public class TransactionValidator {
 			} else if(tx instanceof ViolationTransaction) {
 				//违规处罚交易，验证违规证据是否合法
 				ViolationTransaction vtx = (ViolationTransaction)tx;
-				
+
 				//违规证据
 				ViolationEvidence violationEvidence = vtx.getViolationEvidence();
 				if(violationEvidence == null) {
@@ -474,7 +474,7 @@ public class TransactionValidator {
 					result.setResult(false, "该违规已经被处理，不需要重复处理");
 					return validatorResult;
 				}
-				
+
 				//验证证据合法性
 				if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 					//超时未出块处罚
@@ -483,7 +483,7 @@ public class TransactionValidator {
 					byte[] hash160 = notBroadcastBlock.getAudienceHash160();
 					long currentPeriodStartTime = notBroadcastBlock.getCurrentPeriodStartTime();
 					long previousPeriodStartTime = notBroadcastBlock.getPreviousPeriodStartTime();
-					
+
 					BlockHeader startBlockHeader = blockStoreProvider.getBestBlockHeader().getBlockHeader();
 					//取得当前轮的最后一个块
 					while(true) {
@@ -498,13 +498,13 @@ public class TransactionValidator {
 							}
 						}
 					}
-					
+
 					//原本应该打包的上一个块
 					if(startBlockHeader == null || (!Sha256Hash.ZERO_HASH.equals(startBlockHeader.getPreHash()) && startBlockHeader.getPeriodStartTime() != previousPeriodStartTime)) {
 						result.setResult(false, "违规证据中的两轮次不相连");
 						return validatorResult;
 					}
-					
+
 					//验证该轮的时段
 					int index = getConsensusPeriod(hash160, currentPeriodStartTime);
 					if(index == -1) {
@@ -524,12 +524,12 @@ public class TransactionValidator {
 						}
 						if(currentStartBlockHeader.getTimePeriod() < index) {
 							BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeaderByHeight(currentStartBlockHeader.getHeight() + 1);
-							
-							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
+
+							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null
 									|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != currentPeriodStartTime) {
 								break;
 							}
-							
+
 							currentStartBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
 						} else {
 							break;
@@ -548,12 +548,12 @@ public class TransactionValidator {
 						}
 						if(startBlockHeader.getTimePeriod() < index) {
 							BlockHeaderStore preBlockHeaderStoreTemp = blockStoreProvider.getHeader(startBlockHeader.getPreHash().getBytes());
-							
-							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null 
+
+							if(preBlockHeaderStoreTemp == null || preBlockHeaderStoreTemp.getBlockHeader() == null
 									|| preBlockHeaderStoreTemp.getBlockHeader().getPeriodStartTime() != previousPeriodStartTime) {
 								break;
 							}
-							
+
 							startBlockHeader = preBlockHeaderStoreTemp.getBlockHeader();
 						} else {
 							break;
@@ -564,18 +564,18 @@ public class TransactionValidator {
 					//验证证据的合法性
 					//违规证据
 					RepeatBlockViolationEvidence repeatBlockViolationEvidence = (RepeatBlockViolationEvidence) violationEvidence;
-					
+
 					List<BlockHeader> blockHeaders = repeatBlockViolationEvidence.getBlockHeaders();
-					
+
 					//证据不能为空，且必须是2条记录
 					if(blockHeaders == null || blockHeaders.size() != 2) {
 						result.setResult(false, "证据个数不正确");
 						return validatorResult;
 					}
-					
+
 					BlockHeader blockHeader1 = blockHeaders.get(0);
 					BlockHeader blockHeader2 = blockHeaders.get(1);
-					if(!Arrays.equals(blockHeader1.getHash160(), blockHeader2.getHash160()) || 
+					if(!Arrays.equals(blockHeader1.getHash160(), blockHeader2.getHash160()) ||
 							!Arrays.equals(blockHeader1.getHash160(), repeatBlockViolationEvidence.getAudienceHash160())) {
 						result.setResult(false, "违规证据里的两个块打包人不相同,或者证据与被处理人不同");
 						return validatorResult;
@@ -618,7 +618,7 @@ public class TransactionValidator {
 			CertAccountRegisterTransaction regTx = (CertAccountRegisterTransaction) tx;
 			//注册的hash160地址，不能与现有的地址重复，当然正常情况重复的机率为0，不排除有人恶意广播数据
 			byte[] hash160 = regTx.getHash160();
-			
+
 			byte[] txid = chainstateStoreProvider.getBytes(hash160);
 			if(txid != null) {
 				result.setResult(false, "注册的账户重复");
@@ -629,7 +629,7 @@ public class TransactionValidator {
 				result.setResult(false, "签发该账户的上级账户不具备该权限");
 				return validatorResult;
 			}
-			
+
 			//验证账户注册，必须是超级账号签名的才能注册
 			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
@@ -638,17 +638,12 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
-			
-			//认证帐户，就需要判断是否经过认证的
-			if(!Arrays.equals(verTx.getHash160(), network.getCertAccountManagerHash160())) {
-				result.setResult(false, "账户没有经过认证");
-				return validatorResult;
-			}
+
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 			//认证账户修改信息
 			CertAccountUpdateTransaction updateTx = (CertAccountUpdateTransaction) tx;
 			byte[] hash160 = updateTx.getHash160();
-			
+
 			//必须是自己最新的账户状态
 			byte[] verTxid = updateTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
@@ -665,7 +660,7 @@ public class TransactionValidator {
 
 
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
-			
+
 			//认证帐户，就需要判断是否经过认证的
 			if(!Arrays.equals(verTx.getHash160(), hash160)) {
 				result.setResult(false, "错误的签名，账户不匹配");
@@ -721,7 +716,7 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 			}
-			
+
 			//2验证防伪码是否被验证过了
 			try {
 				byte[] txhash = chainstateStoreProvider.getBytes(gatx.getAntifakeHash().getBytes());
@@ -838,7 +833,7 @@ public class TransactionValidator {
 				result.setResult(false, "防伪码不存在");
 				return validatorResult;
 			}
-			
+
 			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
 			if(txStore == null || txStore.getTransaction() == null) {
 				result.setResult(false, "防伪码生成交易不存在");
@@ -853,10 +848,10 @@ public class TransactionValidator {
 			//保证该防伪码没有被验证
 			byte[] txStatus = antifakeMakeTx.getHash().getBytes();
 			byte[] txIndex = new byte[txStatus.length + 1];
-			
+
 			System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
 			txIndex[txIndex.length - 1] = 0;
-			
+
 			byte[] status = chainstateStoreProvider.getBytes(txIndex);
 			if(status != null && Arrays.equals(status, new byte[] { 2 })) {
 				result.setResult(false, "防伪码已被验证");
@@ -886,14 +881,14 @@ public class TransactionValidator {
 			}
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
-			
+
 			//账户必须达到规定的信用，才能转让防伪码
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getHash160());
 			if(accountInfo == null || accountInfo.getCert() < Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
 				result.setResult(false, "账户信用达到" + Configure.TRANSFER_ANTIFAKECODE_CREDIT + "之后才能转让");
 				return validatorResult;
 			}
-			
+
 			byte[] antifakeCode = attx.getAntifakeCode();
 			//先验证防伪码是否是合法状态
 			byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(antifakeCode);
@@ -901,7 +896,7 @@ public class TransactionValidator {
 				result.setResult(false, "防伪码不存在");
 				return validatorResult;
 			}
-			
+
 			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
 			if(txStore == null || txStore.getTransaction() == null) {
 				result.setResult(false, "防伪码生成交易不存在");
@@ -916,10 +911,10 @@ public class TransactionValidator {
 			//保证该防伪码已经被验证
 			byte[] txStatus = antifakeCodeMakeTx.getHash().getBytes();
 			byte[] txIndex = new byte[txStatus.length + 1];
-			
+
 			System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
 			txIndex[txIndex.length - 1] = 0;
-			
+
 			byte[] status = chainstateStoreProvider.getBytes(txIndex);
 			if(status != null && Arrays.equals(status, new byte[] { 1 })) {
 				result.setResult(false, "防伪码未被验证，不能转让");
