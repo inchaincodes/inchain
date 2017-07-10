@@ -79,7 +79,7 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 		
 		log.info("tx {}", tx.getHash());
 		log.info("tx size is {}", tx.baseSerialize().length);
-		
+		log.info("tx content is {}",Hex.encode(tx.baseSerialize()));
 		//加入内存池
 		MempoolContainer.getInstace().add(tx);
 		
@@ -95,10 +95,13 @@ public class ProductTransactionTest extends TestNetBaseTestCase {
 	
 	private Product createProduct() {
 		List<ProductKeyValue> contents = new ArrayList<ProductKeyValue>();
-		contents.add(new ProductKeyValue("name", "名称", "印链-闪迪U盘"));
-		contents.add(new ProductKeyValue("description", "描述", "32G"));
-		contents.add(new ProductKeyValue("content", "详情", "回馈老用户，免费赠送"));
-		contents.add(new ProductKeyValue("productionDate", "生产日期", "2017-02-23"));
+		contents.add(new ProductKeyValue("name", "书名", "区块链：量子财富观"));
+		contents.add(new ProductKeyValue("anthor", "主编", "韩锋、张晓玫"));
+		contents.add(new ProductKeyValue("anthor1", "参编", "龚鸣、蒋昊然、张夏等"));
+		contents.add(new ProductKeyValue("description", "详情", "中国版本图书馆CIP数据核字（2017）第133041号"));
+		contents.add(new ProductKeyValue("publisher", "出版社", "机械工业出版社"));
+		contents.add(new ProductKeyValue("publishtime", "印刷日期", "2017年7月第1版第1次印刷"));
+		contents.add(new ProductKeyValue("ISBN", "ISBN", "978-7-111-57261-9"));
 		contents.add(new ProductKeyValue("createTime", "创建时间", TimeService.currentTimeMillisOfBytes()));
 		
 		Product product = new Product(contents);
