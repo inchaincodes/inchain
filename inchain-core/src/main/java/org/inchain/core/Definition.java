@@ -19,22 +19,7 @@ import org.inchain.message.PongMessage;
 import org.inchain.message.VerackMessage;
 import org.inchain.message.VersionMessage;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CertAccountUpdateTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.transaction.business.GeneralAntifakeTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RegAliasTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.UpdateAliasTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 
 /**
  * 协议定义
@@ -100,7 +85,14 @@ public final class Definition {
 	public static final int TYPE_ANTIFAKE_CIRCULATION = 25;
 	/** 防伪码转让 **/
 	public static final int TYPE_ANTIFAKE_TRANSFER = 26;
-	
+
+
+	/** 资产登记 **/
+	public static final int TYPE_ASSETS_REGISTER = 30;
+	/** 资产发行 **/
+	public static final int TYPE_ASSETS_ISSUED = 31;
+	/** 资产转让 **/
+	public static final int TYPE_ASSETS_TRANSFER = 32;
 	
 	public static final int TX_VERIFY_MG = 1;				//脚本认证，账户管理类
 	public static final int TX_VERIFY_TR = 2;				//脚本认证，交易类
@@ -132,7 +124,7 @@ public final class Definition {
 	public static boolean isPaymentTransaction(int type) {
 		return type == TYPE_COINBASE || type == TYPE_PAY || type == TYPE_ANTIFAKE_CODE_MAKE
 				|| type == TYPE_ANTIFAKE_CODE_VERIFY || type == TYPE_REG_CONSENSUS
-				|| type == TYPE_REM_CONSENSUS || type == TYPE_VIOLATION; 
+				|| type == TYPE_REM_CONSENSUS || type == TYPE_VIOLATION || type == TYPE_ASSETS_REGISTER;
 	}
 	
 	//交易关联
@@ -181,7 +173,10 @@ public final class Definition {
     	PROCESS_FACTORYS.put(AntifakeCodeVerifyTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CirculationTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeTransferTransaction.class, "transactionMessageProcess");
-    	
+    	PROCESS_FACTORYS.put(AssetsIssuedTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(AssetsRegisterTransaction.class, "transactionMessageProcess");
+    	PROCESS_FACTORYS.put(AssetsTransferTransaction.class, "transactionMessageProcess");
+
     	//===========================-分割线=============================//
     	
     	MESSAGE_COMMANDS.put(PingMessage.class, "ping");
@@ -216,7 +211,10 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CirculationTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeTransferTransaction.class, "tx");
-    	
+    	MESSAGE_COMMANDS.put(AssetsIssuedTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(AssetsRegisterTransaction.class, "tx");
+    	MESSAGE_COMMANDS.put(AssetsTransferTransaction.class, "tx");
+
     	//===========================-分割线=============================//
     	
     	TRANSACTION_RELATION.put(TYPE_COINBASE, Transaction.class);
@@ -239,7 +237,12 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CIRCULATION, CirculationTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_TRANSFER, AntifakeTransferTransaction.class);
-		
+
+		//资产相关
+		TRANSACTION_RELATION.put(TYPE_ASSETS_REGISTER, AssetsRegisterTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ASSETS_ISSUED, AssetsIssuedTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ASSETS_TRANSFER, AssetsTransferTransaction.class);
+
     	//===========================-分割线=============================//
     	
     	for (Entry<Class<? extends Message>, String> entry : MESSAGE_COMMANDS.entrySet()) {

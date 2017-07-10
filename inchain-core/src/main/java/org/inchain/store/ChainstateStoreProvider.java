@@ -17,15 +17,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.transaction.Transaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.BaseCommonlyTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -973,6 +965,33 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			accountInfo.setCert(accountInfo.getCert() - certChange);
 			saveAccountInfo(accountInfo);
 		}
+	}
+
+	/**
+	 * 资产登记
+	 * @param assetsRegisterTx
+	 */
+	public void assetsRegister(AssetsRegisterTransaction assetsRegisterTx) {
+		//TODO
+
+	}
+
+	/**
+	 * 资产发行
+	 * @param assetsIssuedTx
+	 */
+	public void assetsIssued(AssetsIssuedTransaction assetsIssuedTx) {
+		//TODO
+
+	}
+
+	/**
+	 * 资产交易
+	 * @param assetsTransferTx
+	 */
+	public void assetsTransfer(AssetsTransferTransaction assetsTransferTx) {
+		//TODO
+
 	}
 
 	public void clean() {

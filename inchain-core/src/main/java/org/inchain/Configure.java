@@ -217,6 +217,11 @@ public final class Configure {
 	 * 共识账户列表存储键
 	 */
 	public final static byte[] CONSENSUS_ACCOUNT_KEYS = Sha256Hash.hashTwice("consensus_account_keys".getBytes());
+
+	/**
+	 * 资产列表存储键
+	 */
+	public final static byte[] ASSETS_LIST_KEYS = Sha256Hash.hashTwice("assets_list_keys".getBytes());
 	
 	
 	/*************  系统级配置   begin  *****************/
