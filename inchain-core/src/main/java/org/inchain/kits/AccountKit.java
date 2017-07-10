@@ -2507,12 +2507,28 @@ public class AccountKit {
 	 * @return List<AccountStore>
 	 */
 	public List<AccountStore> getConsensusAccounts() {
+        List<ConsensusModel> list = consensusPool.getContainer();
+        List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
+        if(list == null) {
+            return consensusAccountList;
+        }
+        for (ConsensusModel consensusModel : list) {
+            byte[] hash160 = consensusModel.getApplicant();
+            AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
+            if(accountStore == null) {
+                continue;
+            }
+            consensusAccountList.add(accountStore);
+        }
+
+        return consensusAccountList;
+	    /*
 		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 		List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
 		if(consensusAccounts == null) {
 			return consensusAccountList;
 		}
-		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH + Sha256Hash.LENGTH)) {
+		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH * 2 + Sha256Hash.LENGTH)) {
 			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore == null) {
@@ -2521,6 +2537,7 @@ public class AccountKit {
 			consensusAccountList.add(accountStore);
 		}
 		return consensusAccountList;
+		*/
 	}
 	
 	/**
