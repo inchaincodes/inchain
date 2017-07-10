@@ -53,17 +53,21 @@ public class AntifakeCodeMakeTransactionTest extends TestNetBaseTestCase {
 	@Test
 	public void makeAntifakeCode() throws VerificationException, IOException {
 		
-		log.info("best block height {}", network.getBestBlockHeight());
+		log.info("make anti code------------------------------------------------------- ", network.getBestBlockHeight());
+		BroadcastMakeAntifakeCodeResult result = null;
+		for(int i = 0; i<1; i++) {
+			String productTx = "ec0618332cd5330f82fb4d28b931b9e88c74db802b2ff7fff9bf84fa7f13187f";
+			Coin reward = Coin.ZERO;
+			result = accountKit.makeAntifakeCode(productTx, reward, "inchain123");
+			log.info("code :" + (i+1));
+			log.info("{}--{}--{}", Base58.encode(result.getAntifakeCode().getAntifakeCode()), result.getAntifakeCode().getVerifyCode(),result.getAntifakeCode().base58Encode());
+
+			log.info("{}","");
+		}
+
+		log.info("make anti code end-----------------------------------------------", result);
 		
-		String productTx = "c97904f235e8a109281230ecf919a251d4c97fde21181e4ee74f294b5731baa8";
-//		Coin reward = Coin.COIN.multiply(3).div(2);
-		Coin reward = Coin.ZERO;
-		BroadcastMakeAntifakeCodeResult result = accountKit.makeAntifakeCode(productTx, reward, "inchain123");
-		
-		log.info("broadcast result {}", result);
-		
-		log.info("antifake code is : {}, verify code is {}", Base58.encode(result.getAntifakeCode().getAntifakeCode()), result.getAntifakeCode().getVerifyCode());
-		log.info("antifake base58 code is : {}", result.getAntifakeCode().base58Encode());
+
 		
 	}
 }
