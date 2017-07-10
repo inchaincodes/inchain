@@ -597,6 +597,24 @@ public class RPCServiceImpl implements RPCService {
 		}
 		return result;
 	}
+
+	@Override
+	public JSONObject regAssets(String name, String description, String code, String logo, String remark) throws JSONException {
+		JSONObject result = new JSONObject();
+		Account account = null;
+		try {
+			account = accountKit.getDefaultAccount();
+			if(account == null || !account.isCertAccount()) {
+				result.put("success", false);
+				result.put("message", "账户不存在");
+				return result;
+			}
+
+		}catch (Exception e) {
+
+		}
+		return null;
+	}
 	
 	/**
 	 * 通过防伪码查询防伪码相关的所有信息

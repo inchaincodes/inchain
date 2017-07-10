@@ -222,6 +222,18 @@ public interface RPCService {
 	JSONObject createAntifake(String productTx, int count, JSONArray sources, Coin reward, String trpw, String address) throws JSONException;
 
 	/**
+	 *
+	 * @param name 资产名称
+	 * @param description 资产描述
+	 * @param code 资产代号
+	 * @param logo 资产图标
+	 * @param remark 资产描述
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject regAssets(String name, String description, String code, String logo, String remark) throws JSONException;
+
+	/**
 	 * 获取共识节点列表
 	 * @return JSONArray
 	 * @throws JSONException 

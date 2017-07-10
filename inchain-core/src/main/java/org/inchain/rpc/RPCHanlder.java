@@ -490,7 +490,12 @@ public class RPCHanlder {
 			
 			return result;
 		}
-		
+
+		//注册资产
+		case "regassets" : {
+
+		}
+
 		//认证账户创建防伪码
 		case "createantifake": {
 			try {
@@ -702,6 +707,16 @@ public class RPCHanlder {
 			//防伪码
 			String antifakeCode = params.getString(0);
 			return rpcService.queryTransferCount(antifakeCode);
+		}
+
+		//资产注册
+		case "regassets": {
+			if(params.length()  < 5) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+
 		}
 		
 		//查询防伪码所属权
