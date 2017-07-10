@@ -303,10 +303,10 @@ public class RPCServiceImpl implements RPCService {
 	 * @throws JSONException
 	 */
 	@Override
-	public JSONObject newCertAccount(String mgpw, String trpw, AccountBody body, String certpw) throws JSONException {
+	public JSONObject newCertAccount(String mgpw, String trpw, AccountBody body,String certpw ,String managerAddress) throws JSONException {
 		JSONObject result = new JSONObject();
 		try {
-			Account account = accountKit.createNewCertAccount(mgpw, trpw, body, certpw);
+			Account account = accountKit.createNewCertAccount(mgpw, trpw, body,certpw,managerAddress);
 			if(account == null) {
 				result.put("success", false);
 				result.put("message", "创建失败");

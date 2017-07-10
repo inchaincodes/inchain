@@ -228,10 +228,13 @@ public class RPCHanlder {
 				String trpw = params.getString(1);
 				String bodyHexStr = params.getString(2);
 				AccountBody body = new AccountBody(Base58.decode(bodyHexStr));
-
 				String certpw = params.getString(3);
+				String managerAddress = null;
+				if(params.length()>5) {
+					 managerAddress = params.getString(4);
+				}
 				
-				result = rpcService.newCertAccount(mggpw, trpw, body, certpw);
+				result = rpcService.newCertAccount(mggpw, trpw, body,certpw,managerAddress);
 			} catch (JSONException e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
@@ -271,7 +274,7 @@ public class RPCHanlder {
 			return result;
 		}
 
-		//修改认证账户信息
+		//吊销认证账户信息
 			case "revokecertaccount": {
 
 				try {
