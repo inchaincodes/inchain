@@ -515,7 +515,6 @@ public class RPCServiceImpl implements RPCService {
 			if(reward == null || reward.isLessThan(Coin.ZERO)) {
 				reward = Coin.ZERO;
 			}
-			11
 			//如果有奖励，验证余额是否充足
 			if(reward.isGreaterThan(Coin.ZERO)) {
 				Coin balance = accountKit.getBalance(account);
@@ -583,12 +582,20 @@ public class RPCServiceImpl implements RPCService {
 			} else {
 				account = accountKit.getAccount(address);
 			}
-			if(account == null || !account.isCertAccount()) {
-				result.put("success", false);
-				result.put("message", "账户不存在");
-				return result;
+			if(account == null) {
+				throw new VerificationException("账户不存在");
+			}
+			if(account.isEncryptedOfTr()) {
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密，请解密或者传入密码");
+				}
+				ECKey[] eckeys = account.decryptionTr(password);
+				if(eckeys == null) {
+					throw new VerificationException("密码错误");
+				}
 			}
 
+			//创建交易
 			AssetsRegisterTransaction assetsRegisterTx = new AssetsRegisterTransaction(network,
 																name.getBytes(Utils.UTF_8),
 																description.getBytes(Utils.UTF_8),
@@ -608,16 +615,20 @@ public class RPCServiceImpl implements RPCService {
 				return result;
 			}
 
+			BroadcastResult br = accountKit.regAssets(account, password, assetsRegisterTx);
+			result.put("success",  br.isSuccess());
+			result.put("message", br.getMessage());
 		}catch (VerificationException ve) {
-			//交易认证
+
 			result.put("success", false);
 			result.put("message", ve.getMessage());
-			return result;
 		}
 		catch (Exception e) {
-
+			log.error("资产认证出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
 		}
-		return null;
+		return result;
 	}
 	
 	/**

@@ -18,6 +18,7 @@ import org.inchain.core.ViolationEvidence;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.business.*;
+import org.inchain.utils.Utils;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -1009,7 +1010,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 */
 	public void assetsRegister(AssetsRegisterTransaction assetsRegisterTx) {
 		//TODO
-
+		byte[] registerKey = Sha256Hash.hash(assetsRegisterTx.getCode());
+		put(registerKey, assetsRegisterTx.getHash().getBytes());
 	}
 
 	/**

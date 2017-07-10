@@ -34,8 +34,10 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.*;
+import org.inchain.utils.Base58;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
+import org.inchain.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -601,17 +603,19 @@ public class TransactionValidator {
 					result.setResult(false, "资产登记费用不正确");
 					return validatorResult;
 				}
-				//TODO
+				//TODO  输出账号必须是社区账号
 
 				AssetsRegisterTransaction artx = (AssetsRegisterTransaction) tx;
 				//验证编码是否重复
 				byte[] code = artx.getCode();
-				//key不能直接为code
+				//key = hash(code)
+				byte[] codeKey = Sha256Hash.hash(code);
 				byte[] codeResult = chainstateStoreProvider.getBytes(code);
 				if(codeResult != null) {
 					result.setResult(false, "已被占用的资产编码");
 					return validatorResult;
 				}
+
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册

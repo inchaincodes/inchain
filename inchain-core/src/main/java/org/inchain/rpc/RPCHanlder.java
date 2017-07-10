@@ -491,11 +491,6 @@ public class RPCHanlder {
 			return result;
 		}
 
-		//注册资产
-		case "regassets" : {
-
-		}
-
 		//认证账户创建防伪码
 		case "createantifake": {
 			try {
@@ -711,23 +706,18 @@ public class RPCHanlder {
 
 		//资产注册
 		case "regassets": {
-			if(params.length()  < 6) {
+			if(params.length()  < 5) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
 				return result;
 			}
-			/**
-			 * todo 一旦定死参数的顺序，就不能更改，
-			 * 这里如何验证参数一定是按照这个顺序传进来的
-			 */
-
 
 			String name = params.getString(0);
 			String description = params.getString(1);
 			String code = params.getString(2);
 			String logo = params.getString(3);
 			String remark = params.getString(4);
-			String address = null;                       //账户地址
+			String address = null;                  //账户地址
 			String pwd = null;                      //账户密码
 			//如果参数只有6个的时候 ，考虑用户只传了密码未传账户地址的情况
 			if(params.length() == 6) {
@@ -741,7 +731,7 @@ public class RPCHanlder {
 				address = params.getString(5);
 				pwd = params.getString(6);
 			}
-			return rpcService.regAssets(name, description, code, logo, remark, address, password);
+			return rpcService.regAssets(name, description, code, logo, remark, address, pwd);
 		}
 		
 		//查询防伪码所属权

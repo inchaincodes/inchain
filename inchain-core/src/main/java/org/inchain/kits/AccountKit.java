@@ -20,6 +20,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
 import org.inchain.account.Account;
@@ -520,16 +522,7 @@ public class AccountKit {
 	 * @param password
 	 * @throws VerificationException
 	 */
-	public void regAssets(Account account, String password, AssetsRegisterTransaction assetsRegisterTx)throws VerificationException {
-		if(account.isEncryptedOfTr()) {
-			if(StringUtil.isEmpty(password)) {
-				throw new VerificationException("账户已加密，请解密或者传入密码");
-			}
-			ECKey[] eckeys = account.decryptionTr(password);
-			if(eckeys == null) {
-				throw new VerificationException("密码错误");
-			}
-		}
+	public BroadcastResult regAssets(Account account, String password, AssetsRegisterTransaction assetsRegisterTx) throws VerificationException {
 
 		//选择输入，判断是否有10000个INS手续费
 		Coin money = Coin.COIN.multiply(10000);
@@ -548,8 +541,41 @@ public class AccountKit {
 			assetsRegisterTx.addInput(input);
 			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
 		}
-		3131
 
+		//手续费给到固定的社区账号里
+        Address ars = new Address(network,network.getCommunityManagerHash160());
+        assetsRegisterTx.addOutput(totalInputCoin.subtract(money), ars);
+        //是否找零
+        if(totalInputCoin.isGreaterThan(money)) {
+            assetsRegisterTx.addOutput(totalInputCoin.subtract(money), account.getAddress());
+        }
+
+        //验证交易是否合法
+        ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(assetsRegisterTx);
+        if(!rs.getResult().isSuccess()) {
+            throw new VerificationException(rs.getResult().getMessage());
+        }
+
+		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+		boolean success = MempoolContainer.getInstace().add(assetsRegisterTx);
+		if(!success) {
+			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
+		}
+
+		try {
+			BroadcastResult br = peerKit.broadcast(assetsRegisterTx).get();
+
+			//等待广播回应
+			if(br.isSuccess()) {
+				//更新交易记录
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, assetsRegisterTx));
+			}
+
+			return br;
+
+		} catch (Exception e) {
+			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
+		}
 	}
 
 	/*
