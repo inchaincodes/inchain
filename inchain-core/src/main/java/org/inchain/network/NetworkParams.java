@@ -88,7 +88,12 @@ public abstract class NetworkParams {
 	 * @return byte[]
 	 */
 	public abstract byte[] getCertAccountManagerHash160();
-	
+
+	/**
+	 * 获取该网络的社区管理账号的hash160
+	 */
+	public abstract byte[] getCommunityManagerHash160();
+
 	public static enum ProtocolVersion {
         CURRENT(1);
 

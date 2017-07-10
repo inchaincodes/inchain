@@ -65,7 +65,11 @@ public class MainNetworkParams extends NetworkParams {
 	public byte[] getCertAccountManagerHash160() {
 		return null;
 	}
-	
+
+	@Override
+	public byte[] getCommunityManagerHash160() {
+		return null;
+	}
 	/**
 	 * 主网，普通地址以i开头
 	 */
@@ -81,5 +85,7 @@ public class MainNetworkParams extends NetworkParams {
 	public int getCertAccountVersion() {
 		return 70;
 	}
+
+
 
 }

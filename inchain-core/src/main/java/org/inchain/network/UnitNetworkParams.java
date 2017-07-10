@@ -79,7 +79,11 @@ public class UnitNetworkParams extends NetworkParams {
 	public byte[] getCertAccountManagerHash160() {
 		return Hex.decode("98ba9559d02ae15f34b0209a87377f1e59c50173");
 	}
-	
+
+	@Override
+	public byte[] getCommunityManagerHash160() {
+		return null;
+	}
 	/**
 	 * 单元测试，普通地址以u开头
 	 */

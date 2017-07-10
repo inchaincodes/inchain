@@ -531,10 +531,25 @@ public class AccountKit {
 			}
 		}
 
+		//选择输入，判断是否有10000个INS手续费
+		Coin money = Coin.COIN.multiply(10000);
 
-		if(account.isEncryptedOfTr()) {
-			throw new VerificationException("账户已加密，无法签名信息");
+		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money, account.getAddress());
+		if(fromOutputs == null || fromOutputs.size() == 0) {
+			throw new VerificationException("余额不足，无法奖励");
 		}
+		//输入金额
+		Coin totalInputCoin = Coin.ZERO;
+		//这次交易的输入，等于上次交易的输出
+		for (TransactionOutput output : fromOutputs) {
+			TransactionInput input = new TransactionInput(output);
+			//认证账户的签名
+			input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+			assetsRegisterTx.addInput(input);
+			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+		}
+		3131
+
 	}
 
 	/*

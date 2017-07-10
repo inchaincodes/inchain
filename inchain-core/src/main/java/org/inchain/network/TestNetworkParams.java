@@ -92,6 +92,11 @@ public class TestNetworkParams extends NetworkParams {
 		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1
 	}
 
+	@Override
+	public byte[] getCommunityManagerHash160() {
+		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1
+	}
+
 	/**
 	 * 测试网络，普通地址以t开头
 	 */
