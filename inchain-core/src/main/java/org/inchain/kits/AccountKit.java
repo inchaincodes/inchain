@@ -1446,7 +1446,7 @@ public class AccountKit {
 	 * @throws FileNotFoundException 
 	 * @throws VerificationException 
 	 */
-	public Account createNewCertAccount(String mgPw, String trPw, AccountBody accountBody, String certpw) throws FileNotFoundException, IOException, VerificationException  {
+	public Account createNewCertAccount(String mgPw, String trPw, AccountBody accountBody,  String certpw, String managerAddress) throws FileNotFoundException, IOException, VerificationException  {
 		
 		//密码位数和难度检测
 		if(!validPassword(mgPw) || !validPassword(trPw)) {
@@ -1458,7 +1458,7 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
-			Account account = genAccountInfos(mgPw, trPw, accountBody, certpw);
+			Account account = genAccountInfos(mgPw, trPw, accountBody,certpw,managerAddress);
 			
 			accountList.add(account);
 			
@@ -1745,13 +1745,13 @@ public class AccountKit {
 	/*
 	 * 生成帐户信息
 	 */
-	private Account genAccountInfos(String mgPw, String trPw, AccountBody accountBody, String certpw) throws FileNotFoundException, IOException, VerificationException {
+	private Account genAccountInfos(String mgPw, String trPw, AccountBody accountBody,String certpw,String managerAddress) throws FileNotFoundException, IOException, VerificationException {
 		
 		if(accountBody == null) {
 			throw new VerificationException("缺少账户主体");
 		}
 		//验证权限
-		Account managerAccount = getManagerAccount();
+		Account managerAccount = getManagerAccount(managerAddress);
 		if(managerAccount == null) {
 			throw new VerificationException("没有权限生成认证账户");
 		}
@@ -1847,15 +1847,19 @@ public class AccountKit {
 	/*
 	 * 获取网络认证管理账户，如果没有则返回Null
 	 */
-	private Account getManagerAccount() {
-		byte[] managerHash160 = network.getCertAccountManagerHash160();
-		
-		for (Account account : accountList) {
-			if(Arrays.equals(managerHash160, account.getAddress().getHash160())) {
-				return account;
+	private Account getManagerAccount(String managerAddress) {
+	    Account account = null;
+	    if(managerAddress ==  null){
+	        account =  getCertAccount();
+        }
+		for (Account tmpaccount : accountList) {
+			if(managerAddress.equals(tmpaccount.getAddress().getBase58())) {
+                account =tmpaccount;
 			}
 		}
-		return null;
+		if( account.getLevel() >= 3 )
+		    return null;
+		return account;
 	}
 	
 	/**
