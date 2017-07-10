@@ -24,22 +24,7 @@ import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
 import org.inchain.consensus.MiningInfos;
-import org.inchain.core.AccountKeyValue;
-import org.inchain.core.AntifakeCode;
-import org.inchain.core.AntifakeInfosResult;
-import org.inchain.core.BroadcastMakeAntifakeCodeResult;
-import org.inchain.core.BroadcastResult;
-import org.inchain.core.Coin;
-import org.inchain.core.Definition;
-import org.inchain.core.NotBroadcastBlockViolationEvidence;
-import org.inchain.core.Peer;
-import org.inchain.core.Product;
-import org.inchain.core.ProductKeyValue;
-import org.inchain.core.RepeatBlockViolationEvidence;
-import org.inchain.core.Result;
-import org.inchain.core.TimeService;
-import org.inchain.core.VerifyAntifakeCodeResult;
-import org.inchain.core.ViolationEvidence;
+import org.inchain.core.*;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
@@ -62,17 +47,7 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.BaseCommonlyTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.transaction.business.GeneralAntifakeTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 import org.inchain.utils.Base58;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
@@ -540,7 +515,7 @@ public class RPCServiceImpl implements RPCService {
 			if(reward == null || reward.isLessThan(Coin.ZERO)) {
 				reward = Coin.ZERO;
 			}
-			
+			11
 			//如果有奖励，验证余额是否充足
 			if(reward.isGreaterThan(Coin.ZERO)) {
 				Coin balance = accountKit.getBalance(account);
@@ -599,18 +574,47 @@ public class RPCServiceImpl implements RPCService {
 	}
 
 	@Override
-	public JSONObject regAssets(String name, String description, String code, String logo, String remark) throws JSONException {
+	public JSONObject regAssets(String name, String description, String code, String logo, String remark, String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
 		Account account = null;
 		try {
-			account = accountKit.getDefaultAccount();
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
 			if(account == null || !account.isCertAccount()) {
 				result.put("success", false);
 				result.put("message", "账户不存在");
 				return result;
 			}
 
-		}catch (Exception e) {
+			AssetsRegisterTransaction assetsRegisterTx = new AssetsRegisterTransaction(network,
+																name.getBytes(Utils.UTF_8),
+																description.getBytes(Utils.UTF_8),
+																code.getBytes(Utils.UTF_8),
+																logo.getBytes(Utils.UTF_8),
+																remark.getBytes(Utils.UTF_8));
+			assetsRegisterTx.sign(account);
+			//输入参数格式验证
+			assetsRegisterTx.verify();
+
+			//资产注册认证需要10000个INS手续费，这里验证余额是否充足
+			Coin balance = accountKit.getBalance(account);
+			Coin registerFee = Coin.COIN.multiply(10000);
+			if(registerFee.isGreaterThan(balance)) {
+				result.put("success", false);
+				result.put("message", "余额不足10000INS，无法做资产注册 ");
+				return result;
+			}
+
+		}catch (VerificationException ve) {
+			//交易认证
+			result.put("success", false);
+			result.put("message", ve.getMessage());
+			return result;
+		}
+		catch (Exception e) {
 
 		}
 		return null;

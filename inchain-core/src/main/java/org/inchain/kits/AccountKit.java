@@ -57,21 +57,7 @@ import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.BaseCommonlyTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CertAccountUpdateTransaction;
-import org.inchain.transaction.business.CertAccountRevokeTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RegAliasTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.UpdateAliasTransaction;
+import org.inchain.transaction.business.*;
 import org.inchain.utils.Base58;
 import org.inchain.utils.ConsensusCalculationUtil;
 import org.inchain.utils.DateUtil;
@@ -527,7 +513,30 @@ public class AccountKit {
 			}
 		}
 	}
-	
+
+	/**
+	 * 资产注册
+	 * @param account
+	 * @param password
+	 * @throws VerificationException
+	 */
+	public void regAssets(Account account, String password, AssetsRegisterTransaction assetsRegisterTx)throws VerificationException {
+		if(account.isEncryptedOfTr()) {
+			if(StringUtil.isEmpty(password)) {
+				throw new VerificationException("账户已加密，请解密或者传入密码");
+			}
+			ECKey[] eckeys = account.decryptionTr(password);
+			if(eckeys == null) {
+				throw new VerificationException("密码错误");
+			}
+		}
+
+
+		if(account.isEncryptedOfTr()) {
+			throw new VerificationException("账户已加密，无法签名信息");
+		}
+	}
+
 	/*
 	 * 通过防伪码获取输入
 	 */

@@ -38,6 +38,16 @@ public class AssetsRegisterTransaction extends BaseCommonlyTransaction {
 	public AssetsRegisterTransaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
 		super(params, payloadBytes, offset);
 	}
+
+	public AssetsRegisterTransaction(NetworkParams params, byte[] name, byte[] description, byte[] code, byte[] logo, byte[] remark)  throws ProtocolException{
+		super(params);
+		this.name = name;
+		this.description = description;
+		this.code = code;
+		this.logo = logo;
+		this.remark = remark;
+		type = Definition.TYPE_ASSETS_REGISTER;
+	}
 	
 	@Override
 	public void verify() throws VerificationException {
