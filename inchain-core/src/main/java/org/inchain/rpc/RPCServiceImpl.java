@@ -585,14 +585,17 @@ public class RPCServiceImpl implements RPCService {
 			if(account == null) {
 				throw new VerificationException("账户不存在");
 			}
-			if(account.isEncryptedOfTr()) {
+			if(account.isEncrypted()) {
 				if(StringUtil.isEmpty(password)) {
 					throw new VerificationException("账户已加密，请解密或者传入密码");
 				}
-				ECKey[] eckeys = account.decryptionTr(password);
-				if(eckeys == null) {
+
+				//解密钱包
+				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				if(!pwdResult.isSuccess()) {
 					throw new VerificationException("密码错误");
 				}
+
 			}
 
 			//创建交易
@@ -602,28 +605,26 @@ public class RPCServiceImpl implements RPCService {
 																code.getBytes(Utils.UTF_8),
 																logo.getBytes(Utils.UTF_8),
 																remark.getBytes(Utils.UTF_8));
-			assetsRegisterTx.sign(account);
-			//输入参数格式验证
-			assetsRegisterTx.verify();
+
 
 			//资产注册认证需要10000个INS手续费，这里验证余额是否充足
 			Coin balance = accountKit.getBalance(account);
-			Coin registerFee = Coin.COIN.multiply(10000);
-			if(registerFee.isGreaterThan(balance)) {
+			if(Configure.ASSETS_REG_FEE.isGreaterThan(balance)) {
 				result.put("success", false);
 				result.put("message", "余额不足10000INS，无法做资产注册 ");
 				return result;
 			}
 
-			BroadcastResult br = accountKit.regAssets(account, password, assetsRegisterTx);
+			BroadcastResult br = accountKit.regAssets(account, assetsRegisterTx);
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 		}catch (VerificationException ve) {
-
+			ve.printStackTrace();
 			result.put("success", false);
 			result.put("message", ve.getMessage());
 		}
 		catch (Exception e) {
+			e.printStackTrace();
 			log.error("资产认证出错：", e);
 			result.put("success", false);
 			result.put("message", e.getMessage());

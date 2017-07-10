@@ -202,6 +202,8 @@ public final class Configure {
 	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);
 	/** 参与共识所需最高保证金 -- 100 W ins **/
 	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(1000000);
+	/** 资产发行注册手续费 --  1 W ins **/
+	public static final Coin ASSETS_REG_FEE = Coin.COIN.multiply(100);
 
 
 	/*************  交易相关配置   begin  *****************/

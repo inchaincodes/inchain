@@ -522,34 +522,65 @@ public class AccountKit {
 	 * @param password
 	 * @throws VerificationException
 	 */
-	public BroadcastResult regAssets(Account account, String password, AssetsRegisterTransaction assetsRegisterTx) throws VerificationException {
+	public BroadcastResult regAssets(Account account, AssetsRegisterTransaction assetsRegisterTx) throws VerificationException {
 
-		//选择输入，判断是否有10000个INS手续费
-		Coin money = Coin.COIN.multiply(10000);
-
-		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money, account.getAddress());
+		List<TransactionOutput> fromOutputs = selectNotSpentTransaction(Configure.ASSETS_REG_FEE, account.getAddress());
 		if(fromOutputs == null || fromOutputs.size() == 0) {
 			throw new VerificationException("余额不足，无法奖励");
 		}
 		//输入金额
 		Coin totalInputCoin = Coin.ZERO;
-		//这次交易的输入，等于上次交易的输出
+		TransactionInput input = new TransactionInput();
+		//创建输入，这次交易的输入，等于上次交易的输出
 		for (TransactionOutput output : fromOutputs) {
-			TransactionInput input = new TransactionInput(output);
 			//认证账户的签名
-			input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
-			assetsRegisterTx.addInput(input);
+		//	input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+			input.addFrom(output);
 			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
 		}
 
-		//手续费给到固定的社区账号里
+		//创建一个输入的空签名
+		if(account.getAccountType() == network.getSystemAccountVersion()) {
+			//普通账户的签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+		} else {
+			//认证账户的签名
+			input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+		}
+		assetsRegisterTx.addInput(input);
+
+
+
+		//创建输出
+		//1.手续费给到固定的社区账号里
         Address ars = new Address(network,network.getCommunityManagerHash160());
-        assetsRegisterTx.addOutput(totalInputCoin.subtract(money), ars);
-        //是否找零
-        if(totalInputCoin.isGreaterThan(money)) {
-            assetsRegisterTx.addOutput(totalInputCoin.subtract(money), account.getAddress());
+        assetsRegisterTx.addOutput(Configure.ASSETS_REG_FEE, ars);
+        //2.是否找零
+        if(totalInputCoin.isGreaterThan(Configure.ASSETS_REG_FEE)) {
+            assetsRegisterTx.addOutput(totalInputCoin.subtract(Configure.ASSETS_REG_FEE), account.getAddress());
         }
 
+		//签名交易
+		final LocalTransactionSigner signer = new LocalTransactionSigner();
+		try {
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的签名
+				signer.signInputs(assetsRegisterTx, account.getEcKey());
+			} else {
+				//认证账户的签名
+				signer.signCertAccountInputs(assetsRegisterTx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			BroadcastResult broadcastResult = new BroadcastResult();
+			broadcastResult.setSuccess(false);
+			broadcastResult.setMessage("签名失败");
+			return broadcastResult;
+		}
+
+		assetsRegisterTx.sign(account);
+		assetsRegisterTx.verify();
+		assetsRegisterTx.verifyScript();
         //验证交易是否合法
         ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(assetsRegisterTx);
         if(!rs.getResult().isSuccess()) {

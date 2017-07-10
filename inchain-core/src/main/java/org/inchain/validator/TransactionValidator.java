@@ -598,14 +598,14 @@ public class TransactionValidator {
 			} else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
 				//资产登记
 				//验证登记费用是否正确
-				Coin registerFee = Coin.COIN.multiply(10000);
-				if(!Coin.valueOf(outputs.get(0).getValue()).equals(registerFee)) {
+				if(!Coin.valueOf(outputs.get(0).getValue()).equals(Configure.ASSETS_REG_FEE)) {
 					result.setResult(false, "资产登记费用不正确");
 					return validatorResult;
 				}
 				//验证社区账号
-				Address address = outputs.get(0).getScript().getAccountAddress(network);
-				if(!Arrays.equals(address.getHash160(), network.getCommunityManagerHash160())) {
+
+				byte[] receiveHash160 = outputs.get(0).getScript().getChunks().get(2).data;
+				if(!Arrays.equals(receiveHash160, network.getCommunityManagerHash160())) {
 					result.setResult(false, "收取手续费账号不正确");
 					return validatorResult;
 				}
