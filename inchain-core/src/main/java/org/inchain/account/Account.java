@@ -254,13 +254,13 @@ public class Account implements Cloneable {
 			cursor ++;
 			byte[] sign1 = readBytes(cursor, length, datas);
 			cursor += length;
-			/*
+
 			length = datas[cursor] & 0xff;
 			cursor ++;
 			byte[] sign2 = readBytes(cursor, length, datas);
 			cursor += length;
-			*/
-			account.setSigns(new byte[][] {sign1});
+
+			account.setSigns(new byte[][] {sign1, sign2});
 		}
 
 		return account;

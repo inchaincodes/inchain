@@ -2548,22 +2548,6 @@ public class AccountKit {
         }
 
         return consensusAccountList;
-	    /*
-		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
-		List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
-		if(consensusAccounts == null) {
-			return consensusAccountList;
-		}
-		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH * 2 + Sha256Hash.LENGTH)) {
-			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
-			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-			if(accountStore == null) {
-				continue;
-			}
-			consensusAccountList.add(accountStore);
-		}
-		return consensusAccountList;
-		*/
 	}
 	
 	/**
