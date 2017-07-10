@@ -79,6 +79,9 @@ import org.inchain.utils.DateUtil;
 import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
 import org.inchain.utils.Utils;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,6 +106,8 @@ public class RPCServiceImpl implements RPCService {
 	private TransactionStoreProvider transactionStoreProvider;
 	@Autowired
 	private ChainstateStoreProvider chainstateStoreProvider;
+	@Autowired
+	private TransactionValidator transactionValidator;
 
 	/**
 	 * 获取区块的数量
@@ -337,7 +342,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("prikey", Hex.encode(account.getPriSeed()));
 				
 				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
-				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])).put(Hex.encode(account.getTrPubkeys()[1])));
+				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])));
 				
 				result.put("txid", account.getAccountTransaction().getHash());
 			}
@@ -360,6 +365,32 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject result = new JSONObject();
 		try {
 			BroadcastResult res = accountKit.updateCertAccountInfo(mgpw, address, body);
+			if(!res.isSuccess()) {
+				result.put("success", false);
+				result.put("message", res.getMessage());
+			} else {
+				result.put("success", true);
+				result.put("txid", res.getHash());
+			}
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}
+		return result;
+	}
+
+	/**
+	 * 吊销认证账户信息
+	 * @param revokeAddress
+	 * @param mgpw
+	 * @param address
+	 * @return JSONObject
+	 */
+	@Override
+	public JSONObject revokeCertAccount(String revokeAddress, String mgpw, String address) throws JSONException {
+		JSONObject result = new JSONObject();
+		try {
+			BroadcastResult res = accountKit.revokeCertAccount(revokeAddress, mgpw, address);
 			if(!res.isSuccess()) {
 				result.put("success", false);
 				result.put("message", res.getMessage());
@@ -444,7 +475,11 @@ public class RPCServiceImpl implements RPCService {
 			tx.sign(account);
 			
 			account.resetKey();
-			
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			if(!rs.getResult().isSuccess()){
+				throw new VerificationException(rs.getResult().getMessage());
+
+			}
 			tx.verify();
 			tx.verifyScript();
 
