@@ -359,6 +359,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 //					//下一轮停止共识
 //					consensusMeeting.resetCurrentMeetingItem();
 //				}
+			} else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+				//资产登记
+				AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction) tx;
+				chainstateStoreProvider.assetsRegister(assetsRegisterTx);
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 				tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
@@ -457,10 +461,6 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
 			chainstateStoreProvider.antifakeTransfer(attx.getAntifakeCode(), attx.getHash160(), attx.getReceiveHashs(), attx.getHash());
-		} else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
-			//资产登记
-			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction) tx;
-			chainstateStoreProvider.assetsRegister(assetsRegisterTx);
 		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			//资产发行
 			AssetsIssuedTransaction assetsIssuedTx = (AssetsIssuedTransaction) tx;

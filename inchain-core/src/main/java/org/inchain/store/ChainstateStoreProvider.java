@@ -33,6 +33,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	
 	private Lock consensusLocker = new ReentrantLock();
 	private Lock revokeLock  = new ReentrantLock();
+	private Lock assetsRegLock = new ReentrantLock();
 	
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
@@ -1009,9 +1010,36 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @param assetsRegisterTx
 	 */
 	public void assetsRegister(AssetsRegisterTransaction assetsRegisterTx) {
-		//TODO
+
+		//注册资产，加入到资产注册列表中
+		byte[] assetsRegHash256s = getBytes(Configure.ASSETS_REG_LIST_KEYS);
+		if(assetsRegHash256s == null) {
+			assetsRegHash256s = new byte[0];
+		}
+
+		byte[] newHash256s = new byte[assetsRegHash256s.length + Sha256Hash.LENGTH];
+
+		System.arraycopy(assetsRegHash256s, 0, newHash256s, 0, assetsRegHash256s.length);
+		System.arraycopy(assetsRegisterTx.getHash().getBytes(), 0, newHash256s, newHash256s.length, Sha256Hash.LENGTH);
+		put(Configure.ASSETS_REG_LIST_KEYS, newHash256s);
+
+		//再单独用交易的code作为建存储交易，方便判断是否有重复资产登记的交易
 		byte[] registerKey = Sha256Hash.hash(assetsRegisterTx.getCode());
 		put(registerKey, assetsRegisterTx.getHash().getBytes());
+	}
+
+	/**
+	 * 判断资产是否已注册
+	 * @param hash160
+	 * @return
+	 */
+	public boolean hasAssetsReg(byte[] code) {
+		byte[] codeKey = Sha256Hash.hash(code);
+		byte[] result = getBytes(code);
+		if(result != null) {
+			return true;
+		}
+		return false;
 	}
 
 	/**

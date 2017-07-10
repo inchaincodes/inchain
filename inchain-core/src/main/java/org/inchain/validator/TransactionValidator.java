@@ -603,19 +603,19 @@ public class TransactionValidator {
 					result.setResult(false, "资产登记费用不正确");
 					return validatorResult;
 				}
-				//TODO  输出账号必须是社区账号
-
-				AssetsRegisterTransaction artx = (AssetsRegisterTransaction) tx;
-				//验证编码是否重复
-				byte[] code = artx.getCode();
-				//key = hash(code)
-				byte[] codeKey = Sha256Hash.hash(code);
-				byte[] codeResult = chainstateStoreProvider.getBytes(code);
-				if(codeResult != null) {
-					result.setResult(false, "已被占用的资产编码");
+				//验证社区账号
+				Address address = outputs.get(0).getScript().getAccountAddress(network);
+				if(!Arrays.equals(address.getHash160(), network.getCommunityManagerHash160())) {
+					result.setResult(false, "收取手续费账号不正确");
 					return validatorResult;
 				}
 
+				//验证编码是否重复
+				AssetsRegisterTransaction artx = (AssetsRegisterTransaction) tx;
+				if(chainstateStoreProvider.hasAssetsReg(artx.getCode())) {
+					result.setResult(false, "资产代码重复使用");
+					return validatorResult;
+				}
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER) {
 			//帐户注册

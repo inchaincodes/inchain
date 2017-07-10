@@ -233,9 +233,9 @@ public final class Configure {
 	public final static byte[] CONSENSUS_ACCOUNT_KEYS = Sha256Hash.hashTwice("consensus_account_keys".getBytes());
 
 	/**
-	 * 资产列表存储键
+	 * 资产注册列表存储键
 	 */
-	public final static byte[] ASSETS_LIST_KEYS = Sha256Hash.hashTwice("assets_list_keys".getBytes());
+	public final static byte[] ASSETS_REG_LIST_KEYS = Sha256Hash.hashTwice("assets_reg_list_keys".getBytes());
 	
 	
 	/*************  系统级配置   begin  *****************/
