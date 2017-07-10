@@ -8,6 +8,9 @@ import java.net.InetSocketAddress;
 
 import org.inchain.Configure;
 import org.inchain.UnitBaseTestCase;
+import org.inchain.core.AccountKeyValue;
+import org.inchain.core.Product;
+import org.inchain.core.ProductKeyValue;
 import org.inchain.crypto.ECKey;
 import org.inchain.kits.AccountKit;
 import org.inchain.kits.PeerKit;
@@ -15,6 +18,7 @@ import org.inchain.network.NetworkParams;
 import org.inchain.network.NodeSeedManager;
 import org.inchain.network.Seed;
 import org.inchain.network.SeedManager;
+import org.inchain.utils.Base58;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
 import org.junit.Test;
@@ -22,13 +26,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class AccountTest extends UnitBaseTestCase {
-	
-	private Logger log = LoggerFactory.getLogger(getClass());
+public class AccountTest {
 
-	@Autowired
-	private NetworkParams network;
-	
+	//	private Logger log = LoggerFactory.getLogger(getClass());
+//
+//	@Autowired
+//	private NetworkParams network;
+	public static void main(String[] args) {
+		//@Test
+//	public void testUser(){
+		AccountKeyValue[] avalues = {new AccountKeyValue("name", "名称", "重庆印链科技有限公司"),
+				new AccountKeyValue("address", "地址", "重庆市南岸区"),
+				new AccountKeyValue("website", "官网", "https://www.inchain.org"),
+				new AccountKeyValue("descript", "描述", "测试认证账户1"),
+
+				//new AccountKeyValue("descript", "描述", "重庆印链科技有限公司是一家以区块链技术驱动的创新型企业，其主导的区块链社区项目Inchain-印链是一个以防伪为基础业务的公开平台，为社会各企业、机构、艺术家等提供品牌、知识产权保护服务。"),
+		};
+		AccountBody body = new AccountBody(avalues);
+		String ahexString = Base58.encode(body.serialize());
+		System.out.println(ahexString);
+
+
+		ProductKeyValue[] pvalues = {new ProductKeyValue("name", "名称", "测试商品1"),
+				new ProductKeyValue("website", "官网", "https://www.inchain.org"),
+				new ProductKeyValue("descript", "描述", "测试商品1")
+		};
+
+		Product p = new Product(pvalues);
+		String phexString = Base58.encode(p.serialize());
+		System.out.println(phexString);
+/*
 	@Test
 	public void testAddress() {
 		
@@ -71,5 +98,6 @@ public class AccountTest extends UnitBaseTestCase {
 			
 			log.info("test end");
 		}
+	}*/
 	}
 }
