@@ -83,8 +83,10 @@ public class Account implements Cloneable {
 
 			bos.write(address.getVersion());//类型
 			bos.write(address.getHash160());
-			bos.write(supervisor);
-			bos.write(level);
+			if(address.getVersion() == network.getCertAccountVersion() ) {
+				bos.write(supervisor);
+				bos.write(level);
+			}
 
 			if(priSeed !=null) {
 				bos.write(priSeed.length);
@@ -164,14 +166,6 @@ public class Account implements Cloneable {
 		account.setAddress(address);
 		cursor += 20;
 
-		byte[] supervisor = readBytes(cursor, 20, datas);
-		account.setSupervisor(supervisor);
-		cursor += 20;
-
-		int level = datas[cursor] & 0xff;
-		account.setlevel(level);
-		cursor ++;
-
 		if(type == network.getSystemAccountVersion()) {
 			//私匙
 			int length = datas[cursor] & 0xff;
@@ -204,6 +198,13 @@ public class Account implements Cloneable {
 			//eckey
 			account.resetKey();
 		} else if(type == network.getCertAccountVersion()) {
+			byte[] supervisor = readBytes(cursor, 20, datas);
+			account.setSupervisor(supervisor);
+			cursor += 20;
+
+			int level = datas[cursor] & 0xff;
+			account.setlevel(level);
+			cursor++;
 			//私匙种子
 			int length = datas[cursor] & 0xff;
 			cursor ++;
