@@ -46,6 +46,7 @@ import org.inchain.utils.RandomUtil;
 import org.inchain.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.inchain.core.ViolationEvidence;
 
 /**
  * 区块提供服务
