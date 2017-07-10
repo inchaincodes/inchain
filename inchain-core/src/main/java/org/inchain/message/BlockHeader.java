@@ -128,8 +128,9 @@ public class BlockHeader extends Message {
 			stream.write(merkleHash.getBytes());
 			Utils.int64ToByteStreamLE(time, stream);
 			Utils.uint32ToByteStreamLE(height, stream);
-			Utils.uint32ToByteStreamLE(periodCount, stream);
-			Utils.uint32ToByteStreamLE(timePeriod, stream);
+			stream.write(new VarInt(periodCount).encode());
+			stream.write(new VarInt(timePeriod).encode());
+			Utils.uint32ToByteStreamLE(periodStartTime, stream);
 			//交易数量
 			stream.write(new VarInt(txCount).encode());
 			return Sha256Hash.twiceOf(stream.toByteArray());
@@ -163,7 +164,7 @@ public class BlockHeader extends Message {
 	}
 
 	/**
-	 *  前面区块头信息
+	 *  签名区块头信息
 	 * @param account
 	 */
 	public void sign(Account account) {
@@ -194,10 +195,7 @@ public class BlockHeader extends Message {
 			
 			ECDSASignature ecSign = keys[0].sign(headerHash);
 			byte[] sign1 = ecSign.encodeToDER();
-			
-//			ecSign = keys[1].sign(headerHash);
-//			byte[] sign2 = ecSign.encodeToDER();
-			
+
 			scriptSig = ScriptBuilder.createCertAccountScript(Definition.TX_VERIFY_TR, account.getAccountTransaction().getHash(), account.getAddress().getHash160(), sign1, null);
 		} else {
 			//普通账户
