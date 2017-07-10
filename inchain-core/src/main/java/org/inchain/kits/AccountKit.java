@@ -63,6 +63,7 @@ import org.inchain.transaction.business.AntifakeTransferTransaction;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
 import org.inchain.transaction.business.CertAccountRegisterTransaction;
 import org.inchain.transaction.business.CertAccountUpdateTransaction;
+import org.inchain.transaction.business.CertAccountRevokeTransaction;
 import org.inchain.transaction.business.CirculationTransaction;
 import org.inchain.transaction.business.ProductTransaction;
 import org.inchain.transaction.business.RegAliasTransaction;
@@ -1457,7 +1458,7 @@ public class AccountKit {
 		
 		locker.lock();
 		try {
-			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody);
+			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),account.getLevel());
 			cutx.sign(account, Definition.TX_VERIFY_MG);
 			
 			cutx.verify();
@@ -1504,8 +1505,82 @@ public class AccountKit {
 			locker.unlock();
 		}
 	}
-	
-	/**
+
+
+    /**
+     * 吊销认证账户的信息
+     * @param revokeAddress
+     * @param mgPw
+     * @param address
+     * @return BroadcastResult
+     * @throws VerificationException
+     */
+    public BroadcastResult revokeCertAccount(String revokeAddress, String mgPw, String address) throws VerificationException  {
+
+        //密码位数和难度检测
+        if(!validPassword(mgPw)) {
+            return new BroadcastResult(false, "密码错误");
+        }
+
+        Account account = null;
+        if(StringUtil.isEmpty(address)) {
+            account = getCertAccount();
+        } else {
+            account = getAccount(address);
+        }
+
+        if(account == null) {
+            return new BroadcastResult(false, "账户不存在");
+        }
+
+        ECKey[] eckey = account.decryptionTr(mgPw);
+        if(eckey == null) {
+            return new BroadcastResult(false, "密码错误");
+        }
+
+        Address raddress = new Address(network,revokeAddress);
+        locker.lock();
+        try {
+            CertAccountRevokeTransaction cutx = new CertAccountRevokeTransaction(network,raddress.getHash160(), account.getMgPubkeys(), account.getTrPubkeys(),account.getAddress().getHash160(),account.getLevel());
+            cutx.sign(account, Definition.TX_VERIFY_TR);
+
+            cutx.verify();
+            cutx.verifyScript();
+
+            //验证交易合法才广播
+            //这里面同时会判断是否被验证过了
+            TransactionValidatorResult rs = transactionValidator.valDo(cutx).getResult();
+            if(!rs.isSuccess()) {
+                return new BroadcastResult(false, rs.getMessage());
+            }
+
+            //加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+            MempoolContainer.getInstace().add(cutx);
+            try {
+                BroadcastResult result = peerKit.broadcast(cutx).get();
+                //等待广播回应
+                if(result.isSuccess()) {
+                    result.setHash(cutx.getHash());
+                    account.setAccountTransaction(cutx);
+
+                    //更新交易记录
+                    transactionStoreProvider.processNewTransaction(new TransactionStore(network, cutx));
+                }
+                return result;
+            } catch (Exception e) {
+                return new BroadcastResult(false, e.getMessage());
+            }
+        } finally {
+            account.resetKey();
+            locker.unlock();
+        }
+    }
+
+    public boolean isCertAccountRevoked(byte[] hash160){
+        return chainstateStoreProvider.isCertAccountRevoked(hash160);
+    }
+
+    /**
 	 * 认证账户修改密码
 	 * @param oldMgpw
 	 * @param newMgpw
@@ -1565,7 +1640,7 @@ public class AccountKit {
 			tempAccount.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
 			tempAccount.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
 			
-			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, tempAccount.getAddress().getHash160(), tempAccount.getMgPubkeys(), tempAccount.getTrPubkeys(), tempAccount.getBody());
+			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, tempAccount.getAddress().getHash160(), tempAccount.getMgPubkeys(), tempAccount.getTrPubkeys(), tempAccount.getBody(),account.getSupervisor(),account.getLevel());
 			cutx.sign(account, Definition.TX_VERIFY_MG);
 			
 			cutx.verify();
@@ -1682,6 +1757,8 @@ public class AccountKit {
 		//帐户信息
 		Account account = new Account(network);
 		account.setStatus((byte) 0);
+		account.setSupervisor(managerAccount.getAddress().getHash160() );
+		account.setlevel(managerAccount.getLevel()+1);
 		account.setAccountType(network.getSystemAccountVersion());
 		account.setAddress(address);
 		account.setPriSeed(key.getPubKey(true)); //存储压缩后的种子私匙
@@ -1706,7 +1783,7 @@ public class AccountKit {
 			fos.close();
 		}
 		//广播帐户注册消息
-		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody);
+		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),managerAccount.getLevel());
 
 		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], null);
 		//log.info("create user {}"+ Hex.encode(tx.baseSerialize()));
@@ -2008,7 +2085,7 @@ public class AccountKit {
 					
 					//广播
 					CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), 
-							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody());
+							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),account.getSupervisor(),account.getLevel());
 					
 					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_MG);
 					rtx.verify();
@@ -2252,7 +2329,7 @@ public class AccountKit {
 	}
 	
 	public void clearAccountList() {
-		accountList.clear();;
+		accountList.clear();
 	}
 	
 	/*
@@ -2406,20 +2483,19 @@ public class AccountKit {
 	 * @return List<AccountStore>
 	 */
 	public List<AccountStore> getConsensusAccounts() {
-		List<ConsensusModel> list = consensusPool.getContainer();
+		byte[] consensusAccounts = chainstateStoreProvider.getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 		List<AccountStore> consensusAccountList = new ArrayList<AccountStore>();
-		if(list == null) {
+		if(consensusAccounts == null) {
 			return consensusAccountList;
 		}
-		for (ConsensusModel consensusModel : list) {
-			byte[] hash160 = consensusModel.getApplicant();
+		for (int i = 0; i < consensusAccounts.length; i += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			byte[] hash160 = Arrays.copyOfRange(consensusAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore == null) {
 				continue;
 			}
 			consensusAccountList.add(accountStore);
 		}
-
 		return consensusAccountList;
 	}
 	

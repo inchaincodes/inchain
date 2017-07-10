@@ -31,6 +31,7 @@ import org.springframework.stereotype.Repository;
 public class ChainstateStoreProvider extends BaseStoreProvider {
 	
 	private Lock consensusLocker = new ReentrantLock();
+	private Lock revokeLock  = new ReentrantLock();
 	
 	@Autowired
 	private BlockStoreProvider blockStoreProvider;
@@ -769,6 +770,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			if(accountInfo == null) {
 				//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 				accountInfo = createNewAccountInfo(tx, AccountBody.empty(), new byte[][] {tx.getPubkey()});
+				accountInfo.setSupervisor(accountInfo.getHash160());
+				accountInfo.setLevel(0);
 				put(hash160, accountInfo.baseSerialize());
 			} else {
 				//不确定的账户，现在可以确定下来了
@@ -841,19 +844,16 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			//从共识账户列表中删除
 			byte[] consensusAccountHash160s = getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 			
-			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (2 * Address.LENGTH + Sha256Hash.LENGTH)];
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
 			
 			//找出位置在哪里
 			//判断在列表里面才更新，否则就被清空了
-			for (int j = 0; j < consensusAccountHash160s.length; j += (2 * Address.LENGTH + Sha256Hash.LENGTH)) {
-				//委托人
+			for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
 				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
-				//被委托人
-				byte[] packager = Arrays.copyOfRange(consensusAccountHash160s, j + Address.LENGTH, j + 2 * Address.LENGTH);
-				if(Arrays.equals(addressHash160, hash160) || Arrays.equals(packager, hash160)) {
+				if(Arrays.equals(addressHash160, hash160)) {
 					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
 					
-					int newIndex = j + 2 * Address.LENGTH + Sha256Hash.LENGTH;
+					int newIndex = j + Address.LENGTH + Sha256Hash.LENGTH;
 					if(newIndex < consensusAccountHash160s.length) {
 						System.arraycopy(consensusAccountHash160s, newIndex, newConsensusHash160s, j, consensusAccountHash160s.length - newIndex);
 					}
@@ -869,6 +869,42 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		} finally {
 			consensusLocker.unlock();
 		}
+	}
+
+	public void addRevokeCertAccount(CertAccountRevokeTransaction tx){
+		if(isCertAccountRevoked(tx.getRevokeHash160()))
+			return;
+		revokeLock.lock();
+		try {
+			byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
+			if(revokedAccountHash160s == null) {
+				revokedAccountHash160s = new byte[0];
+			}
+			byte[] hash160 = tx.getRevokeHash160();
+			byte[] byhash160 = tx.getHash160();
+			byte[] newrevokedAccountHash160s = new byte[revokedAccountHash160s.length + (Address.LENGTH * 2)];
+			System.arraycopy(revokedAccountHash160s, 0, newrevokedAccountHash160s, 0, revokedAccountHash160s.length);
+			System.arraycopy(hash160, 0, newrevokedAccountHash160s, revokedAccountHash160s.length, Address.LENGTH);
+			System.arraycopy(byhash160, 0, newrevokedAccountHash160s, revokedAccountHash160s.length+Address.LENGTH, Address.LENGTH);
+			put(Configure.REVOKED_CERT_ACCOUNT_KEYS,newrevokedAccountHash160s);
+		}catch (Exception e){
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			revokeLock.unlock();
+		}
+	}
+
+	public boolean isCertAccountRevoked(byte[] hash160){
+		byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
+		if(revokedAccountHash160s == null)
+			return false;
+
+		for (int j = 0; j < revokedAccountHash160s.length; j += (Address.LENGTH *2)) {
+			byte[] addressHash160 = Arrays.copyOfRange(revokedAccountHash160s, j, j + Address.LENGTH);
+			if(Arrays.equals(hash160,addressHash160))
+				return true;
+		}
+		return false;
 	}
 	
 	/**

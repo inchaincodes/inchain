@@ -69,6 +69,8 @@ public final class Definition {
 	public static final int TYPE_RELEVANCE_SUBACCOUNT = 13;
 	/** 商家解除子账户的关联 **/
 	public static final int TYPE_REMOVE_SUBACCOUNT = 14;
+
+	public static final int TYPE_CERT_ACCOUNT_REVOKE = 15;
 	
 	//业务交易
 	/** 创建产品 **/
@@ -159,6 +161,7 @@ public final class Definition {
     	PROCESS_FACTORYS.put(UpdateAliasTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CertAccountRegisterTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CertAccountUpdateTransaction.class, "transactionMessageProcess");
+		PROCESS_FACTORYS.put(CertAccountRevokeTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RelevanceSubAccountTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RemoveSubAccountTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(RegConsensusTransaction.class, "transactionMessageProcess");
@@ -198,6 +201,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(UpdateAliasTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
+		MESSAGE_COMMANDS.put(CertAccountRevokeTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(RelevanceSubAccountTransaction.class, "tx");
@@ -225,6 +229,7 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_REM_CONSENSUS, RemConsensusTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_REGISTER, CertAccountRegisterTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_UPDATE, CertAccountUpdateTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_CERT_ACCOUNT_REVOKE, CertAccountRevokeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_RELEVANCE_SUBACCOUNT, RelevanceSubAccountTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_REMOVE_SUBACCOUNT, RemoveSubAccountTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_VIOLATION, ViolationTransaction.class);

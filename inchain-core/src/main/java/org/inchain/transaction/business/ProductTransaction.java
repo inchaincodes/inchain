@@ -9,6 +9,10 @@ import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
+import org.inchain.validator.TransactionValidator;
+import org.inchain.validator.TransactionValidatorResult;
+import org.inchain.validator.ValidatorResult;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * 认证账户产品管理
@@ -19,6 +23,9 @@ public class ProductTransaction extends CommonlyTransaction {
 	
 	/** 产品信息 **/
 	protected Product product;
+
+	@Autowired
+	private  TransactionValidator transactionValidator;
 
 	public ProductTransaction(NetworkParams network) throws ProtocolException {
 		super(network);
