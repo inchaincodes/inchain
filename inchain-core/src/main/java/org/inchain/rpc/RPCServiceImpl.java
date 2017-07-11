@@ -424,7 +424,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject result = new JSONObject();
 		try {
 			Account account = null;
-			
+
 			if(address == null) {
 				account = accountKit.getDefaultAccount();
 			} else {
@@ -435,7 +435,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("message", "认证账户不存在");
 				return result;
 			}
-			
+
 			if(account.isEncryptedOfTr()) {
 				ECKey[] eckey = account.decryptionTr(certpw);
 				if(eckey == null) {
@@ -444,39 +444,11 @@ public class RPCServiceImpl implements RPCService {
 					return result;
 				}
 			}
-			
-			ProductTransaction tx = new ProductTransaction(network, product);
-			
-			tx.sign(account);
-			
-			account.resetKey();
-			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
-			if(!rs.getResult().isSuccess()){
-				throw new VerificationException(rs.getResult().getMessage());
+			BroadcastResult res = accountKit.createProduct(product, account);
 
-			}
-			tx.verify();
-			tx.verifyScript();
-
-			log.info("txid 1==========={}", tx.getHash());
-			tx.setHash(null);
-			log.info("txid 11==========={}", tx.getHash());
-			
-			tx = new ProductTransaction(network, tx.baseSerialize());
-
-			tx.verify();
-			tx.verifyScript();
-			
-			log.info("txid 2==========={}", tx.getHash());
-			//加入内存池
-			MempoolContainer.getInstace().add(tx);
-			
-			//广播
-			peerKit.broadcastMessage(tx);
-			
-			result.put("success", true);
-			result.put("message", "成功");
-			result.put("txid", tx.getHash());
+			result.put("success", res.isSuccess());
+			result.put("message", res.getMessage());
+			result.put("txid", res.getHash());
 		} catch (Exception e) {
 			log.error("创建商品出错：", e);
 			result.put("success", false);
