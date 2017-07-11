@@ -1703,7 +1703,7 @@ public class AccountKit {
                 //等待广播回应
                 if(result.isSuccess()) {
                     result.setHash(cutx.getHash());
-                    account.setAccountTransaction(cutx);
+                    //account.setAccountTransaction(cutx);
 
                     //更新交易记录
                     transactionStoreProvider.processNewTransaction(new TransactionStore(network, cutx));
@@ -1927,16 +1927,16 @@ public class AccountKit {
 		//广播帐户注册消息
 		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),managerAccount.getLevel());
 
-		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], null);
+		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], null,managerAccount.getAddress().getHash160(),Definition.TX_VERIFY_TR);
 
-        tx.verify();
-        tx.verifyScript();
+		tx.verify();
+		tx.verifyScript();
 
-        peerKit.broadcastMessage(tx);
+		peerKit.broadcastMessage(tx);
 
-        account.setAccountTransaction(tx);
+		account.setAccountTransaction(tx);
 
-        return account;
+		return account;
 	}
 
     /*
