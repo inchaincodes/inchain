@@ -84,11 +84,11 @@ import org.springframework.util.StringUtils;
  */
 @Service
 public class AccountKit {
-	
-	private final static Logger log = LoggerFactory.getLogger(AccountKit.class);
+
+	private final static Logger log = LoggerFactory.getLogger(org.inchain.kits.AccountKit.class);
 
 	private final static Lock locker = new ReentrantLock();
-	
+
 	//账户文件路径
 	private String accountDir;
 	private List<Account> accountList = new ArrayList<Account>();
@@ -113,18 +113,18 @@ public class AccountKit {
 
 	//交易监听器
 	private TransactionListener transactionListener;
-	
+
 	public AccountKit() throws IOException {
 		//帐户信息保存于数据目录下的account目录，以account开始的dat文件，一个文件一个帐户，支持多帐户
 		this.accountDir = Configure.DATA_ACCOUNT;
-		
+
 //		//初始化交易存储服务，保存与帐户有关的所有交易，保存于数据目录下的transaction文件夹
 //		this.transactionStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_TRANSACTION, network);
 //		//初始化状态链存储服务，该目录保存的所有未花费的交易，保存于数据目录下的chainstate文件夹
 //		this.chainstateStoreProvider = TransactionStoreProvider.getInstace(Configure.DATA_CHAINSTATE, network);
-		
+
 	}
-	
+
 	/**
 	 * 初始化账户信息
 	 */
@@ -136,33 +136,33 @@ public class AccountKit {
 
 	/**
 	 * 关闭资源
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public void close() throws IOException {
 		chainstateStoreProvider.close();
 	}
-	
+
 	/**
 	 * 账户列表
 	 */
 	public void listAccount() {
-		
+
 	}
-	
+
 	/**
 	 * 地址列表
 	 */
 	public void listAddress() {
-		
+
 	}
-	
+
 	/**
 	 * 地址列表
 	 */
 	public void listAddress(String accountId) {
-		
+
 	}
-	
+
 	/**
 	 * 获取默认账户
 	 * @return Account
@@ -173,7 +173,7 @@ public class AccountKit {
 		}
 		return accountList.get(0);
 	}
-	
+
 	/**
 	 * 获取一个系统账户，如果没有则返回null
 	 * @return Account
@@ -189,7 +189,7 @@ public class AccountKit {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 获取一个认证账户，如果没有则返回null
 	 * @return Account
@@ -287,7 +287,7 @@ public class AccountKit {
 		}
 		return getCanNotUseBalance(getDefaultAccount().getAddress());
 	}
-	
+
 	/**
 	 * 获取不可用余额
 	 */
@@ -305,7 +305,7 @@ public class AccountKit {
 		}
 		return Coin.ZERO;
 	}
-	
+
 	/**
 	 * 获取不可用余额
 	 */
@@ -315,7 +315,7 @@ public class AccountKit {
 		}
 		return address.getUnconfirmedBalance();
 	}
-	
+
 
 	/**
 	 * 通过交易ID查询交易
@@ -325,28 +325,28 @@ public class AccountKit {
 	public TransactionStore getTransaction(Sha256Hash hash) {
 		return blockStoreProvider.getTransaction(hash.getBytes());
 	}
-	
+
 	/**
 	 * 获取交易列表
 	 */
 	public List<TransactionStore> getTransactions() {
 		return transactionStoreProvider.getTransactions();
 	}
-	
+
 	/**
 	 * 获取链上交易状态
 	 */
 	public byte[] getChainstate(byte[] hash) {
 		return chainstateStoreProvider.getBytes(hash);
 	}
-	
+
 	/**
 	 * 获取交易列表
 	 */
 	public void getTransaction(String accountId) {
-		
+
 	}
-	
+
 	/**
 	 * 认证账户，生产防伪码
 	 * @param productTx 关联的商品
@@ -358,7 +358,7 @@ public class AccountKit {
 	public BroadcastMakeAntifakeCodeResult makeAntifakeCode(String productTx, Coin reward, String password) throws VerificationException {
 		return makeAntifakeCode(productTx, reward, getDefaultAccount(), password);
 	}
-	
+
 	/**
 	 * 认证账户，生产防伪码
 	 * @param productTx 关联的商品
@@ -371,7 +371,7 @@ public class AccountKit {
 	public BroadcastMakeAntifakeCodeResult makeAntifakeCode(String productTx, Coin reward, Account account, String password) throws VerificationException {
 		return makeAntifakeCode(productTx, reward, null, getDefaultAccount(), password);
 	}
-	
+
 	/**
 	 * 认证账户，生产防伪码
 	 * @param productTx 关联的商品
@@ -384,7 +384,7 @@ public class AccountKit {
 	 */
 	public BroadcastMakeAntifakeCodeResult makeAntifakeCode(String productTx, Coin reward, List<String> supplyList, Account account, String password) throws VerificationException {
 		//必须是认证账户才可以生成防伪码
-		
+
 		if(account == null || !account.isCertAccount()) {
 			throw new VerificationException("非认证账户，不能生成防伪码");
 		}
@@ -397,20 +397,20 @@ public class AccountKit {
 				throw new VerificationException("密码错误");
 			}
 		}
-		
+
 		if(account.isEncryptedOfTr()) {
 			throw new VerificationException("账户已加密，无法签名信息");
 		}
-		
+
 		try {
 			//对应的商品不能为空
 			if(productTx == null || productTx.isEmpty()) {
 				throw new VerificationException("需要生成防伪码的商品不能为空");
 			}
 			Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
-			
+
 			AntifakeCodeMakeTransaction tx = new AntifakeCodeMakeTransaction(network, productTxHash);
-			
+
 			//是否附带奖励
 			Coin money = Coin.ZERO;
 			if(reward != null && reward.isGreaterThan(money)) {
@@ -429,11 +429,11 @@ public class AccountKit {
 					//认证账户的签名
 					input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
 					tx.addInput(input);
-					
+
 					totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
 				}
 			}
-			
+
 			//供应链列表
 			if(supplyList != null) {
 				for (String antifakeCodeContent : supplyList) {
@@ -441,7 +441,7 @@ public class AccountKit {
 					tx.addInput(supplyInput);
 				}
 			}
-			
+
 			//交易输出
 			byte[] antifakeCode = null;
 			try {
@@ -449,7 +449,7 @@ public class AccountKit {
 			} catch (Exception e) {
 				throw new VerificationException("获取防伪码出错：" + e.getMessage());
 			}
-			
+
 			//生成一个随机数作为验证密码
 			long verifyCode = RandomUtil.randomLong();
 			byte[] verifyCodeByte = new byte[8];
@@ -460,17 +460,17 @@ public class AccountKit {
 			System.arraycopy(antifakePasswordSha256, 0, verifyContent, 0, Sha256Hash.LENGTH);
 			System.arraycopy(antifakeCode, 0, verifyContent, Sha256Hash.LENGTH, 20);
 			System.arraycopy(account.getAddress().getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
-			
+
 			Sha256Hash verifyCodeConent = Sha256Hash.twiceOf(verifyContent);
-			
+
 			Script out = ScriptBuilder.createAntifakeOutputScript(account.getAddress().getHash160(), verifyCodeConent);
 			tx.addOutput(money, out);
-			
+
 			//是否找零
 			if(totalInputCoin.isGreaterThan(money)) {
 				tx.addOutput(totalInputCoin.subtract(money), account.getAddress());
 			}
-			
+
 			//签名交易，如果有输入
 			if(money.isGreaterThan(Coin.ZERO)) {
 				final LocalTransactionSigner signer = new LocalTransactionSigner();
@@ -478,25 +478,25 @@ public class AccountKit {
 				signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
 			}
 			tx.sign(account);
-			
+
 			tx.verify();
 			tx.verifyScript();
-			
+
 			//验证交易是否合法
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
 			if(!rs.getResult().isSuccess()) {
 				throw new VerificationException(rs.getResult().getMessage());
 			}
-	
+
 			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 			boolean success = MempoolContainer.getInstace().add(tx);
 			if(!success) {
 				throw new VerificationException("加入内存池失败，可能原因[交易重复]");
 			}
-			
+
 			try {
 				BroadcastResult result = peerKit.broadcast(tx).get();
-				
+
 				BroadcastMakeAntifakeCodeResult maResult = new BroadcastMakeAntifakeCodeResult(result.isSuccess(), result.getMessage());
 				//等待广播回应
 				if(result.isSuccess()) {
@@ -616,26 +616,26 @@ public class AccountKit {
 	private TransactionInput getInputByAntifakeContent(String antifakeCodeContent) throws VerificationException {
 		//解析防伪码字符串
 		AntifakeCode antifakeCode = AntifakeCode.base58Decode(antifakeCodeContent);
-		
+
 		//判断验证码是否存在
 		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
 		if(txBytes == null) {
 			throw new VerificationException("防伪码不存在");
 		}
-		
+
 		TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
 		//必须存在
 		if(txStore == null) {
 			throw new VerificationException("防伪码生产交易不存在");
 		}
-		
+
 		Transaction fromTx = txStore.getTransaction();
 		//交易类型必须是防伪码生成交易
 		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 			throw new VerificationException("防伪码类型错误");
 		}
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-		
+
 		//设置验证商品
 		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		if(productTxStore == null) {
@@ -645,20 +645,20 @@ public class AccountKit {
 		if(txTemp.getType() != Definition.TYPE_CREATE_PRODUCT) {
 			throw new VerificationException("错误的防伪码");
 		}
-		
+
 		//验证防伪码是否已经被验证了
 		//保证该防伪码没有被验证
 		byte[] txStatus = codeMakeTx.getHash().getBytes();
 		byte[] txIndex = new byte[txStatus.length + 1];
-		
+
 		System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
 		txIndex[txIndex.length - 1] = 0;
-		
+
 		byte[] status = chainstateStoreProvider.getBytes(txIndex);
 		if(status == null) {
 			throw new VerificationException("验证失败，该防伪码已被验证");
 		}
-		
+
 		//防伪码验证脚本
 		long verifyCode = antifakeCode.getVerifyCode();
 		byte[] verifyCodeByte = new byte[8];
@@ -669,9 +669,9 @@ public class AccountKit {
 		System.arraycopy(antifakePasswordSha256, 0, verifyContent, 0, Sha256Hash.LENGTH);
 		System.arraycopy(antifakeCode.getAntifakeCode(), 0, verifyContent, Sha256Hash.LENGTH, 20);
 		System.arraycopy(codeMakeTx.getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
-		
+
 		Script inputSig = ScriptBuilder.createAntifakeInputScript(Sha256Hash.hash(verifyContent));
-		
+
 		TransactionInput input = new TransactionInput((TransactionOutput) codeMakeTx.getOutput(0));
 		input.setScriptSig(inputSig);
 		return input;
@@ -686,7 +686,7 @@ public class AccountKit {
 	public VerifyAntifakeCodeResult verifyAntifakeCode(String antifakeCodeContent) throws VerificationException {
 		return verifyAntifakeCode(antifakeCodeContent, getSystemAccount());
 	}
-	
+
 	/**
 	 * 防伪码验证
 	 * @param antifakeCodeContent 防伪码内容，这个是按一定规则组合的
@@ -697,7 +697,7 @@ public class AccountKit {
 	public VerifyAntifakeCodeResult verifyAntifakeCode(String antifakeCodeContent, Account account) throws VerificationException {
 		return verifyAntifakeCode(antifakeCodeContent, account, 0d, 0d);
 	}
-	
+
 	/**
 	 * 防伪码验证
 	 * @param antifakeCodeContent 防伪码内容，这个是按一定规则组合的
@@ -724,10 +724,10 @@ public class AccountKit {
 			verifyResult.setMessage("认证账户不能验证防伪码");
 			return verifyResult;
 		}
-		
+
 		//解析防伪码字符串
 		AntifakeCode antifakeCode = AntifakeCode.base58Decode(antifakeCodeContent);
-		
+
 		//判断验证码是否存在
 		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
 		if(txBytes == null) {
@@ -735,7 +735,7 @@ public class AccountKit {
 			verifyResult.setMessage("防伪码不存在");
 			return verifyResult;
 		}
-		
+
 		TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
 		//必须存在
 		if(txStore == null) {
@@ -743,7 +743,7 @@ public class AccountKit {
 			verifyResult.setMessage("防伪码生产交易不存在");
 			return verifyResult;
 		}
-		
+
 		Transaction fromTx = txStore.getTransaction();
 		//交易类型必须是防伪码生成交易
 		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
@@ -752,7 +752,7 @@ public class AccountKit {
 			return verifyResult;
 		}
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-		
+
 		//设置验证商品
 		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		if(productTxStore == null) {
@@ -768,22 +768,22 @@ public class AccountKit {
 		}
 		ProductTransaction ptx = (ProductTransaction) txTemp;
 		verifyResult.setProductTx(ptx);
-		
+
 		//验证防伪码是否已经被验证了
 		//保证该防伪码没有被验证
 		byte[] txStatus = codeMakeTx.getHash().getBytes();
 		byte[] txIndex = new byte[txStatus.length + 1];
-		
+
 		System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
 		txIndex[txIndex.length - 1] = 0;
-		
+
 		byte[] status = chainstateStoreProvider.getBytes(txIndex);
 		if(status == null) {
 			verifyResult.setSuccess(false);
 			verifyResult.setMessage("验证失败，该防伪码已被验证");
 			return verifyResult;
 		}
-		
+
 		//防伪码验证脚本
 		long verifyCode = antifakeCode.getVerifyCode();
 		byte[] verifyCodeByte = new byte[8];
@@ -794,30 +794,30 @@ public class AccountKit {
 		System.arraycopy(antifakePasswordSha256, 0, verifyContent, 0, Sha256Hash.LENGTH);
 		System.arraycopy(antifakeCode.getAntifakeCode(), 0, verifyContent, Sha256Hash.LENGTH, 20);
 		System.arraycopy(codeMakeTx.getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
-		
+
 		Script inputSig = ScriptBuilder.createAntifakeInputScript(Sha256Hash.hash(verifyContent));
-		
+
 		TransactionInput input = new TransactionInput((TransactionOutput) codeMakeTx.getOutput(0));
 		input.setScriptSig(inputSig);
-		
+
 		AntifakeCodeVerifyTransaction tx = new AntifakeCodeVerifyTransaction(network, input, antifakeCode.getAntifakeCode());
-		
+
 		tx.setLongitude(longitude);
 		tx.setLatitude(latitude);
-		
+
 		//添加奖励输出
 		Coin rewardCoin = codeMakeTx.getRewardCoin();
 		if(rewardCoin != null && rewardCoin.isGreaterThan(Coin.ZERO)) {
 			tx.addOutput(rewardCoin, account.getAddress());
 		}
-		
+
 		//签名即将广播的信息
 		tx.sign(account);
-		
+
 		//验证成功才广播
 		tx.verify();
 		tx.verifyScript();
-		
+
 		//验证交易合法才广播
 		//这里面同时会判断是否被验证过了
 		TransactionValidatorResult rs = transactionValidator.valDo(tx).getResult();
@@ -838,19 +838,19 @@ public class AccountKit {
 			verifyResult.setMessage("验证失败，该防伪码已被验证");
 			return verifyResult;
 		}
-		
+
 		try {
 			BroadcastResult result = peerKit.broadcast(tx).get();
 			//等待广播回应
 			if(result.isSuccess()) {
 				//更新交易记录
 				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-				
+
 				verifyResult.setSuccess(true);
 				verifyResult.setMessage("恭喜您，验证通过");
 				verifyResult.setReward(rewardCoin);
 				verifyResult.setHash(tx.getHash());
-				
+
 				//设置商家
 				AccountStore certAccountInfo = chainstateStoreProvider.getAccountInfo(codeMakeTx.getHash160());
 				if(certAccountInfo != null) {
@@ -865,7 +865,7 @@ public class AccountKit {
 			return new VerifyAntifakeCodeResult(false, "广播失败，失败信息：" + e.getMessage());
 		}
 	}
-	
+
 	/**
 	 * 发送普通交易到指定地址
 	 * @param to   base58的地址
@@ -877,7 +877,7 @@ public class AccountKit {
 	public BroadcastResult sendMoney(String to, Coin money, Coin fee) throws MoneyNotEnoughException {
 		return sendMoney(to, money, fee, null, null, null);
 	}
-	
+
 	/**
 	 * 发送普通交易到指定地址
 	 * @param to   base58的地址
@@ -889,18 +889,18 @@ public class AccountKit {
 	public BroadcastResult sendMoney(String to, Coin money, Coin fee, byte[] remark, String address, String password) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
-		
+
 		locker.lock();
 		try {
 			List<Transaction> txList = new ArrayList<Transaction>();
-			
+
 			Address receiveAddress = null;
 			try {
 				receiveAddress = Address.fromBase58(network, to);
 			} catch (Exception e) {
 				throw new VerificationException("错误的接收地址");
 			}
-			
+
 			//发送的金额必须大于0
 			if(money.compareTo(Coin.ZERO) <= 0) {
 				throw new RuntimeException("发送的金额需大于0");
@@ -908,30 +908,30 @@ public class AccountKit {
 			if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
 				fee = Coin.ZERO;
 			}
-			
+
 			if(accountList == null || accountList.size() == 0) {
 				throw new VerificationException("没有可用账户");
 			}
-			
+
 			//账户是否已加密
 			Account account = null;
-			
+
 			if(StringUtil.isEmpty(address)) {
 				account = getDefaultAccount();
 			} else {
 				account = getAccount(address);
 			}
-			
+
 			if(account == null) {
 				throw new VerificationException("地址不存在或错误");
 			}
-			
+
 			if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
 					(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
 				if(StringUtil.isEmpty(password)) {
 					throw new VerificationException("账户已加密");
 				}
-				
+
 				if(account.getAccountType() == network.getSystemAccountVersion()) {
 					ECKey eckey = account.getEcKey().decrypt(password);
 					account.setEcKey(eckey);
@@ -942,34 +942,34 @@ public class AccountKit {
 					}
 				}
 			}
-			
+
 			//如果是认证账户，但是没有被收录进链里，则账户不可用
 			if(account.isCertAccount() && account.getAccountTransaction() == null) {
 				throw new VerificationException("账户不可用");
 			}
-			
+
 			Address myAddress = account.getAddress();
-			
+
 			//当前余额可用余额
 			Coin balance = myAddress.getBalance();
-			
+
 			//检查余额是否充足
 			if(money.add(fee).compareTo(balance) > 0) {
 				throw new MoneyNotEnoughException("余额不足");
 			}
-			
+
 			Transaction tx = new Transaction(network);
 			tx.setTime(TimeService.currentTimeMillis());
 			tx.setLockTime(TimeService.currentTimeMillis());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
 			tx.setRemark(remark);
-			
+
 			Coin totalInputCoin = Coin.ZERO;
-			
+
 			//选择输入
 			List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
-			
+
 			TransactionInput input = new TransactionInput();
 			for (TransactionOutput output : fromOutputs) {
 				input.addFrom(output);
@@ -984,14 +984,14 @@ public class AccountKit {
 				input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
 			}
 			tx.addInput(input);
-			
+
 			//交易输出
 			tx.addOutput(money, receiveAddress);
 			//是否找零
 			if(totalInputCoin.compareTo(money.add(fee)) > 0) {
 				tx.addOutput(totalInputCoin.subtract(money.add(fee)), myAddress);
 			}
-			
+
 			//签名交易
 			final LocalTransactionSigner signer = new LocalTransactionSigner();
 			try {
@@ -1014,22 +1014,22 @@ public class AccountKit {
 			if(!rs.getResult().isSuccess()) {
 				throw new VerificationException(rs.getResult().getMessage());
 			}
-	
+
 			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 			boolean success = MempoolContainer.getInstace().add(tx);
 			txList.add(tx);
 			transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-			
+
 			BroadcastResult broadcastResult = null;
-			
+
 			if(success) {
 				//广播结果
 				try {
 					log.info("交易大小：{} , 输入数{} - {},  输出数 {} , hash {}", tx.baseSerialize().length, tx.getInputs().size(), tx.getInputs().get(0).getFroms().size(), tx.getOutputs().size(), tx.getHash());
-					
+
 					//等待广播回应
 					broadcastResult = peerKit.broadcast(tx).get();
-					
+
 					//成功
 					if(broadcastResult.isSuccess()) {
 						//更新交易记录
@@ -1049,7 +1049,7 @@ public class AccountKit {
 			locker.unlock();
 		}
 	}
-	
+
 	/**
 	 * 发送普通交易到指定地址
 	 * @param to   base58的地址
@@ -1062,54 +1062,54 @@ public class AccountKit {
 	public BroadcastResult sendMoney1(String to, Coin money, Coin fee, byte[] remark, String address, String password) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
-		
+
 		locker.lock();
 		try {
 			List<Transaction> txList = new ArrayList<Transaction>();
-			
+
 			long now = System.currentTimeMillis();
-			
+
 			Address receiveAddress = null;
 			try {
 				receiveAddress = Address.fromBase58(network, to);
 			} catch (Exception e) {
 				throw new VerificationException("错误的接收地址");
 			}
-			
+
 			//发送的金额必须大于0
 			if(money.compareTo(Coin.ZERO) <= 0) {
 				throw new RuntimeException("发送的金额需大于0");
 			}
-			
+
 			if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
 				fee = Coin.ZERO;
 			}
-			
+
 			if(accountList == null || accountList.size() == 0) {
 				throw new VerificationException("没有可用账户");
 			}
-			
+
 			for (int i = 0; i < 20000; i++) {
-				
+
 				//账户是否已加密
 				Account account = null;
-				
+
 				if(StringUtil.isEmpty(address)) {
 					account = getDefaultAccount();
 				} else {
 					account = getAccount(address);
 				}
-				
+
 				if(account == null) {
 					throw new VerificationException("地址不存在或错误");
 				}
-				
+
 				if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
 						(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
 					if(StringUtil.isEmpty(password)) {
 						throw new VerificationException("账户已加密");
 					}
-					
+
 					if(account.getAccountType() == network.getSystemAccountVersion()) {
 						ECKey eckey = account.getEcKey().decrypt(password);
 						account.setEcKey(eckey);
@@ -1120,37 +1120,37 @@ public class AccountKit {
 						}
 					}
 				}
-				
+
 				//如果是认证账户，但是没有被收录进链里，则账户不可用
 				if(account.isCertAccount() && account.getAccountTransaction() == null) {
 					throw new VerificationException("账户不可用");
 				}
-				
+
 				Address myAddress = account.getAddress();
-				
+
 				//当前余额可用余额
 				Coin balance = myAddress.getBalance();
-				
+
 				//检查余额是否充足
 				if(money.add(fee).compareTo(balance) > 0) {
 					throw new MoneyNotEnoughException("余额不足");
 				}
-				
+
 				Transaction tx = new Transaction(network);
 				tx.setTime(TimeService.currentTimeMillis());
 				tx.setLockTime(TimeService.currentTimeMillis());
 				tx.setType(Definition.TYPE_PAY);
 				tx.setVersion(Definition.VERSION);
 				tx.setRemark(remark);
-				
+
 				Coin totalInputCoin = Coin.ZERO;
-				
+
 				TransactionInput input = new TransactionInput();
-				
+
 				if(i == 0) {
 					//选择输入
 					List<TransactionOutput> fromOutputs = selectNotSpentTransaction(money.add(fee), myAddress);
-					
+
 					for (TransactionOutput output : fromOutputs) {
 						input.addFrom(output);
 						totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
@@ -1169,14 +1169,14 @@ public class AccountKit {
 					input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
 				}
 				tx.addInput(input);
-				
+
 				//交易输出
 				tx.addOutput(money, receiveAddress);
 				//是否找零
 				if(totalInputCoin.compareTo(money.add(fee)) > 0) {
 					tx.addOutput(totalInputCoin.subtract(money.add(fee)), myAddress);
 				}
-				
+
 				//签名交易
 				final LocalTransactionSigner signer = new LocalTransactionSigner();
 				try {
@@ -1199,33 +1199,33 @@ public class AccountKit {
 				if(!rs.getResult().isSuccess()) {
 					throw new VerificationException(rs.getResult().getMessage());
 				}
-				
+
 				//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 				boolean success = MempoolContainer.getInstace().add(tx);
 				txList.add(tx);
 			}
 			System.out.println("构建交易耗时："+(System.currentTimeMillis() - now)+"ms");
 			now = System.currentTimeMillis();
-			
+
 			InventoryFilter filter = SpringContextUtils.getBean(InventoryFilter.class);
 			for (Transaction transaction : txList) {
 				peerKit.broadcastMessage(transaction);
 				filter.insert(transaction.getHash().getBytes());
 			}
 			System.out.println("广播耗时："+(System.currentTimeMillis() - now)+"ms, 成功广播" +txList.size()+"条交易");
-			
+
 			return new BroadcastResult(true, "成功");
 		} finally {
 			locker.unlock();
 		}
 	}
-	
+
 	/*
 	 * 获取交易的手续费
 	 */
 	private Coin getTransactionFee(Transaction tx) {
 		Coin inputFee = Coin.ZERO;
-		
+
 		List<TransactionInput> inputs = tx.getInputs();
 		for (TransactionInput input : inputs) {
 			if(input.getFroms() == null || input.getFroms().size() ==0) {
@@ -1235,7 +1235,7 @@ public class AccountKit {
 				inputFee = inputFee.add(Coin.valueOf(from.getValue()));
 			}
 		}
-		
+
 		Coin outputFee = Coin.ZERO;
 		List<TransactionOutput> outputs = tx.getOutputs();
 		for (TransactionOutput output : outputs) {
@@ -1243,7 +1243,7 @@ public class AccountKit {
 		}
 		return inputFee.subtract(outputFee);
 	}
-	
+
 	/**
 	 * 交易选择
 	 * 查找并返回最接近该金额的未花费的交易
@@ -1252,24 +1252,24 @@ public class AccountKit {
 	 * @return List<TransactionOutput>
 	 */
 	public List<TransactionOutput> selectNotSpentTransaction(Coin amount, Address address) {
-		
+
 		//获取到所有未花费的交易
 		List<TransactionOutput> outputs = transactionStoreProvider.getNotSpentTransactionOutputs(address.getHash160());
-		
+
 		//选择结果存放列表
 		List<TransactionOutput> thisOutputs = new ArrayList<TransactionOutput>();
-		
+
 		if(outputs == null || outputs.size() == 0) {
 			return thisOutputs;
 		}
-		
+
 		//遍历选择，原则是尽量少的数据，也就是笔数最少
-		
+
 		//小于amount的集合
 		List<TransactionOutput> lessThanList = new ArrayList<TransactionOutput>();
 		//大于amount的集合
 		List<TransactionOutput> moreThanList = new ArrayList<TransactionOutput>();
-		
+
 		for (TransactionOutput transactionOutput : outputs) {
 			if(transactionOutput.getValue() == amount.value) {
 				//如果刚好相等，则立即返回
@@ -1283,7 +1283,7 @@ public class AccountKit {
 				lessThanList.add(transactionOutput);
 			}
 		}
-		
+
 		if(Configure.TRANSFER_PREFERRED == 2) {
 			//优先使用零钱
 			transferPreferredWithSmallChange(amount, lessThanList, moreThanList, thisOutputs);
@@ -1310,19 +1310,19 @@ public class AccountKit {
 		}
 		return thisOutputs;
 	}
-	
+
 	/*
 	 * 交易选择 -- 优先使用零钱
 	 */
 	private void transferPreferredWithSmallChange(Coin amount, List<TransactionOutput> lessThanList,
-			List<TransactionOutput> moreThanList, List<TransactionOutput> thisOutputs) {
+												  List<TransactionOutput> moreThanList, List<TransactionOutput> thisOutputs) {
 		if(lessThanList.size() > 0) {
 			//计算所有零钱，是否足够
 			Coin lessTotal = Coin.ZERO;
 			for (TransactionOutput transactionOutput : lessThanList) {
 				lessTotal = lessTotal.add(Coin.valueOf(transactionOutput.getValue()));
 			}
-			
+
 			if(lessTotal.isLessThan(amount)) {
 				//不够，那么必定有大的
 				selectOneOutput(moreThanList, thisOutputs);
@@ -1395,7 +1395,7 @@ public class AccountKit {
 				}
 			}
 		});
-		
+
 		//已选择的金额
 		Coin total = Coin.ZERO;
 		//从小到大选择
@@ -1449,7 +1449,7 @@ public class AccountKit {
 			account.signAccount(key, null);
 			
 			File accountFile = new File(accountDir, address.getBase58()+".dat");
-			
+
 			FileOutputStream fos = new FileOutputStream(accountFile);
 			try {
 				//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
@@ -1457,10 +1457,10 @@ public class AccountKit {
 			} finally {
 				fos.close();
 			}
-			
+
 			account.setEcKey(key);
 			accountList.add(account);
-			
+
 			return address;
 		} finally {
 			locker.unlock();
@@ -1474,30 +1474,30 @@ public class AccountKit {
 	 * @param accountBody   帐户信息
 	 * @param certpw        管理密码
 	 * @return Address
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws VerificationException 
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 * @throws VerificationException
 	 */
 	public Account createNewCertAccount(String mgPw, String trPw, AccountBody accountBody,  String certpw, String managerAddress) throws FileNotFoundException, IOException, VerificationException  {
-		
+
 		//密码位数和难度检测
 		if(!validPassword(mgPw) || !validPassword(trPw)) {
 			throw new VerificationException("密码需6位或以上，且包含字母和数字");
 		}
-		
+
 		//强制交易密码和帐户管理密码不一样
 		Utils.checkState(!mgPw.equals(trPw), "账户管理密码和交易密码不能一样");
-		
+
 		locker.lock();
 		try {
 			Account account = genAccountInfos(mgPw, trPw, accountBody,certpw,managerAddress);
-			
+
 			accountList.add(account);
-			
+
 			byte[] hash160 = account.getAddress().getHash160();
 			blockStoreProvider.addAccountFilter(hash160);
 			transactionStoreProvider.addAddress(hash160);
-			
+
 			return account;
 		} catch (Exception e) {
 			log.error("初始化认证账户出错：{}", e.getMessage(), e);
@@ -1521,31 +1521,31 @@ public class AccountKit {
 		if(!validPassword(mgPw)) {
 			return new BroadcastResult(false, "密码错误");
 		}
-		
+
 		Account account = null;
 		if(StringUtil.isEmpty(address)) {
 			account = getCertAccount();
 		} else {
 			account = getAccount(address);
 		}
-		
+
 		if(account == null) {
 			return new BroadcastResult(false, "账户不存在");
 		}
-		
+
 		ECKey[] eckey = account.decryptionMg(mgPw);
 		if(eckey == null) {
 			return new BroadcastResult(false, "密码错误");
 		}
-		
+
 		locker.lock();
 		try {
 			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),account.getLevel());
 			cutx.sign(account, Definition.TX_VERIFY_MG);
-			
+
 			cutx.verify();
 			cutx.verifyScript();
-			
+
 			//验证交易合法才广播
 			//这里面同时会判断是否被验证过了
 			TransactionValidatorResult rs = transactionValidator.valDo(cutx).getResult();
