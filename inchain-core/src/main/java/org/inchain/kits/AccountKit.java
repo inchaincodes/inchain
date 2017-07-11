@@ -27,15 +27,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.AccountTool;
 import org.inchain.account.Address;
 import org.inchain.consensus.*;
-import org.inchain.core.AntifakeCode;
-import org.inchain.core.AntifakeInfosResult;
-import org.inchain.core.BroadcastMakeAntifakeCodeResult;
-import org.inchain.core.BroadcastResult;
-import org.inchain.core.Coin;
-import org.inchain.core.Definition;
-import org.inchain.core.Result;
-import org.inchain.core.TimeService;
-import org.inchain.core.VerifyAntifakeCodeResult;
+import org.inchain.core.*;
 import org.inchain.core.exception.MoneyNotEnoughException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -1508,6 +1500,37 @@ public class AccountKit {
 
 
 	/**
+	 *
+	 */
+	public BroadcastResult createProduct(Product product,Account account){
+		ProductTransaction tx = new ProductTransaction(network, product);
+
+		tx.sign(account);
+
+		account.resetKey();
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+		if(!rs.getResult().isSuccess()){
+			return new BroadcastResult(false, rs.getResult().getMessage());
+		}
+		tx.verify();
+		tx.verifyScript();
+
+		//加入内存池
+		MempoolContainer.getInstace().add(tx);
+
+		//广播
+		try {
+			BroadcastResult result = peerKit.broadcast(tx).get();
+			if(result.isSuccess()) {
+				result.setHash(tx.getHash());
+				account.setAccountTransaction(tx);
+			}
+			return result;
+		} catch (Exception e) {
+			return new BroadcastResult(false, e.getMessage());
+		}
+	}
+	/**
 	 * 吊销认证账户的信息
 	 * @param revokeAddress
 	 * @param mgPw
@@ -1549,6 +1572,7 @@ public class AccountKit {
 
 			//验证交易合法才广播
 			//这里面同时会判断是否被验证过了
+
 			TransactionValidatorResult rs = transactionValidator.valDo(cutx).getResult();
 			if(!rs.isSuccess()) {
 				return new BroadcastResult(false, rs.getMessage());
@@ -2247,7 +2271,7 @@ public class AccountKit {
 		//判断上次加载的和本次的账户是否完全一致
 		List<byte[]> hash160sStore = transactionStoreProvider.getAddresses();
 
-		//如果个数一样，则判断是否完全相同
+		//)如果个数一样，则判断是否完全相同
 		if(hash160s.size() == hash160sStore.size()) {
 			Comparator<byte[]> comparator = new Comparator<byte[]>() {
 				@Override
