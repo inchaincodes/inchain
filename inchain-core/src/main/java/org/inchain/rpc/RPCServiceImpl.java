@@ -631,7 +631,22 @@ public class RPCServiceImpl implements RPCService {
 		}
 		return result;
 	}
-	
+
+	/**
+	 * 获取注册资产列表
+	 * @return
+	 */
+	public JSONObject getAssetsRegList() throws JSONException{
+		List<TransactionStore> list = chainstateStoreProvider.getAssetRegList();
+		List<JSONObject> jsonList = new ArrayList<>();
+
+		for(TransactionStore regTx : list) {
+			JSONObject json = txConver(regTx);
+			jsonList.add(json);
+		}
+		return new JSONObject().put("list",jsonList);
+	}
+
 	/**
 	 * 通过防伪码查询防伪码相关的所有信息
 	 * @param antifakeCode
@@ -2459,6 +2474,15 @@ public class RPCServiceImpl implements RPCService {
 			
 			json.put("inputs", inputArray);
 			json.put("outputs", outputArray);
+
+			if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+				AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)tx;
+				json.put("name", new String(assetsRegisterTx.getName(), Utils.UTF_8));
+				json.put("description", new String(assetsRegisterTx.getDescription(), Utils.UTF_8));
+				json.put("code", new String(assetsRegisterTx.getCode(), Utils.UTF_8));
+				json.put("logo", new String(assetsRegisterTx.getLogo(), Utils.UTF_8));
+				json.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
+			}
 			
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
 				tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {

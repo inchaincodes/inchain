@@ -736,6 +736,10 @@ public class RPCHanlder {
 			}
 			return rpcService.regAssets(name, description, code, logo, remark, address, pwd);
 		}
+
+		case "getassetsList": {
+			return rpcService.getAssetsRegList();
+		}
 		
 		//查询防伪码所属权
 		case "queryantifakeowner": {

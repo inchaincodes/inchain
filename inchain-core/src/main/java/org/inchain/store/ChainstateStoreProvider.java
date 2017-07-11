@@ -1042,6 +1042,24 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return false;
 	}
 
+
+	public List<TransactionStore> getAssetRegList() {
+		List<TransactionStore> list = new ArrayList<>();
+
+		byte[] assetsRegHash256s = getBytes(Configure.ASSETS_REG_LIST_KEYS);
+		if(assetsRegHash256s == null) {
+			return list;
+		}
+
+		for (int j = 0; j < assetsRegHash256s.length; j += Sha256Hash.LENGTH) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j + Sha256Hash.LENGTH, j + Sha256Hash.LENGTH));
+			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+			list.add(txs);
+		}
+
+		return list;
+	}
+
 	/**
 	 * 资产发行
 	 * @param assetsIssuedTx

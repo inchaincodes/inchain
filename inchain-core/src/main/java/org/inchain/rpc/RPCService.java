@@ -233,6 +233,8 @@ public interface RPCService {
 	 */
 	JSONObject regAssets(String name, String description, String code, String logo, String remark, String address, String password) throws JSONException;
 
+
+	JSONObject getAssetsRegList() throws JSONException;
 	/**
 	 * 获取共识节点列表
 	 * @return JSONArray
