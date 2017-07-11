@@ -1043,6 +1043,25 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return false;
 	}
 
+	/**
+	 * 根据code获取注册资产
+	 * @param code
+	 * @return
+	 */
+	public AssetsRegisterTransaction getAssetsRegisterTxByCode(byte[] code) {
+		byte[] codeKey = Sha256Hash.hash(code);
+		byte[] result = getBytes(codeKey);
+		if(result == null) {
+			return null;
+		}
+		Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(result,0, Sha256Hash.LENGTH));
+		TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+		if(txs == null) {
+			return null;
+		}
+		return (AssetsRegisterTransaction) txs.getTransaction();
+	}
+
 
 	public List<TransactionStore> getAssetRegList() {
 		List<TransactionStore> list = new ArrayList<>();
@@ -1055,7 +1074,6 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		for (int j = 0; j < assetsRegHash256s.length; j += Sha256Hash.LENGTH) {
 			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j, j + Sha256Hash.LENGTH));
 			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
-
 			list.add(txs);
 		}
 		return list;

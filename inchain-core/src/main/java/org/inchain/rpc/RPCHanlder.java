@@ -736,9 +736,38 @@ public class RPCHanlder {
 			}
 			return rpcService.regAssets(name, description, code, logo, remark, address, pwd);
 		}
-
-		case "getassetsList": {
+		//获取资产注册列表
+		case "getassetslist": {
 			return rpcService.getAssetsRegList();
+		}
+
+		//资产签发参数格式：   资产代码  接收人地址 资产发行数量  资产注册人地址(选填)  密码(选填)
+		case "assetsissue" : {
+			if(params.length()  < 3) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+
+			String code = params.getString(0);
+			String receiver = params.getString(1);
+			Long amount =  params.getLong(2);
+			String address = null;
+			String pwd = null;
+			if(params.length() == 4) {
+				try {
+					Address ar = Address.fromBase58(network, params.getString(3));
+					address = ar.getBase58();
+				} catch (Exception e) {
+					pwd = params.getString(3);
+				}
+
+			}else {
+				address = params.getString(3);
+				pwd = params.getString(4);
+			}
+
+			return rpcService.assetsIssue(code, receiver, amount, address, password);
 		}
 		
 		//查询防伪码所属权

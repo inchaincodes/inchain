@@ -619,15 +619,18 @@ public class RPCServiceImpl implements RPCService {
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 		}catch (VerificationException ve) {
-			ve.printStackTrace();
+			log.error("资产注册出错：", ve);
 			result.put("success", false);
 			result.put("message", ve.getMessage());
 		}
 		catch (Exception e) {
-			e.printStackTrace();
-			log.error("资产认证出错：", e);
+			log.error("资产注册出错：", e);
 			result.put("success", false);
 			result.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
 		}
 		return result;
 	}
@@ -645,6 +648,69 @@ public class RPCServiceImpl implements RPCService {
 			jsonList.add(json);
 		}
 		return new JSONObject().put("list",jsonList);
+	}
+
+	/**
+	 *  资产发行
+	 *  首先根据代码判断是否有已经注册的
+	 * @param code
+	 * @param receiver
+	 * @param amount
+	 * @param address
+	 * @param password
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject assetsIssue(String code, String receiver, Long amount, String address, String password) throws JSONException {
+		JSONObject result = new JSONObject();
+		Account account = null;
+
+		try {
+			//1、首先判断账户是否存在，是否加密
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null) {
+				throw new VerificationException("账户不存在");
+			}
+			if(account.isEncrypted()) {
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密，请解密或者传入密码");
+				}
+				//解密钱包
+				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				if(!pwdResult.isSuccess()) {
+					throw new VerificationException("密码错误");
+				}
+			}
+
+			//2、判断接收人地址是否合法
+			try {
+				Address ar = Address.fromBase58(network, address);
+			} catch (Exception e) {
+				throw new VerificationException("接收人地址错误");
+			}
+
+			//3、根据code获取资产注册交易是否存在
+			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
+			if(assetsRegisterTx == null) {
+				throw new VerificationException("注册资产不存在");
+			}
+
+			//4、判断交易是否该账户注册的
+//			blockStoreProvider.ch
+//			assetsRegisterTx.isCertAccount()
+
+
+		}catch (VerificationException ve) {
+			log.error("资产发行出错：", ve);
+			result.put("success", false);
+			result.put("message", ve.getMessage());
+		}
+
+		return null;
 	}
 
 	/**

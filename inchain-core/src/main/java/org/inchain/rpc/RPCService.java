@@ -222,7 +222,7 @@ public interface RPCService {
 	JSONObject createAntifake(String productTx, int count, JSONArray sources, Coin reward, String trpw, String address) throws JSONException;
 
 	/**
-	 *
+	 *	资产注册
 	 * @param name 资产名称
 	 * @param description 资产描述
 	 * @param code 资产代号
@@ -233,8 +233,24 @@ public interface RPCService {
 	 */
 	JSONObject regAssets(String name, String description, String code, String logo, String remark, String address, String password) throws JSONException;
 
-
+	/**
+	 * 获取资产注册列表
+	 * @return
+	 * @throws JSONException
+	 */
 	JSONObject getAssetsRegList() throws JSONException;
+
+	/**
+	 * 资产发行
+	 * @param code
+	 * @param receiver
+	 * @param amount
+	 * @param address
+	 * @param password
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject assetsIssue(String code, String receiver, Long amount, String address, String password) throws JSONException;
 	/**
 	 * 获取共识节点列表
 	 * @return JSONArray
