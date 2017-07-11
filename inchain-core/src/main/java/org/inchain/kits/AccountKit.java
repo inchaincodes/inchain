@@ -610,6 +610,42 @@ public class AccountKit {
 		}
 	}
 
+	/**
+	 * 资产发行
+	 * @param account
+	 * @param assetsRegisterTx
+	 * @param reveiver
+	 * @param Amount
+	 * @return
+	 */
+	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, String reveiver, Long amount) {
+		AssetsIssuedTransaction issuedTx = new AssetsIssuedTransaction(network,
+												assetsRegisterTx.getHash(),
+												reveiver.getBytes(Utils.UTF_8),
+												amount);
+
+		//签名交易
+		final LocalTransactionSigner signer = new LocalTransactionSigner();
+		try {
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的签名
+				signer.signInputs(assetsRegisterTx, account.getEcKey());
+			} else {
+				//认证账户的签名
+				signer.signCertAccountInputs(assetsRegisterTx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			BroadcastResult broadcastResult = new BroadcastResult();
+			broadcastResult.setSuccess(false);
+			broadcastResult.setMessage("签名失败");
+			return broadcastResult;
+		}
+
+
+		return null;
+	}
+
 	/*
 	 * 通过防伪码获取输入
 	 */

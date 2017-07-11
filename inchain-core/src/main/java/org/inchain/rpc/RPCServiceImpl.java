@@ -687,8 +687,10 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			//2、判断接收人地址是否合法
+			byte[] hash160 = null;
 			try {
 				Address ar = Address.fromBase58(network, address);
+				hash160 = Address.fromBase58(network, address).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -700,7 +702,11 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			//4、判断交易是否该账户注册的
-//			blockStoreProvider.ch
+			if(!blockStoreProvider.checkTxIsMine(assetsRegisterTx, hash160)) {
+				throw new VerificationException("该资产非本账户注册");
+			}
+
+
 //			assetsRegisterTx.isCertAccount()
 
 

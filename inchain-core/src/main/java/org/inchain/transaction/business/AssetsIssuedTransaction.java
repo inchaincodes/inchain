@@ -38,6 +38,14 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 	public AssetsIssuedTransaction(NetworkParams params, byte[] payloadBytes, int offset) throws ProtocolException {
 		super(params, payloadBytes, offset);
 	}
+
+	public AssetsIssuedTransaction(NetworkParams params, Sha256Hash assetsHash, byte[] receiver, Long amount) {
+		super(params);
+		this.amount = amount;
+		this.assetsHash = assetsHash;
+		this.receiver = receiver;
+		type = Definition.TYPE_ASSETS_ISSUED;
+	}
 	
 	@Override
 	public void verify() throws VerificationException {
