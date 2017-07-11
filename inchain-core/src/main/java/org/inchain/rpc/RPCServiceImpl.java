@@ -2474,7 +2474,7 @@ public class RPCServiceImpl implements RPCService {
 			
 			json.put("inputs", inputArray);
 			json.put("outputs", outputArray);
-
+			//如果是资产注册交易，这里需做特别转换
 			if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
 				AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)tx;
 				json.put("name", new String(assetsRegisterTx.getName(), Utils.UTF_8));
