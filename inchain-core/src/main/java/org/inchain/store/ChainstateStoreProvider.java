@@ -1018,14 +1018,15 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 
 		byte[] newHash256s = new byte[assetsRegHash256s.length + Sha256Hash.LENGTH];
-
+		byte[] txHash = assetsRegisterTx.getHash().getBytes();
 		System.arraycopy(assetsRegHash256s, 0, newHash256s, 0, assetsRegHash256s.length);
-		System.arraycopy(assetsRegisterTx.getHash().getBytes(), 0, newHash256s, newHash256s.length, Sha256Hash.LENGTH);
+		System.arraycopy(txHash, 0, newHash256s, assetsRegHash256s.length, Sha256Hash.LENGTH);
 		put(Configure.ASSETS_REG_LIST_KEYS, newHash256s);
+
 
 		//再单独用交易的code作为建存储交易，方便判断是否有重复资产登记的交易
 		byte[] registerKey = Sha256Hash.hash(assetsRegisterTx.getCode());
-		put(registerKey, assetsRegisterTx.getHash().getBytes());
+		put(registerKey, txHash);
 	}
 
 	/**
@@ -1035,7 +1036,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 */
 	public boolean hasAssetsReg(byte[] code) {
 		byte[] codeKey = Sha256Hash.hash(code);
-		byte[] result = getBytes(code);
+		byte[] result = getBytes(codeKey);
 		if(result != null) {
 			return true;
 		}
@@ -1052,11 +1053,11 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 
 		for (int j = 0; j < assetsRegHash256s.length; j += Sha256Hash.LENGTH) {
-			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j + Sha256Hash.LENGTH, j + Sha256Hash.LENGTH));
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j, j + Sha256Hash.LENGTH));
 			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+
 			list.add(txs);
 		}
-
 		return list;
 	}
 

@@ -23,8 +23,6 @@ public class AssetsRegisterTransaction extends BaseCommonlyTransaction {
 	private byte[] code;
 	//资产图标
 	private byte[] logo;
-	//备注
-	private byte[] remark;
 
 	public AssetsRegisterTransaction(NetworkParams network) {
 		super(network);

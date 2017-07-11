@@ -613,7 +613,7 @@ public class TransactionValidator {
 				//验证编码是否重复
 				AssetsRegisterTransaction artx = (AssetsRegisterTransaction) tx;
 				if(chainstateStoreProvider.hasAssetsReg(artx.getCode())) {
-					result.setResult(false, "资产代码重复使用");
+					result.setResult(false, "资产代码已注册，请勿重复使用");
 					return validatorResult;
 				}
 			}

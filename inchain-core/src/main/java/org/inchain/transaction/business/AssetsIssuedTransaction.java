@@ -25,8 +25,6 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 	protected byte[] receiver;
 	//数量
 	protected long amount;
-	//备注
-	protected byte[] remark;
 
 	public AssetsIssuedTransaction(NetworkParams network) {
 		super(network);
@@ -100,11 +98,6 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		this.amount = amount;
 	}
 
-	@Override
-	public byte[] getRemark() {
-		return remark;
-	}
-
 	public Sha256Hash getAssetsHash() {
 		return assetsHash;
 	}
@@ -113,10 +106,6 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		this.assetsHash = assetsHash;
 	}
 
-	@Override
-	public void setRemark(byte[] remark) {
-		this.remark = remark;
-	}
 
 	@Override
 	public String toString() {
