@@ -512,7 +512,6 @@ public class AccountKit {
 	/**
 	 * 资产注册
 	 * @param account
-	 * @param password
 	 * @throws VerificationException
 	 */
 	public BroadcastResult regAssets(Account account, AssetsRegisterTransaction assetsRegisterTx) throws VerificationException {
@@ -607,7 +606,6 @@ public class AccountKit {
 	 * @param account
 	 * @param assetsRegisterTx
 	 * @param reveiver
-	 * @param Amount
 	 * @return
 	 */
 	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, String reveiver, Long amount) {
@@ -1641,7 +1639,6 @@ public class AccountKit {
 			BroadcastResult result = peerKit.broadcast(tx).get();
 			if(result.isSuccess()) {
 				result.setHash(tx.getHash());
-				account.setAccountTransaction(tx);
 			}
 			return result;
 		} catch (Exception e) {
