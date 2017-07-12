@@ -34,7 +34,7 @@ Inchain目前主要采用第二种节点发现方式。
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
 |1|type|byte|清单类型|
-|32|hash|byte[32]|哈希|
+|32|hash|SHA256|哈希|
 
 > 已定义的type值
 > 
@@ -63,6 +63,30 @@ Inchain目前主要采用第二种节点发现方式。
 > lockTime 小于0永久锁定，大于等于0为锁定的时间或者区块高度  
 > remark length为0时，说明remark为空  
 > remark 为utf-8编码字符串
+
+4.BlockHeader
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|version|uint32|区块版本|
+|32|prev Hash|SHA256|上一个区块Hash|
+|32|markle Hash|SHA256|markle Hash|
+|4|time|Timespan|时间戳|
+|4|hight|uint32|高度|
+|4|period count|uint32|该时段共识人数|
+|4|time period|int32|时段，一轮共识中的第几个时间段|
+|4|period start time|uint32|本轮开始的时间点|
+|4|script length|uint32|验证脚本长度|
+|?|script|byte[?]|验证脚本|
+|4|tx count|uint32|交易数量|
+|?|txHash[]|sha256[?]|交易签名表|
+
+5.Sign
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|sign count|int32|签名长度|
+|?|sign|byte[?]|签名
 
 协议
 ---
@@ -193,16 +217,17 @@ block
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|version|uint32|版本|
-|32|merkleHash|sha256|merkle根节点hash|
-|4|Timespan|uint32|时间戳|
-|4|height|uint32|高度|
-|4|period count|uint32|该时段共识人数|
-|4|period time|uint32|时段，一轮共识中的第几个时间段，可验证对应的共识人|
-|4|period start time|uint32|本轮开始的时间点，单位（秒）|
-|4|script length|uint32|签名脚本长度|
-|?|script|char[?]|签名脚本，包含共识打包人信息和签名|
+|?|block header|BlockHeader|block头|
 |?*?|Transactions|tx[]|交易列表|
+
+---
+newblock
+> 当节点产生新块时，可以发送该消息。也可以发送inv消息。
+> inv类型中有一个是newblock，会以该消息回应getdata消息。
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|block header|BlockHeader|block头|
 
 ---
 notfound
@@ -211,6 +236,23 @@ notfound
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
 |32|hash|sha256|请求参数hash|
+
+---
+consensus
+> 共识
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|protocol version|int32|协议版本|
+|20|sender|hash160|消息发送人|
+|4|height|uint32|高度|
+|8|time|Timespane|时间戳|
+|8|nonce|int64|随机数|
+|4|content length|int32|内容长度|
+|?|content|byte[?]|内容|
+|4|signs count|int32|签名长度|
+|?*?| Signs| Sign[]|签名|
+
 
 TX协议
 ---

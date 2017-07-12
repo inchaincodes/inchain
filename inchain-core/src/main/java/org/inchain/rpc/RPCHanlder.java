@@ -567,6 +567,78 @@ public class RPCHanlder {
 			return result;
 		}
 
+			case "createantifakewithoutproduct":{
+				try {
+					String productHash = "3030303030303030303030303030303030303030303030303030303030303030";
+
+					JSONArray sources = null;
+					int count = 0;
+
+					String params1 = params.getString(0);
+
+					try {
+						System.out.println(params1);
+
+						JSONObject params1Json = new JSONObject(params1);
+
+						count = params1Json.getInt("count");
+						if(count <= 0) {
+							result.put("success", false);
+							result.put("message", "防伪码数量不正确，应大于0");
+							return result;
+						}
+						if(params1Json.has("sources")) {
+							sources = params1Json.getJSONArray("sources");
+							if(count != sources.length()) {
+								result.put("success", false);
+								result.put("message", "来源个数和防伪码个数不匹配");
+								return result;
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+						result.put("success", false);
+						result.put("message", "参数格式不正确");
+						return result;
+					}
+
+					String trpw = params.getString(1);
+
+					if(StringUtil.isEmpty(trpw)) {
+						result.put("success", false);
+						result.put("message", "缺少密码");
+						return result;
+					}
+
+					//奖励
+					Coin reward = Coin.ZERO;
+					//账户
+					String address = null;
+					if(params.length() > 2) {
+						try {
+							reward = Coin.parseCoin(params.getString(2));
+						} catch (Exception e) {
+							address = params.getString(2);
+						}
+						if(params.length() > 3) {
+							address = params.getString(3);
+						}
+					}
+
+					result = rpcService.createAntifake(productHash, count, sources, reward, trpw, address);
+				} catch (JSONException e) {
+					if(e instanceof JSONException) {
+						result.put("success", false);
+						result.put("message", "缺少参数，命令用法：createantifake [product hash] [count] [trpassword] ([reward]) [address]");
+						return result;
+					}
+					result.put("success", false);
+					result.put("message", "创建时出错：" + e.getMessage());
+				}
+
+				return result;
+			}
+
 		//通过防伪码查询商家和商品
 		case "queryantifake": {
 			if(params.length()  < 1) {

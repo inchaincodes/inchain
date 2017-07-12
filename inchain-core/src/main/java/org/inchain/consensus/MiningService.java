@@ -790,13 +790,15 @@ public final class MiningService implements Mining {
 				if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 					//如果是验证码生成交易，则验证产品是否存在
 					AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
-					TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
-					if(txStore == null || txStore.getTransaction() == null) {
-						throw new VerificationException("产品不存在");
-					}
-					ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
-					if(!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
-						throw new VerificationException("不合法的产品引用");
+					if(!Hex.encode(atx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)) {
+						TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
+						if (txStore == null || txStore.getTransaction() == null) {
+							throw new VerificationException("产品不存在");
+						}
+						ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
+						if (!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
+							throw new VerificationException("不合法的产品引用");
+						}
 					}
 					//防伪码不能重复
 					try {

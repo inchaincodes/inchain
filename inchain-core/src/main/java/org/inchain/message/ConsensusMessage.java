@@ -49,7 +49,9 @@ public class ConsensusMessage extends Message {
 	private long time;
 	//随机数
 	private long nonce;
-	//签名
+	/**
+	 * 签名
+	 */
 	private byte[][] signs;
 	
 	public ConsensusMessage(NetworkParams network) {
