@@ -661,8 +661,8 @@ public class RPCServiceImpl implements RPCService {
 			//2、判断接收人地址是否合法
 			byte[] hash160 = null;
 			try {
-				Address ar = Address.fromBase58(network, address);
-				hash160 = Address.fromBase58(network, address).getHash160();
+				Address ar = Address.fromBase58(network, receiver);
+				hash160 = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -673,23 +673,62 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("注册资产不存在");
 			}
 
-			//4、判断交易是否该账户注册的
-			if(!blockStoreProvider.checkTxIsMine(assetsRegisterTx, hash160)) {
-				throw new VerificationException("该资产非本账户注册");
-			}
-
-
-//			assetsRegisterTx.isCertAccount()
-
+			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hash160, amount);
+			result.put("success",  br.isSuccess());
+			result.put("message", br.getMessage());
 
 		}catch (VerificationException ve) {
 			log.error("资产发行出错：", ve);
 			result.put("success", false);
 			result.put("message", ve.getMessage());
 		}
-
-		return null;
+		catch (Exception e) {
+			log.error("资产发行出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
+		}
+		return result;
 	}
+
+	/**
+	 *  获取资产发行列表
+	 * @param code
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject getAssetsIssueList(String code) throws JSONException {
+		JSONObject result = new JSONObject();
+
+		//根据code获取资产注册交易是否存在
+		AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
+		if(assetsRegisterTx == null) {
+			result.put("success", false);
+			result.put("message", "注册资产不存在");
+			return result;
+		}
+
+		List<TransactionStore> list = chainstateStoreProvider.getAssetsIssueList(assetsRegisterTx.getHash160());
+		List<JSONObject> jsonList = new ArrayList<>();
+		//组装资产注册json格式
+		JSONObject regJson = new JSONObject();
+		regJson.put("name", new String(assetsRegisterTx.getName(), Utils.UTF_8));
+		regJson.put("description", new String(assetsRegisterTx.getDescription(), Utils.UTF_8));
+		regJson.put("code", new String(assetsRegisterTx.getCode(), Utils.UTF_8));
+		regJson.put("logo", new String(assetsRegisterTx.getLogo(), Utils.UTF_8));
+		regJson.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
+
+
+		for(TransactionStore issueTx : list) {
+			JSONObject json = txConver(issueTx);
+			jsonList.add(json);
+		}
+		return new JSONObject().put("regTx",regJson).put("list",jsonList);
+	}
+
 
 	/**
 	 * 通过防伪码查询防伪码相关的所有信息
@@ -2686,6 +2725,13 @@ public class RPCServiceImpl implements RPCService {
 			
 			json.put("credit", credit);
 			json.put("reason", reason);
+		}
+		else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
+
+			json.put("amount", aitx.getAmount());
+
+			json.put("receiver", Base58.encode(aitx.getReceiver()));
 		}
 		
 		return json;

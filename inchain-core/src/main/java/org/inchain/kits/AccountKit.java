@@ -605,24 +605,22 @@ public class AccountKit {
 	 * 资产发行
 	 * @param account
 	 * @param assetsRegisterTx
-	 * @param reveiver
+	 * @param receiver
+	 * @param Amount
 	 * @return
 	 */
-	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, String reveiver, Long amount) {
-		AssetsIssuedTransaction issuedTx = new AssetsIssuedTransaction(network,
-												assetsRegisterTx.getHash(),
-												reveiver.getBytes(Utils.UTF_8),
-												amount);
+	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, byte[] receiver, Long amount) {
+		AssetsIssuedTransaction issuedTx = new AssetsIssuedTransaction(network, assetsRegisterTx.getHash(), receiver, amount);
 
 		//签名交易
 		final LocalTransactionSigner signer = new LocalTransactionSigner();
 		try {
 			if(account.getAccountType() == network.getSystemAccountVersion()) {
 				//普通账户的签名
-				signer.signInputs(assetsRegisterTx, account.getEcKey());
+				signer.signInputs(issuedTx, account.getEcKey());
 			} else {
 				//认证账户的签名
-				signer.signCertAccountInputs(assetsRegisterTx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+				signer.signCertAccountInputs(issuedTx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
 			}
 		} catch (Exception e) {
 			log.error(e.getMessage(), e);
@@ -631,9 +629,37 @@ public class AccountKit {
 			broadcastResult.setMessage("签名失败");
 			return broadcastResult;
 		}
+		//签名与验证
+		issuedTx.sign(account);
+		issuedTx.verify();
+		issuedTx.verifyScript();
 
+		//验证交易是否合法
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(issuedTx);
+		if(!rs.getResult().isSuccess()) {
+			throw new VerificationException(rs.getResult().getMessage());
+		}
 
-		return null;
+		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+		boolean success = MempoolContainer.getInstace().add(issuedTx);
+		if(!success) {
+			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
+		}
+
+		try {
+			BroadcastResult br = peerKit.broadcast(issuedTx).get();
+
+			//等待广播回应
+			if(br.isSuccess()) {
+				//更新交易记录
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, issuedTx));
+			}
+
+			return br;
+
+		} catch (Exception e) {
+			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
+		}
 	}
 
 	/*

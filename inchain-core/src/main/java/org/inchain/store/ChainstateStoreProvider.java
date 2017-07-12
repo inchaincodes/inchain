@@ -1062,7 +1062,10 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return (AssetsRegisterTransaction) txs.getTransaction();
 	}
 
-
+	/**
+	 * 获取注册资产列表
+	 * @return
+	 */
 	public List<TransactionStore> getAssetRegList() {
 		List<TransactionStore> list = new ArrayList<>();
 
@@ -1079,13 +1082,62 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return list;
 	}
 
+
 	/**
 	 * 资产发行
 	 * @param assetsIssuedTx
 	 */
 	public void assetsIssued(AssetsIssuedTransaction assetsIssuedTx) {
-		//TODO
+		//资产发行以所发行的资产的注册资产的交易的hash160作为key + [3],[4]，存储一个列表
+		TransactionStore txs =  blockStoreProvider.getTransaction(assetsIssuedTx.getAssetsHash().getBytes());
+		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
+		byte [] hash160 = assetsIssuedTx.getHash160();
+		byte[] key = new byte[hash160.length + 2];
+		System.arraycopy(hash160, 0, key, 0, key.length - 2);
+		key[key.length - 2] = (byte) 3;
+		key[key.length - 1] = (byte) 4;
 
+		//获取已存储的资产发行列表
+		byte[] assetsIssueHash256s = getBytes(key);
+		if(assetsIssueHash256s == null) {
+			assetsIssueHash256s = new byte[0];
+		}
+
+		byte[] newHash256s = new byte[assetsIssueHash256s.length + Sha256Hash.LENGTH];
+		byte[] txHash = assetsIssuedTx.getHash().getBytes();
+		//将新交易存入进去
+		System.arraycopy(assetsIssueHash256s, 0, newHash256s, 0, assetsIssueHash256s.length);
+		System.arraycopy(txHash, 0, newHash256s, assetsIssueHash256s.length, Sha256Hash.LENGTH);
+		put(key, newHash256s);
+
+	//	put(assetsIssuedTx.getHash160(), assetsIssuedTx.getHash().getBytes());
+
+	}
+
+	/**
+	 * 获取资产发行列表
+	 * @param hash160
+	 * @return
+	 */
+	public List<TransactionStore> getAssetsIssueList(byte[] hash160) {
+
+		byte[] key = new byte[hash160.length + 2];
+		System.arraycopy(hash160, 0, key, 0, key.length - 2);
+		key[key.length - 2] = (byte) 3;
+		key[key.length - 1] = (byte) 4;
+
+		List<TransactionStore> list = new ArrayList<>();
+		byte[] assetsRegHash256s = getBytes(key);
+		if(assetsRegHash256s == null) {
+			return list;
+		}
+
+		for (int j = 0; j < assetsRegHash256s.length; j += Sha256Hash.LENGTH) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j, j + Sha256Hash.LENGTH));
+			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+			list.add(txs);
+		}
+		return list;
 	}
 
 	/**
