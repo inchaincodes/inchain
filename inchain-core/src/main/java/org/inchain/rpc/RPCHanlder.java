@@ -762,14 +762,25 @@ public class RPCHanlder {
 					pwd = params.getString(3);
 				}
 
-			}else {
+			}else if(params.length() == 5){
 				address = params.getString(3);
 				pwd = params.getString(4);
 			}
 
-			return rpcService.assetsIssue(code, receiver, amount, address, password);
+			return rpcService.assetsIssue(code, receiver, amount, address, pwd);
 		}
-		
+
+		// 获取资产发行列表，参数格式   资产代码
+		case "getassetsissuelist": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			String code = params.getString(0);
+			return rpcService.getAssetsIssueList(code);
+		}
+
 		//查询防伪码所属权
 		case "queryantifakeowner": {
 			if(params.length()  < 1) {
