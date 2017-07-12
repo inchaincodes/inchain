@@ -34,10 +34,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.*;
-import org.inchain.utils.Base58;
-import org.inchain.utils.ConsensusCalculationUtil;
-import org.inchain.utils.DateUtil;
-import org.inchain.utils.Utils;
+import org.inchain.utils.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -323,23 +320,24 @@ public class TransactionValidator {
 			if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 				//如果是验证码生成交易，则验证产品是否存在
 				AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
-				TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
-				if(txStore == null || txStore.getTransaction() == null) {
-					result.setResult(false, "产品不存在");
-					return validatorResult;
-				}
-				ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
-				if(!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
-					result.setResult(false, "不合法的产品引用");
-					return validatorResult;
-				}
+				if(!Hex.encode(atx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)) {
+					TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
+					if (txStore == null || txStore.getTransaction() == null) {
+						result.setResult(false, "产品不存在");
+						return validatorResult;
+					}
+					ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
+					if (!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
+						result.setResult(false, "不合法的产品引用");
+						return validatorResult;
+					}
 
-				//检查产品状态是否可用  facjas
-				if(ptx.getProduct().getStatus() ==1 ) {
-					result.setResult(false, "产品状态为不可用");
-					return validatorResult;
+					//检查产品状态是否可用  facjas
+					if (ptx.getProduct().getStatus() == 1) {
+						result.setResult(false, "产品状态为不可用");
+						return validatorResult;
+					}
 				}
-
 				//检查用户是否为认证账户，检查用户状态是否可用
 				byte[] hash160 = atx.getHash160();
 				AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);

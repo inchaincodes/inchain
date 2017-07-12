@@ -1031,7 +1031,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 判断资产是否已注册
-	 * @param hash160
+	 * @param code
 	 * @return
 	 */
 	public boolean hasAssetsReg(byte[] code) {

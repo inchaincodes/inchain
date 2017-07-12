@@ -806,6 +806,11 @@ public class AccountKit {
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
 
 		//设置验证商品
+		if(Hex.encode(codeMakeTx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)){
+			verifyResult.setSuccess(false);
+			verifyResult.setMessage("防伪码没有关联任何商品");
+			return verifyResult;
+		}
 		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		if(productTxStore == null) {
 			verifyResult.setSuccess(false);
