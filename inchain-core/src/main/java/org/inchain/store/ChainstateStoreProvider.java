@@ -1091,11 +1091,14 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		//资产发行以所发行的资产的注册资产的交易的hash160作为key + [3],[4]，存储一个列表
 		TransactionStore txs =  blockStoreProvider.getTransaction(assetsIssuedTx.getAssetsHash().getBytes());
 		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
-		byte [] hash160 = assetsIssuedTx.getHash160();
-		byte[] key = new byte[hash160.length + 2];
-		System.arraycopy(hash160, 0, key, 0, key.length - 2);
-		key[key.length - 2] = (byte) 3;
-		key[key.length - 1] = (byte) 4;
+
+		//key = 1,1， + hash256(registerTx.code)
+		byte[] key = new byte[Sha256Hash.LENGTH + 2];
+		byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
+		//固定key的前两位为 1,1
+		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+		System.arraycopy(hash256, 0, key, 2, hash256.length);
+
 
 		//获取已存储的资产发行列表
 		byte[] assetsIssueHash256s = getBytes(key);
@@ -1116,15 +1119,15 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 获取资产发行列表
-	 * @param hash160
+	 * @param code
 	 * @return
 	 */
-	public List<TransactionStore> getAssetsIssueList(byte[] hash160) {
-
-		byte[] key = new byte[hash160.length + 2];
-		System.arraycopy(hash160, 0, key, 0, key.length - 2);
-		key[key.length - 2] = (byte) 3;
-		key[key.length - 1] = (byte) 4;
+	public List<TransactionStore> getAssetsIssueList(byte[] code) {
+		byte[] key = new byte[Sha256Hash.LENGTH + 2];
+		byte[] hash256 = Sha256Hash.hash(code);
+		//固定key的前两位为 1,1
+		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+		System.arraycopy(hash256, 0, key, 2, hash256.length);
 
 		List<TransactionStore> list = new ArrayList<>();
 		byte[] assetsRegHash256s = getBytes(key);

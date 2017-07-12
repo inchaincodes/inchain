@@ -711,7 +711,7 @@ public class RPCServiceImpl implements RPCService {
 			return result;
 		}
 
-		List<TransactionStore> list = chainstateStoreProvider.getAssetsIssueList(assetsRegisterTx.getHash160());
+		List<TransactionStore> list = chainstateStoreProvider.getAssetsIssueList(assetsRegisterTx.getCode());
 		List<JSONObject> jsonList = new ArrayList<>();
 		//组装资产注册json格式
 		JSONObject regJson = new JSONObject();
@@ -2728,10 +2728,9 @@ public class RPCServiceImpl implements RPCService {
 		}
 		else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-
+			Address address = Address.fromHashs(network, aitx.getReceiver());
 			json.put("amount", aitx.getAmount());
-
-			json.put("receiver", Base58.encode(aitx.getReceiver()));
+			json.put("receiver", address.getBase58());
 		}
 		
 		return json;

@@ -239,8 +239,15 @@ public final class Configure {
 	 * 资产注册列表存储键
 	 */
 	public final static byte[] ASSETS_REG_LIST_KEYS = Sha256Hash.hashTwice("assets_reg_list_keys".getBytes());
-	
-	
+
+
+	/**
+	 *  资产发行列表存储键首两位
+	 */
+
+	public final static byte[] ASSETS_ISSUE_FIRST_KEYS = new byte[]{1,1};
+
+
 	/*************  系统级配置   begin  *****************/
 	
     /**
