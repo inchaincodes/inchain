@@ -606,7 +606,7 @@ public class AccountKit {
 	 * @param account
 	 * @param assetsRegisterTx
 	 * @param receiver
-	 * @param Amount
+	 * @param amount
 	 * @return
 	 */
 	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, byte[] receiver, Long amount) {

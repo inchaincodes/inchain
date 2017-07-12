@@ -82,9 +82,9 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 	 * @param key1
 	 * @param key2
 	 */
-	public void calculateSignature(Sha256Hash txid, ECKey key1, ECKey key2) {
-		calculateSignature(txid, key1, key2, network.getCertAccountManagerHash160(), Definition.TX_VERIFY_TR);
-	}
+//	public void calculateSignature(Sha256Hash txid, ECKey key1, ECKey key2) {
+//		calculateSignature(txid, key1, key2, network.getCertAccountManagerHash160(), Definition.TX_VERIFY_TR);
+//	}
 	
 	/**
 	 * 更新交易签名，这个交易应该是特定账号的，接入商家用

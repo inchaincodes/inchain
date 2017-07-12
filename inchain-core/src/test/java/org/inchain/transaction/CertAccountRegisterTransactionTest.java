@@ -7,6 +7,7 @@ import org.inchain.TestNetBaseTestCase;
 import org.inchain.account.Account;
 import org.inchain.account.AccountBody;
 import org.inchain.core.AccountKeyValue;
+import org.inchain.core.Definition;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
@@ -73,7 +74,7 @@ public class CertAccountRegisterTransactionTest extends TestNetBaseTestCase {
 		accountKit.loadAccount();
 		ECKey[] eckeys = accountKit.getDefaultAccount().decryptionTr("inchain123");
 		//ECKey[] eckeys = account.decryptionMg("inchain123456");
-		tx.calculateSignature(tx.getHash(), eckeys[0], null);
+		tx.calculateSignature(tx.getHash(), eckeys[0], null,maccount.getAddress().getHash160(), Definition.TX_VERIFY_TR);
 
 
 
