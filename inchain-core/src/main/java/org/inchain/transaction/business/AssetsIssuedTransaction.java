@@ -39,11 +39,12 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		super(params, payloadBytes, offset);
 	}
 
-	public AssetsIssuedTransaction(NetworkParams params, Sha256Hash assetsHash, byte[] receiver, Long amount) {
+	public AssetsIssuedTransaction(NetworkParams params, Sha256Hash assetsHash, byte[] receiver, Long amount,byte[]remark) {
 		super(params);
 		this.amount = amount;
 		this.assetsHash = assetsHash;
 		this.receiver = receiver;
+		this.remark = remark;
 		type = Definition.TYPE_ASSETS_ISSUED;
 	}
 	
@@ -51,7 +52,7 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 	public void verify() throws VerificationException {
 		super.verify();
 		//验证接收人
-		if(receiver == null || receiver.length != Address.LENGTH) {
+		if(receiver == null || receiver.length != 25) {
 			throw new VerificationException("接收人不正确");
 		}
 		if(amount <= 0) {
@@ -83,7 +84,7 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		super.parse();
 
 		assetsHash = readHash();
-		receiver = readBytes(Address.LENGTH);
+		receiver = readBytes(25);
 		amount = readInt64();
 		remark = readBytes((int)readVarInt());
 

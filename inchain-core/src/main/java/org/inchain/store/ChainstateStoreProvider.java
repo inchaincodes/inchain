@@ -13,6 +13,7 @@ import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusModel;
 import org.inchain.consensus.ConsensusPool;
+import org.inchain.core.Assets;
 import org.inchain.core.Coin;
 import org.inchain.core.ViolationEvidence;
 import org.inchain.crypto.Sha256Hash;
@@ -1108,13 +1109,64 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 		byte[] newHash256s = new byte[assetsIssueHash256s.length + Sha256Hash.LENGTH];
 		byte[] txHash = assetsIssuedTx.getHash().getBytes();
-		//将新交易存入进去
+		//将新交易存入进列表
 		System.arraycopy(assetsIssueHash256s, 0, newHash256s, 0, assetsIssueHash256s.length);
 		System.arraycopy(txHash, 0, newHash256s, assetsIssueHash256s.length, Sha256Hash.LENGTH);
 		put(key, newHash256s);
 
-	//	put(assetsIssuedTx.getHash160(), assetsIssuedTx.getHash().getBytes());
+		//资产发行后，需要维护接收人的资产账户
+		updateAssetsReceiverAccount(hash256, assetsIssuedTx);
+	}
 
+	//资产发行后，更新接收人账户
+	private void updateAssetsReceiverAccount(byte[] code, AssetsIssuedTransaction assetsIssuedTx) {
+		//资产账户的key 规则为 1,1 + recevier
+		byte[] key = new byte[Sha256Hash.LENGTH + 2];
+		//固定key的前两位为 1,1
+		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+		System.arraycopy(assetsIssuedTx.getReceiver(), 0, key, 2, assetsIssuedTx.getReceiver().length);
+
+		//获取接收人资产账户列表
+		byte[] myAssets = getBytes(key);
+
+		if(myAssets == null) {
+			//如果资产账户列表为空，直接新增
+			Assets assets = new Assets(code, assetsIssuedTx.getAmount());
+			myAssets = assets.serialize();
+			put(key, myAssets);
+		}else {
+			// 查询是否已存在资产列表
+			boolean hasAssets = false;
+			for(int j = 0; j < myAssets.length; j += Assets.CODE_LENGTH + 8) {
+				byte[] current = new byte[Assets.CODE_LENGTH + 8];
+				System.arraycopy(myAssets, j, current, 0, Assets.CODE_LENGTH + 8);
+				Assets assets = new Assets(current);
+				assets.setBalance(assets.getBalance() + assetsIssuedTx.getAmount());
+
+				//如果存在，则在以前的资产上添加，然后重新保存到列表中
+				byte [] before = new byte[j];
+				System.arraycopy(myAssets, 0, before, 0, j);
+
+				byte [] end = new byte[myAssets.length - j - Assets.CODE_LENGTH - 8 ];
+				System.arraycopy(myAssets, j + Assets.CODE_LENGTH + 8, end, 0, end.length);
+
+				byte [] newAsset = new byte[myAssets.length];
+				System.arraycopy(before, 0, newAsset, 0, before.length);
+				System.arraycopy(assets.serialize(), 0, newAsset, before.length, Assets.CODE_LENGTH + 8);
+				System.arraycopy(end, 0, newAsset, before.length + Assets.CODE_LENGTH + 8, end.length);
+
+				hasAssets = true;
+				break;
+			}
+			//如果没有则在后面新增
+			if(!hasAssets) {
+				byte [] newAsset = new byte[myAssets.length + Assets.CODE_LENGTH + 8];
+				System.arraycopy(myAssets, 0, newAsset, 0, myAssets.length);
+
+				Assets assets = new Assets(code, assetsIssuedTx.getAmount());
+				System.arraycopy(assets.serialize(), 0, newAsset, myAssets.length, Assets.CODE_LENGTH + 8);
+			}
+		}
 	}
 
 	/**

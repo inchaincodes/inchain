@@ -250,7 +250,7 @@ public interface RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	JSONObject assetsIssue(String code, String receiver, Long amount, String address, String password) throws JSONException;
+	JSONObject assetsIssue(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException;
 
 	/**
 	 * 获取资产发行的列表
@@ -259,6 +259,18 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONObject getAssetsIssueList(String code) throws JSONException;
+
+	/**
+	 *  资产转让
+	 * @param code
+	 * @param receiver
+	 * @param amount
+	 * @param address
+	 * @param password
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject assetstransfer(String code, String receiver, Long amount, String address, String password) throws JSONException;
 
 	/**
 	 * 获取共识节点列表

@@ -633,7 +633,7 @@ public class RPCServiceImpl implements RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject assetsIssue(String code, String receiver, Long amount, String address, String password) throws JSONException {
+	public JSONObject assetsIssue(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
 		Account account = null;
 
@@ -662,7 +662,10 @@ public class RPCServiceImpl implements RPCService {
 			byte[] hash160 = null;
 			try {
 				Address ar = Address.fromBase58(network, receiver);
-				hash160 = Address.fromBase58(network, receiver).getHash160();
+				hash160 = Address.fromBase58(network, receiver).getHash();
+
+				Address tt = Address.fromHashs(network, hash160);
+				System.out.println(tt.getBase58());
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -673,7 +676,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("注册资产不存在");
 			}
 
-			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hash160, amount);
+			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hash160, amount, remark);
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 
@@ -727,6 +730,20 @@ public class RPCServiceImpl implements RPCService {
 			jsonList.add(json);
 		}
 		return new JSONObject().put("regTx",regJson).put("list",jsonList);
+	}
+
+	/**
+	 * 资产转让
+	 * @param code
+	 * @param receiver
+	 * @param amount
+	 * @param address
+	 * @param password
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject assetstransfer(String code, String receiver, Long amount, String address, String password) throws JSONException {
+		return null;
 	}
 
 

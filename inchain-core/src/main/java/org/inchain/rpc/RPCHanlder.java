@@ -707,7 +707,20 @@ public class RPCHanlder {
 			return rpcService.queryTransferCount(antifakeCode);
 		}
 
+		//查询防伪码所属权
+		case "queryantifakeowner": {
+			if(params.length()  < 1) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
+			//防伪码
+			String antifakeCode = params.getString(0);
+			return rpcService.queryAntifakeOwner(antifakeCode);
+		}
+
 		//资产注册
+		//参数格式： 资产名称，资产描述，资产编码， 资产图标， 资产备注
 		case "regassets": {
 			if(params.length()  < 5) {
 				result.put("success", false);
@@ -736,14 +749,15 @@ public class RPCHanlder {
 			}
 			return rpcService.regAssets(name, description, code, logo, remark, address, pwd);
 		}
-		//获取资产注册列表
+		//查询资产注册列表
 		case "getassetslist": {
 			return rpcService.getAssetsRegList();
 		}
 
-		//资产签发参数格式：   资产代码  接收人地址 资产发行数量  资产注册人地址(选填)  密码(选填)
+		//资产签发
+		//参数格式：  资产代码  接收人地址 资产发行数量  备注 资产注册人地址(选填)  密码(选填)
 		case "assetsissue" : {
-			if(params.length()  < 3) {
+			if(params.length()  < 4) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
 				return result;
@@ -752,22 +766,24 @@ public class RPCHanlder {
 			String code = params.getString(0);
 			String receiver = params.getString(1);
 			Long amount =  params.getLong(2);
+			String remark = params.getString(3);
+
 			String address = null;
 			String pwd = null;
-			if(params.length() == 4) {
+			if(params.length() == 5) {
 				try {
-					Address ar = Address.fromBase58(network, params.getString(3));
+					Address ar = Address.fromBase58(network, params.getString(4));
 					address = ar.getBase58();
 				} catch (Exception e) {
-					pwd = params.getString(3);
+					pwd = params.getString(4);
 				}
 
-			}else if(params.length() == 5){
-				address = params.getString(3);
-				pwd = params.getString(4);
+			}else if(params.length() == 6){
+				address = params.getString(4);
+				pwd = params.getString(5);
 			}
 
-			return rpcService.assetsIssue(code, receiver, amount, address, pwd);
+			return rpcService.assetsIssue(code, receiver, amount, remark, address, pwd);
 		}
 
 		// 获取资产发行列表，参数格式   资产代码
@@ -781,18 +797,38 @@ public class RPCHanlder {
 			return rpcService.getAssetsIssueList(code);
 		}
 
-		//查询防伪码所属权
-		case "queryantifakeowner": {
-			if(params.length()  < 1) {
+		//资产转让
+		//参数格式： 资产代码  接收人地址 资产发行数量  备注 转让人地址(选填)  密码(选填)
+		case "assetstransfer" :{
+			if(params.length()  < 4) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
 				return result;
 			}
-			//防伪码
-			String antifakeCode = params.getString(0);
-			return rpcService.queryAntifakeOwner(antifakeCode);
+
+			String code = params.getString(0);
+			String receiver = params.getString(1);
+			Long amount =  params.getLong(2);
+			String remark = params.getString(3);
+
+			String address = null;
+			String pwd = null;
+			if(params.length() == 5) {
+				try {
+					Address ar = Address.fromBase58(network, params.getString(4));
+					address = ar.getBase58();
+				} catch (Exception e) {
+					pwd = params.getString(4);
+				}
+
+			}else if(params.length() == 6){
+				address = params.getString(4);
+				pwd = params.getString(5);
+			}
+
+
 		}
-		
+
 		//认证商家关联子账户
 		case "relevancesubaccount": {
 			
