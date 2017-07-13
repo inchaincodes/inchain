@@ -10,12 +10,7 @@ import org.inchain.account.Address;
 import org.inchain.consensus.ConsensusAccount;
 import org.inchain.consensus.ConsensusMeeting;
 import org.inchain.consensus.ConsensusPool;
-import org.inchain.core.Coin;
-import org.inchain.core.DataSynchronizeHandler;
-import org.inchain.core.Definition;
-import org.inchain.core.NotBroadcastBlockViolationEvidence;
-import org.inchain.core.RepeatBlockViolationEvidence;
-import org.inchain.core.ViolationEvidence;
+import org.inchain.core.*;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kits.AccountKit;
@@ -987,7 +982,6 @@ public class TransactionValidator {
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
 
 			byte[] sender =  assetsTransferTx.getHash160();
-
 			byte[] receiver = assetsTransferTx.getReceiver();
 			Sha256Hash assetsTxHash = assetsTransferTx.getAssetsHash();
 			//验证资产是否存在
@@ -997,9 +991,17 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			//验证余额是否充足
-			//TODO
-
+			//验证sender余额是否充足
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)assetsRegisterTxStore.getTransaction();
+			Assets assets = chainstateStoreProvider.getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
+			if(assets == null) {
+				result.setResult(false, "转让人没有与资产相关的信息");
+				return validatorResult;
+			}
+			if(assets.getBalance() < assetsTransferTx.getAmount()) {
+				result.setResult(false, "转让人资产余额不足");
+				return validatorResult;
+			}
 		}
 
 		result.setSuccess(true);

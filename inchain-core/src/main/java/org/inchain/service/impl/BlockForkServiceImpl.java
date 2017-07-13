@@ -170,7 +170,7 @@ public class BlockForkServiceImpl implements BlockForkService {
 			hasResetNetwork = false;
 		} else {
 			//是否到达设定时间区块没有变化的条件
-			int timeout = 5;
+			int timeout = 2;
 			if(TimeService.currentTimeMillis() - localBestHashLastTime > timeout * 60000l && !hasResetNetwork) {
 				//达到条件，触发
 				hasResetNetwork = true;

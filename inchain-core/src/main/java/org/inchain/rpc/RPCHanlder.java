@@ -15,6 +15,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
 import org.inchain.service.impl.VersionService;
 import org.inchain.utils.Base58;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -465,6 +466,39 @@ public class RPCHanlder {
 				}
 
 				return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
+			}
+
+			//锁仓
+			case "lockmoney": {
+
+				if(params.length() < 2) {
+					return new JSONObject().put("success", false).put("message", "缺少参数");
+				}
+
+				String amount = params.getString(0);
+				String lockTime = params.getString(1);
+				String address = null;
+
+				if(params.length() == 3) {
+					address = params.getString(2);
+					try {
+						Address.fromBase58(network, address);
+					} catch (Exception e) {
+						password = address;
+						address = null;
+					}
+				} else if(params.length() == 4) {
+					address = params.getString(2);
+					try {
+						Address ar = Address.fromBase58(network, address);
+						password = params.getString(3);
+					} catch (Exception e) {
+						result.put("success", false);
+						result.put("message", "缺少参数，命令用法：lockmoney [money] [lockTime] [address] [password]");
+						return result;
+					}
+				}
+				return rpcService.lockMoney(Coin.parseCoin(amount), DateUtil.convertStringToDate(lockTime, "yyyyMMdd").getTime() / 1000, address, password);
 			}
 
 			//认证账户创建商品
@@ -930,7 +964,7 @@ public class RPCHanlder {
 				pwd = params.getString(5);
 			}
 
-
+			return rpcService.assetsTransfer(code,receiver,amount,remark,address,pwd);
 		}
 
 		//认证商家关联子账户
@@ -1228,10 +1262,21 @@ public class RPCHanlder {
 		sb.append("  getsubaccounts [certAddress]                                                                            获取认证商家子账户列表\n");
 		sb.append("  getsubaccountcount [certAddress]                                                                        获取认证商家子账户数量\n");
 		sb.append("  checkissubaccount [certAddress] [address]                                                               检查是否是商家的子账户\n");
-		sb.append("\n");
+
+		sb.append(" --- 资产相关 --- \n");
+		sb.append("  regassets [name] [description] [code] [logo] [remark] ([address]) ([password])                          资产注册\n");
+		sb.append("  getassetslist                                                                                                                查询资产注册列表\n");
+		sb.append("  assetsissue [code] [receiver] [amount] [remark] ([address]) ([password])                                资产发行\n");
+		sb.append("  getassetsissuelist [code]                                                                                               查询资产发行列表\n");
+		sb.append("  getmineassets ([address]) ([password])                                                                    查询我的资产账户列表\n");
+		sb.append("  assetstransfer [code] [receiver] [amount] [remark] ([address]) ([password])                             资产转让\n");
+
 		sb.append(" --- 系统相关 --- \n");
 		sb.append("  getversion                                                               获取系统版本信息\n");
 		sb.append("  updateversion                                                            更新版本\n");
+
+
+
 
 		return sb.toString();
 	}

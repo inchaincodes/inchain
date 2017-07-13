@@ -260,7 +260,7 @@ public class TransactionRecordController implements SubPageController {
 									lockTime = output.getLockTime();
 								}
 								if(lockTime > Definition.LOCKTIME_THRESHOLD) {
-									detail += "("+DateUtil.convertDate(new Date(lockTime))+"后可用)";
+									detail += "("+DateUtil.convertDate(new Date(lockTime * 1000))+"后可用)";
 								} else {
 									detail += "(区块高度达到"+lockTime+"时可用)";
 								}
@@ -565,7 +565,7 @@ public class TransactionRecordController implements SubPageController {
 						
 					}
 				}
-				time = DateUtil.convertDate(new Date(tx.getTime()), "yyyy-MM-dd HH:mm:ss");
+				time = DateUtil.convertDate(new Date(tx.getTime() * 1000), "yyyy-MM-dd HH:mm:ss");
 				
 				detailValue.setValue(detail);
 				long confirmCount = 0;
