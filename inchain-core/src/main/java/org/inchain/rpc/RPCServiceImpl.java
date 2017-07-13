@@ -659,13 +659,11 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			//2、判断接收人地址是否合法
-			byte[] hash160 = null;
+			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接的账户类型，所以采用了默认的hash，长度为25位
+			byte[] hashReceiver = null;
 			try {
 				Address ar = Address.fromBase58(network, receiver);
-				hash160 = Address.fromBase58(network, receiver).getHash();
-
-				Address tt = Address.fromHashs(network, hash160);
-				System.out.println(tt.getBase58());
+				hashReceiver = Address.fromBase58(network, receiver).getHash();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -676,7 +674,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("注册资产不存在");
 			}
 
-			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hash160, amount, remark);
+			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hashReceiver, amount, remark);
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 
@@ -732,6 +730,26 @@ public class RPCServiceImpl implements RPCService {
 		return new JSONObject().put("regTx",regJson).put("list",jsonList);
 	}
 
+	/**
+	 *  获取我的资产账户列表
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject getMineAssets() throws JSONException {
+		JSONObject result = new JSONObject();
+
+		Account account = accountKit.getDefaultAccount();
+		Address address = account.getAddress();
+
+		List<JSONObject> jsonList = new ArrayList<>();
+		List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(address);
+		for(Assets assets : list) {
+			JSONObject object = new JSONObject();
+		//	Sha256Hash.
+			//object.put("code")
+		}
+		return result;
+	}
 	/**
 	 * 资产转让
 	 * @param code

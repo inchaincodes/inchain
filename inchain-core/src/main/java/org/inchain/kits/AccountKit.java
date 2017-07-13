@@ -656,7 +656,6 @@ public class AccountKit {
 			}
 
 			return br;
-
 		} catch (Exception e) {
 			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
 		}

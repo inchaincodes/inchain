@@ -1086,20 +1086,19 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 资产发行
+	 * 资产发行后，用所注册的资产的code + 前缀[1],[1]作为key，存储在一个列表里
 	 * @param assetsIssuedTx
 	 */
 	public void assetsIssued(AssetsIssuedTransaction assetsIssuedTx) {
-		//资产发行以所发行的资产的注册资产的交易的hash160作为key + [3],[4]，存储一个列表
 		TransactionStore txs =  blockStoreProvider.getTransaction(assetsIssuedTx.getAssetsHash().getBytes());
 		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
 
-		//key = 1,1， + hash256(registerTx.code)
+		//资产发行列表的key = [1],[1] + hash256(registerTx.code)
 		byte[] key = new byte[Sha256Hash.LENGTH + 2];
 		byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
 		//固定key的前两位为 1,1
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
 		System.arraycopy(hash256, 0, key, 2, hash256.length);
-
 
 		//获取已存储的资产发行列表
 		byte[] assetsIssueHash256s = getBytes(key);
@@ -1111,20 +1110,25 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		byte[] txHash = assetsIssuedTx.getHash().getBytes();
 		//将新交易存入进列表
 		System.arraycopy(assetsIssueHash256s, 0, newHash256s, 0, assetsIssueHash256s.length);
-		System.arraycopy(txHash, 0, newHash256s, assetsIssueHash256s.length, Sha256Hash.LENGTH);
+		System.arraycopy(txHash, 0, newHash256s, assetsIssueHash256s.length, txHash.length);
 		put(key, newHash256s);
 
-		//资产发行后，需要维护接收人的资产账户
+		//资产发行列表存储后，需要维护接收人的资产账户信息
 		updateAssetsReceiverAccount(hash256, assetsIssuedTx);
 	}
 
-	//资产发行后，更新接收人账户
+	/**
+	 * 资产发行后，更新接收人账户信息
+	 * @param code 注册交易的code
+	 * @param assetsIssuedTx
+	 */
 	private void updateAssetsReceiverAccount(byte[] code, AssetsIssuedTransaction assetsIssuedTx) {
-		//资产账户的key 规则为 1,1 + recevier
-		byte[] key = new byte[Sha256Hash.LENGTH + 2];
-		//固定key的前两位为 1,1
+		//资产账户的key 规则为 [1],[1] + recevier
+		byte[] receiver = assetsIssuedTx.getReceiver();
+		byte[] key = new byte[receiver.length + 2];
+		//固定key的前两位为 [1],[1]
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
-		System.arraycopy(assetsIssuedTx.getReceiver(), 0, key, 2, assetsIssuedTx.getReceiver().length);
+		System.arraycopy(receiver, 0, key, 2, receiver.length);
 
 		//获取接收人资产账户列表
 		byte[] myAssets = getBytes(key);
@@ -1141,30 +1145,36 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 				byte[] current = new byte[Assets.CODE_LENGTH + 8];
 				System.arraycopy(myAssets, j, current, 0, Assets.CODE_LENGTH + 8);
 				Assets assets = new Assets(current);
-				assets.setBalance(assets.getBalance() + assetsIssuedTx.getAmount());
 
 				//如果存在，则在以前的资产上添加，然后重新保存到列表中
-				byte [] before = new byte[j];
-				System.arraycopy(myAssets, 0, before, 0, j);
+				if(Arrays.equals(assets.getCode(), code)) {
+					assets.setBalance(assets.getBalance() + assetsIssuedTx.getAmount());
 
-				byte [] end = new byte[myAssets.length - j - Assets.CODE_LENGTH - 8 ];
-				System.arraycopy(myAssets, j + Assets.CODE_LENGTH + 8, end, 0, end.length);
+					byte [] before = new byte[j];
+					System.arraycopy(myAssets, 0, before, 0, j);
 
-				byte [] newAsset = new byte[myAssets.length];
-				System.arraycopy(before, 0, newAsset, 0, before.length);
-				System.arraycopy(assets.serialize(), 0, newAsset, before.length, Assets.CODE_LENGTH + 8);
-				System.arraycopy(end, 0, newAsset, before.length + Assets.CODE_LENGTH + 8, end.length);
+					byte [] end = new byte[myAssets.length - j - Assets.CODE_LENGTH - 8 ];
+					System.arraycopy(myAssets, j + Assets.CODE_LENGTH + 8, end, 0, end.length);
 
-				hasAssets = true;
-				break;
+					//newAssets = before + assets.serialize() + end;
+					byte [] newAssets = new byte[myAssets.length];
+					System.arraycopy(before, 0, newAssets, 0, before.length);
+					System.arraycopy(assets.serialize(), 0, newAssets, before.length, Assets.CODE_LENGTH + 8);
+					System.arraycopy(end, 0, newAssets, before.length + Assets.CODE_LENGTH + 8, end.length);
+
+					put(key, newAssets);
+					hasAssets = true;
+					break;
+				}
 			}
 			//如果没有则在后面新增
 			if(!hasAssets) {
-				byte [] newAsset = new byte[myAssets.length + Assets.CODE_LENGTH + 8];
-				System.arraycopy(myAssets, 0, newAsset, 0, myAssets.length);
+				byte [] newAssets = new byte[myAssets.length + Assets.CODE_LENGTH + 8];
+				System.arraycopy(myAssets, 0, newAssets, 0, myAssets.length);
 
 				Assets assets = new Assets(code, assetsIssuedTx.getAmount());
-				System.arraycopy(assets.serialize(), 0, newAsset, myAssets.length, Assets.CODE_LENGTH + 8);
+				System.arraycopy(assets.serialize(), 0, newAssets, myAssets.length, Assets.CODE_LENGTH + 8);
+				put(key, newAssets);
 			}
 		}
 	}
@@ -1175,6 +1185,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @return
 	 */
 	public List<TransactionStore> getAssetsIssueList(byte[] code) {
+		//资产发行列表的key = [1],[1] + hash256(registerTx.code)
 		byte[] key = new byte[Sha256Hash.LENGTH + 2];
 		byte[] hash256 = Sha256Hash.hash(code);
 		//固定key的前两位为 1,1
@@ -1193,6 +1204,34 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			list.add(txs);
 		}
 		return list;
+	}
+
+	/**
+	 *  获取我的资产
+	 * @param address
+	 * @return
+	 */
+	public List<Assets> getMyAssetsAccount(Address address) {
+		//reveiver = address.getHash(); 长度25位，
+		byte[] receiver = address.getHash();
+		//资产账户的key 规则为 [1],[1] + recevier
+		byte[] key = new byte[receiver.length + 2];
+		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+		System.arraycopy(receiver, 0, key, 2, receiver.length);
+
+		byte[] myAssets = getBytes(key);
+		if(myAssets == null) {
+			myAssets = new byte[0];
+		}
+		List<Assets> assetsList = new ArrayList<>();
+
+		for(int j = 0; j < myAssets.length; j += Assets.CODE_LENGTH + 8) {
+			byte[] current = new byte[Assets.CODE_LENGTH + 8];
+			System.arraycopy(myAssets, j, current, 0, Assets.CODE_LENGTH + 8);
+			Assets assets = new Assets(current);
+			assetsList.add(assets);
+		}
+		return assetsList;
 	}
 
 	/**

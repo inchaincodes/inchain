@@ -261,6 +261,13 @@ public interface RPCService {
 	JSONObject getAssetsIssueList(String code) throws JSONException;
 
 	/**
+	 * 获取我的资产账户列表
+	 * @return
+	 * @throws Exception
+	 */
+	JSONObject getMineAssets() throws JSONException;
+
+	/**
 	 *  资产转让
 	 * @param code
 	 * @param receiver
