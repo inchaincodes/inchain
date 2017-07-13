@@ -92,10 +92,6 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	public void verify() throws VerificationException {
 		super.verify();
 		
-		if( productTx == null) {
-			throw new VerificationException("商品信息不存在");
-		}
-		
 		//必须是认证账户才有权操作
 		if(!scriptSig.isCertAccount()) {
 			throw new VerificationException("非认证账户");

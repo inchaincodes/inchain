@@ -790,7 +790,7 @@ public final class MiningService implements Mining {
 				if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 					//如果是验证码生成交易，则验证产品是否存在
 					AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
-					if(atx.getHasProduct() == 1) {
+					if(atx.getHasProduct() == 0) {
 						TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
 						if (txStore == null || txStore.getTransaction() == null) {
 							throw new VerificationException("产品不存在");

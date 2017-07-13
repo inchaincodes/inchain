@@ -87,6 +87,8 @@ public final class Definition {
 	public static final int TYPE_ANTIFAKE_CIRCULATION = 25;
 	/** 防伪码转让 **/
 	public static final int TYPE_ANTIFAKE_TRANSFER = 26;
+	/**防伪码绑定**/
+	public static final int TYPE_ANTIFAKE_CODE_BIND = 27;
 
 
 	/** 资产登记 **/
@@ -173,6 +175,7 @@ public final class Definition {
     	PROCESS_FACTORYS.put(ProductTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(GeneralAntifakeTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeCodeMakeTransaction.class, "transactionMessageProcess");
+		PROCESS_FACTORYS.put(AntifakeCodeBindTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeCodeVerifyTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(CirculationTransaction.class, "transactionMessageProcess");
     	PROCESS_FACTORYS.put(AntifakeTransferTransaction.class, "transactionMessageProcess");
@@ -212,6 +215,7 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeCodeMakeTransaction.class, "tx");
+		MESSAGE_COMMANDS.put(AntifakeCodeBindTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(CirculationTransaction.class, "tx");
     	MESSAGE_COMMANDS.put(AntifakeTransferTransaction.class, "tx");
@@ -239,6 +243,7 @@ public final class Definition {
 		TRANSACTION_RELATION.put(TYPE_CREATE_PRODUCT, ProductTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_GENERAL_ANTIFAKE, GeneralAntifakeTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_MAKE, AntifakeCodeMakeTransaction.class);
+		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_BIND, AntifakeCodeBindTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CODE_VERIFY, AntifakeCodeVerifyTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_CIRCULATION, CirculationTransaction.class);
 		TRANSACTION_RELATION.put(TYPE_ANTIFAKE_TRANSFER, AntifakeTransferTransaction.class);
