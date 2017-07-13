@@ -378,6 +378,16 @@ public class TransactionValidator {
 					result.setResult(false, "防伪码不存在");
 					return validatorResult;
 				}
+				TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
+				if(txStore == null || txStore.getTransaction() == null) {
+					result.setResult(false, "防伪码生成交易不存在");
+					return validatorResult;
+				}
+				Transaction nowtx = txStore.getTransaction();
+				if(nowtx.getType() != Definition.TYPE_ANTIFAKE_CODE_BIND){
+					result.setResult(false, "防伪码已经绑定到产品");
+					return validatorResult;
+				}
 			}
 			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证交易
@@ -395,7 +405,7 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 				Transaction antifakeCodeVerifyMakeTx = txStore.getTransaction();
-				if(antifakeCodeVerifyMakeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				if(antifakeCodeVerifyMakeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE && antifakeCodeVerifyMakeTx.getType() !=Definition.TYPE_ANTIFAKE_CODE_BIND) {
 					result.setResult(false, "错误的防伪码");
 					return validatorResult;
 				}
@@ -854,6 +864,10 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 			AntifakeCodeMakeTransaction antifakeMakeTx = (AntifakeCodeMakeTransaction) avmTx;
+			if(antifakeMakeTx.getHasProduct() == 1){
+				result.setResult(false, "防伪码尚未关联产品");
+				return validatorResult;
+			}
 			//保证该防伪码没有被验证
 			byte[] txStatus = antifakeMakeTx.getHash().getBytes();
 			byte[] txIndex = new byte[txStatus.length + 1];

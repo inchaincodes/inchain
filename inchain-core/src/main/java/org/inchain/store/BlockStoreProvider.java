@@ -327,12 +327,15 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					AntifakeCodeMakeTransaction mtx = (AntifakeCodeMakeTransaction) getTransaction(mtxHash.getBytes()).getTransaction();
 					chainstateStoreProvider.verifyAntifakeCode(mtx.getAntifakeCode(), atx.getHash());
 				}
+			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
+				AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)tx;
+				chainstateStoreProvider.put(bindtx.getAntifakeCode(), tx.getHash().getBytes());
 			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证
 				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 				
 				chainstateStoreProvider.verifyAntifakeCode(acvtx.getAntifakeCode(), acvtx.getHash());
-			} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
+			}else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
 				
 				//如果是共识注册交易，则保存至区块状态表
 				RegConsensusTransaction regTransaction = (RegConsensusTransaction)tx;

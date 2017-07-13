@@ -573,7 +573,7 @@ public class RPCServiceImpl implements RPCService {
 				account.resetKey();
 			}
 		}
-		return null;
+		return result;
 	}
 
 	@Override
