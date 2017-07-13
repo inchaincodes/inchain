@@ -1228,10 +1228,21 @@ public class RPCHanlder {
 		sb.append("  getsubaccounts [certAddress]                                                                            获取认证商家子账户列表\n");
 		sb.append("  getsubaccountcount [certAddress]                                                                        获取认证商家子账户数量\n");
 		sb.append("  checkissubaccount [certAddress] [address]                                                               检查是否是商家的子账户\n");
-		sb.append("\n");
+
+		sb.append(" --- 资产相关 --- \n");
+		sb.append("  regassets [name] [description] [code] [logo] [remark] ([address]) ([password])                          资产注册\n");
+		sb.append("  getassetslist                                                                                                                查询资产注册列表\n");
+		sb.append("  assetsissue [code] [receiver] [amount] [remark] ([address]) ([password])                                资产发行\n");
+		sb.append("  getassetsissuelist [code]                                                                                               查询资产发行列表\n");
+		sb.append("  getmineassets ([address]) ([password])                                                                    查询我的资产账户列表\n");
+		sb.append("  assetstransfer [code] [receiver] [amount] [remark] ([address]) ([password])                             资产转让\n");
+
 		sb.append(" --- 系统相关 --- \n");
 		sb.append("  getversion                                                               获取系统版本信息\n");
 		sb.append("  updateversion                                                            更新版本\n");
+
+
+
 
 		return sb.toString();
 	}
