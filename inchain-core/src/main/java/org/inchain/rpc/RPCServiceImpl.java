@@ -560,12 +560,19 @@ public class RPCServiceImpl implements RPCService {
 				return result;
 			}
 
-			String txhash = accountKit.bindAnticode(antiCode,productTx,trpw,account);
-			result.put("success", true);
-			result.put("message", "成功");
-			result.put("txid",txhash);
+
+			BroadcastResult rs = accountKit.bindAnticode(antiCode, productTx, trpw, account);
+
+			if(!rs.isSuccess()) {
+				result.put("success", rs.isSuccess());
+				result.put("message", rs.getMessage());
+			}else{
+				result.put("success", true);
+				result.put("txid",rs.getMessage());
+			}
+
 		}catch (Exception e){
-			log.error("创建防伪码出错：", e);
+			log.error("绑定防伪码出错："+e.getMessage());
 			result.put("success", false);
 			result.put("message", e.getMessage());
 		}finally {

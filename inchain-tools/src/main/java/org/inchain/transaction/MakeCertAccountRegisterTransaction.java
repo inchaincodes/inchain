@@ -39,7 +39,7 @@ public class MakeCertAccountRegisterTransaction {
 			};
 			AccountBody body = new AccountBody(values);
 			System.out.println(Hex.encode(body.serialize()));
-			Account account = accountKit.createNewCertAccount("ssssss0", "ssssss1", body, "inchain123");
+			Account account = accountKit.createNewCertAccount("ssssss0", "ssssss1", body, "inchain123",null);
 			System.out.println("base58 : " + account.getAddress().getBase58());
 			System.out.println("hash160: " + Hex.encode(account.getAddress().getHash160()));
 			System.out.println("mgtx is : " + account.getAccountTransaction().getHash());

@@ -105,6 +105,7 @@ public class AccountKit {
 
 	//交易监听器
 	private TransactionListener transactionListener;
+	private TransactionValidatorResult rs;
 
 	public AccountKit() throws IOException {
 		//帐户信息保存于数据目录下的account目录，以account开始的dat文件，一个文件一个帐户，支持多帐户
@@ -519,7 +520,7 @@ public class AccountKit {
 	 * @return
 	 * @throws VerificationException
 	 */
-	public String bindAnticode(String antiCode,String productTx ,String password,Account account )throws VerificationException{
+	public BroadcastResult bindAnticode(String antiCode,String productTx ,String password,Account account )throws VerificationException{
 		String txbindHash = null;
 		if(account == null || !account.isCertAccount()) {
 			throw new VerificationException("非认证账户，不能生成防伪码");
@@ -538,72 +539,78 @@ public class AccountKit {
 			throw new VerificationException("账户已加密，无法签名信息");
 		}
 
-		try {
-			//对应的商品不能为空
-			if (productTx == null || productTx.isEmpty()) {
-				throw new VerificationException("需要生成防伪码的商品不能为空");
-			}
-			if (antiCode == null || antiCode.isEmpty()) {
-				throw new VerificationException("防伪码不能为空");
-			}
 
-			Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
-			AntifakeCode antifakeCode = AntifakeCode.base58Decode(antiCode);
-			byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
-
-			if(txBytes == null) {
-				throw new VerificationException("防伪码不存在");
-			}
-
-			TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
-			//必须存在
-			if(txStore == null) {
-				throw new VerificationException("防伪码生产交易不存在");
-			}
-
-			Transaction fromTx = txStore.getTransaction();
-			if(fromTx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
-				throw new VerificationException("防伪码已经关联到产品");
-			}
-
-			//交易类型必须是防伪码生成交易
-			if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
-				throw new VerificationException("防伪码类型错误");
-			}
-			AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-
-			//设置验证商品
-			if(codeMakeTx.getHasProduct() == 0) {
-				throw new VerificationException("防伪码已经关联到产品");
-			}
-
-			TransactionStore productTxStore = blockStoreProvider.getTransaction(productTxHash.getBytes());
-			if(productTxStore == null){
-				throw new VerificationException("被绑定的产品不存在");
-			}
-			Transaction txTemp = productTxStore.getTransaction();
-			if(txTemp.getType() != Definition.TYPE_CREATE_PRODUCT) {
-				throw new VerificationException("产品交易不存在");
-			}
-
-			AntifakeCodeBindTransaction tx = new AntifakeCodeBindTransaction(network,productTxHash,antifakeCode.getAntifakeCode());
-			tx.sign(account);
-
-			//验证成功才广播
-			tx.verify();
-			tx.verifyScript();
-
-			//验证交易合法才广播
-			//这里面同时会判断是否被验证过了
-			TransactionValidatorResult rs = transactionValidator.valDo(tx).getResult();
-			txbindHash = Hex.encode(tx.getHash160());
-			if(!rs.isSuccess()) {
-				return Hex.encode(tx.getHash160());
-			}
-		}catch (Exception e){
-
+		//对应的商品不能为空
+		if (productTx == null || productTx.isEmpty()) {
+			throw new VerificationException("需要生成防伪码的商品不能为空");
 		}
-		return txbindHash;
+		if (antiCode == null || antiCode.isEmpty()) {
+			throw new VerificationException("防伪码不能为空");
+		}
+
+		Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
+		AntifakeCode antifakeCode = AntifakeCode.base58Decode(antiCode);
+		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
+
+		if(txBytes == null) {
+			throw new VerificationException("防伪码不存在");
+		}
+
+		TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
+		//必须存在
+		if(txStore == null) {
+			throw new VerificationException("防伪码生产交易不存在");
+		}
+
+		Transaction fromTx = txStore.getTransaction();
+		if(fromTx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
+			throw new VerificationException("防伪码已经关联到产品");
+		}
+
+		//交易类型必须是防伪码生成交易
+		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+			throw new VerificationException("防伪码类型错误");
+		}
+		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
+
+		//设置验证商品
+		if(codeMakeTx.getHasProduct() == 0) {
+			throw new VerificationException("防伪码已经关联到产品");
+		}
+
+		TransactionStore productTxStore = blockStoreProvider.getTransaction(productTxHash.getBytes());
+		if(productTxStore == null){
+			throw new VerificationException("被绑定的产品不存在");
+		}
+		Transaction txTemp = productTxStore.getTransaction();
+		if(txTemp.getType() != Definition.TYPE_CREATE_PRODUCT) {
+			throw new VerificationException("产品交易不存在");
+		}
+
+		AntifakeCodeBindTransaction tx = new AntifakeCodeBindTransaction(network,productTxHash,antifakeCode.getAntifakeCode());
+		tx.sign(account);
+
+		//验证成功才广播
+		tx.verify();
+		tx.verifyScript();
+
+		//验证交易合法才广播
+		//这里面同时会判断是否被验证过了
+		TransactionValidatorResult rs = transactionValidator.valDo(tx).getResult();
+		boolean success = MempoolContainer.getInstace().add(tx);
+		if(!success) {
+			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
+		}
+		if(!rs.isSuccess()) {
+			return new BroadcastResult(false,rs.getMessage());
+		}
+		try {
+			BroadcastResult br = peerKit.broadcast(tx).get();
+		} catch (Exception e) {
+			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
+		}
+		txbindHash = Hex.encode(tx.getHash160());
+		return new BroadcastResult(true,txbindHash);
 	}
 
 	/**
@@ -3734,13 +3741,22 @@ public class AccountKit {
 		AntifakeInfosResult result = new AntifakeInfosResult();
 
 		//判断验证码是否存在
-		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode);
-		if(txBytes == null) {
+		byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode);
+		if(makebind == null) {
 			result.setSuccess(false);
 			result.setMessage("防伪码不存在");
 			return result;
 		}
-		TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
+		byte[] makebyte = new byte[Sha256Hash.LENGTH];
+		byte[] bindbyte = new byte[Sha256Hash.LENGTH];
+		System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+		if(makebind.length == 2*Sha256Hash.LENGTH){
+			System.arraycopy(makebind,0,bindbyte,Sha256Hash.LENGTH,Sha256Hash.LENGTH);
+		}else {
+			bindbyte =null;
+		}
+
+		TransactionStore txStore = blockStoreProvider.getTransaction(makebyte);
 		//必须存在
 		if(txStore == null) {
 			result.setSuccess(false);
@@ -3749,18 +3765,41 @@ public class AccountKit {
 		}
 
 		Transaction fromTx = txStore.getTransaction();
+		Transaction bindTx = null;
 		//交易类型必须是防伪码生成交易
-		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE ) {
 			result.setSuccess(false);
 			result.setMessage("防伪码类型错误");
 			return result;
 		}
 		//防伪码创建交易
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
+		AntifakeCodeBindTransaction codeBindTx = null;
 		if(codeMakeTx.getHasProduct() == 1){
 			result.setSuccess(true);
 			result.setMessage("防伪码尚未关联产品");
 			result.setMakeTx(codeMakeTx);
+			if(bindbyte != null) {
+				txStore = blockStoreProvider.getTransaction(bindbyte);
+				if(txStore != null){
+					bindTx = txStore.getTransaction();
+				}
+				if(bindTx.getType() != Definition.TYPE_ANTIFAKE_CODE_BIND ) {
+					result.setSuccess(false);
+					result.setMessage("防伪码类型错误");
+					return result;
+				}
+				codeBindTx = (AntifakeCodeBindTransaction)bindTx;
+				TransactionStore productTxs = blockStoreProvider.getTransaction(codeBindTx.getProductTx().getBytes());
+				if (productTxs == null) {
+					result.setSuccess(false);
+					result.setMessage("未查询到防伪码对应的商品信息");
+				}
+				result.setMakeTx(codeMakeTx);
+				//商品
+				ProductTransaction ptx = (ProductTransaction) productTxs.getTransaction();
+				result.setProductTx(ptx);
+			}
 		}else {
 			TransactionStore productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 			if (productTxs == null) {

@@ -327,10 +327,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					AntifakeCodeMakeTransaction mtx = (AntifakeCodeMakeTransaction) getTransaction(mtxHash.getBytes()).getTransaction();
 					chainstateStoreProvider.verifyAntifakeCode(mtx.getAntifakeCode(), atx.getHash());
 				}
-			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
-				AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)tx;
-				chainstateStoreProvider.put(bindtx.getAntifakeCode(), tx.getHash().getBytes());
-			} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+			}  else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证
 				AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 				
@@ -476,6 +473,12 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		}else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){
 			CertAccountRevokeTransaction rtx = (CertAccountRevokeTransaction)tx;
 			chainstateStoreProvider.addRevokeCertAccount(rtx);
+		}else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
+			AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)tx;
+			byte [] makebind = new byte[2* Sha256Hash.LENGTH];
+			byte [] makebyte = chainstateStoreProvider.getBytes(bindtx.getAntifakeCode());
+			System.arraycopy(tx.getHash().getBytes(),0,makebind,Sha256Hash.LENGTH,Sha256Hash.LENGTH);
+			chainstateStoreProvider.put(bindtx.getAntifakeCode(), makebind);
 		}
 		//交易是否与我有关
 		checkIsMineAndUpdate(txs);
