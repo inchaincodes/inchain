@@ -265,19 +265,20 @@ public interface RPCService {
 	 * @return
 	 * @throws Exception
 	 */
-	JSONObject getMineAssets() throws JSONException;
+	JSONObject getMineAssets(String address, String password) throws JSONException;
 
 	/**
 	 *  资产转让
 	 * @param code
 	 * @param receiver
 	 * @param amount
+	 * @param remark
 	 * @param address
 	 * @param password
 	 * @return
 	 * @throws JSONException
 	 */
-	JSONObject assetstransfer(String code, String receiver, Long amount, String address, String password) throws JSONException;
+	JSONObject assetsTransfer(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException;
 
 	/**
 	 * 获取共识节点列表

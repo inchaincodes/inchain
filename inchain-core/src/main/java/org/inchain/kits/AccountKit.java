@@ -758,6 +758,48 @@ public class AccountKit {
 		}
 	}
 
+	/**
+	 * 资产转让
+	 * @param account
+	 * @param assetsRegisterTx
+	 * @param receiver
+	 * @param amount
+	 * @param remark
+	 * @return
+	 */
+	public BroadcastResult assetsTransfer(Account account, AssetsRegisterTransaction assetsRegisterTx, byte[] receiver, Long amount, String remark) {
+		AssetsTransferTransaction transferTx = new AssetsTransferTransaction(network, assetsRegisterTx.getHash(), receiver, amount,remark.getBytes(Utils.UTF_8));
+
+		//签名交易
+		final LocalTransactionSigner signer = new LocalTransactionSigner();
+		try {
+			if(account.getAccountType() == network.getSystemAccountVersion()) {
+				//普通账户的签名
+				signer.signInputs(transferTx, account.getEcKey());
+			} else {
+				//认证账户的签名
+				signer.signCertAccountInputs(transferTx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+			}
+		} catch (Exception e) {
+			log.error(e.getMessage(), e);
+			BroadcastResult broadcastResult = new BroadcastResult();
+			broadcastResult.setSuccess(false);
+			broadcastResult.setMessage("签名失败");
+			return broadcastResult;
+		}
+		//签名与验证
+		transferTx.sign(account);
+		transferTx.verify();
+		transferTx.verifyScript();
+
+		//验证交易是否合法
+		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(transferTx);
+		if(!rs.getResult().isSuccess()) {
+			throw new VerificationException(rs.getResult().getMessage());
+		}
+		return null;
+	}
+
 	/*
 	 * 通过防伪码获取输入
 	 */

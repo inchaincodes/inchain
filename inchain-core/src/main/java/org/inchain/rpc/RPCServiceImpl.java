@@ -671,31 +671,13 @@ public class RPCServiceImpl implements RPCService {
 
 		try {
 			//1、首先判断账户是否存在，是否加密
-			if(address == null) {
-				account = accountKit.getDefaultAccount();
-			} else {
-				account = accountKit.getAccount(address);
-			}
-			if(account == null) {
-				throw new VerificationException("账户不存在");
-			}
-			if(account.isEncrypted()) {
-				if(StringUtil.isEmpty(password)) {
-					throw new VerificationException("账户已加密，请解密或者传入密码");
-				}
-				//解密钱包
-				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
-				if(!pwdResult.isSuccess()) {
-					throw new VerificationException("密码错误");
-				}
-			}
+			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
-			//2、判断接收人地址是否合法
-			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接的账户类型，所以采用了默认的hash，长度为25位
+			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
 			byte[] hashReceiver = null;
 			try {
 				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash();
+				hashReceiver = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -754,7 +736,6 @@ public class RPCServiceImpl implements RPCService {
 		regJson.put("logo", new String(assetsRegisterTx.getLogo(), Utils.UTF_8));
 		regJson.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
 
-
 		for(TransactionStore issueTx : list) {
 			JSONObject json = txConver(issueTx);
 			jsonList.add(json);
@@ -767,18 +748,57 @@ public class RPCServiceImpl implements RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject getMineAssets() throws JSONException {
+	public JSONObject getMineAssets(String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
+		Account account = null;
+		try {
+			//1、首先判断账户是否存在，是否加密
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null) {
+				throw new VerificationException("账户不存在");
+			}
+			if(account.isEncrypted()) {
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密，请解密或者传入密码");
+				}
+				//解密钱包
+				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				if(!pwdResult.isSuccess()) {
+					throw new VerificationException("密码错误");
+				}
+			}
 
-		Account account = accountKit.getDefaultAccount();
-		Address address = account.getAddress();
+			List<JSONObject> jsonList = new ArrayList<>();
+			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress());
+			for(Assets assets : list) {
+				AssetsRegisterTransaction registerTx = chainstateStoreProvider.getAssetsRegisterTxByCodeHash256(assets.getCode());
+				if(registerTx != null) {
+					JSONObject object = new JSONObject();
+					object.put("name", new String(registerTx.getName(), Utils.UTF_8));
+					object.put("code", new String(registerTx.getCode(), Utils.UTF_8));
+					object.put("banlance", assets.getBalance());
+					jsonList.add(object);
+				}
+			}
+			result.put("list", jsonList);
 
-		List<JSONObject> jsonList = new ArrayList<>();
-		List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(address);
-		for(Assets assets : list) {
-			JSONObject object = new JSONObject();
-		//	Sha256Hash.
-			//object.put("code")
+		}catch (VerificationException ve) {
+			log.error("资产发行出错：", ve);
+			result.put("success", false);
+			result.put("message", ve.getMessage());
+		}
+		catch (Exception e) {
+			log.error("资产发行出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
 		}
 		return result;
 	}
@@ -787,13 +807,72 @@ public class RPCServiceImpl implements RPCService {
 	 * @param code
 	 * @param receiver
 	 * @param amount
+	 * @param remark
 	 * @param address
 	 * @param password
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject assetstransfer(String code, String receiver, Long amount, String address, String password) throws JSONException {
-		return null;
+	public JSONObject assetsTransfer(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException {
+		JSONObject result = new JSONObject();
+		Account account = null;
+
+		try {
+			//1、首先判断账户是否存在，是否加密
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null) {
+				throw new VerificationException("账户不存在");
+			}
+			if(account.isEncrypted()) {
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密，请解密或者传入密码");
+				}
+				//解密钱包
+				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				if(!pwdResult.isSuccess()) {
+					throw new VerificationException("密码错误");
+				}
+			}
+
+			//2、判断接收人地址是否合法
+			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接收人的账户类型，所以采用了默认的hash，长度为25位
+			byte[] hashReceiver = null;
+			try {
+				Address ar = Address.fromBase58(network, receiver);
+				hashReceiver = Address.fromBase58(network, receiver).getHash();
+			} catch (Exception e) {
+				throw new VerificationException("接收人地址错误");
+			}
+
+			//3、根据code获取资产注册交易是否存在
+			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
+			if(assetsRegisterTx == null) {
+				throw new VerificationException("注册资产不存在");
+			}
+
+			BroadcastResult br = accountKit.assetsTransfer(account, assetsRegisterTx, hashReceiver, amount, remark);
+			result.put("success",  br.isSuccess());
+			result.put("message", br.getMessage());
+
+		}catch (VerificationException ve) {
+			log.error("资产发行出错：", ve);
+			result.put("success", false);
+			result.put("message", ve.getMessage());
+		}
+		catch (Exception e) {
+			log.error("资产发行出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
+		}
+		return result;
 	}
 
 
@@ -2798,12 +2877,49 @@ public class RPCServiceImpl implements RPCService {
 		}
 		else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-			Address address = Address.fromHashs(network, aitx.getReceiver());
+			AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
+			Address address = null;
+
+			if(accountStore == null) {
+				address = new Address(network, aitx.getReceiver());
+			}else {
+				address = new Address(network,accountStore.getType(), aitx.getReceiver());
+			}
 			json.put("amount", aitx.getAmount());
 			json.put("receiver", address.getBase58());
 		}
 		
 		return json;
+	}
+
+	/**
+	 * 通过地址获取账户
+	 * @param address
+	 * @param password
+	 * @param verifyTr 1账户管理私钥 ，2交易私钥
+	 * @return
+	 */
+	private Account checkAndGetAccount(String address, String password, Integer verifyTr) {
+		Account account = null;
+		if(address == null) {
+			account = accountKit.getDefaultAccount();
+		} else {
+			account = accountKit.getAccount(address);
+		}
+		if(account == null) {
+			throw new VerificationException("账户不存在");
+		}
+		if(account.isEncrypted()) {
+			if(StringUtil.isEmpty(password)) {
+				throw new VerificationException("账户已加密，请解密或者传入密码");
+			}
+			//解密钱包
+			Result pwdResult = accountKit.decryptWallet(password, verifyTr);
+			if(!pwdResult.isSuccess()) {
+				throw new VerificationException("密码错误");
+			}
+		}
+		return account;
 	}
 
 }
