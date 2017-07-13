@@ -15,6 +15,7 @@ import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
 import org.inchain.service.impl.VersionService;
 import org.inchain.utils.Base58;
+import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -465,6 +466,39 @@ public class RPCHanlder {
 				}
 
 				return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
+			}
+
+			//锁仓
+			case "lockmoney": {
+
+				if(params.length() < 2) {
+					return new JSONObject().put("success", false).put("message", "缺少参数");
+				}
+
+				String amount = params.getString(0);
+				String lockTime = params.getString(1);
+				String address = null;
+
+				if(params.length() == 3) {
+					address = params.getString(2);
+					try {
+						Address.fromBase58(network, address);
+					} catch (Exception e) {
+						password = address;
+						address = null;
+					}
+				} else if(params.length() == 4) {
+					address = params.getString(2);
+					try {
+						Address ar = Address.fromBase58(network, address);
+						password = params.getString(3);
+					} catch (Exception e) {
+						result.put("success", false);
+						result.put("message", "缺少参数，命令用法：lockmoney [money] [lockTime] [address] [password]");
+						return result;
+					}
+				}
+				return rpcService.lockMoney(Coin.parseCoin(amount), DateUtil.convertStringToDate(lockTime, "yyyyMMdd").getTime() / 1000, address, password);
 			}
 
 			//认证账户创建商品

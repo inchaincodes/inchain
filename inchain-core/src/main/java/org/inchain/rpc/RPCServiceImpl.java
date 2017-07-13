@@ -2030,7 +2030,41 @@ public class RPCServiceImpl implements RPCService {
 		}
 		return txConver(txs);
 	}
-	
+
+	/**
+	 * 锁仓
+	 * @param money
+	 * @param lockTime
+	 * @param address
+	 * @param password
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	public JSONObject lockMoney(Coin money, long lockTime, String address, String password)throws JSONException {
+		JSONObject json = new JSONObject();
+
+		if(StringUtil.isEmpty(money)) {
+			json.put("success", false);
+			json.put("message", "params error");
+			return json;
+		}
+
+		try {
+			BroadcastResult br = accountKit.lockMoney(money, lockTime, address, password);
+
+			json.put("success", br.isSuccess());
+			json.put("message", br.getMessage());
+
+			return json;
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+			return json;
+		} finally {
+			accountKit.resetKeys();
+		}
+	}
+
 	/**
 	 * 发送交易
 	 * @param toAddress

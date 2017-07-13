@@ -345,6 +345,17 @@ public interface RPCService {
 	JSONObject changePassword(String oldPassword, String newPassword) throws JSONException;
 
 	/**
+	 * 锁仓
+	 * @param money
+	 * @param lockTime
+	 * @param address
+	 * @param password
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject lockMoney(Coin money, long lockTime, String address, String password)throws JSONException;
+
+	/**
 	 * 发送交易
 	 * @param toAddress
 	 * @param money

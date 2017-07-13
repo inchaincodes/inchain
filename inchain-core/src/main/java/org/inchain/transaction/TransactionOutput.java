@@ -79,7 +79,7 @@ public class TransactionOutput extends Message implements Output {
 	 */
 	public void serialize(OutputStream stream) throws IOException {
 		Utils.int64ToByteStreamLE(value, stream);
-		Utils.int64ToByteStreamLE(lockTime, stream);
+		Utils.uint32ToByteStreamLE(lockTime, stream);
 		stream.write(new VarInt(scriptBytes.length).encode());
 		stream.write(scriptBytes);
 	}
@@ -90,7 +90,7 @@ public class TransactionOutput extends Message implements Output {
 	@Override
 	protected void parse() throws ProtocolException {
         value = readInt64();
-        lockTime = readInt64();
+        lockTime = readUint32();
         //赎回脚本名的长度
         int signLength = (int)readVarInt();
         scriptBytes = readBytes(signLength);

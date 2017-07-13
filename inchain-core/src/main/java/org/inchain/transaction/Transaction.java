@@ -83,7 +83,7 @@ public class Transaction extends Message {
 		super(network);
 		inputs = new ArrayList<TransactionInput>();
         outputs = new ArrayList<TransactionOutput>();
-        time = TimeService.currentTimeMillis();
+        time = TimeService.currentTimeSeconds();
         version = Definition.VERSION;
 	}
 
@@ -116,8 +116,8 @@ public class Transaction extends Message {
         stream.write(new VarInt(outputs.size()).encode());
         for (Output out : outputs)
             out.serialize(stream);
-        Utils.int64ToByteStreamLE(time, stream);
-        Utils.int64ToByteStreamLE(lockTime, stream);
+        Utils.uint32ToByteStreamLE(time, stream);
+        Utils.uint32ToByteStreamLE(lockTime, stream);
         if(remark == null) {
         	stream.write(new VarInt(0).encode());
         } else {
@@ -158,8 +158,8 @@ public class Transaction extends Message {
             outputs.add(output);
             cursor += output.getLength();
         }
-        time = readInt64();
-        lockTime = readInt64();
+        time = readUint32();
+        lockTime = readUint32();
         remark = readBytes((int)readVarInt());
         
         if(!isCompatible()) {
