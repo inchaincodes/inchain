@@ -379,7 +379,16 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONObject queryAntifake(String antifakeCode) throws JSONException;
-	
+
+	/**
+	 * 把防伪码绑定到产品
+	 * @param antiCode
+	 * @param productHash
+	 * @param trpw
+	 * @param address
+	 * @return
+	 */
+	JSONObject bindAntifake(String antiCode,String productHash,String trpw,String address)throws JSONException;
 	/**
 	 * 防伪码验证
 	 * @param params

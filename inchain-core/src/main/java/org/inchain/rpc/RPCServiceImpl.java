@@ -545,6 +545,38 @@ public class RPCServiceImpl implements RPCService {
 	}
 
 	@Override
+	public JSONObject bindAntifake(String antiCode,String productTx,String trpw,String address) throws JSONException{
+		JSONObject result = new JSONObject();
+		Account account = null;
+		try {
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+			if(account == null || !account.isCertAccount()) {
+				result.put("success", false);
+				result.put("message", "认证账户不存在");
+				return result;
+			}
+
+			String txhash = accountKit.bindAnticode(antiCode,productTx,trpw,account);
+			result.put("success", true);
+			result.put("message", "成功");
+			result.put("txid",txhash);
+		}catch (Exception e){
+			log.error("创建防伪码出错：", e);
+			result.put("success", false);
+			result.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
+		}
+		return null;
+	}
+
+	@Override
 	public JSONObject regAssets(String name, String description, String code, String logo, String remark, String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
 		Account account = null;

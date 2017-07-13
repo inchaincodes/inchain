@@ -566,7 +566,18 @@ public class RPCHanlder {
 
 			return result;
 		}
+			case "bindantifake": {
+				String antiCode = params.getString(0);
+				String productHash = params.getString(1);
+				String trpw = params.getString(2);
+				String address = null;
+				if(params.length()>3){
+					address = params.getString(3);
+				}
 
+				return  rpcService.bindAntifake(antiCode,productHash,trpw,address);
+
+			}
 			case "createantifakewithoutproduct":{
 				try {
 					String productHash = null;

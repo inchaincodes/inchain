@@ -372,7 +372,12 @@ public class TransactionValidator {
 				}
 
 			}else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
-
+				AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction) tx;
+				byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(bindtx.getAntifakeCode());
+				if(antifakeCodeVerifyMakeTxHash == null) {
+					result.setResult(false, "防伪码不存在");
+					return validatorResult;
+				}
 			}
 			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证交易

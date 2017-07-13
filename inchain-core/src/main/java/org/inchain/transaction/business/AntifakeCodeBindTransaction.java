@@ -26,24 +26,15 @@ import java.util.List;
 public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 	/** 关联产品，商家产品信息事先广播到连上时，直接进行关联 **/
 	protected Sha256Hash productTx;
-
 	/**产品防伪码**/
-	protected String antiCode;
+	protected byte[] antifakeCode;
 	/** 商品编号，类似于商品身份证，用户防止生成重复的防伪码 **/
 	protected long nonce;
 
-	public AntifakeCodeBindTransaction(NetworkParams network, Sha256Hash productTx) {
+	public AntifakeCodeBindTransaction(NetworkParams network,Sha256Hash productTx,byte[] antiCode){
 		super(network);
 		this.productTx = productTx;
-
-		nonce = RandomUtil.randomLong();
-
-		type = Definition.TYPE_ANTIFAKE_CODE_BIND;
-	}
-	public AntifakeCodeBindTransaction(NetworkParams network,Sha256Hash productTx,String antiCode){
-		super(network);
-		this.productTx = productTx;
-		this.antiCode = antiCode;
+		this.antifakeCode = antiCode;
 		nonce = RandomUtil.randomLong();
 		type = Definition.TYPE_ANTIFAKE_CODE_BIND;
 	}
@@ -59,7 +50,7 @@ public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 	@Override
 	protected void parse() throws ProtocolException {
 		super.parse();
-
+		antifakeCode = readBytes(20);
 		productTx = readHash();
 
 		nonce = readInt64();
@@ -70,7 +61,7 @@ public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
 		super.serializeToStream(stream);
-
+		stream.write(antifakeCode);
 		stream.write(productTx.getReversedBytes());
 		
 		Utils.int64ToByteStreamLE(nonce, stream);
@@ -123,9 +114,9 @@ public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 	 * @return byte[]
 	 * @throws IOException 
 	 */
-	public byte[] getAntifakeCode() throws IOException {
-		return Utils.sha256hash160(getAntifakeConent());
-	}
+//	public byte[] getAntifakeCode() throws IOException {
+//		return Utils.sha256hash160(getAntifakeConent());
+//	}
 	
 	/**
 	 * 获取该笔防伪码生产交易是否带有代币奖励
@@ -169,7 +160,13 @@ public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 		}
 		return hashs;
 	}
-	
+	public byte[] getAntifakeCode() {
+		return antifakeCode;
+	}
+
+	public void setAntifakeCode(byte[] getAntifakeCode) {
+		this.antifakeCode = getAntifakeCode;
+	}
 	@Override
 	public String toString() {
 		return "AntifakeCodeMakeTransaction [hash=" + getHash() + ", type=" + type + ", time=" + time + ", outputs="
