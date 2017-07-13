@@ -569,7 +569,7 @@ public class RPCHanlder {
 
 			case "createantifakewithoutproduct":{
 				try {
-					String productHash = "3030303030303030303030303030303030303030303030303030303030303030";
+					String productHash = null;
 
 					JSONArray sources = null;
 					int count = 0;

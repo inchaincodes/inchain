@@ -396,12 +396,13 @@ public class AccountKit {
 
 		try {
 			//对应的商品不能为空
+			AntifakeCodeMakeTransaction tx = null;
 			if(productTx == null || productTx.isEmpty()) {
-				throw new VerificationException("需要生成防伪码的商品不能为空");
+				tx= new AntifakeCodeMakeTransaction(network);
+			}else {
+				Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
+				tx = new AntifakeCodeMakeTransaction(network, productTxHash);
 			}
-			Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
-
-			AntifakeCodeMakeTransaction tx = new AntifakeCodeMakeTransaction(network, productTxHash);
 
 			//是否附带奖励
 			Coin money = Coin.ZERO;
@@ -507,6 +508,37 @@ public class AccountKit {
 				account.resetKey();
 			}
 		}
+	}
+
+	public BroadcastMakeAntifakeCodeResult bandAntiCodeToProduct(String productTx,String antiCode,Account account, String password)throws VerificationException{
+		if(account == null || !account.isCertAccount()) {
+			throw new VerificationException("非认证账户，不能生成防伪码");
+		}
+		if(account.isEncryptedOfTr()) {
+			if(StringUtil.isEmpty(password)) {
+				throw new VerificationException("账户已加密，请解密或者传入密码");
+			}
+			ECKey[] eckeys = account.decryptionTr(password);
+			if(eckeys == null) {
+				throw new VerificationException("密码错误");
+			}
+		}
+
+		if(account.isEncryptedOfTr()) {
+			throw new VerificationException("账户已加密，无法签名信息");
+		}
+
+		try {
+			//对应的商品不能为空
+			if (productTx == null || productTx.isEmpty()) {
+				throw new VerificationException("需要生成防伪码的商品不能为空");
+			}
+			Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
+			AntifakeCodeMakeTransaction tx = new AntifakeCodeMakeTransaction(network, productTxHash);
+		}catch (Exception e){
+
+		}
+		return null;
 	}
 
 	/**
@@ -782,6 +814,10 @@ public class AccountKit {
 
 		//判断验证码是否存在
 		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
+		byte[] bindtxBytes = new byte[2+txBytes.length];
+		bindtxBytes[0]='0';
+		bindtxBytes[1]='5';
+		System.arraycopy(txBytes,0,bindtxBytes,2,txBytes.length);
 		if(txBytes == null) {
 			verifyResult.setSuccess(false);
 			verifyResult.setMessage("防伪码不存在");
@@ -806,10 +842,13 @@ public class AccountKit {
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
 
 		//设置验证商品
-		if(Hex.encode(codeMakeTx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)){
-			verifyResult.setSuccess(false);
-			verifyResult.setMessage("防伪码没有关联任何商品");
-			return verifyResult;
+		TransactionStore bindtxStore = blockStoreProvider.getTransaction(bindtxBytes);
+		if(codeMakeTx.getHasProduct() == 1){
+			if(bindtxStore==null) {
+				verifyResult.setSuccess(false);
+				verifyResult.setMessage("防伪码没有关联任何商品");
+				return verifyResult;
+			}
 		}
 		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		if(productTxStore == null) {
@@ -3612,7 +3651,7 @@ public class AccountKit {
 		}
 		//防伪码创建交易
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-		if(Hex.encode(codeMakeTx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)){
+		if(codeMakeTx.getHasProduct() == 1){
 			result.setSuccess(true);
 			result.setMessage("防伪码尚未关联产品");
 			result.setMakeTx(codeMakeTx);

@@ -31,7 +31,8 @@ import org.inchain.utils.Utils;
  *
  */
 public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
-	
+	//是否关联产品 0:关联  1:不关联
+	protected int hasProduct;
 	/** 关联产品，商家产品信息事先广播到连上时，直接进行关联 **/
 	protected Sha256Hash productTx;
 	/** 商品编号，类似于商品身份证，用户防止生成重复的防伪码 **/
@@ -39,13 +40,23 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	
 	public AntifakeCodeMakeTransaction(NetworkParams network, Sha256Hash productTx) {
 		super(network);
+		this.hasProduct = 0;
 		this.productTx = productTx;
 		
 		nonce = RandomUtil.randomLong();
 		
 		type = Definition.TYPE_ANTIFAKE_CODE_MAKE;
 	}
-	
+	public AntifakeCodeMakeTransaction(NetworkParams network){
+		super(network);
+		this.hasProduct = 1;
+		this.productTx = null;
+
+		nonce = RandomUtil.randomLong();
+
+		type = Definition.TYPE_ANTIFAKE_CODE_MAKE;
+	}
+
 	public AntifakeCodeMakeTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
 		this(params, payloadBytes, 0);
     }
@@ -57,9 +68,10 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	@Override
 	protected void parse() throws ProtocolException {
 		super.parse();
-		
-		productTx = readHash();
-		
+		hasProduct = 0xff&(readBytes(1)[0]);
+		if(hasProduct==0) {
+			productTx = readHash();
+		}
 		nonce = readInt64();
 
 		length = cursor - offset;
@@ -68,8 +80,10 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
 		super.serializeToStream(stream);
-		
-		stream.write(productTx.getReversedBytes());
+		stream.write(hasProduct);
+		if (hasProduct == 0){
+			stream.write(productTx.getReversedBytes());
+		}
 		
 		Utils.int64ToByteStreamLE(nonce, stream);
 	}
@@ -107,7 +121,8 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 			Utils.int64ToByteStreamLE(time, stream);
 			
 			//产品
-			stream.write(productTx.getReversedBytes());
+			if(hasProduct == 0)
+				stream.write(productTx.getReversedBytes());
 
 			Utils.int64ToByteStreamLE(nonce, stream);
 			
@@ -174,5 +189,13 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 		return "AntifakeCodeMakeTransaction [hash=" + getHash() + ", type=" + type + ", time=" + time + ", outputs="
 				+ outputs + ", inputs=" + inputs + ", scriptSig=" + scriptSig + ", productTx=" + productTx + ", nonce="
 				+ nonce + "]";
+	}
+
+	public int getHasProduct() {
+		return hasProduct;
+	}
+
+	public void setHasProduct(int hasProduct) {
+		this.hasProduct = hasProduct;
 	}
 }

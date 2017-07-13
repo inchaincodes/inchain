@@ -216,7 +216,6 @@ public final class Configure {
 	public final static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
 
 	/*************  交易相关配置   end  *****************/
-	public final  static String NULL_PRODUCT_TX = "3030303030303030303030303030303030303030303030303030303030303030";
 
 	/*************  系统级配置   begin  *****************/
 
