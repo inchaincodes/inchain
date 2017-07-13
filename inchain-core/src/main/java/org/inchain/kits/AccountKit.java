@@ -745,13 +745,11 @@ public class AccountKit {
 
 		try {
 			BroadcastResult br = peerKit.broadcast(issuedTx).get();
-
 			//等待广播回应
 			if(br.isSuccess()) {
 				//更新交易记录
 				transactionStoreProvider.processNewTransaction(new TransactionStore(network, issuedTx));
 			}
-
 			return br;
 		} catch (Exception e) {
 			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
@@ -797,7 +795,23 @@ public class AccountKit {
 		if(!rs.getResult().isSuccess()) {
 			throw new VerificationException(rs.getResult().getMessage());
 		}
-		return null;
+		//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+		boolean success = MempoolContainer.getInstace().add(transferTx);
+		if(!success) {
+			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
+		}
+
+		try {
+			BroadcastResult br = peerKit.broadcast(transferTx).get();
+			//等待广播回应
+			if(br.isSuccess()) {
+				//更新交易记录
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, transferTx));
+			}
+			return br;
+		} catch (Exception e) {
+			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
+		}
 	}
 
 	/*
