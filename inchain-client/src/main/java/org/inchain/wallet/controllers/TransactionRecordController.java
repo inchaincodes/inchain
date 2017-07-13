@@ -419,21 +419,29 @@ public class TransactionRecordController implements SubPageController {
 					AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
 					
 					type = "防伪码生产";
-					
-					TransactionStore ptx = InchainInstance.getInstance().getAccountKit().getTransaction(atx.getProductTx());
-					//必要的NPT验证
-					if(ptx == null) {
-						log.error("防伪验证，商品信息没有找到，将跳过不显示该交易");
-						continue;
+					if(atx.getHasProduct() == 0) {
+						TransactionStore ptx = InchainInstance.getInstance().getAccountKit().getTransaction(atx.getProductTx());
+						//必要的NPT验证
+						if(ptx == null) {
+							log.error("防伪验证，商品信息没有找到，将跳过不显示该交易");
+							continue;
+						}
+						Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
+
+						detail += product.getName();
+
+						if(atx.getRewardCoin() != null) {
+							detail += "\r\n";
+							detail += "附带验证奖励 " + atx.getRewardCoin().toText() + " INS";
+						}
+					}else {
+						detail += "没有关联商品";
+						if(atx.getRewardCoin() != null) {
+							detail += "\r\n";
+							detail += "附带验证奖励 " + atx.getRewardCoin().toText() + " INS";
+						}
 					}
-					Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
-					
-					detail += product.getName();
-					
-					if(atx.getRewardCoin() != null) {
-						detail += "\r\n";
-						detail += "附带验证奖励 " + atx.getRewardCoin().toText() + " INS";
-					}
+
 				} else if(tx.getType() == Definition.TYPE_CREDIT) {
 					CreditTransaction ctx = (CreditTransaction) tx;
 					
