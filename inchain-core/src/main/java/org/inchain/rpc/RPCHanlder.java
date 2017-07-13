@@ -930,7 +930,7 @@ public class RPCHanlder {
 				pwd = params.getString(5);
 			}
 
-
+			return rpcService.assetsTransfer(code,receiver,amount,remark,address,pwd);
 		}
 
 		//认证商家关联子账户

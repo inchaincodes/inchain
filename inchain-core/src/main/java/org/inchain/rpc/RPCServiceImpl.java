@@ -809,7 +809,7 @@ public class RPCServiceImpl implements RPCService {
 			byte[] hashReceiver = null;
 			try {
 				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash();
+				hashReceiver = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
