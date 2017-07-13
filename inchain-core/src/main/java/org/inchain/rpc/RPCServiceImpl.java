@@ -792,24 +792,26 @@ public class RPCServiceImpl implements RPCService {
 	 */
 	private void setResult(JSONObject result, AntifakeInfosResult res) throws JSONException, IOException {
 		ProductTransaction ptx = res.getProductTx();
-		
-		List<ProductKeyValue> productBodyContents = ptx.getProduct().getContents();
-		
-		JSONArray product = new JSONArray();
-		String productName = null;
-		for (ProductKeyValue keyValuePair : productBodyContents) {
-			if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
-				//时间
-				product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
-			} else if(!ProductKeyValue.IMG.getCode().equals(keyValuePair.getCode()) && !ProductKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
-				if(ProductKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
-					productName = keyValuePair.getValueToString();
+		if(ptx!=null) {
+			List<ProductKeyValue> productBodyContents = ptx.getProduct().getContents();
+
+			JSONArray product = new JSONArray();
+			String productName = null;
+			for (ProductKeyValue keyValuePair : productBodyContents) {
+				if (ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
+					//时间
+					product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+				} else if (!ProductKeyValue.IMG.getCode().equals(keyValuePair.getCode()) && !ProductKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+					if (ProductKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
+						productName = keyValuePair.getValueToString();
+					}
+					product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", keyValuePair.getValueToString()));
 				}
-				product.put(new JSONObject().put("code", keyValuePair.getCode()).put("name", keyValuePair.getName()).put("value", keyValuePair.getValueToString()));
 			}
+			result.put("product", new JSONObject().put("name", productName).put("values", product));
+		}else {
+			result.put("product", new JSONObject().put("name","防伪码尚未关联产品" ));
 		}
-		result.put("product", new JSONObject().put("name", productName).put("values", product));
-		
 		//商家信息
 		AccountStore certAccountInfo = res.getBusiness();
 		
@@ -832,6 +834,7 @@ public class RPCServiceImpl implements RPCService {
 		result.put("business", new JSONObject().put("name", businessName).put("values", infos));
 		
 		//防伪码生成交易id
+
 		result.put("hash", res.getMakeTx().getHash());
 		result.put("antifakeCode", Base58.encode(res.getMakeTx().getAntifakeCode()));
 		result.put("time", res.getMakeTx().getTime());

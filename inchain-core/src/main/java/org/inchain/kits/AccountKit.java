@@ -3612,18 +3612,21 @@ public class AccountKit {
 		}
 		//防伪码创建交易
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-		TransactionStore productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
-		if(productTxs == null) {
-			result.setSuccess(false);
-			result.setMessage("未查询到防伪码对应的商品信息");
-			return result;
+		if(Hex.encode(codeMakeTx.getProductTx().getBytes()).equals(Configure.NULL_PRODUCT_TX)){
+			result.setSuccess(true);
+			result.setMessage("防伪码尚未关联产品");
+			result.setMakeTx(codeMakeTx);
+		}else {
+			TransactionStore productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
+			if (productTxs == null) {
+				result.setSuccess(false);
+				result.setMessage("未查询到防伪码对应的商品信息");
+			}
+			result.setMakeTx(codeMakeTx);
+			//商品
+			ProductTransaction ptx = (ProductTransaction) productTxs.getTransaction();
+			result.setProductTx(ptx);
 		}
-		result.setMakeTx(codeMakeTx);
-
-		//商品
-		ProductTransaction ptx = (ProductTransaction) productTxs.getTransaction();
-		result.setProductTx(ptx);
-
 		//防伪码状态
 		byte[] txStatus = codeMakeTx.getHash().getBytes();
 		byte[] txIndex = new byte[txStatus.length + 1];
