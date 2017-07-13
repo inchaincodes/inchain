@@ -869,6 +869,11 @@ public class RPCHanlder {
 			return rpcService.getAssetsIssueList(code);
 		}
 
+		// 获取我的资产账户列表
+		case "getmineassets" : {
+			return rpcService.getMineAssets();
+		}
+
 		//资产转让
 		//参数格式： 资产代码  接收人地址 资产发行数量  备注 转让人地址(选填)  密码(选填)
 		case "assetstransfer" :{
@@ -897,8 +902,6 @@ public class RPCHanlder {
 				address = params.getString(4);
 				pwd = params.getString(5);
 			}
-
-
 		}
 
 		//认证商家关联子账户

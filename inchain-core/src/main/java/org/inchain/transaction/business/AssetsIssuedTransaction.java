@@ -19,7 +19,7 @@ import java.util.Arrays;
  */
 public class AssetsIssuedTransaction extends CommonlyTransaction {
 
-	//资产
+	//注册资产
 	protected Sha256Hash assetsHash;
 	//接收人
 	protected byte[] receiver;
