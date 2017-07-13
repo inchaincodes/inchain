@@ -1063,6 +1063,25 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		return (AssetsRegisterTransaction) txs.getTransaction();
 	}
 
+
+	/**
+	 * 根据hash256(code)获取注册资产
+	 * @param code
+	 * @return
+	 */
+	public AssetsRegisterTransaction getAssetsRegisterTxByCodeHash256(byte[] code) {
+		byte[] result = getBytes(code);
+		if(result == null) {
+			return null;
+		}
+		Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(result,0, Sha256Hash.LENGTH));
+		TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+		if(txs == null) {
+			return null;
+		}
+		return (AssetsRegisterTransaction) txs.getTransaction();
+	}
+
 	/**
 	 * 获取注册资产列表
 	 * @return

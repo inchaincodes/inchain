@@ -744,10 +744,15 @@ public class RPCServiceImpl implements RPCService {
 		List<JSONObject> jsonList = new ArrayList<>();
 		List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(address);
 		for(Assets assets : list) {
-			JSONObject object = new JSONObject();
-		//	Sha256Hash.
-			//object.put("code")
+			AssetsRegisterTransaction registerTx = chainstateStoreProvider.getAssetsRegisterTxByCodeHash256(assets.getCode());
+			if(registerTx != null) {
+				JSONObject object = new JSONObject();
+				object.put("code", new String(registerTx.getCode(), Utils.UTF_8));
+				object.put("banlance", assets.getBalance());
+				jsonList.add(object);
+			}
 		}
+		result.put("list", jsonList);
 		return result;
 	}
 	/**
