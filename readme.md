@@ -16,6 +16,26 @@ Inchain目前主要采用第二种节点发现方式。
 
 绝大多数整数都都使用little endian编码，只有IP地址或端口号使用big endian编码。
 
+varint：变长整数，可以根据表达的值进行编码以节省空间。
+
+|值|长度|格式|
+|---|---|---|
+|< 0xfd|1|uint8|
+|<= 0xffff|3|0xfd + uint16|
+|<= 0xffffffff|5|0xfe + uint32|
+|> 0xffffffff|9|0xff + uint64|
+
+varstr：变长字符串，由一个变长整数后接字符串构成。字符串采用UTF8编码。
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|length|varint|字符串的长度，以字节为单位|
+|length|string|uint8[length]|字符串本身|
+
+array：数组，由一个变长整数后接元素序列构成。
+
+
+
 1.PeerAddress
 > 印链封装的节点信息结构,兼容IPv6与IPv4地址。
 
@@ -57,12 +77,9 @@ Inchain目前主要采用第二种节点发现方式。
 |?\*?|outputs|tx_out[]|输出交易表|
 |8| Timestamp |int64|交易时间戳|
 |8|lockTime|int64|锁定时间|
-|4|remark length|int32|备注长度|
-|?|remark|uint8[?]|备注|
+|?|remark|varstr|备注|
 
-> lockTime 小于0永久锁定，大于等于0为锁定的时间或者区块高度  
-> remark length为0时，说明remark为空  
-> remark 为utf-8编码字符串
+> lockTime 小于0永久锁定，大于等于0为锁定的时间或者区块高度
 
 4.BlockHeader
 
@@ -87,6 +104,22 @@ Inchain目前主要采用第二种节点发现方式。
 |---|---|---|---|
 |4|sign count|int32|签名长度|
 |?|sign|byte[?]|签名
+
+6.Transaction
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|type|int32|交易类型|
+|4|version|uint32|交易版本|
+|?|input tx count|VarInt|输入交易数|
+|?|input|input[]|输入交易|
+|?|output tx count|VarInt|输出交易数|
+|?|output|output[]|输出交易|
+|8|time|int64|时间戳|
+|8|lock time|int64|锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度|
+|?|remark|varstr|备注|
+
+> remark不能超过100字节。
 
 协议
 ---
@@ -133,14 +166,17 @@ version
 |30|local peer address|PeerAddress|本机地址|
 |30|remote peer address|PeerAddress|请求者地址|
 |4|UserAgent length|uint32|版本字符串长度|
-|?|UserAgent|char[?]|版本字符串|
+|?|UserAgent|byte[?]|版本字符串|
 |4|best block height|uint32|最适合高度|
 |32|best block hash|char[32]|最适合高度块Hash字符串|
 |8|nonce|int64|随机数|
 
+> local Services 可选值：1 正式网络 2 测试网络
+
 ---
 verack
 > 收到Version消息后，抽取nonce，响应version命令。
+> UserAgent为UTF-8编码字符串
 
 
 |尺寸|字段|数据类型|说明|
@@ -179,7 +215,7 @@ addr
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
 |4|size|int32|节点数|
-|30*?|peer address[]|PeerAddress[size]|服务节点信息|
+|30*?|peer address table|PeerAddress[size]|服务节点信息|
 
 
 ---
@@ -248,14 +284,13 @@ consensus
 |4|height|uint32|高度|
 |8|time|Timespane|时间戳|
 |8|nonce|int64|随机数|
-|4|content length|int32|内容长度|
-|?|content|byte[?]|内容|
-|4|signs count|int32|签名长度|
+|?|content|varstr|内容|
 |?*?| Signs| Sign[]|签名|
 
 
 TX协议
 ---
+
 
 
 
