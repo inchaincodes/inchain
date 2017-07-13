@@ -821,6 +821,7 @@ public class RPCHanlder {
 			}
 			return rpcService.regAssets(name, description, code, logo, remark, address, pwd);
 		}
+
 		//查询资产注册列表
 		case "getassetslist": {
 			return rpcService.getAssetsRegList();
@@ -871,7 +872,22 @@ public class RPCHanlder {
 
 		// 获取我的资产账户列表
 		case "getmineassets" : {
-			return rpcService.getMineAssets();
+			String address = null;                  //账户地址
+			String pwd = null;
+
+			if(params.length() == 1) {
+				try {
+					Address ar = Address.fromBase58(network, params.getString(0));
+					address = ar.getBase58();
+				} catch (Exception e) {
+					pwd = params.getString(0);
+				}
+			}else if(params.length() == 2) {
+				address = params.getString(0);
+				pwd = params.getString(1);
+			}
+
+			return rpcService.getMineAssets(address, pwd);
 		}
 
 		//资产转让
@@ -902,6 +918,8 @@ public class RPCHanlder {
 				address = params.getString(4);
 				pwd = params.getString(5);
 			}
+
+
 		}
 
 		//认证商家关联子账户

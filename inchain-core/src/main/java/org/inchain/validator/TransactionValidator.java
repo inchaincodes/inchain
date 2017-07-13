@@ -960,6 +960,7 @@ public class TransactionValidator {
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
 
 			byte[] sender =  assetsTransferTx.getHash160();
+
 			byte[] receiver = assetsTransferTx.getReceiver();
 			Sha256Hash assetsTxHash = assetsTransferTx.getAssetsHash();
 			//验证资产是否存在
@@ -968,6 +969,7 @@ public class TransactionValidator {
 				result.setResult(false, "资产不存在");
 				return validatorResult;
 			}
+
 			//验证余额是否充足
 			//TODO
 

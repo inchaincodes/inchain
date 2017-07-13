@@ -1050,19 +1050,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @return
 	 */
 	public AssetsRegisterTransaction getAssetsRegisterTxByCode(byte[] code) {
-		byte[] codeKey = Sha256Hash.hash(code);
-		byte[] result = getBytes(codeKey);
-		if(result == null) {
-			return null;
-		}
-		Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(result,0, Sha256Hash.LENGTH));
-		TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
-		if(txs == null) {
-			return null;
-		}
-		return (AssetsRegisterTransaction) txs.getTransaction();
+		return getAssetsRegisterTxByCodeHash256(Sha256Hash.hash(code));
 	}
-
 
 	/**
 	 * 根据hash256(code)获取注册资产
@@ -1231,8 +1220,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @return
 	 */
 	public List<Assets> getMyAssetsAccount(Address address) {
-		//reveiver = address.getHash(); 长度25位，
-		byte[] receiver = address.getHash();
+		//reveiver = address.getHash160();
+		byte[] receiver = address.getHash160();
 		//资产账户的key 规则为 [1],[1] + recevier
 		byte[] key = new byte[receiver.length + 2];
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);

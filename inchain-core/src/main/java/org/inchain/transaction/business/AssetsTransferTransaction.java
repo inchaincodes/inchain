@@ -32,6 +32,15 @@ public class AssetsTransferTransaction extends AssetsIssuedTransaction {
 		super(params, payloadBytes, offset);
 	}
 
+	public AssetsTransferTransaction(NetworkParams params, Sha256Hash assetsHash, byte[] receiver, Long amount,byte[]remark) {
+		super(params);
+		this.amount = amount;
+		this.assetsHash = assetsHash;
+		this.receiver = receiver;
+		this.remark = remark;
+		type = Definition.TYPE_ASSETS_TRANSFER;
+	}
+
 	@Override
 	public void verify() throws VerificationException {
 		super.verify();
