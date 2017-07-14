@@ -897,6 +897,33 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 	}
 
+	public void deleteRevokeCertAccount(CertAccountRevokeTransaction tx){
+		if(!isCertAccountRevoked(tx.getRevokeHash160()))
+			return;
+		revokeLock.lock();
+		try {
+			byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
+
+			byte[] hash160 = tx.getRevokeHash160();
+			byte[] byhash160 = tx.getHash160();
+			byte[] newrevokedAccountHash160s = new byte[revokedAccountHash160s.length - (Address.LENGTH * 2)];
+			byte[] tmpbyte = new byte[Address.LENGTH];
+			for(int j=0;j<revokedAccountHash160s.length;j+= Address.LENGTH * 2) {
+				System.arraycopy(revokedAccountHash160s,j,tmpbyte,0,Address.LENGTH);
+				if(hash160.equals(tmpbyte)){
+					System.arraycopy(revokedAccountHash160s,0,newrevokedAccountHash160s,0,j);
+					System.arraycopy(revokedAccountHash160s,j+2*Address.LENGTH , newrevokedAccountHash160s,j,revokedAccountHash160s.length-j-2*Address.LENGTH);
+					break;
+				}
+			}
+			put(Configure.REVOKED_CERT_ACCOUNT_KEYS,newrevokedAccountHash160s);
+		}catch (Exception e){
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			revokeLock.unlock();
+		}
+	}
+
 	public boolean isCertAccountRevoked(byte[] hash160){
 		byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
 		if(revokedAccountHash160s == null)
@@ -909,6 +936,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 		return false;
 	}
+
+
 	
 	/**
 	 * 不确定的账户，确定下来

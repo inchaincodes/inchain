@@ -760,8 +760,18 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				}
 			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE) {
-			//TODO
-		}else {
+			CertAccountRevokeTransaction retx = (CertAccountRevokeTransaction) tx;
+			chainstateStoreProvider.deleteRevokeCertAccount(retx);
+		}else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
+			AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)tx;
+			byte [] makebyte = new byte[Sha256Hash.LENGTH];
+			byte [] makebind = chainstateStoreProvider.getBytes(bindtx.getAntifakeCode());
+			if(makebind != null && makebind.length == 2*Sha256Hash.LENGTH) {
+				System.arraycopy(makebind, 0, makebyte, 0, Sha256Hash.LENGTH);
+				chainstateStoreProvider.put(bindtx.getAntifakeCode(), makebyte);
+			}
+		}
+		else {
 			//TODO
 		}
 		
