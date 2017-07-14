@@ -568,7 +568,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		}
 		
 		if(tx.isPaymentTransaction()) {
-			
+
 			//转账交易
 			//coinbase交易没有输入
 			if(tx.getType() != Definition.TYPE_COINBASE) {
@@ -642,6 +642,10 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				
 				consensusMeeting.resetCurrentMeetingItem();
 			}
+			else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+				//回滚资产注册以及资产注册后相关的
+				chainstateStoreProvider.rollbackAssetsRegisterTx(tx);
+			}
 		} else if(tx instanceof CreditTransaction) {
 			//信用值的增加
 			CreditTransaction creditTransaction = (CreditTransaction)tx;
@@ -676,7 +680,13 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
 			chainstateStoreProvider.revokedAntifakeTransfer(attx.getAntifakeCode(), attx.getHash160(), attx.getReceiveHashs(), attx.getHash());
-		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
+		}else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+			chainstateStoreProvider.rollbackAssetsIssueTx(tx);
+		}else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
+			chainstateStoreProvider.rollbackAssetsTransferTx(tx);
+		}
+
+		else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ||
 				tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 			
 			//帐户注册和修改账户信息
