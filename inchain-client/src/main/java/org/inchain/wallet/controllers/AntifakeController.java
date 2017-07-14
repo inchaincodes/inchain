@@ -31,6 +31,7 @@ import org.inchain.store.TransactionStoreProvider;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
+import org.inchain.transaction.business.AntifakeCodeBindTransaction;
 import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
 import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
 import org.inchain.transaction.business.ProductTransaction;
@@ -169,12 +170,24 @@ public class AntifakeController implements SubPageController {
     		
 			//判断验证码是否存在
 			ChainstateStoreProvider chainstateStoreProvider = SpringContextUtils.getBean("chainstateStoreProvider");
-			byte[] txBytes = chainstateStoreProvider.getBytes(base58AntifakeCode.getAntifakeCode());
-			if(txBytes == null) {
+			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean("blockStoreProvider");
+			byte[] makebind = chainstateStoreProvider.getBytes(base58AntifakeCode.getAntifakeCode());
+			if(makebind == null) {
 				throw new VerificationException("防伪码不存在");
 			}
-			BlockStoreProvider blockStoreProvider = SpringContextUtils.getBean("blockStoreProvider");
-			TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
+			byte[] makebyte = new byte[Sha256Hash.LENGTH];
+			byte[] bindbyte = new byte[Sha256Hash.LENGTH];
+			System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+
+			AntifakeCodeBindTransaction bindTx = null;
+			TransactionStore bindStore = null;
+			if(makebind.length == 2*Sha256Hash.LENGTH){
+				System.arraycopy(makebind,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+				bindStore = blockStoreProvider.getTransaction(bindbyte);
+				bindTx = (AntifakeCodeBindTransaction) bindStore.getTransaction();
+			}
+
+			TransactionStore txStore = blockStoreProvider.getTransaction(makebyte);
 			//必须存在
 			if(txStore == null) {
 				throw new VerificationException("防伪码生产交易不存在");
@@ -198,7 +211,7 @@ public class AntifakeController implements SubPageController {
 			byte[] status = chainstateStoreProvider.getBytes(txIndex);
 			if(status == null) {
 				
-				showProfuctInfo(blockStoreProvider, codeMakeTx,"验证失败，该防伪码已被验证");
+				showProfuctInfo(blockStoreProvider, codeMakeTx,bindTx,"验证失败，该防伪码已被验证");
 				return;
 				//throw new VerificationException("验证失败，该防伪码已被验证");
 				
@@ -242,7 +255,7 @@ public class AntifakeController implements SubPageController {
 			tx.verifyScript();
 			
     		if(successList.contains(Hex.encode(base58AntifakeCode.getAntifakeCode()))) {
-    			showProfuctInfo(blockStoreProvider, codeMakeTx, "验证失败，该防伪码已被验证");
+    			showProfuctInfo(blockStoreProvider, codeMakeTx,bindTx, "验证失败，该防伪码已被验证");
     			return;
     		}
     		
@@ -252,7 +265,7 @@ public class AntifakeController implements SubPageController {
 			TransactionValidatorResult rs = transactionValidator.valDo(tx, null).getResult();
 			if(!rs.isSuccess()) {
 				if(rs.getErrorCode() == TransactionValidatorResult.ERROR_CODE_USED) {
-					showProfuctInfo(blockStoreProvider, codeMakeTx,"验证失败，该防伪码已被验证");
+					showProfuctInfo(blockStoreProvider, codeMakeTx,bindTx,"验证失败，该防伪码已被验证");
 					return;
 				}
 			}
@@ -260,7 +273,7 @@ public class AntifakeController implements SubPageController {
 			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
 			boolean success = MempoolContainer.getInstace().add(tx);
 			if(!success) {
-				showProfuctInfo(blockStoreProvider, codeMakeTx,"验证失败，该防伪码已被验证");
+				showProfuctInfo(blockStoreProvider, codeMakeTx,bindTx,"验证失败，该防伪码已被验证");
 				return;
 			}		
 			try {
@@ -274,7 +287,7 @@ public class AntifakeController implements SubPageController {
 					//更新交易记录
 					TransactionStoreProvider transactionStoreProvider = SpringContextUtils.getBean("transactionStoreProvider");
 					transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
-					showProfuctInfo(blockStoreProvider, codeMakeTx,"恭喜您，验证通过");
+					showProfuctInfo(blockStoreProvider, codeMakeTx,bindTx,"恭喜您，验证通过");
 				}
 			} catch (Exception e) {
 				log.debug("广播失败，失败信息：" + e.getMessage(), e);
@@ -305,7 +318,7 @@ public class AntifakeController implements SubPageController {
     /**
      *显示验证商品信息 
      * */
-	private void showProfuctInfo(BlockStoreProvider blockStoreProvider, AntifakeCodeMakeTransaction codeMakeTx,String message) {
+	private void showProfuctInfo(BlockStoreProvider blockStoreProvider, AntifakeCodeMakeTransaction codeMakeTx, AntifakeCodeBindTransaction codeBindTx,String message) {
 		VBox content = new VBox();
 		VBox body = new VBox();
 		body.setId("show_product_info_id");
@@ -322,8 +335,14 @@ public class AntifakeController implements SubPageController {
 		result.setStyle("-fx-padding:0 0 0 100;");
 	
 		body.getChildren().add(result);
+
 		//获取产品信息
-		TransactionStore productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
+		TransactionStore productTxStore = null;
+		if(codeMakeTx.getHasProduct()==0) {
+			productTxStore = blockStoreProvider.getTransaction(codeBindTx.getProductTx().getBytes());
+		}else {
+			productTxStore = blockStoreProvider.getTransaction(codeBindTx.getProductTx().getBytes());
+		}
 		ProductTransaction productTransaction = (ProductTransaction) productTxStore.getTransaction();
 		Product product = productTransaction.getProduct();
 		List<ProductKeyValue> bodyContents = product.getContents();

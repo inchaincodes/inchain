@@ -918,14 +918,18 @@ public class TransactionValidator {
 			}
 
 			byte[] antifakeCode = attx.getAntifakeCode();
+
 			//先验证防伪码是否是合法状态
-			byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(antifakeCode);
-			if(antifakeCodeVerifyMakeTxHash == null) {
+			byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode);
+
+			if(makebind == null) {
 				result.setResult(false, "防伪码不存在");
 				return validatorResult;
 			}
+			byte[] makebyte = new byte[Sha256Hash.LENGTH];
+			System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
 
-			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
+			TransactionStore txStore = blockStoreProvider.getTransaction(makebyte);
 			if(txStore == null || txStore.getTransaction() == null) {
 				result.setResult(false, "防伪码生成交易不存在");
 				return validatorResult;
