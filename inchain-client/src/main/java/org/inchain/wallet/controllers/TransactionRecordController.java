@@ -32,19 +32,7 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.AntifakeTransferTransaction;
-import org.inchain.transaction.business.CertAccountRegisterTransaction;
-import org.inchain.transaction.business.CirculationTransaction;
-import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.transaction.business.GeneralAntifakeTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RegAliasTransaction;
-import org.inchain.transaction.business.RelevanceSubAccountTransaction;
-import org.inchain.transaction.business.RemoveSubAccountTransaction;
-import org.inchain.transaction.business.UpdateAliasTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
+import org.inchain.transaction.business.*;
 import org.inchain.utils.Base58;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
@@ -394,14 +382,38 @@ public class TransactionRecordController implements SubPageController {
 						log.error("防伪码对应的生产记录没有找到，没有找到，将跳过不显示该交易");
 						continue;
 					}
-					TransactionStore makeCodeTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
+					byte [] makebyte = null;
+					byte [] bindbyte = null;
+					TransactionStore bindTxStore = null;
+					AntifakeCodeBindTransaction bindTransaction = null;
+					TransactionStore makeCodeTxStore = null;
+					if(makeCodeTxBytes.length == 2*Sha256Hash.LENGTH){
+						makebyte = new byte[Sha256Hash.LENGTH];
+						bindbyte = new byte[Sha256Hash.LENGTH];
+						System.arraycopy(makeCodeTxBytes,0,makebyte,0,Sha256Hash.LENGTH);
+						System.arraycopy(makeCodeTxBytes,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+						bindTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(Sha256Hash.wrap(bindbyte));
+						bindTransaction = (AntifakeCodeBindTransaction) bindTxStore.getTransaction();
+					}else {
+						makebyte = makeCodeTxBytes;
+
+					}
+
+					makeCodeTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(Sha256Hash.wrap(makebyte));
 					if(makeCodeTxStore == null) {
 						log.error("防伪码对应的生产记录没有找到，没有找到");
 						continue;
 					}
 					AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
+
 					
-					TransactionStore productTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(makeCodeTx.getProductTx());
+					TransactionStore productTxStore = null;
+					if(bindbyte == null) {
+						productTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(makeCodeTx.getProductTx());
+					}
+					else {
+						productTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(bindTransaction.getProductTx());
+					}
 					if(productTxStore == null) {
 						log.error("防伪验证，商品没有找到，将跳过不显示该交易");
 						continue;
