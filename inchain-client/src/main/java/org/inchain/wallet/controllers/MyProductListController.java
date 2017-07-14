@@ -140,7 +140,7 @@ public class MyProductListController implements SubPageController{
 		    	data.setBusiness(infoResult.getBusiness().getAccountBody().getName());
 		    	data.setVerifyCode(Base58.encode(antifakeCodeBytes));
 		    	data.setResult("成功");
-		    	data.setTime(DateUtil.convertDate(new Date(tx.getTime())));
+		    	data.setTime(DateUtil.convertDate(new Date(tx.getTime() * 1000)));
 		    	if(isOwner) {
 		    		data.setOperating(data.getVerifyCode());
 		    	} else {

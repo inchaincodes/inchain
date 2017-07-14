@@ -1101,7 +1101,7 @@ public class AccountKit {
 	}
 
 	/**
-	 * 锁定指定数量的金额
+	 * 锁仓指定数量的代币
 	 * @param money	锁定金额
 	 * @param money	锁定锁定是
 	 * @return String
@@ -1113,12 +1113,12 @@ public class AccountKit {
 		locker.lock();
 		try {
 			//发送的金额必须大于100
-			if(money.compareTo(Coin.COIN.multiply(100)) <= 0) {
-				throw new RuntimeException("锁定的金额需大于100");
+			if(money.compareTo(Coin.COIN.multiply(100)) < 0) {
+				throw new RuntimeException("锁仓的金额需达到100");
 			}
 			//锁仓的时间必须大于24小时
 			if(lockTime - TimeService.currentTimeSeconds() < 24 * 60 * 60) {
-				throw new RuntimeException("锁定时间必须大于24小时");
+				throw new RuntimeException("锁仓时间必须大于24小时");
 			}
 			if(accountList == null || accountList.size() == 0) {
 				throw new VerificationException("没有可用账户");
@@ -1170,8 +1170,7 @@ public class AccountKit {
 			}
 
 			Transaction tx = new Transaction(network);
-			tx.setTime(TimeService.currentTimeMillis());
-			tx.setLockTime(TimeService.currentTimeMillis());
+			tx.setLockTime(TimeService.currentTimeSeconds());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
 			tx.setRemark(null);
@@ -1318,6 +1317,11 @@ public class AccountKit {
 				throw new VerificationException("地址不存在或错误");
 			}
 
+			//不能给自己转账
+			if(Arrays.equals(receiveAddress.getHash160(), account.getAddress().getHash160())) {
+				throw new VerificationException("不能给自己转账");
+			}
+
 			if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
 					(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
 				if(StringUtil.isEmpty(password)) {
@@ -1351,8 +1355,7 @@ public class AccountKit {
 			}
 
 			Transaction tx = new Transaction(network);
-			tx.setTime(TimeService.currentTimeMillis());
-			tx.setLockTime(TimeService.currentTimeMillis());
+			tx.setLockTime(TimeService.currentTimeSeconds());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
 			tx.setRemark(remark);
@@ -1529,8 +1532,7 @@ public class AccountKit {
 				}
 
 				Transaction tx = new Transaction(network);
-				tx.setTime(TimeService.currentTimeMillis());
-				tx.setLockTime(TimeService.currentTimeMillis());
+				tx.setLockTime(TimeService.currentTimeSeconds());
 				tx.setType(Definition.TYPE_PAY);
 				tx.setVersion(Definition.VERSION);
 				tx.setRemark(remark);

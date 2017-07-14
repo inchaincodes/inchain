@@ -2694,7 +2694,7 @@ public class RPCServiceImpl implements RPCService {
 				
 				JSONObject outputJson = new JSONObject();
 				outputJson.put("value", value.value);
-				outputJson.put("lockTime", tx.getLockTime());
+				outputJson.put("lockTime", output.getLockTime());
 				
 				if(script.isSentToAddress()) {
 					outputJson.put("address", new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58());
