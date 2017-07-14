@@ -745,9 +745,13 @@ public class RPCServiceImpl implements RPCService {
 
 		Long amount = 0L;   //资产发行总量
 		for(TransactionStore issueTx : list) {
+			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) issueTx.getTransaction();
 			JSONObject json = txConver(issueTx);
+			amount += aitx.getAmount();
 			jsonList.add(json);
 		}
+		regJson.put("amount", amount);
+
 		return new JSONObject().put("regTx",regJson).put("list",jsonList);
 	}
 

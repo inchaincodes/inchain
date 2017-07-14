@@ -568,7 +568,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		}
 		
 		if(tx.isPaymentTransaction()) {
-			
+
 			//转账交易
 			//coinbase交易没有输入
 			if(tx.getType() != Definition.TYPE_COINBASE) {
