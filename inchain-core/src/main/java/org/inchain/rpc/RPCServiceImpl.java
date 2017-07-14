@@ -743,6 +743,7 @@ public class RPCServiceImpl implements RPCService {
 		regJson.put("logo", new String(assetsRegisterTx.getLogo(), Utils.UTF_8));
 		regJson.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
 
+		Long amount = 0L;   //资产发行总量
 		for(TransactionStore issueTx : list) {
 			JSONObject json = txConver(issueTx);
 			jsonList.add(json);
