@@ -476,7 +476,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)tx;
 			byte [] makebind = new byte[2* Sha256Hash.LENGTH];
 			byte [] makebyte = chainstateStoreProvider.getBytes(bindtx.getAntifakeCode());
+			System.arraycopy(makebyte,0,makebind,0,Sha256Hash.LENGTH);
 			System.arraycopy(tx.getHash().getBytes(),0,makebind,Sha256Hash.LENGTH,Sha256Hash.LENGTH);
+
 			chainstateStoreProvider.put(bindtx.getAntifakeCode(), makebind);
 		}
 		//交易是否与我有关

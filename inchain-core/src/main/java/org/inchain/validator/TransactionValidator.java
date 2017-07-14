@@ -97,41 +97,6 @@ public class TransactionValidator {
 
 			result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
 			return validatorResult;
-
-//			//判断对应的区块存在不，如果不存在，则重置这个区块的交易信息
-//			long blockHeight = verifyTX.getHeight();
-//			BlockHeaderStore blockHeaderStore = blockStoreProvider.getHeaderByHeight(blockHeight);
-//			//如果对应的区块不存在，则证明这笔交易是脏数据，应该清除掉
-//			if(blockHeaderStore == null) {
-//				//重置
-//				blockStoreProvider.revokedTransaction(verifyTX);
-//			} else {
-//				//如果存在，则验证交易的合法性，包括对应的区块是否存在，区块存在情况下，区块是否包含该笔交易
-//				
-//				//先验证是否包含该笔交易
-//				List<Sha256Hash> txHashs = blockHeaderStore.getBlockHeader().getTxHashs();
-//				boolean exist = false;
-//				for (Sha256Hash txHash : txHashs) {
-//					if(txHash.equals(tx.getHash())) {
-//						exist = true;
-//						break;
-//					}
-//				}
-//				if(exist) {
-//					//存在，代表合法的，判断区块是否在合法范围内
-//					Block block = blockStoreProvider.getBestBlock().getBlock();
-//					if(block.getHeight() < blockHeight) {
-//						//重置
-//						blockStoreProvider.revokedTransaction(verifyTX);
-//					} else {
-//						result.setResult(false, TransactionValidatorResult.ERROR_CODE_EXIST, "交易hash与区块里的重复 " + tx.getHash());
-//						return validatorResult;
-//					}
-//				} else {
-//					//不存在，则代表存储的该笔交易为脏数据，清除掉
-//					blockStoreProvider.revokedTransaction(verifyTX);
-//				}
-//			}
 		}
 		//如果是转帐交易
 		//TODO 以下代码请使用状态模式重构
@@ -399,7 +364,7 @@ public class TransactionValidator {
 				byte[] bindbyte = new byte[Sha256Hash.LENGTH];
 				System.arraycopy(antifakeCodeVerifyMakeTxHash,0,makebyte,0,Sha256Hash.LENGTH);
 				if(antifakeCodeVerifyMakeTxHash.length == 2*Sha256Hash.LENGTH){
-					System.arraycopy(antifakeCodeVerifyMakeTxHash,0+Sha256Hash.LENGTH,makebyte,0,Sha256Hash.LENGTH);
+					System.arraycopy(antifakeCodeVerifyMakeTxHash,0+Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
 				}
 
 				TransactionStore txStore = blockStoreProvider.getTransaction(makebyte);
