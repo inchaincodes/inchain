@@ -235,11 +235,11 @@ public class TransactionRecordController implements SubPageController {
 							}
 							
 //							detail += "\r\n" + new Address(network, script.getAccountType(network), script.getChunks().get(2).data).getBase58()+"(+"+Coin.valueOf(output.getValue()).toText()+")";
-							if(tx.getLockTime() == -1 || output.getLockTime() == -1) {
+							if(tx.getLockTime() < 0 || output.getLockTime() < 0) {
 								detail += "(永久锁定)";
-							} else if(((tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeMillis()) ||
+							} else if(((tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds()) ||
 									(tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) ||
-									((output.getLockTime() > Definition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeService.currentTimeMillis()) ||
+									((output.getLockTime() > Definition.LOCKTIME_THRESHOLD && output.getLockTime() > TimeService.currentTimeSeconds()) ||
 											(output.getLockTime() < Definition.LOCKTIME_THRESHOLD && output.getLockTime() > bestBlockHeight))) {
 								long lockTime;
 								if(tx.getLockTime() > output.getLockTime()) {
@@ -257,7 +257,13 @@ public class TransactionRecordController implements SubPageController {
 					}
 					
 					if(isSendout) {
-						detail = "转给 "+outputAddress+"";
+						//是否是锁仓交易
+						if(inputAddress.equals(outputAddress)) {
+							type = "锁仓交易";
+							detail = outputAddress+" \n" + detail;
+						} else {
+							detail = "转给 " + outputAddress + "";
+						}
 					} else {
 						//接收，判断是否是共识奖励
 						if(tx.getType() != Definition.TYPE_COINBASE) {
@@ -578,7 +584,7 @@ public class TransactionRecordController implements SubPageController {
 					}
 				}
 				time = DateUtil.convertDate(new Date(tx.getTime() * 1000), "yyyy-MM-dd HH:mm:ss");
-				
+
 				detailValue.setValue(detail);
 				long confirmCount = 0;
 				if(txs.getHeight() >= 0) {

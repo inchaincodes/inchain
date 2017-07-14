@@ -107,13 +107,13 @@ public class TransactionValidator {
 
 			//验证本次交易的输入
 			List<TransactionInput> inputs = tx.getInputs();
+			//交易引用的输入，赎回脚本必须一致
+			byte[] scriptBytes = null;
 			for (TransactionInput input : inputs) {
 				List<TransactionOutput> outputs = input.getFroms();
 				if(outputs == null || outputs.size() == 0) {
 					throw new VerificationException("交易没有引用输入");
 				}
-				//交易引用的输入，赎回脚本必须一致
-				byte[] scriptBytes = null;
 				for (TransactionOutput output : outputs) {
 					//对上一交易的引用以及索引值
 					Transaction fromTx = output.getParent();
@@ -149,6 +149,19 @@ public class TransactionValidator {
 						output.setParent(preTransaction);
 						output.setScript(preTransaction.getOutput(index).getScript());
 						fromTx = preTransaction;
+					}
+
+					//验证引用的交易是否可用
+					if(fromTx.getLockTime() < 0l ||
+							(fromTx.getLockTime() > Definition.LOCKTIME_THRESHOLD && fromTx.getLockTime() > TimeService.currentTimeSeconds())
+							|| (fromTx.getLockTime() < Definition.LOCKTIME_THRESHOLD && fromTx.getLockTime() > network.getBestHeight())) {
+						throw new VerificationException("引用了不可用的交易");
+					}
+					//验证引用的交易输出是否可用
+					long lockTime = output.getLockTime();
+					if(lockTime < 0l || (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
+							|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > network.getBestHeight())) {
+						throw new VerificationException("引用了不可用的交易输出");
 					}
 
 					TransactionOutput preOutput = fromTx.getOutput(index);
@@ -267,8 +280,32 @@ public class TransactionValidator {
 					return validatorResult;
 				}
 				txOutputFee = txOutputFee.add(outputCoin);
-				//TODO 是否验证必须输出到已有的帐户 ???
 			}
+			//验证不能给自己转账
+			if(tx.getType() == Definition.TYPE_PAY) {
+				Script inputScript = new Script(scriptBytes);
+				byte[] sender = inputScript.getChunks().get(2).data;
+				TransactionOutput output = outputs.get(0);
+				byte[] receiver = output.getScript().getChunks().get(2).data;
+				if(Arrays.equals(sender, receiver)) {
+					//不能给自己转账，因为毫无意义，一种情况除外
+					//锁仓的时候，除外，但是锁仓需要大于24小时，并金额大于100
+					Coin value = Coin.valueOf(output.getValue());
+					long lockTime = output.getLockTime();
+
+					//发送的金额必须大于100
+					if(value.compareTo(Coin.COIN.multiply(100)) < 0) {
+						result.setResult(false, "锁仓的金额需达到100");
+						return validatorResult;
+					}
+					//锁仓的时间必须大于24小时
+					if(lockTime - TimeService.currentTimeSeconds() < 24 * 60 * 60) {
+						result.setResult(false, "锁仓时间必须大于24小时");
+						return validatorResult;
+					}
+				}
+			}
+
 			//输出金额不能大于输入金额
 			if(txOutputFee.isGreaterThan(txInputFee)) {
 				result.setResult(false, "输出金额不能大于输入金额");

@@ -28,7 +28,6 @@ public class ConsensusPoolCacher implements ConsensusPool {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
-	//连接变化监听器
 	private CopyOnWriteArrayList<ConsensusModel> consensusModels = new CopyOnWriteArrayList<ConsensusModel>();
 
 	@Autowired

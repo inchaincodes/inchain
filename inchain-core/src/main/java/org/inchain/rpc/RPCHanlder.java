@@ -476,7 +476,7 @@ public class RPCHanlder {
 				}
 
 				String amount = params.getString(0);
-				String lockTime = params.getString(1);
+				String lockTimeStr = params.getString(1);
 				String address = null;
 
 				if(params.length() == 3) {
@@ -498,7 +498,24 @@ public class RPCHanlder {
 						return result;
 					}
 				}
-				return rpcService.lockMoney(Coin.parseCoin(amount), DateUtil.convertStringToDate(lockTime, "yyyyMMdd").getTime() / 1000, address, password);
+				Coin lockValue = Coin.ZERO;
+				long lockTime = 0l;
+				try {
+					lockValue = Coin.parseCoin(amount);
+				} catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "错误的锁仓金额，命令用法：lockmoney [money] [lockTime] [address] [password]");
+					return result;
+				}
+				try {
+					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
+				} catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "错误的日期，命令用法：lockmoney [money] [lockTime] [address] [password]，日期格式为yyyy-MM-dd");
+					return result;
+				}
+
+				return rpcService.lockMoney(lockValue, lockTime, address, password);
 			}
 
 			//认证账户创建商品

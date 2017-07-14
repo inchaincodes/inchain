@@ -130,7 +130,7 @@ public class ConsensusController implements SubPageController {
     	time.setCellValueFactory(new PropertyValueFactory<ConensusEntity, String>("time") {
     		@Override
     		public ObservableValue<String> call(CellDataFeatures<ConensusEntity, String> param) {
-    			return new ReadOnlyObjectWrapper<String>(DateUtil.convertDate(new Date(param.getValue().getTime())));
+    			return new ReadOnlyObjectWrapper<String>(DateUtil.convertDate(new Date(param.getValue().getTime() * 1000)));
     		}
     	});
     	

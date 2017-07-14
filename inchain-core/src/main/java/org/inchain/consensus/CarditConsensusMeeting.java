@@ -1014,7 +1014,7 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
 					CopyOnWriteArrayList<Peer> outPeers) {
 				//当连接的节点数量为0时，停止
-				if(inCount + outCount == 0) {
+				if(peerKit.getAvailablePeersCount() == 0) {
 					//判断当前是否正在共识中
 					if(currentMetting != null && currentMetting.getTimePeriod() != -1) {
 						canPackage = false;
