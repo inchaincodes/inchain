@@ -912,7 +912,7 @@ public class RPCServiceImpl implements RPCService {
 			}
 			result.put("product", new JSONObject().put("name", productName).put("values", product));
 		}else {
-			result.put("product", new JSONObject().put("name","防伪码尚未关联产品" ));
+			result.put("product", new JSONObject().put("message","防伪码尚未关联产品" ));
 		}
 		//商家信息
 		AccountStore certAccountInfo = res.getBusiness();
