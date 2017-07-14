@@ -1,3 +1,5 @@
+/logs
+/data
 /.idea
 /target
 *.class
