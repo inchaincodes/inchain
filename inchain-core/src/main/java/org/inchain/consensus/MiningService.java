@@ -813,21 +813,25 @@ public final class MiningService implements Mining {
 					//防伪码验证交易
 					AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
 					
-					byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode());
-					if(antifakeCodeVerifyMakeTxHash == null) {
+					byte[] makebind = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode());
+					byte[] makebyte = new byte[Sha256Hash.LENGTH];
+
+					if(makebind == null) {
 						throw new VerificationException("防伪码不存在");
 					}
+					System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+
 					
-					TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
-					if(txStore == null || txStore.getTransaction() == null) {
+					TransactionStore maketxStore = blockStoreProvider.getTransaction(makebyte);
+					if(maketxStore == null || maketxStore.getTransaction() == null) {
 						throw new VerificationException("防伪码生成交易不存在");
 					}
-					Transaction antifakeCodeVerifyMakeTx = txStore.getTransaction();
-					if(antifakeCodeVerifyMakeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+					Transaction makeTx = maketxStore.getTransaction();
+					if(makeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 						throw new VerificationException("错误的防伪码");
 					}
 					//保证该防伪码没有被验证
-					byte[] txStatus = antifakeCodeVerifyMakeTx.getHash().getBytes();
+					byte[] txStatus = makeTx.getHash().getBytes();
 					byte[] txIndex = new byte[txStatus.length + 1];
 					
 					System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);

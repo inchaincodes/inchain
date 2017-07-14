@@ -4073,21 +4073,32 @@ public class AccountKit {
 		AntifakeInfosResult result = new AntifakeInfosResult();
 
 		//判断验证码是否存在
-		byte[] txBytes = chainstateStoreProvider.getBytes(antifakeCode);
-		if(txBytes == null) {
+		byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode);
+		if(makebind == null) {
 			result.setSuccess(false);
 			result.setMessage("防伪码不存在");
 			return result;
 		}
-		TransactionStore txStore = blockStoreProvider.getTransaction(txBytes);
+		byte[] makebyte = new byte[Sha256Hash.LENGTH];
+		byte[] bindbyte = new byte[Sha256Hash.LENGTH];
+		System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+		if(makebind.length == 2* Sha256Hash.LENGTH) {
+			System.arraycopy(makebind,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+		}
+
+		TransactionStore mkStore = blockStoreProvider.getTransaction(makebyte);
+		TransactionStore bdStroe = null;
+		if(makebind.length == 2* Sha256Hash.LENGTH){
+			bdStroe = blockStoreProvider.getTransaction(bindbyte);
+		}
 		//必须存在
-		if(txStore == null) {
+		if(mkStore == null) {
 			result.setSuccess(false);
 			result.setMessage("防伪码生产交易不存在");
 			return result;
 		}
 
-		Transaction fromTx = txStore.getTransaction();
+		Transaction fromTx = mkStore.getTransaction();
 		//交易类型必须是防伪码生成交易
 		if(fromTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 			result.setSuccess(false);
@@ -4096,7 +4107,14 @@ public class AccountKit {
 		}
 		//防伪码创建交易
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
-		TransactionStore productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
+		TransactionStore productTxs = null;
+		if(makebind.length == 2* Sha256Hash.LENGTH){
+			AntifakeCodeBindTransaction bindtx = (AntifakeCodeBindTransaction)bdStroe.getTransaction();
+			productTxs = blockStoreProvider.getTransaction(bindtx.getProductTx().getBytes());
+		}
+		else{
+			productTxs = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
+		}
 		if(productTxs == null) {
 			result.setSuccess(false);
 			result.setMessage("未查询到防伪码对应的商品信息");
