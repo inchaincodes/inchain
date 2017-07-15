@@ -2311,13 +2311,13 @@ public class AccountKit {
     private Account getManagerAccount(String managerAddress) {
         if(managerAddress ==  null){
             Account account =   getCertAccount();
-            if(account.getLevel() >= 3 )
+            if(account.getLevel() >= Configure.MAX_CERT_LEVEL )
                 return null;
             return account;
         }
         for (Account tmpaccount : accountList) {
             if(managerAddress.equals(tmpaccount.getAddress().getBase58())) {
-                if( tmpaccount.getLevel() >= 3 )
+                if( tmpaccount.getLevel() >= Configure.MAX_CERT_LEVEL )
                     return null;
                 return tmpaccount;
             }
