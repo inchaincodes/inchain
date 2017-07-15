@@ -2234,12 +2234,13 @@ public class RPCServiceImpl implements RPCService {
 
 			//通过私钥获取我的地址
 			ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
+
 			Address myAddress = AccountTool.newAddress(network, eckey);
 
 			Account account = new Account(network);
 			account.setAddress(myAddress);
 			account.setEcKey(eckey);
-
+			account.setMgPubkeys(new byte[][]{ eckey.getPubKey()});
 			//转换交易输出
 			List<TransactionOutput> fromOutputs = new ArrayList<>();
 			for(int j = 0; j < jsonArray.length(); j++) {
