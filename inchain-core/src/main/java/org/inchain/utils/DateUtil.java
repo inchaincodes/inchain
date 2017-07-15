@@ -1,5 +1,7 @@
 package org.inchain.utils;
 
+import org.inchain.core.exception.VerificationException;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,8 +75,8 @@ public class DateUtil {
 		try {
 			return new SimpleDateFormat(pattern).parse(date);
 		} catch (ParseException e) {
+			throw  new VerificationException("date error");
 		}
-		return new Date();
 	}
 
 	/**
