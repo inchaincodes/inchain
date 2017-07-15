@@ -70,15 +70,15 @@ public class AssetsRegisterTransaction extends BaseCommonlyTransaction {
 			throw new VerificationException("资产编码不能为空");
 		}
 		//资产编码不能超过20字节
-		if(description.length > 20) {
+		if(code.length > 20) {
 			throw new VerificationException("资产编码不能超过20字节");
 		}
 		//资产图标不能为空
-		if(name == null) {
+		if(logo == null) {
 			throw new VerificationException("资产图标不能为空");
 		}
 		//资产图标不能超过500字节
-		if(description.length > 500) {
+		if(logo.length > 500) {
 			throw new VerificationException("资产图标不能超过500字节");
 		}
 	}

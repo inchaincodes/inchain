@@ -27,6 +27,7 @@ import org.inchain.kits.AccountKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
+import org.inchain.store.AccountStore;
 import org.inchain.store.TransactionStore;
 import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
@@ -128,6 +129,7 @@ public class TransactionRecordController implements SubPageController {
     	}
     	
     	List<TransactionStore> txs = InchainInstance.getInstance().getAccountKit().getTransactions();
+
     	
     	List<TransactionEntity> list = new ArrayList<TransactionEntity>();
     	
@@ -573,7 +575,39 @@ public class TransactionRecordController implements SubPageController {
 						e.printStackTrace();
 					}
 				}
-				
+				else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
+					//资产注册
+					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)tx;
+
+					type = "资产注册";
+					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
+					detail += "描述：" + new String(artx.getDescription(), Utils.UTF_8) + "\n";
+ 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
+				}
+				else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+					AssetsIssuedTransaction issuedTx = (AssetsIssuedTransaction)tx;
+					type = "资产发行";
+					TransactionStore txStore = InchainInstance.getInstance().getAccountKit().getTransaction(issuedTx.getAssetsHash());
+					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
+					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
+					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
+
+					Address address = new Address(network, issuedTx.getReceiver());
+					detail += "接收人：" + address.getBase58()+ "\n";
+				}
+
+				else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
+					AssetsTransferTransaction transferTx = (AssetsTransferTransaction)tx;
+					type = "资产转让";
+					TransactionStore txStore = InchainInstance.getInstance().getAccountKit().getTransaction(transferTx.getAssetsHash());
+					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
+					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
+					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
+
+					Address address = new Address(network, transferTx.getReceiver());
+					detail += "接收人：" + address.getBase58()+ "\n";
+				}
+
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {
 					
 					if(isSendout) {
