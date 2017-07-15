@@ -714,11 +714,15 @@ public class TransactionValidator {
 			}
 			//检查账户是否被吊销
 			if(chainstateStoreProvider.isCertAccountRevoked(hash160)){
-				result.setResult(false, "认证账户被吊销");
+				result.setResult(false, "本地管理员账户已经被吊销");
+				return validatorResult;
+			}
+			if(chainstateStoreProvider.isCertAccountRevoked(revokehash160)){
+				result.setResult(false, "将要吊销的账户已经被吊销");
 				return validatorResult;
 			}
 
-			if((accountInfo.getLevel() == 3 && !Arrays.equals(raccountinfo.getSupervisor(),accountInfo.getHash160())) || accountInfo.getLevel()>3|| accountInfo.getLevel()<= raccountinfo.getLevel()){
+			if((accountInfo.getLevel() == 3 && !Arrays.equals(raccountinfo.getSupervisor(),accountInfo.getHash160())) || accountInfo.getLevel()>3|| accountInfo.getLevel()>= raccountinfo.getLevel()){
 				result.setResult(false, "不具备吊销该账户的权限");
 				return validatorResult;
 			}
