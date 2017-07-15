@@ -897,6 +897,33 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 	}
 
+	public void deleteRevokeCertAccount(CertAccountRevokeTransaction tx){
+		if(!isCertAccountRevoked(tx.getRevokeHash160()))
+			return;
+		revokeLock.lock();
+		try {
+			byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
+
+			byte[] hash160 = tx.getRevokeHash160();
+			byte[] byhash160 = tx.getHash160();
+			byte[] newrevokedAccountHash160s = new byte[revokedAccountHash160s.length - (Address.LENGTH * 2)];
+			byte[] tmpbyte = new byte[Address.LENGTH];
+			for(int j=0;j<revokedAccountHash160s.length;j+= Address.LENGTH * 2) {
+				System.arraycopy(revokedAccountHash160s,j,tmpbyte,0,Address.LENGTH);
+				if(hash160.equals(tmpbyte)){
+					System.arraycopy(revokedAccountHash160s,0,newrevokedAccountHash160s,0,j);
+					System.arraycopy(revokedAccountHash160s,j+2*Address.LENGTH , newrevokedAccountHash160s,j,revokedAccountHash160s.length-j-2*Address.LENGTH);
+					break;
+				}
+			}
+			put(Configure.REVOKED_CERT_ACCOUNT_KEYS,newrevokedAccountHash160s);
+		}catch (Exception e){
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			revokeLock.unlock();
+		}
+	}
+
 	public boolean isCertAccountRevoked(byte[] hash160){
 		byte[] revokedAccountHash160s = getBytes(Configure.REVOKED_CERT_ACCOUNT_KEYS);
 		if(revokedAccountHash160s == null)
@@ -909,6 +936,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		}
 		return false;
 	}
+
+
 	
 	/**
 	 * 不确定的账户，确定下来
@@ -1054,6 +1083,51 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
+	 * 资产注册交易回滚
+	 * @param assetsRegisterTx
+	 */
+	public void rollbackAssetsRegisterTx(Transaction tx) {
+		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)tx;
+		//首先根据code ，删除注册交易
+		byte[] registerKey = Sha256Hash.hash(assetsRegisterTx.getCode());
+		byte[] txHash = tx.getHash().getBytes();
+		delete(registerKey);
+
+		//再从资产注册列表中，删除交易
+		byte[] assetsRegHash256s = getBytes(Configure.ASSETS_REG_LIST_KEYS);
+		if(assetsRegHash256s == null) {
+			return;
+		}
+		//如果刚好存储的值相等，直接删除
+		if(assetsRegHash256s.length == Sha256Hash.LENGTH) {
+			if(Arrays.equals(txHash, assetsRegHash256s)) {
+				delete(Configure.ASSETS_REG_LIST_KEYS);
+			}
+			return;
+		}
+
+		for(int j = 0; j < assetsRegHash256s.length; j++) {
+			byte[] current = new byte[Sha256Hash.LENGTH];
+			System.arraycopy(assetsRegHash256s, j, current, 0, Sha256Hash.LENGTH);
+			if(Arrays.equals(current, txHash)) {
+				byte [] before = new byte[j];
+				System.arraycopy(assetsRegHash256s, 0, before, 0, j);
+
+				byte [] end = new byte[assetsRegHash256s.length - j - Sha256Hash.LENGTH];
+				System.arraycopy(assetsRegHash256s, j + Sha256Hash.LENGTH, end, 0, end.length);
+
+				//newHash = before + end;
+				byte []newHash = new byte[assetsRegHash256s.length - Sha256Hash.LENGTH];
+				System.arraycopy(before, 0, newHash, 0, before.length);
+				System.arraycopy(end, 0, newHash, before.length, end.length);
+
+				put(Configure.ASSETS_REG_LIST_KEYS, newHash);
+				break;
+			}
+		}
+	}
+
+	/**
 	 * 根据hash256(code)获取注册资产
 	 * @param code
 	 * @return
@@ -1100,13 +1174,13 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	public void assetsIssued(AssetsIssuedTransaction assetsIssuedTx) {
 		assetsLock.lock();
 		try {
+			//1. 首先找到注册交易，然后通过注册交易的code，生成存储资产发行列表的key
 			TransactionStore txs =  blockStoreProvider.getTransaction(assetsIssuedTx.getAssetsHash().getBytes());
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
 
 			//资产发行列表的key = [1],[1] + hash256(registerTx.code)
 			byte[] key = new byte[Sha256Hash.LENGTH + 2];
 			byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
-			//固定key的前两位为 1,1
 			System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
 			System.arraycopy(hash256, 0, key, 2, hash256.length);
 
@@ -1133,6 +1207,68 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
+	 * 资产发行交易回滚
+	 * @param tx
+	 */
+	public void rollbackAssetsIssueTx(Transaction tx) {
+		AssetsIssuedTransaction assetsIssuedTx = (AssetsIssuedTransaction)tx;
+		assetsLock.lock();
+		try {
+			//1. 首先找到注册交易，然后通过注册交易的code，生成存储资产发行列表的key
+			TransactionStore txs =  blockStoreProvider.getTransaction(assetsIssuedTx.getAssetsHash().getBytes());
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
+
+			//资产发行列表的key = [1],[1] + hash256(registerTx.code)
+			byte[] key = new byte[Sha256Hash.LENGTH + 2];
+			byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
+			System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+			System.arraycopy(hash256, 0, key, 2, hash256.length);
+
+			//获取已存储的资产发行列表
+			byte[] txHash = assetsIssuedTx.getHash().getBytes();
+			byte[] assetsIssueHash256s = getBytes(key);
+			if(assetsIssueHash256s == null) {
+				return;
+			}
+			if(assetsIssueHash256s.length == Sha256Hash.LENGTH) {
+				if(Arrays.equals(txHash, assetsIssueHash256s)) {
+					delete(key);
+				}
+				return;
+			}
+
+			//找到该笔资产发行交易，然后删除
+			for(int j = 0; j < assetsIssueHash256s.length; j++) {
+				byte[] current = new byte[Sha256Hash.LENGTH];
+				System.arraycopy(assetsIssueHash256s, j, current, 0, Sha256Hash.LENGTH);
+				if(Arrays.equals(current, txHash)) {
+					byte [] before = new byte[j];
+					System.arraycopy(assetsIssueHash256s, 0, before, 0, j);
+
+					byte [] end = new byte[assetsIssueHash256s.length - j - Sha256Hash.LENGTH];
+					System.arraycopy(assetsIssueHash256s, j + Sha256Hash.LENGTH, end, 0, end.length);
+
+					//newHash = before + end;
+					byte []newHash = new byte[assetsIssueHash256s.length - Sha256Hash.LENGTH];
+					System.arraycopy(before, 0, newHash, 0, before.length);
+					System.arraycopy(end, 0, newHash, before.length, end.length);
+
+					put(key, newHash);
+					break;
+				}
+			}
+
+			//从我的资产账户中，清除这笔交易
+			updateAccountAssets(hash256, assetsIssuedTx.getReceiver(), assetsIssuedTx.getAmount(), -1);
+
+		}catch (Exception e) {
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			assetsLock.unlock();
+		}
+	}
+
+	/**
 	 * 更新账户的资产信息
 	 * @param code 注册交易的code
 	 * @param hash160 用户地址的hash160
@@ -1149,8 +1285,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		//获取接收人资产账户列表
 		byte[] myAssets = getBytes(key);
 
-		if(myAssets == null) {
-
+		if(myAssets == null && symbol == 1) {
 			//如果资产账户列表为空，直接新增
 			Assets assets = new Assets(code, amount);
 			myAssets = assets.serialize();
@@ -1185,7 +1320,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 				}
 			}
 			//如果没有则在后面新增
-			if(!hasAssets) {
+			if(!hasAssets && symbol == 1) {
 				byte [] newAssets = new byte[myAssets.length + Assets.CODE_LENGTH + 8];
 				System.arraycopy(myAssets, 0, newAssets, 0, myAssets.length);
 
@@ -1274,23 +1409,53 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @param assetsTransferTx
 	 */
 	public void assetsTransfer(AssetsTransferTransaction assetsTransferTx) {
-		TransactionStore txs =  blockStoreProvider.getTransaction(assetsTransferTx.getAssetsHash().getBytes());
-		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
-		byte[] sender =  assetsTransferTx.getHash160();
-		byte[] receiver = assetsTransferTx.getReceiver();
-		//首先判断转让人 余额是否充足
-		Assets assets = getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
-		if(assets == null) {
-			throw new RuntimeException("转让人没有与资产相关的信息");
+		assetsLock.lock();
+		try{
+			TransactionStore txs =  blockStoreProvider.getTransaction(assetsTransferTx.getAssetsHash().getBytes());
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
+			byte[] sender =  assetsTransferTx.getHash160();
+			byte[] receiver = assetsTransferTx.getReceiver();
+			//首先判断转让人 余额是否充足
+			Assets assets = getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
+			if(assets == null) {
+				throw new RuntimeException("转让人没有与资产相关的信息");
 
-		}
-		if(assets.getBalance() < assetsTransferTx.getAmount()) {
-			throw new RuntimeException("转让人资产余额不足");
-		}
+			}
+			if(assets.getBalance() < assetsTransferTx.getAmount()) {
+				throw new RuntimeException("转让人资产余额不足");
+			}
 
-		byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
-		updateAccountAssets(hash256, sender, assetsTransferTx.getAmount(), -1);
-		updateAccountAssets(hash256, receiver, assetsTransferTx.getAmount(), 1);
+			byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
+			updateAccountAssets(hash256, sender, assetsTransferTx.getAmount(), -1);
+			updateAccountAssets(hash256, receiver, assetsTransferTx.getAmount(), 1);
+		}catch (Exception e) {
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			assetsLock.unlock();
+		}
+	}
+
+	/**
+	 * 资产转让交易回滚
+	 * @param tx
+	 */
+	public void rollbackAssetsTransferTx(Transaction tx) {
+		assetsLock.lock();
+		try {
+			AssetsTransferTransaction transferTx = (AssetsTransferTransaction)tx;
+			byte[] sender =  transferTx.getHash160();
+			byte[] receiver = transferTx.getReceiver();
+			//与资产转让交易做反向操作
+			TransactionStore txs =  blockStoreProvider.getTransaction(transferTx.getAssetsHash().getBytes());
+			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
+			byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
+			updateAccountAssets(hash256, sender, transferTx.getAmount(),  1);
+			updateAccountAssets(hash256, receiver, transferTx.getAmount(), -1);
+		}catch (Exception e) {
+			log.error("出错了{}", e.getMessage(), e);
+		}finally {
+			assetsLock.unlock();
+		}
 	}
 
 	public void clean() {

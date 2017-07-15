@@ -162,7 +162,7 @@ public final class Configure {
 	/**
 	 * 认证账户level最大值
 	 */
-	public final static int MAX_CERT_LEVEL = 3;
+	public final static int MAX_CERT_LEVEL = 4;
 
 	/**
 	 * 被吊销的认证账户
@@ -203,7 +203,7 @@ public final class Configure {
 	/** 参与共识所需最高保证金 -- 100 W ins **/
 	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(1000000);
 	/** 资产发行注册手续费 --  1 W ins **/
-	public static final Coin ASSETS_REG_FEE = Coin.COIN.multiply(100);
+	public static final Coin ASSETS_REG_FEE = Coin.COIN.multiply(10000);
 
 
 	/*************  交易相关配置   begin  *****************/

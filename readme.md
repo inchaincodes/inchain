@@ -43,7 +43,7 @@ array：数组，由一个变长整数后接元素序列构成。
 |---|---|---|---|
 |8| Timestamp |int64|当前时间|
 |4|Service Version|uint32|服务版本|
-|16|Peer Address|byte[16]|IPv6地址|
+|16|IP Address|byte[16]|IPv6地址|
 |2|Port|uint16|端口|
 
 > Peer Address同时兼容IPv6与IPv4地址。  
@@ -65,21 +65,24 @@ array：数组，由一个变长整数后接元素序列构成。
 > |0x03|NewBlock|新区块|
 > |0x04|Consensus|共识|
 
-3.Transaction
+3.TransactionHeader
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|type|int32|类型|
-|4|version|uint32|版本|
-|4|inputs size|int32|输入交易数量|
-|?\*?|inputs|tx_in[]|输入交易表|
-|4|inputs size|int32|输出交易数量|
-|?\*?|outputs|tx_out[]|输出交易表|
-|8| Timestamp |int64|交易时间戳|
-|8|lockTime|int64|锁定时间|
+|4|type|int32|交易类型|
+|4|version|uint32|交易版本|
+|?|input tx count|VarInt|输入交易数|
+|?|input|input[]|输入交易|
+|?|output tx count|VarInt|输出交易数|
+|?|output|output[]|输出交易|
+|8|time|int64|时间戳|
+|8|lock time|int64|锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度|
 |?|remark|varstr|备注|
+|?|sign script|varstr|签名脚本|
 
+> remark不能超过100字节。
 > lockTime 小于0永久锁定，大于等于0为锁定的时间或者区块高度
+
 
 4.BlockHeader
 
@@ -104,22 +107,6 @@ array：数组，由一个变长整数后接元素序列构成。
 |---|---|---|---|
 |4|sign count|int32|签名长度|
 |?|sign|byte[?]|签名
-
-6.Transaction
-
-|尺寸|字段|数据类型|说明|
-|---|---|---|---|
-|4|type|int32|交易类型|
-|4|version|uint32|交易版本|
-|?|input tx count|VarInt|输入交易数|
-|?|input|input[]|输入交易|
-|?|output tx count|VarInt|输出交易数|
-|?|output|output[]|输出交易|
-|8|time|int64|时间戳|
-|8|lock time|int64|锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度|
-|?|remark|varstr|备注|
-
-> remark不能超过100字节。
 
 协议
 ---
@@ -291,8 +278,249 @@ consensus
 TX协议
 ---
 
+CommonlyTransaction
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|Trans type|uint32|交易类型|
+|4|version|uint32|版本号|
+|8|time|uint64|时间|
+|?|script length|varint|签名内容长度|
+|?|script|byte[?]|签名|
 
 
+---
+
+AntifakeCodeBindTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|anti fake code|byte[]|产品防伪码|
+|32|product tx |sha256|关联产品|
+|8|nonce|int64|产品编号|
+
+---
+
+AntifakeCodeMakeTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|has product|int32|是否关联产品 0:关联 1:不关联|
+|32|product tx|sha256|关联产品，仅当hasProduct==1时存在|
+|8|nonce|int64|产品编号|
+
+---
+
+AntifakeCodeVerifyTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|antifakecode|byte[]|防伪码|
+|?|longitude|double|验证时的位置信息|
+|?|latitude|double|验证时的位置信息|
+
+---
+
+AntifakeTransferTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|antifakecode|byte[]|防伪码|
+|32|receiver|sha256|接收人|
+|?|remark length|varint|remark长度|
+|?|remark|byte[]|备注|
+
+---
+
+AssetsIssuedTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|32|assets|sha256|资产Hash|
+|32|receiver|sha256|接收人|
+|8|amount|int64|数量|
+|?|remark length|varint|remark长度|
+|?|remark|byte[]|备注|
+
+---
+
+AssetsRegisterTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|name|varstr|资产名称|
+|?|description|varstr|资产描述|
+|?|code|varstr|资产代号|
+|?|logo|varstr|资产Logo图片|
+|?|remark|varstr|备注|
+
+---
+
+AssetsTransferTransaction : AssetsIssuedTransaction 
+
+> 无附加参数
+
+---
+
+CertAccountRegisterTransaction
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|type|int32|交易类型|
+|4|version|uint32|版本|
+|8|time|int64|时间|
+|32|hash|sha256|账户信息|
+|32|superhash|sha256|superHash160|
+|4|level|int32|level|
+|?|bodycontent length|varint|主体长度|
+|?|bodyContent|byte[]|主体|
+|?|pubkeys count|varint|账户公钥数|
+|?*?|pubkeys|array[byte[]]|账户公钥组|
+|?|transPubKeys count|int|交易公钥数|
+|?\*?|transPubKeys|array[byte[]]|交易公钥|
+|?|script|varstr|签名|
+
+---
+
+CertAccountRevokeTransaction
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|type|int32|交易类型|
+|4|version|uint32|版本|
+|8|time|int64|时间|
+|32|revoke hash|sha256|撤销信息|
+|32|hash|sha256|账户信息|
+|32|superhash|sha256|superHash160|
+|4|level|int32|level|
+|?|bodycontent length|varint|主体长度|
+|?|bodyContent|byte[]|主体|
+|?|pubkeys count|varint|账户公钥数|
+|?*?|pubkeys|array[byte[]]|账户公钥组|
+|?|transPubKeys count|int|交易公钥数|
+|?\*?|transPubKeys|array[byte[]]|交易公钥|
+|?|script|varstr|签名|
 
 
+---
 
+CertAccountUpdateTransaction : CertAccountRegisterTransaction
+
+> 无扩展数据
+
+---
+
+CirculationTransaction: CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|antifakecode|varstr|防伪码|
+|?|tag|varstr|标签|
+|?|content|varstr|内容|
+
+
+---
+
+CreditTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|32|owner Hash160|SHA256|信用获得者|
+|8|credit|int64|信用值|
+|4|reason type|int32|变动原因|
+|32|reason hash|sha256|交易签名，根据此交易做出的变动|
+
+---
+
+GeneralAntifakeTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|type|int32|交易类型|
+|4|version|uint32|版本|
+|8|time|int64|时间|
+|4|flags|int32|类型|
+|32|product tx|sha256|关联产品|
+|8|nonce|int64|商品编号|
+|8|password|int64|商品验证密码|
+|?|sign verification|varstr|商家签名信息|
+|?|longitude|double|经度|
+|?|longitude|latitude|纬度|
+|?|script|varstr|签名|
+
+---
+
+ProductTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|product|varstr|产品信息|
+
+---
+
+RegAliasTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|alias length|varint|别名长度|
+|?|alias|byte[?]|别名|
+
+
+---
+
+RegConsensusTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|4|period start time|uint32|申请时的时段|
+|?|packager|byte[?]|指定打包人|
+
+---
+
+RelevanceSubAccountTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|relevanceHashs|byte[]|关联账户|
+|?|alias|varstr|别名|
+|?|content|varstr|描述|
+
+---
+
+RemConsensusTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+
+---
+
+RemoveSubAccountTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|relevanceHashs|byte[]|关联账户|
+|32|txhash|sha256|交易hash|
+
+---
+
+UnkonwTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|content|byte[]|未知交易|
+
+---
+
+UpdateAliasTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|alias|varstr|新别名|
+
+---
+
+ViolationTransaction : CommonlyTransaction 
+
+|尺寸|字段|数据类型|说明|
+|---|---|---|---|
+|?|violationEvidence|ViolationEvidence|证据|
