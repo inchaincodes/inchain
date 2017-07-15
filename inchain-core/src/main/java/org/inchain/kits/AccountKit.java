@@ -2049,7 +2049,6 @@ public class AccountKit {
         try {
             CertAccountRevokeTransaction cutx = new CertAccountRevokeTransaction(network,raddress.getHash160(), account.getMgPubkeys(), account.getTrPubkeys(),account.getAddress().getHash160(),account.getLevel());
             cutx.sign(account, Definition.TX_VERIFY_TR);
-
             cutx.verify();
             cutx.verifyScript();
 
@@ -2301,6 +2300,7 @@ public class AccountKit {
 		peerKit.broadcastMessage(tx);
 
 		account.setAccountTransaction(tx);
+		account.setTxhash(tx.getHash());
 
 		return account;
 	}
