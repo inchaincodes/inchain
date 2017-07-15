@@ -674,9 +674,19 @@ public class RPCServiceImpl implements RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject assetsIssue(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException {
+	public JSONObject assetsIssue(String code, String receiver, String amount,String remark, String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
 		Account account = null;
+
+		//底层存储时，将金额小数点右移4位后，取整数保存
+		long money = 0L;
+		try {
+			money = Utils.movePointRight(amount, 4);
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", "金额不正确");
+			return result;
+		}
 
 		try {
 			//1、首先判断账户是否存在，是否加密
@@ -697,7 +707,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("注册资产不存在");
 			}
 
-			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hashReceiver, amount, remark);
+			BroadcastResult br = accountKit.assetsIssue(account, assetsRegisterTx, hashReceiver, money, remark);
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 
@@ -746,6 +756,7 @@ public class RPCServiceImpl implements RPCService {
 		regJson.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
 
 		Long amount = 0L;   //资产发行总量
+
 		for(TransactionStore issueTx : list) {
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) issueTx.getTransaction();
 			JSONObject json = txConver(issueTx);
@@ -810,11 +821,23 @@ public class RPCServiceImpl implements RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	public JSONObject assetsTransfer(String code, String receiver, Long amount,String remark, String address, String password) throws JSONException {
+	public JSONObject assetsTransfer(String code, String receiver, String amount,String remark, String address, String password) throws JSONException {
 		JSONObject result = new JSONObject();
 		Account account = null;
 
+		//底层存储时，将金额小数点右移4位后，取整数保存
+		long money = 0L;
 		try {
+			money = Utils.movePointRight(amount, 4);
+		} catch (Exception e) {
+			result.put("success", false);
+			result.put("message", "金额不正确");
+			return result;
+		}
+
+		try {
+
+
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
@@ -834,7 +857,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("注册资产不存在");
 			}
 
-			BroadcastResult br = accountKit.assetsTransfer(account, assetsRegisterTx, hashReceiver, amount, remark);
+			BroadcastResult br = accountKit.assetsTransfer(account, assetsRegisterTx, hashReceiver, money, remark);
 			result.put("success",  br.isSuccess());
 			result.put("message", br.getMessage());
 

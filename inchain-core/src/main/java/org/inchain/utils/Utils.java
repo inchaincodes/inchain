@@ -4,10 +4,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import org.inchain.core.Coin;
 import org.inchain.core.VarInt;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -342,5 +344,15 @@ public class Utils {
 		}
 		return sb.toString();
 	}
+
+
+	public static long movePointRight(String str, int n) {
+        try {
+            long value = new BigDecimal(str).movePointRight(n).toBigIntegerExact().longValue();
+            return value;
+        } catch (ArithmeticException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
 }

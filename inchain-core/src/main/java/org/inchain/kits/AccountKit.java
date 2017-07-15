@@ -713,8 +713,8 @@ public class AccountKit {
 	 * @param amount
 	 * @return
 	 */
-	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, byte[] receiver, Long amount, String remark) {
-		AssetsIssuedTransaction issuedTx = new AssetsIssuedTransaction(network, assetsRegisterTx.getHash(), receiver, amount,remark.getBytes(Utils.UTF_8));
+	public BroadcastResult assetsIssue(Account account, AssetsRegisterTransaction assetsRegisterTx, byte[] receiver, long amount, String remark) {
+		AssetsIssuedTransaction issuedTx = new AssetsIssuedTransaction(network, assetsRegisterTx.getHash(), receiver, amount, remark.getBytes(Utils.UTF_8));
 
 		//签名交易
 		final LocalTransactionSigner signer = new LocalTransactionSigner();

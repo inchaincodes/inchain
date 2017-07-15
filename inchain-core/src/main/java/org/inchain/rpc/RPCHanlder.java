@@ -901,7 +901,7 @@ public class RPCHanlder {
 
 			String code = params.getString(0);
 			String receiver = params.getString(1);
-			Long amount =  params.getLong(2);
+			String amount =  params.getString(2);
 			String remark = params.getString(3);
 
 			String address = null;
@@ -964,7 +964,7 @@ public class RPCHanlder {
 
 			String code = params.getString(0);
 			String receiver = params.getString(1);
-			Long amount =  params.getLong(2);
+			String amount =  params.getString(2);
 			String remark = params.getString(3);
 
 			String address = null;
