@@ -2493,7 +2493,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 		
 		//判断信用是否足够
-		long cert = getAccountCredit(consensusAddress);
+		long cert = getAccountCredit(null);
 		
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
