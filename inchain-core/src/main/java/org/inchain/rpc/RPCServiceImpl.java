@@ -2197,11 +2197,95 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 
-
-	public JSONObject broadcastTransferTransaction(String txContent) throws JSONException {
+	/**
+	 * 广播交易
+	 */
+	@Override
+	public JSONObject broadcastTransferTransaction(Long amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
 		JSONObject json = new JSONObject();
+		try {
+			//验证金额是否正确
+			if(amount <= 0) {
+				json.put("success", false);
+				json.put("message", "金额不正确");
+				return json;
+			}
+			Coin moneyCoin = null;             //转账的币
+			Coin feeCoin = null;               //手续费
+			try {
+				moneyCoin = Coin.valueOf(amount);
+				feeCoin = Coin.parseCoin("0.1");
+			} catch (Exception e) {
+				json.put("success", false);
+				json.put("message", "金额不正确");
+				return json;
+			}
+			//通过私钥获取我的地址
+			ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
+			Address myAddress = AccountTool.newAddress(network, eckey);
 
+			//转换交易输出
+			List<TransactionOutput> fromOutputs = new ArrayList<>();
+			for(int j = 0; j < jsonArray.length(); j++) {
+				JSONObject object = jsonArray.getJSONObject(j);
+				String txid = object.getString("txid");
+				TransactionStore txStore = blockStoreProvider.getTransaction(Sha256Hash.hash(txid.getBytes()));
+				if(txStore == null) {
+					throw new VerificationException("txid：" + txid + "未查询到相关交易");
+				}
+				Transaction tx = txStore.getTransaction();
+				if(!tx.isPaymentTransaction()) {
+					throw new VerificationException("txid：" + txid + "交易类型错误");
+				}
+
+				Integer index = object.getInt("index");
+				try {
+					TransactionOutput output = tx.getOutput(index);
+					//判断交易是否已花费
+					//交易状态
+					byte[] status = txStore.getStatus();
+					if(isSpent(status,output, myAddress.getHash160())) {
+						throw new VerificationException("txid：" + txid + "交易输出已花费或不可用index:" + index);
+					}
+
+					fromOutputs.add(output);
+				}catch (ArrayIndexOutOfBoundsException ae) {
+					throw new VerificationException("txid：" + txid + "未查询到相关交易输出index:" + index);
+				}
+			}
+
+			Transaction tx = new Transaction(network);
+			tx.setLockTime(TimeService.currentTimeSeconds());
+			tx.setType(Definition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
+
+
+
+
+		}catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+		}
 		return json;
+	}
+
+	//判断交易输出是否已花费
+	private boolean isSpent(byte[] status, TransactionOutput output, byte[]hash160) {
+		Script script = output.getScript();
+		if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+			if(status[output.getIndex()] == TransactionStore.STATUS_USED) {
+				return true;
+			}
+
+			//本笔输出是否可用
+			long lockTime = output.getLockTime();
+			if(lockTime < 0l
+					|| (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
+					|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > network.getBestHeight()) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**

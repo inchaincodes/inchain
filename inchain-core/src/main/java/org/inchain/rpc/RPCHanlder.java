@@ -1,6 +1,7 @@
 package org.inchain.rpc;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -1103,7 +1104,18 @@ public class RPCHanlder {
 
 		//广播交易
 		case "broadcastTransferTransaction" : {
+			if(params.length() != 4) {
+				result.put("success", false);
+				result.put("message", "缺少参数");
+				return result;
+			}
 
+			Long amount = params.getLong(0);
+			String privateKey = params.getString(1);
+			String toAddress = params.getString(2);
+			JSONArray jsonArray = params.getJSONArray(3);
+
+			rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, jsonArray);
 		}
 
 		
