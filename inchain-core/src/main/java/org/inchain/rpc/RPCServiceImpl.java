@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -836,10 +837,9 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		try {
-
-
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
+
 
 			//2、判断接收人地址是否合法
 			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接收人的账户类型，所以采用了默认的hash，长度为25位
@@ -849,6 +849,10 @@ public class RPCServiceImpl implements RPCService {
 				hashReceiver = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
+			}
+			//判断转账人和接收人是不是同一个人
+			if(Arrays.equals(account.getAddress().getHash160(), hashReceiver)) {
+				throw new VerificationException("接收人和转账人不能是同一人");
 			}
 
 			//3、根据code获取资产注册交易是否存在
@@ -2489,7 +2493,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 		
 		//判断信用是否足够
-		long cert = getAccountCredit(consensusAddress);
+		long cert = getAccountCredit(null);
 		
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());

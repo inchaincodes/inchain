@@ -1258,6 +1258,8 @@ public class RPCHanlder {
 		sb.append("  gettransaction                  获取帐户的交易记录\n");
 		sb.append("  encryptwallet                   加密钱包\n");
 		sb.append("  password                        修改钱包密码\n");
+		sb.append("  getprivatekey [password] [address]                        查看账户的私钥\n");
+		sb.append("  getaddressbypubkey [pubkey] 			通过账户公钥获取地址\n");
 
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
@@ -1269,7 +1271,7 @@ public class RPCHanlder {
 		sb.append("  getconsensus                    获取共识节点列表\n");
 		sb.append("  getconsensuscount               获取共识节点数量\n");
 		sb.append("  getconsensusstatus              获取当前共识状态\n");
-		sb.append("  regconsensus                    注册共识\n");
+		sb.append("  regconsensus [consensusAddress] [password]                   注册共识\n");
 		sb.append("  remconsensus                    退出共识\n");
 		sb.append("\n");
 		sb.append(" --- 节点相关 --- \n");
@@ -1303,7 +1305,7 @@ public class RPCHanlder {
 		sb.append("  getassetslist                                                                                                                查询资产注册列表\n");
 		sb.append("  assetsissue [code] [receiver] [amount] [remark] ([address]) ([password])                                资产发行\n");
 		sb.append("  getassetsissuelist [code]                                                                                               查询资产发行列表\n");
-		sb.append("  getmineassets ([address]) ([password])                                                                    查询我的资产账户列表\n");
+		sb.append("  getmineassets ([address]) ([password])                                                                    查询我的账户资产列表\n");
 		sb.append("  assetstransfer [code] [receiver] [amount] [remark] ([address]) ([password])                             资产转让\n");
 
 		sb.append(" --- 系统相关 --- \n");
