@@ -1100,6 +1100,12 @@ public class RPCHanlder {
 			
 			return rpcService.broadcast(params.getString(0));
 		}
+
+		//广播交易
+		case "broadcastTransferTransaction" : {
+
+		}
+
 		
 		//广播交易，交易存于文件里
 		case "broadcastfromfile": {

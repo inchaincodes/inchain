@@ -376,6 +376,9 @@ public interface RPCService {
 	 */
 	JSONObject broadcast(String txContent) throws JSONException;
 
+
+	JSONObject broadcastTransferTransaction(String txContent) throws JSONException;
+
 	/**
 	 * 广播交易 - 交易内容存放在文件里面
 	 * @param filepath

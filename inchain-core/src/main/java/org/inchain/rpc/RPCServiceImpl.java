@@ -2196,6 +2196,13 @@ public class RPCServiceImpl implements RPCService {
 		
 		return json;
 	}
+
+
+	public JSONObject broadcastTransferTransaction(String txContent) throws JSONException {
+		JSONObject json = new JSONObject();
+
+		return json;
+	}
 	
 	/**
 	 * 广播交易 - 交易内容存放在文件里面
