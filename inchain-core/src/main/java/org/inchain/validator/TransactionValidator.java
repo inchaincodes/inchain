@@ -694,6 +694,7 @@ public class TransactionValidator {
 			CertAccountRevokeTransaction revokeTx = (CertAccountRevokeTransaction) tx;
 			byte[] hash160 = revokeTx.getHash160();
 			byte[] revokehash160 = revokeTx.getRevokeHash160();
+
 			if(revokeTx.getLevel() >= Configure.MAX_CERT_LEVEL){
 				result.setResult(false, "签发该账户的上级账户不具备该权限");
 				return validatorResult;
@@ -701,6 +702,7 @@ public class TransactionValidator {
 			//检查用户是否为认证账户，检查用户状态是否可用
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			AccountStore raccountinfo  = chainstateStoreProvider.getAccountInfo(revokehash160);
+
 
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion() || accountInfo.getStatus() !=0 ) {
 				result.setResult(false, "只有激活状态下的认证账户才能修改");
@@ -716,7 +718,7 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			if(accountInfo.getLevel() == 2 && !Arrays.equals(raccountinfo.getSupervisor(),accountInfo.getHash160()) || accountInfo.getLevel()>2){
+			if((accountInfo.getLevel() == 3 && !Arrays.equals(raccountinfo.getSupervisor(),accountInfo.getHash160())) || accountInfo.getLevel()>3|| accountInfo.getLevel()<= raccountinfo.getLevel()){
 				result.setResult(false, "不具备吊销该账户的权限");
 				return validatorResult;
 			}

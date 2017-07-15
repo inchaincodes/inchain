@@ -162,7 +162,7 @@ public final class Configure {
 	/**
 	 * 认证账户level最大值
 	 */
-	public final static int MAX_CERT_LEVEL = 3;
+	public final static int MAX_CERT_LEVEL = 4;
 
 	/**
 	 * 被吊销的认证账户
