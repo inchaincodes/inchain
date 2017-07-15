@@ -204,10 +204,7 @@ public class BlockValidator {
 					ByteHash byteHash = new ByteHash(statusKey);
 					if(outputIndexHashArray.contains(byteHash)) {
 						log.warn("存在双花交易");
-						//TODO 主网需要去掉判断
-						if(block.getHeight() > 630000) {
-							return new Result(false, "存在双花交易");
-						}
+						return new Result(false, "存在双花交易");
 					} else {
 						outputIndexHashArray.add(byteHash);
 					}
