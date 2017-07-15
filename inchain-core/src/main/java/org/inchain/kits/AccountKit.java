@@ -2300,7 +2300,7 @@ public class AccountKit {
 		peerKit.broadcastMessage(tx);
 
 		account.setAccountTransaction(tx);
-		account.setTxhash(tx.getHash());
+		//account.setTxhash(tx.getHash());
 
 		return account;
 	}

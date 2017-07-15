@@ -172,8 +172,7 @@ public final class Configure {
 	/**
 	 * 参与共识所需的信用点
 	 */
-	//TODO 临时设置为0
-	public final static long CONSENSUS_CREDIT = 0;
+	public final static long CONSENSUS_CREDIT = 1;
 	
 	/**
 	 * 转账获得信用点数
@@ -192,18 +191,18 @@ public final class Configure {
 	/**
 	 * 超时未出块惩罚信用点数
 	 */
-	public final static long CERT_CHANGE_TIME_OUT = -1;
+	public final static long CERT_CHANGE_TIME_OUT = -2;
 	/**
 	 * 严重违规的惩罚信用点数
 	 */
-	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999999;
+	public final static long CERT_CHANGE_SERIOUS_VIOLATION = -9999999999l;
 
 	/** 参与共识所需最低保证金 -- 1 W ins **/
 	public static final Coin CONSENSUS_MIN_RECOGNIZANCE = Coin.COIN.multiply(10000);
-	/** 参与共识所需最高保证金 -- 100 W ins **/
-	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(1000000);
+	/** 参与共识所需最高保证金 **/
+	public static final Coin CONSENSUS_MAX_RECOGNIZANCE = Coin.COIN.multiply(500000);
 	/** 资产发行注册手续费 --  1 W ins **/
-	public static final Coin ASSETS_REG_FEE = Coin.COIN.multiply(100);
+	public static final Coin ASSETS_REG_FEE = Coin.COIN.multiply(10000);
 
 
 	/*************  交易相关配置   begin  *****************/
