@@ -1114,11 +1114,11 @@ public class AccountKit {
 		try {
 			//发送的金额必须大于100
 			if(money.compareTo(Coin.COIN.multiply(100)) < 0) {
-				throw new RuntimeException("锁仓的金额需达到100");
+				throw new VerificationException("锁仓的金额需达到100");
 			}
 			//锁仓的时间必须大于24小时
 			if(lockTime - TimeService.currentTimeSeconds() < 24 * 60 * 60) {
-				throw new RuntimeException("锁仓时间必须大于24小时");
+				throw new VerificationException("锁仓时间必须大于24小时");
 			}
 			if(accountList == null || accountList.size() == 0) {
 				throw new VerificationException("没有可用账户");

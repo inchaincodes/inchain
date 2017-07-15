@@ -35,6 +35,8 @@ import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
+import org.inchain.script.ScriptBuilder;
+import org.inchain.signers.LocalTransactionSigner;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockForkStore;
 import org.inchain.store.BlockHeaderStore;
@@ -2195,6 +2197,156 @@ public class RPCServiceImpl implements RPCService {
 		}
 		
 		return json;
+	}
+
+	/**
+	 * 广播交易
+	 */
+	@Override
+	public JSONObject broadcastTransferTransaction(Long amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
+		JSONObject json = new JSONObject();
+		try {
+			//验证金额是否正确
+			if(amount <= 0) {
+				json.put("success", false);
+				json.put("message", "金额不正确");
+				return json;
+			}
+			Coin moneyCoin = null;             //转账的币
+			Coin feeCoin = null;               //手续费
+			try {
+				moneyCoin = Coin.valueOf(amount);
+				feeCoin = Coin.parseCoin("0.1");
+			} catch (Exception e) {
+				json.put("success", false);
+				json.put("message", "金额不正确");
+				return json;
+			}
+
+			Address receiveAddress = null;
+			try {
+				receiveAddress = Address.fromBase58(network, toAddress);
+			} catch (Exception e) {
+				json.put("success", false);
+				json.put("message", "接收地址不正确");
+				return json;
+			}
+
+			//通过私钥获取我的地址
+			ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
+
+			Address myAddress = AccountTool.newAddress(network, eckey);
+
+			Account account = new Account(network);
+			account.setAddress(myAddress);
+			account.setEcKey(eckey);
+			account.setMgPubkeys(new byte[][]{ eckey.getPubKey()});
+			//转换交易输出
+			List<TransactionOutput> fromOutputs = new ArrayList<>();
+			for(int j = 0; j < jsonArray.length(); j++) {
+				JSONObject object = jsonArray.getJSONObject(j);
+				String txid = object.getString("txid");
+				TransactionStore txStore = blockStoreProvider.getTransaction(Sha256Hash.hash(txid.getBytes()));
+				if(txStore == null) {
+					throw new VerificationException("txid：" + txid + "未查询到相关交易");
+				}
+				Transaction tx = txStore.getTransaction();
+				if(!tx.isPaymentTransaction()) {
+					throw new VerificationException("txid：" + txid + "交易类型错误");
+				}
+
+				Integer index = object.getInt("index");
+				try {
+					TransactionOutput output = tx.getOutput(index);
+					//判断交易是否已花费
+					//交易状态
+					byte[] status = txStore.getStatus();
+					if(isSpent(status,output, myAddress.getHash160())) {
+						throw new VerificationException("txid：" + txid + "交易输出已花费或不可用index:" + index);
+					}
+
+					fromOutputs.add(output);
+				}catch (ArrayIndexOutOfBoundsException ae) {
+					throw new VerificationException("txid：" + txid + "未查询到相关交易输出index:" + index);
+				}
+			}
+
+			Transaction tx = new Transaction(network);
+			tx.setLockTime(TimeService.currentTimeSeconds());
+			tx.setType(Definition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
+
+			//输入金额
+			Coin totalInputCoin = Coin.ZERO;
+			TransactionInput input = new TransactionInput();
+			for (TransactionOutput output : fromOutputs) {
+				input.addFrom(output);
+				totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+			}
+			//普通账户的签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+			tx.addInput(input);
+
+			//交易输出
+			tx.addOutput(moneyCoin, receiveAddress);
+			//是否找零
+			if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) > 0) {
+				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(feeCoin)), myAddress);
+			}
+
+			//签名交易
+			final LocalTransactionSigner signer = new LocalTransactionSigner();
+
+			try {
+				//普通账户的签名
+				signer.signInputs(tx, account.getEcKey());
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+				json.put("success", false);
+				json.put("message", "交易签名失败，请检查账户类型");
+			}
+
+			//验证交易是否合法
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			if(!rs.getResult().isSuccess()) {
+				throw new VerificationException(rs.getResult().getMessage());
+			}
+
+			try {
+				MempoolContainer.getInstace().add(tx);
+				BroadcastResult br = peerKit.broadcast(tx).get();
+				json.put("success", br.isSuccess());
+				json.put("message", br.getMessage());
+				return json;
+			} catch (Exception e) {
+				MempoolContainer.getInstace().remove(tx.getHash());
+				throw e;
+			}
+
+		}catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+		}
+		return json;
+	}
+
+	//判断交易输出是否已花费
+	private boolean isSpent(byte[] status, TransactionOutput output, byte[]hash160) {
+		Script script = output.getScript();
+		if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+			if(status[output.getIndex()] == TransactionStore.STATUS_USED) {
+				return true;
+			}
+
+			//本笔输出是否可用
+			long lockTime = output.getLockTime();
+			if(lockTime < 0l
+					|| (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
+					|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > network.getBestHeight()) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**

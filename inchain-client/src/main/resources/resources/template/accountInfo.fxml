@@ -65,7 +65,7 @@
                         </TextField>
                         <AnchorPane>
                            <children>
-                              <Button fx:id="aliasButtonId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="encryptWalletButton">
+                              <Button fx:id="aliasButtonId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="setAliasButton">
                                  <cursor>
                                     <Cursor fx:constant="HAND" />
                                  </cursor>
@@ -95,7 +95,7 @@
                               <Insets left="15.0" />
                            </HBox.margin>
                         </Label>
-                        <Label fx:id="totalBalanceId" text="0">
+                        <Label fx:id="totalBalanceId" text="0" prefWidth="138.0">
                            <font>
                               <Font name="Microsoft YaHei" size="14.0" />
                            </font>
@@ -103,6 +103,14 @@
                               <Insets left="68.0" />
                            </HBox.margin>
                         </Label>
+                        <Button fx:id="lockMoneyId" contentDisplay="CENTER" minHeight="50.0" minWidth="50.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="50.0" styleClass="lockMoneyButton">
+                           <cursor>
+                              <Cursor fx:constant="HAND" />
+                           </cursor>
+                           <HBox.margin>
+                              <Insets left="110.0" />
+                           </HBox.margin>
+                        </Button>
                      </children>
                      <padding>
                         <Insets left="20.0" />

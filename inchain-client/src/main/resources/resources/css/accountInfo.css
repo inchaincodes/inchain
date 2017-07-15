@@ -17,17 +17,48 @@ Button:hover{
 	-fx-background-color: #3b5aac;
 }
 
-.encryptWalletButton {
-	-fx-background-radius: 0;
-	-fx-border-color: transparent;
+.lockMoneyButton {
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
     -fx-border-style: null;
     -fx-background-color: null;
-    -fx-background-image:url("/images/changepassword_icon.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-image:url("/images/icon_lock_money.png");
+}
+
+.lockMoneyButton:hover {
+    -fx-background-image:url("/images/icon_lock_money_hover.png");
+}
+
+.encryptWalletButton {
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-image:url("/images/icon_encrypt.png");
 }
 
 .encryptWalletButton:hover {
-	-fx-background-image:url("/images/changepasswordH_icon.png");
+    -fx-background-image:url("/images/icon_encrypt_hover.png");
 }
+
+.setAliasButton {
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-image:url("/images/changepassword_icon.png");
+}
+
+.setAliasButton:hover {
+    -fx-background-image:url("/images/changepasswordH_icon.png");
+}
+
 .cancelButton {
 	-fx-background-radius: 0;
 	-fx-border-color: transparent;
@@ -43,4 +74,20 @@ Button:hover{
 	-fx-background-radius: 0;
 	-fx-border-color: transparent;
     -fx-background-color: null;
+}
+#input {
+    -fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
+    -fx-border-color: transparent transparent #6da9e9 transparent;
+}
+
+#input TextField {
+    -fx-background-radius: 0;
+    -fx-border-style: null;
+    -fx-background-color: null;
+    -fx-text-fill:WHITE;
+    -fx-font-name:Microsoft YaHei;
 }

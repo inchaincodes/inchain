@@ -73,6 +73,7 @@ public class AccountInfoController implements SubPageController {
 	public Button encryptWalletId; // 加密钱包
 	public Button cancelButtonId; // 取消别名修改
 	public Button aliasButtonId; // 设置别名
+	public Button lockMoneyId; 	// 锁仓
 
 	private Image imageDecline;
 	// 别名状态，1可操作，2等待网络确认
@@ -103,6 +104,8 @@ public class AccountInfoController implements SubPageController {
 		fileChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
 		cancelButtonId.setOnAction(e -> initialState());
 		aliasButtonId.setOnAction(e -> setOrUpdateAlias());
+		lockMoneyId.setOnAction(e -> lockMoney());
+		lockMoneyId.setTooltip(new Tooltip("锁仓"));
 	}
 
 	private void addImageToButton(Button button, String name) {
@@ -534,6 +537,27 @@ public class AccountInfoController implements SubPageController {
 			}
 		} catch (Exception e) {
 			log.error("加密钱包出错", e);
+		}
+	}
+
+	/*
+	 * 锁仓
+	 */
+	private void lockMoney() {
+		try {
+			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+
+			// 锁仓
+			URL location = getClass().getResource("/resources/template/lockMoney.fxml");
+			FXMLLoader loader = new FXMLLoader(location);
+
+			DailogUtil.showDailog(loader, "余额锁仓", new Callback() {
+				@Override
+				public void ok(Object param) {
+				}
+			});
+		} catch (Exception e) {
+			log.error("锁仓出错", e);
 		}
 	}
 

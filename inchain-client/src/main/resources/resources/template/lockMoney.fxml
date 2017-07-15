@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane fx:id="encryptWalletId" prefHeight="320.0" prefWidth="460.0" stylesheets="@../css/accountInfo.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.inchain.wallet.controllers.LockMoneyController">
+   <children>
+      <HBox alignment="CENTER" prefHeight="20.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="10.0">
+         <children>
+            <Label style="-fx-text-fill: #ff313b;" text="警告：一旦锁仓无法撤销，请谨慎操作">
+               <font>
+                  <Font name="Microsoft YaHei" size="16.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox id="input" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="50.0">
+         <children>
+            <Label text="锁仓金额" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+            </Label>
+            <TextField fx:id="lockAmountId" promptText="请输入您要锁仓的金额" />
+         </children>
+      </HBox>
+      <HBox id="input" alignment="CENTER" prefHeight="50.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="120.0">
+         <children>
+            <Label text="解锁日期" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+            </Label>
+            <TextField fx:id="unlockTimeId" promptText="格式为yyyy-MM-dd" />
+         </children>
+      </HBox>
+      <HBox alignment="CENTER" prefHeight="48.0" spacing="10.0" AnchorPane.leftAnchor="80.0" AnchorPane.rightAnchor="80.0" AnchorPane.topAnchor="180.0">
+         <children>
+            <Button id="sure" fx:id="okId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="确定" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor></Button>
+            <Button id="cancel" fx:id="cancelId" mnemonicParsing="false" prefHeight="30.0" prefWidth="110.0" text="取消" textFill="WHITE">
+               <font>
+                  <Font name="Microsoft YaHei" size="14.0" />
+               </font>
+               <cursor>
+                  <Cursor fx:constant="HAND" />
+               </cursor>
+               <HBox.margin>
+                  <Insets left="40.0" />
+               </HBox.margin></Button>
+         </children>
+      </HBox>
+   </children>
+</AnchorPane>
