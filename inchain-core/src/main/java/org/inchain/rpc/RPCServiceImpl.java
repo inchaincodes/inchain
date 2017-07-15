@@ -35,6 +35,8 @@ import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
+import org.inchain.script.ScriptBuilder;
+import org.inchain.signers.LocalTransactionSigner;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockForkStore;
 import org.inchain.store.BlockHeaderStore;
@@ -2220,9 +2222,23 @@ public class RPCServiceImpl implements RPCService {
 				json.put("message", "金额不正确");
 				return json;
 			}
+
+			Address receiveAddress = null;
+			try {
+				receiveAddress = Address.fromBase58(network, toAddress);
+			} catch (Exception e) {
+				json.put("success", false);
+				json.put("message", "接收地址不正确");
+				return json;
+			}
+
 			//通过私钥获取我的地址
 			ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
 			Address myAddress = AccountTool.newAddress(network, eckey);
+
+			Account account = new Account(network);
+			account.setAddress(myAddress);
+			account.setEcKey(eckey);
 
 			//转换交易输出
 			List<TransactionOutput> fromOutputs = new ArrayList<>();
@@ -2259,8 +2275,52 @@ public class RPCServiceImpl implements RPCService {
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
 
+			//输入金额
+			Coin totalInputCoin = Coin.ZERO;
+			TransactionInput input = new TransactionInput();
+			for (TransactionOutput output : fromOutputs) {
+				input.addFrom(output);
+				totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+			}
+			//普通账户的签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+			tx.addInput(input);
 
+			//交易输出
+			tx.addOutput(moneyCoin, receiveAddress);
+			//是否找零
+			if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) > 0) {
+				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(feeCoin)), myAddress);
+			}
 
+			//签名交易
+			final LocalTransactionSigner signer = new LocalTransactionSigner();
+
+			try {
+				//普通账户的签名
+				signer.signInputs(tx, account.getEcKey());
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+				json.put("success", false);
+				json.put("message", "交易签名失败，请检查账户类型");
+			}
+
+			//验证交易是否合法
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			if(!rs.getResult().isSuccess()) {
+				throw new VerificationException(rs.getResult().getMessage());
+			}
+
+			try {
+				MempoolContainer.getInstace().add(tx);
+				BroadcastResult br = peerKit.broadcast(tx).get();
+				json.put("success", br.isSuccess());
+				json.put("message", br.getMessage());
+				return json;
+			} catch (Exception e) {
+				MempoolContainer.getInstace().remove(tx.getHash());
+				throw e;
+			}
 
 		}catch (Exception e) {
 			json.put("success", false);
