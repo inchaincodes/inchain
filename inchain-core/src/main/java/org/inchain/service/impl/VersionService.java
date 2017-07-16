@@ -33,6 +33,8 @@ public class VersionService {
 	private static final Logger log = LoggerFactory.getLogger(VersionService.class);
 	
 	private static final String VERSION_SAVE_FILE = Configure.DATA_DIR + "/.version";
+
+	private static final String UPDATE_DOMAIN = "http://test1.update.inchain.org";
 	
 	private boolean runing;
 	
@@ -99,7 +101,7 @@ public class VersionService {
 		
 		for (int i = 0; i < filelist.length(); i++) {
 			String fileurl = filelist.getString(i);
-			String fileFullUrl = "http://test.update.inchain.org" + fileurl;
+			String fileFullUrl = UPDATE_DOMAIN + fileurl;
 			
 			byte[] content = RequestUtil.get(fileFullUrl);
 			
@@ -169,7 +171,7 @@ public class VersionService {
 	
 	private void checkAndDown() throws JSONException {
 		
-		String url = "http://test.update.inchain.org/version.json";
+		String url = UPDATE_DOMAIN + "/version.json";
 		
 		String response = RequestUtil.doGet(url, null);
 		

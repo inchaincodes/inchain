@@ -25,7 +25,7 @@ public final class ConsensusCalculationUtil {
 	/**
 	 * 开始发放奖励的区块高度
 	 */
-	public final static long START_HEIGHT = 20l;
+	public final static long START_HEIGHT = 25000l;
 	/**
 	 * 每多少个区块奖励减半，也就是奖励周期，这里设置1年的出块数
 	 */
