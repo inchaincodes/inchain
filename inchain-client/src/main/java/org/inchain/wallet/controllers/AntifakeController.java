@@ -339,7 +339,7 @@ public class AntifakeController implements SubPageController {
 		//获取产品信息
 		TransactionStore productTxStore = null;
 		if(codeMakeTx.getHasProduct()==0) {
-			productTxStore = blockStoreProvider.getTransaction(codeBindTx.getProductTx().getBytes());
+			productTxStore = blockStoreProvider.getTransaction(codeMakeTx.getProductTx().getBytes());
 		}else {
 			productTxStore = blockStoreProvider.getTransaction(codeBindTx.getProductTx().getBytes());
 		}
