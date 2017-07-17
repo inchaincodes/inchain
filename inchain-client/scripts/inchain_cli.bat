@@ -34,13 +34,16 @@ if exist "%SERVER_HOME%\bin\inchain.bat" goto okReaperHome
 set SERVER_HOME=..
 
 if exist "%SERVER_HOME%\bin\inchain.bat" goto okReaperHome
+set SERVER_HOME=%~d0
+
+%SERVER_HOME%
 set SERVER_HOME=%~dp0
+
 cd %SERVER_HOME%
 cd ..
 set SERVER_HOME=%cd%
 
 :goReaperHome
-
 if exist "%SERVER_HOME%\bin\inchain.bat" goto okReaperHome
 echo The SERVER_HOME environment variable is not defined correctly
 echo This environment variable is needed to run this program

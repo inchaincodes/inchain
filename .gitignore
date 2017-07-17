@@ -5,3 +5,5 @@
 *.class
 *.classpath
 *.iml
+*.log
+*.logs
