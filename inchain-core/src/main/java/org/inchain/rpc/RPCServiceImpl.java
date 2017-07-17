@@ -779,7 +779,11 @@ public class RPCServiceImpl implements RPCService {
 		Account account = null;
 		try {
 			//1、首先判断账户是否存在，是否加密
-			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
+			if(address == null) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
 
 			List<JSONObject> jsonList = new ArrayList<>();
 			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash160());
@@ -2230,21 +2234,22 @@ public class RPCServiceImpl implements RPCService {
 	 * 广播交易
 	 */
 	@Override
-	public JSONObject broadcastTransferTransaction(Long amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
+	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
 		JSONObject json = new JSONObject();
 		try {
+
 			//验证金额是否正确
-			if(amount <= 0) {
+			Coin moneyCoin = null;             //转账的币
+			Coin feeCoin = null;               //手续费
+			try {
+				moneyCoin = Coin.parseCoin(amount);
+				feeCoin = Coin.parseCoin("0.1");
+			} catch (Exception e) {
 				json.put("success", false);
 				json.put("message", "金额不正确");
 				return json;
 			}
-			Coin moneyCoin = null;             //转账的币
-			Coin feeCoin = null;               //手续费
-			try {
-				moneyCoin = Coin.valueOf(amount);
-				feeCoin = Coin.parseCoin("0.1");
-			} catch (Exception e) {
+			if(moneyCoin.longValue() <= 0) {
 				json.put("success", false);
 				json.put("message", "金额不正确");
 				return json;

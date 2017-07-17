@@ -1110,7 +1110,7 @@ public class RPCHanlder {
 				return result;
 			}
 
-			Long amount = params.getLong(0);
+			String amount = params.getString(0);
 			String privateKey = params.getString(1);
 			String toAddress = params.getString(2);
 			JSONArray jsonArray = params.getJSONArray(3);

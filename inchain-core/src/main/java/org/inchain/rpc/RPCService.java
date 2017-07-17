@@ -385,7 +385,7 @@ public interface RPCService {
 	 * @return
 	 * @throws JSONException
 	 */
-	JSONObject broadcastTransferTransaction(Long amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException;
+	JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException;
 
 	/**
 	 * 广播交易 - 交易内容存放在文件里面

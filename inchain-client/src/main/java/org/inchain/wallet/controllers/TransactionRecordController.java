@@ -592,7 +592,7 @@ public class TransactionRecordController implements SubPageController {
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
 
-					Address address = new Address(network, issuedTx.getReceiver());
+					Address address = Address.fromHashs(network, issuedTx.getReceiver());
 					detail += "接收人：" + address.getBase58()+ "\n";
 				}
 
@@ -604,7 +604,7 @@ public class TransactionRecordController implements SubPageController {
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
 
-					Address address = new Address(network, transferTx.getReceiver());
+					Address address = Address.fromHashs(network, transferTx.getReceiver());
 					detail += "接收人：" + address.getBase58()+ "\n";
 				}
 
