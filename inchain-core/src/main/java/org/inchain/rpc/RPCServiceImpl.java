@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -2185,7 +2186,6 @@ public class RPCServiceImpl implements RPCService {
 			
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
-			
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);
@@ -2236,6 +2236,7 @@ public class RPCServiceImpl implements RPCService {
 	@Override
 	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
 		JSONObject json = new JSONObject();
+		Account account = null;
 		try {
 
 			//验证金额是否正确
@@ -2245,46 +2246,54 @@ public class RPCServiceImpl implements RPCService {
 				moneyCoin = Coin.parseCoin(amount);
 				feeCoin = Coin.parseCoin("0.1");
 			} catch (Exception e) {
-				json.put("success", false);
-				json.put("message", "金额不正确");
-				return json;
+				throw new VerificationException("金额不正确");
 			}
 			if(moneyCoin.longValue() <= 0) {
-				json.put("success", false);
-				json.put("message", "金额不正确");
-				return json;
+				throw new VerificationException("金额不正确");
 			}
 
+			//验证接收地址
 			Address receiveAddress = null;
 			try {
 				receiveAddress = Address.fromBase58(network, toAddress);
 			} catch (Exception e) {
-				json.put("success", false);
-				json.put("message", "接收地址不正确");
-				return json;
+				throw new VerificationException("接收地址不正确");
 			}
 
 			//通过私钥获取我的地址
 			ECKey eckey = ECKey.fromPrivate(new BigInteger(Hex.decode(privateKey)));
-
 			Address myAddress = AccountTool.newAddress(network, eckey);
 
-			Account account = new Account(network);
+			account = new Account(network);
 			account.setAddress(myAddress);
 			account.setEcKey(eckey);
 			account.setMgPubkeys(new byte[][]{ eckey.getPubKey()});
-			//转换交易输出
+
+			//不能给自己转账
+			if(Arrays.equals(receiveAddress.getHash160(), myAddress.getHash160())) {
+				throw new VerificationException("不能给自己转账");
+			}
+
+			//转换交易输出，并检查交易输出是否已被使用
 			List<TransactionOutput> fromOutputs = new ArrayList<>();
 			for(int j = 0; j < jsonArray.length(); j++) {
 				JSONObject object = jsonArray.getJSONObject(j);
-				String txid = object.getString("txid");
-				TransactionStore txStore = blockStoreProvider.getTransaction(Sha256Hash.hash(txid.getBytes()));
+				String txHash = object.getString("txHash");
+				TransactionStore txStore = blockStoreProvider.getTransaction(Hex.decode(txHash));
+
 				if(txStore == null) {
-					throw new VerificationException("txid：" + txid + "未查询到相关交易");
+					throw new VerificationException("txHash：" + txHash + "未查询到相关交易");
 				}
+
 				Transaction tx = txStore.getTransaction();
 				if(!tx.isPaymentTransaction()) {
-					throw new VerificationException("txid：" + txid + "交易类型错误");
+					throw new VerificationException("txHash：" + txHash + "交易类型错误");
+				}
+				//如果交易不可用，则跳过
+				if(tx.getLockTime() < 0l
+						|| (tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds())
+						|| (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > network.getBestHeight())) {
+					continue;
 				}
 
 				Integer index = object.getInt("index");
@@ -2294,70 +2303,25 @@ public class RPCServiceImpl implements RPCService {
 					//交易状态
 					byte[] status = txStore.getStatus();
 					if(isSpent(status,output, myAddress.getHash160())) {
-						throw new VerificationException("txid：" + txid + "交易输出已花费或不可用index:" + index);
+						throw new VerificationException("txHash：" + txHash + "交易输出已花费或不可用index:" + index);
 					}
-
 					fromOutputs.add(output);
 				}catch (ArrayIndexOutOfBoundsException ae) {
-					throw new VerificationException("txid：" + txid + "未查询到相关交易输出index:" + index);
+					throw new VerificationException("txHash：" + txHash + "未查询到相关交易输出index:" + index);
 				}
 			}
-
-			Transaction tx = new Transaction(network);
-			tx.setLockTime(TimeService.currentTimeSeconds());
-			tx.setType(Definition.TYPE_PAY);
-			tx.setVersion(Definition.VERSION);
-
-			//输入金额
-			Coin totalInputCoin = Coin.ZERO;
-			TransactionInput input = new TransactionInput();
-			for (TransactionOutput output : fromOutputs) {
-				input.addFrom(output);
-				totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
-			}
-			//普通账户的签名
-			input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
-			tx.addInput(input);
-
-			//交易输出
-			tx.addOutput(moneyCoin, receiveAddress);
-			//是否找零
-			if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) > 0) {
-				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(feeCoin)), myAddress);
-			}
-
-			//签名交易
-			final LocalTransactionSigner signer = new LocalTransactionSigner();
-
-			try {
-				//普通账户的签名
-				signer.signInputs(tx, account.getEcKey());
-			} catch (Exception e) {
-				log.error(e.getMessage(), e);
-				json.put("success", false);
-				json.put("message", "交易签名失败，请检查账户类型");
-			}
-
-			//验证交易是否合法
-			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
-			if(!rs.getResult().isSuccess()) {
-				throw new VerificationException(rs.getResult().getMessage());
-			}
-
-			try {
-				MempoolContainer.getInstace().add(tx);
-				BroadcastResult br = peerKit.broadcast(tx).get();
-				json.put("success", br.isSuccess());
-				json.put("message", br.getMessage());
-				return json;
-			} catch (Exception e) {
-				MempoolContainer.getInstace().remove(tx.getHash());
-				throw e;
-			}
+			//广播交易
+			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress);
+			json.put("success", br.isSuccess());
+			json.put("message", br.getMessage());
 
 		}catch (Exception e) {
 			json.put("success", false);
 			json.put("message", e.getMessage());
+		}finally {
+			if(account != null) {
+				account.resetKey();
+			}
 		}
 		return json;
 	}
@@ -2369,7 +2333,6 @@ public class RPCServiceImpl implements RPCService {
 			if(status[output.getIndex()] == TransactionStore.STATUS_USED) {
 				return true;
 			}
-
 			//本笔输出是否可用
 			long lockTime = output.getLockTime();
 			if(lockTime < 0l

@@ -1113,7 +1113,16 @@ public class RPCHanlder {
 			String amount = params.getString(0);
 			String privateKey = params.getString(1);
 			String toAddress = params.getString(2);
-			JSONArray jsonArray = params.getJSONArray(3);
+			JSONArray jsonArray = null;
+
+			try {
+				jsonArray = params.getJSONArray(3);
+			}catch (Exception e) {
+				e.printStackTrace();
+				result.put("success", false);
+				result.put("message", "参数格式有误");
+				return result;
+			}
 
 			rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, jsonArray);
 		}
