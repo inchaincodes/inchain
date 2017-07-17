@@ -1265,6 +1265,7 @@ public class RPCHanlder {
 		sb.append(" --- 交易相关 --- \n");
 		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
 		sb.append("  send [to address] [money] [fee]     转账\n");
+		sb.append("  lockmoney [amount] [unlockTime] [password]     锁仓交易,unlockTime的格式为yyyy-MM-dd\n");
 		sb.append("  broadcast [txcontent]               广播交易\n");
 		sb.append("\n");
 		sb.append(" --- 共识相关 --- \n");

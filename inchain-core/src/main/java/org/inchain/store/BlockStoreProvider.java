@@ -111,7 +111,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 		initCacher();
 //		test();
 	}
-	
+
 	private void initCacher() {
 		//初始化一些缓存数据
 		BlockHeaderStore bestBlockHeader = getBestBlockHeader();
@@ -888,7 +888,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				ViolationTransaction vtx = (ViolationTransaction) transaction;
 				byte[]	hash160Temp = vtx.getViolationEvidence().getAudienceHash160();
 				//有一种情况，委托共识处理人是被委托人，但实际上是处理的委托人
-				byte[] outputHash160 = vtx.getOutput(0).getScript().getAccountHash160();
+				byte[] outputHash160 = vtx.getOutput(0).getScript().getChunks().get(2).data;
 				if(!Arrays.equals(outputHash160, hash160Temp)) {
 					if(vtx.getViolationEvidence().getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
 						//超时未出块，被惩罚人是委托人

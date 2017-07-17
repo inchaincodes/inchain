@@ -847,16 +847,17 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			//从共识账户列表中删除
 			byte[] consensusAccountHash160s = getBytes(Configure.CONSENSUS_ACCOUNT_KEYS);
 			
-			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (Address.LENGTH + Sha256Hash.LENGTH)];
+			byte[] newConsensusHash160s = new byte[consensusAccountHash160s.length - (2 * Address.LENGTH + Sha256Hash.LENGTH)];
 			
 			//找出位置在哪里
 			//判断在列表里面才更新，否则就被清空了
-			for (int j = 0; j < consensusAccountHash160s.length; j += (Address.LENGTH + Sha256Hash.LENGTH)) {
+			for (int j = 0; j < consensusAccountHash160s.length; j += (2 * Address.LENGTH + Sha256Hash.LENGTH)) {
 				byte[] addressHash160 = Arrays.copyOfRange(consensusAccountHash160s, j, j + Address.LENGTH);
-				if(Arrays.equals(addressHash160, hash160)) {
+				byte[] packagerHash160 = Arrays.copyOfRange(consensusAccountHash160s, j + Address.LENGTH, j + 2 * Address.LENGTH);
+				if(Arrays.equals(addressHash160, hash160) || Arrays.equals(packagerHash160, hash160)) {
 					System.arraycopy(consensusAccountHash160s, 0, newConsensusHash160s, 0, j);
 					
-					int newIndex = j + Address.LENGTH + Sha256Hash.LENGTH;
+					int newIndex = j + 2 * Address.LENGTH + Sha256Hash.LENGTH;
 					if(newIndex < consensusAccountHash160s.length) {
 						System.arraycopy(consensusAccountHash160s, newIndex, newConsensusHash160s, j, consensusAccountHash160s.length - newIndex);
 					}
