@@ -154,13 +154,13 @@ public class TransactionValidator {
 					//验证引用的交易是否可用
 					if(fromTx.getLockTime() < 0l ||
 							(fromTx.getLockTime() > Definition.LOCKTIME_THRESHOLD && fromTx.getLockTime() > TimeService.currentTimeSeconds())
-							|| (fromTx.getLockTime() < Definition.LOCKTIME_THRESHOLD && fromTx.getLockTime() > network.getBestBlockHeight())) {
+							|| (fromTx.getLockTime() < Definition.LOCKTIME_THRESHOLD && fromTx.getLockTime() > network.getBestHeight())) {
 						throw new VerificationException("引用了不可用的交易");
 					}
 					//验证引用的交易输出是否可用
 					long lockTime = output.getLockTime();
 					if(lockTime < 0l || (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
-							|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > network.getBestBlockHeight())) {
+							|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > network.getBestHeight())) {
 						throw new VerificationException("引用了不可用的交易输出");
 					}
 

@@ -144,6 +144,7 @@ public class DataSynchronizeHandler implements Runnable {
 		
 		//大多数节点一致的高度，根据最新的hash来判断，以免恶意节点误导
 		long bestHeight = getMostPeerBestHeight(peers, initSynchronous);
+		network.setBestHeight(bestHeight);
 		
 		if(peerKit.getBlockChangedListener() != null) {
 			peerKit.getBlockChangedListener().onChanged(-1l, bestHeight, null, null);
