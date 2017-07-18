@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
  * RPC命令分发处理
 /**
  * 
- * 核心客户端RPC服务，RPC服务随核心启动，端口配置参考 {@link org.inchain.Configure.RPC_SERVER_PORT }
+ * 核心客户端RPC服务，RPC服务随核心启动，端口配置参考 {@link org.inchain.Configure }
  * 命令列表：
  * help    帮助命令，列表出所有命令
  * 
@@ -619,15 +619,23 @@ public class RPCHanlder {
 			return result;
 		}
 			case "bindantifake": {
-				String antiCode = params.getString(0);
+				String antiCodeList = params.getString(0);
 				String productHash = params.getString(1);
 				String trpw = params.getString(2);
 				String address = null;
 				if(params.length()>3){
 					address = params.getString(3);
 				}
+				JSONObject params1Json = new JSONObject(antiCodeList);
 
-				return  rpcService.bindAntifake(antiCode,productHash,trpw,address);
+				int count = params1Json.getInt("count");
+				JSONArray codeList = params1Json.getJSONArray("codelist");
+				JSONObject results = new JSONObject() ;
+				for(int j=0; j<codeList.length();j++) {
+					JSONObject rs = rpcService.bindAntifake(codeList.get(j).toString(), productHash, trpw, address);
+					results.accumulate(codeList.get(j).toString(),rs);
+				}
+				return results;
 
 			}
 			case "createantifakewithoutproduct":{

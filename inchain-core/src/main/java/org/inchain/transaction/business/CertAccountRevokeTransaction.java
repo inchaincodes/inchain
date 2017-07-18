@@ -32,7 +32,6 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 		this.trPubkeys = trPubkeys;
 		this.superhash160 = null;
 		this.level = level;
-		this.time = TimeService.currentTimeMillis();
 		this.setType(Definition.TYPE_CERT_ACCOUNT_REVOKE);
 	}
 

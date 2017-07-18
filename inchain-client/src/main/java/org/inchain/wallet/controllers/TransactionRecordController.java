@@ -606,6 +606,12 @@ public class TransactionRecordController implements SubPageController {
 
 					Address address = Address.fromHashs(network, transferTx.getReceiver());
 					detail += "接收人：" + address.getBase58()+ "\n";
+				}else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){
+					CertAccountRevokeTransaction revokeTx = (CertAccountRevokeTransaction)tx;
+					type = "账户吊销";
+					byte[] revokedhash = revokeTx.getRevokeHash160();
+					Address raddress = new Address(network,network.getCertAccountVersion(),revokedhash);
+					detail += "吊销账户："+raddress.getBase58()+"\n";
 				}
 
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {

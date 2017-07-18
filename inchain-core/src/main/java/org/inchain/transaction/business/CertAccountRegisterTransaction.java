@@ -34,8 +34,6 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 		this.body = body;
 		this.superhash160 = superhash160;
 		this.level = superlevel+1;
-
-		this.time = TimeService.currentTimeMillis();
 	}
 	
 	public CertAccountRegisterTransaction(NetworkParams params, byte[] payloadBytes) throws ProtocolException {
