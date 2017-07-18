@@ -368,7 +368,7 @@ CertAccountRegisterTransaction
 |---|---|---|---|
 |4|type|int32|交易类型|
 |4|version|uint32|版本|
-|8|time|int64|时间|
+|4|time|uint32|时间|
 |32|hash|sha256|账户信息|
 |32|superhash|sha256|superHash160|
 |4|level|int32|level|
@@ -388,7 +388,7 @@ CertAccountRevokeTransaction
 |---|---|---|---|
 |4|type|int32|交易类型|
 |4|version|uint32|版本|
-|8|time|int64|时间|
+|4|time|uint32|时间|
 |32|revoke hash|sha256|撤销信息|
 |32|hash|sha256|账户信息|
 |32|superhash|sha256|superHash160|
