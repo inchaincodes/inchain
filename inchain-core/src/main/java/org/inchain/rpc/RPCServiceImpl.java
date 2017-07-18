@@ -2761,6 +2761,7 @@ public class RPCServiceImpl implements RPCService {
 		
 		json.put("height", txs.getHeight());
 		json.put("confirmation", bestHeight - txs.getHeight());
+		json.put("remark",tx.getRemark());
 		
 		if(tx instanceof BaseCommonlyTransaction) {
 			BaseCommonlyTransaction bctx = (BaseCommonlyTransaction) tx;
