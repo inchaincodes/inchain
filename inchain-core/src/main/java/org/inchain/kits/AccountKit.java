@@ -1416,15 +1416,12 @@ public class AccountKit {
 			BroadcastResult broadcastResult = null;
 
 			if(success) {
-
 				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
 				//广播结果
 				try {
 					log.info("交易大小：{} , 输入数{} - {},  输出数 {} , hash {}", tx.baseSerialize().length, tx.getInputs().size(), tx.getInputs().get(0).getFroms().size(), tx.getOutputs().size(), tx.getHash());
-
 					//等待广播回应
 					broadcastResult = peerKit.broadcast(tx).get();
-
 					//成功
 					if(broadcastResult.isSuccess()) {
 						//更新交易记录
@@ -1441,6 +1438,95 @@ public class AccountKit {
 			}
 			return broadcastResult;
 		} finally {
+			locker.unlock();
+		}
+	}
+
+	/**
+	 * 广播交易
+	 * @param account
+	 * @param money
+	 * @param fee
+	 * @param tx
+	 * @param fromOutputs
+	 * @param receiveAddress
+	 * @return
+	 */
+	public BroadcastResult broadcastTransferTransaction(Account myAccount, Coin moneyCoin, Coin feeCoin, List<TransactionOutput> fromOutputs, Address receiveAddress) {
+		locker.lock();
+
+		try {
+			Transaction tx = new Transaction(network);
+			tx.setLockTime(TimeService.currentTimeSeconds());
+			tx.setType(Definition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
+
+			//输入金额
+			Coin totalInputCoin = Coin.ZERO;
+			TransactionInput input = new TransactionInput();
+			for (TransactionOutput output : fromOutputs) {
+				input.addFrom(output);
+				totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+			}
+
+			//普通账户的签名
+			input.setScriptSig(ScriptBuilder.createInputScript(null, myAccount.getEcKey()));
+			tx.addInput(input);
+
+			//交易输出
+			tx.addOutput(moneyCoin, receiveAddress);
+			//是否找零
+			if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) > 0) {
+				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(feeCoin)), myAccount.getAddress());
+			}
+
+			//签名交易
+			final LocalTransactionSigner signer = new LocalTransactionSigner();
+			try {
+				//普通账户的签名
+				signer.signInputs(tx, myAccount.getEcKey());
+			} catch (Exception e) {
+				log.error(e.getMessage(), e);
+				throw new VerificationException("交易签名失败，请检查账户类型");
+			}
+
+			//验证交易是否合法
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			if(!rs.getResult().isSuccess()) {
+				throw new VerificationException(rs.getResult().getMessage());
+			}
+
+			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+			boolean success = MempoolContainer.getInstace().add(tx);
+			BroadcastResult broadcastResult = null;
+
+			if(success) {
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+				//广播结果
+				try {
+					log.info("交易大小：{} , 输入数{} - {},  输出数 {} , hash {}", tx.baseSerialize().length, tx.getInputs().size(), tx.getInputs().get(0).getFroms().size(), tx.getOutputs().size(), tx.getHash());
+					//等待广播回应
+					broadcastResult = peerKit.broadcast(tx).get();
+					//成功
+					if(broadcastResult.isSuccess()) {
+						//更新交易记录
+						transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+					}
+				} catch (Exception e) {
+					broadcastResult.setSuccess(false);
+					broadcastResult.setMessage("广播出错，"+e.getMessage());
+					MempoolContainer.getInstace().remove(tx.getHash());
+				}
+			} else {
+				broadcastResult = new BroadcastResult();
+				broadcastResult.setSuccess(false);
+				broadcastResult.setMessage("重复的交易，禁止广播");
+			}
+
+			return broadcastResult;
+		}catch (Exception e) {
+			throw new VerificationException(e.getMessage());
+		}finally {
 			locker.unlock();
 		}
 	}

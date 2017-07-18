@@ -1111,19 +1111,29 @@ public class RPCHanlder {
 		}
 
 		//广播交易
-		case "broadcastTransferTransaction" : {
-			if(params.length() != 4) {
+		case "broadcastrantx" : {
+			if(params.length() != 1) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
 				return result;
 			}
+			JSONObject param = new JSONObject(params.getString(0));
 
-			String amount = params.getString(0);
-			String privateKey = params.getString(1);
-			String toAddress = params.getString(2);
-			JSONArray jsonArray = params.getJSONArray(3);
+			String amount = param.getString("amount");
+			String privateKey = param.getString("privateKey");
+			String toAddress = param.getString("to");
+			JSONArray jsonArray = null;
 
-			rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, jsonArray);
+			try {
+				jsonArray = param.getJSONArray("utxos");
+			}catch (Exception e) {
+				e.printStackTrace();
+				result.put("success", false);
+				result.put("message", "参数格式有误");
+				return result;
+			}
+
+			return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, jsonArray);
 		}
 
 		
