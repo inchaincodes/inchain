@@ -1103,7 +1103,7 @@ public class RPCHanlder {
 		}
 
 		//广播交易
-		case "broadcastTransferTransaction" : {
+		case "broadcastrantx" : {
 			if(params.length() != 1) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
