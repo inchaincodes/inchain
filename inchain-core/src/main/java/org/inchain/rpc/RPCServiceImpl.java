@@ -2296,13 +2296,11 @@ public class RPCServiceImpl implements RPCService {
 					continue;
 				}
 
-				Integer index = object.getInt("index");
+				Integer index = object.getInt("outputIndex");
 				try {
 					TransactionOutput output = tx.getOutput(index);
 					//判断交易是否已花费
-					//交易状态
-					byte[] status = txStore.getStatus();
-					if(isSpent(status,output, myAddress.getHash160())) {
+					if(isSpent(tx, output, myAddress.getHash160())) {
 						throw new VerificationException("txHash：" + txHash + "交易输出已花费或不可用index:" + index);
 					}
 					fromOutputs.add(output);
@@ -2319,18 +2317,23 @@ public class RPCServiceImpl implements RPCService {
 			json.put("success", false);
 			json.put("message", e.getMessage());
 		}finally {
-			if(account != null) {
-				account.resetKey();
-			}
+//			if(account != null) {
+//				account.resetKey();
+//			}
 		}
 		return json;
 	}
 
 	//判断交易输出是否已花费
-	private boolean isSpent(byte[] status, TransactionOutput output, byte[]hash160) {
+	private boolean isSpent(Transaction tx, TransactionOutput output, byte[]hash160) {
 		Script script = output.getScript();
 		if(script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
-			if(status[output.getIndex()] == TransactionStore.STATUS_USED) {
+			byte[]txid = tx.getHash().getBytes();
+			byte[] key = new byte[txid.length + 1];
+			System.arraycopy(txid, 0, key, 0, key.length - 1);
+			key[key.length - 1] = (byte) output.getIndex();
+			byte[]status = chainstateStoreProvider.getBytes(key);
+			if(status[0] == TransactionStore.STATUS_USED) {
 				return true;
 			}
 			//本笔输出是否可用
