@@ -1951,7 +1951,7 @@ public class RPCServiceImpl implements RPCService {
 
 			JSONArray trarrays = new JSONArray();
 			trarrays.put(Hex.encode(info.getPubkeys()[2]));
-			trarrays.put(Hex.encode(info.getPubkeys()[3]));
+			//trarrays.put(Hex.encode(info.getPubkeys()[3]));
 
 			json.put("trpubkey", trarrays);
 		}

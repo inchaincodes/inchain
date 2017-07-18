@@ -50,7 +50,7 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 	protected void parse() {
 		type = readBytes(1)[0] & 0xff;
 		version = readUint32();
-		time = readInt64();
+		time = readUint32();
 		hash160 = readBytes(Address.LENGTH);
 		superhash160 = readBytes(Address.LENGTH);
 		level = readBytes(1)[0] & 0xff;
@@ -85,7 +85,7 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 		//版本
 		Utils.uint32ToByteStreamLE(version, stream);
 		//交易时间
-		Utils.int64ToByteStreamLE(time, stream);
+		Utils.uint32ToByteStreamLE(time, stream);
 
 		//hash 160
 		Utils.checkNotNull(hash160);
