@@ -895,7 +895,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 						hash160Temp = outputHash160;
 					} else {
 						//重复出块
-						TransactionStore regTxStore = getTransaction(vtx.getOutput(0).getParent().getHash().getBytes());
+						TransactionStore regTxStore = getTransaction(vtx.getInput(0).getFroms().get(0).getParent().getHash().getBytes());
 						if(regTxStore == null) {
 							return false;
 						}
