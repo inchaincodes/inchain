@@ -195,7 +195,7 @@ public final class MiningService implements Mining {
 							fee = fee.add(getTransactionFee(tx));
 						}
 						transactionList.add(tx);
-						
+
 						txsSize += tx.getLength();
 					} else {
 						//验证失败

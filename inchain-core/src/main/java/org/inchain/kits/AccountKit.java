@@ -549,9 +549,15 @@ public class AccountKit {
 		}
 
 		Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
-		AntifakeCode antifakeCode = AntifakeCode.base58Decode(antiCode);
-		byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
-
+		byte [] antibyte = Base58.decode(antiCode);
+		AntifakeCode antifakeCode = null;
+		byte[] makebind = null;
+		if(antibyte.length>20) {
+			antifakeCode = AntifakeCode.base58Decode(antiCode);
+			makebind = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
+		}else {
+			makebind = chainstateStoreProvider.getBytes(antibyte);
+		}
 		if(makebind == null) {
 			throw new VerificationException("防伪码不存在");
 		}
