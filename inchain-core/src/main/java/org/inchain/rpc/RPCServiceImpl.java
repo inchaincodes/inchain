@@ -2878,7 +2878,78 @@ public class RPCServiceImpl implements RPCService {
 				json.put("logo", new String(assetsRegisterTx.getLogo(), Utils.UTF_8));
 				json.put("remark", new String(assetsRegisterTx.getRemark(), Utils.UTF_8));
 			}
+			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
+				AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
+				TransactionStore ptx = null;
+				if(atx.getHasProduct()==0) {
+					ptx = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
+				}
+				//必要的NPT验证
+				if(ptx != null) {
+					Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
+					json.put("productName", product.getName());
+					json.put("productTx", ptx.getTransaction().getHash());
+				}
+				if(atx.getRewardCoin() != null) {
+					json.put("rewardCoin", atx.getRewardCoin().toText());
+				} else {
+					json.put("rewardCoin", 0);
+				}
+				try {
+					json.put("antifakeCode", Base58.encode(atx.getAntifakeCode()));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 
+				AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
+
+				byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode());
+				//必要的NPT验证
+				if(makeCodeTxBytes == null) {
+					return json;
+				}
+				TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
+				if(makeCodeTxStore == null) {
+					return json;
+				}
+				AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
+
+				TransactionStore productTxStore = accountKit.getTransaction(makeCodeTx.getProductTx());
+				if(productTxStore == null) {
+					return json;
+				}
+				try {
+					json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				json.put("antifakeMakeTx", makeCodeTx.getHash());
+				json.put("antifakeVerifyTx", atx.getHash());
+				json.put("productTx", productTxStore.getTransaction().getHash());
+
+			}
+			else if(tx.getType() == Definition.TYPE_VIOLATION) {
+				ViolationTransaction vtx = (ViolationTransaction) tx;
+
+				ViolationEvidence evidence = vtx.getViolationEvidence();
+				int violationType = evidence.getViolationType();
+				String reason = "";
+				long credit = 0;
+				if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
+					NotBroadcastBlockViolationEvidence nbve = (NotBroadcastBlockViolationEvidence) evidence;
+					reason = String.format("共识过程中，开始时间为%s的轮次及后面一轮次超时未出块", DateUtil.convertDate(new Date(nbve.getCurrentPeriodStartTime() * 1000)));
+					credit = Configure.CERT_CHANGE_TIME_OUT;
+				} else if(violationType == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
+					RepeatBlockViolationEvidence nbve = (RepeatBlockViolationEvidence) evidence;
+					reason = String.format("共识过程中,开始时间为%s的轮次重复出块,没收保证金%s", DateUtil.convertDate(new Date(nbve.getBlockHeaders().get(0).getPeriodStartTime() * 1000)), Coin.valueOf(vtx.getOutput(0).getValue()).toText());
+					credit = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
+				}
+				reason = "信用 " + credit + " 原因：" + reason;
+
+				json.put("credit", credit);
+				json.put("reason", reason);
+			}
 		} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ||
 				tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 			//认证账户注册
@@ -2939,54 +3010,6 @@ public class RPCServiceImpl implements RPCService {
 				json.put("productTx", ((ProductTransaction)ptx.getTransaction()).getHash());
 			}
 
-		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
-
-			AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
-
-			byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode());
-			//必要的NPT验证
-			if(makeCodeTxBytes == null) {
-				return json;
-			}
-			TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
-			if(makeCodeTxStore == null) {
-				return json;
-			}
-			AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
-
-			TransactionStore productTxStore = accountKit.getTransaction(makeCodeTx.getProductTx());
-			if(productTxStore == null) {
-				return json;
-			}
-			try {
-				json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			json.put("antifakeMakeTx", makeCodeTx.getHash());
-			json.put("antifakeVerifyTx", atx.getHash());
-			json.put("productTx", productTxStore.getTransaction().getHash());
-
-		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
-			AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
-
-			TransactionStore ptx = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
-			//必要的NPT验证
-			if(ptx != null) {
-				Product product = ((ProductTransaction)ptx.getTransaction()).getProduct();
-				json.put("productName", product.getName());
-				json.put("productTx", ptx.getTransaction().getHash());
-				if(atx.getRewardCoin() != null) {
-					json.put("rewardCoin", atx.getRewardCoin().toText());
-				} else {
-					json.put("rewardCoin", 0);
-				}
-			}
-			try {
-				json.put("antifakeCode", Base58.encode(atx.getAntifakeCode()));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CIRCULATION) {
 			//防伪码流转记录
 			CirculationTransaction ctx = (CirculationTransaction) tx;
@@ -3017,28 +3040,7 @@ public class RPCServiceImpl implements RPCService {
 			json.put("credit", ctx.getCredit());
 			json.put("reason", reason);
 
-		} else if(tx.getType() == Definition.TYPE_VIOLATION) {
-			ViolationTransaction vtx = (ViolationTransaction) tx;
-
-			ViolationEvidence evidence = vtx.getViolationEvidence();
-			int violationType = evidence.getViolationType();
-			String reason = "";
-			long credit = 0;
-			if(violationType == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK) {
-				NotBroadcastBlockViolationEvidence nbve = (NotBroadcastBlockViolationEvidence) evidence;
-				reason = String.format("共识过程中，开始时间为%s的轮次及后面一轮次超时未出块", DateUtil.convertDate(new Date(nbve.getCurrentPeriodStartTime() * 1000)));
-				credit = Configure.CERT_CHANGE_TIME_OUT;
-			} else if(violationType == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK) {
-				RepeatBlockViolationEvidence nbve = (RepeatBlockViolationEvidence) evidence;
-				reason = String.format("共识过程中,开始时间为%s的轮次重复出块,没收保证金%s", DateUtil.convertDate(new Date(nbve.getBlockHeaders().get(0).getPeriodStartTime() * 1000)), Coin.valueOf(vtx.getOutput(0).getValue()).toText());
-				credit = Configure.CERT_CHANGE_SERIOUS_VIOLATION;
-			}
-			reason = "信用 " + credit + " 原因：" + reason;
-
-			json.put("credit", credit);
-			json.put("reason", reason);
-		}
-		else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
+		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
 			AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
 			Address address = null;
