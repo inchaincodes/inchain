@@ -1272,16 +1272,16 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	/**
 	 * 更新账户的资产信息
 	 * @param code 注册交易的code
-	 * @param addressHash 用户地址的hash
+	 * @param hash160 用户地址的hash160
 	 * @param amount 变动的金额
 	 * @param symbol 变动的方向  1，-1
 	 */
-	private void updateAccountAssets(byte[] code,  byte[] addressHash, long amount, int symbol) {
+	private void updateAccountAssets(byte[] code,  byte[] hash160, long amount, int symbol) {
 		//资产账户的key 规则为 [1],[1] + recevier
-		byte[] key = new byte[addressHash.length + 2];
+		byte[] key = new byte[hash160.length + 2];
 		//固定key的前两位为 [1],[1]
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
-		System.arraycopy(addressHash, 0, key, 2, addressHash.length);
+		System.arraycopy(hash160, 0, key, 2, hash160.length);
 
 		//获取接收人资产账户列表
 		byte[] myAssets = getBytes(key);
@@ -1364,11 +1364,11 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @param address
 	 * @return
 	 */
-	public List<Assets> getMyAssetsAccount(byte[] addressHash) {
+	public List<Assets> getMyAssetsAccount(byte[] hash160) {
 		//资产账户的key 规则为 [1],[1] + recevier
-		byte[] key = new byte[addressHash.length + 2];
+		byte[] key = new byte[hash160.length + 2];
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
-		System.arraycopy(addressHash, 0, key, 2, addressHash.length);
+		System.arraycopy(hash160, 0, key, 2, hash160.length);
 
 		byte[] myAssets = getBytes(key);
 		if(myAssets == null) {
@@ -1391,8 +1391,8 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	 * @param code
 	 * @return
 	 */
-	public Assets getMyAssetsByCode(byte[] addressHash, byte[] code) {
-		List<Assets> assetsList = getMyAssetsAccount(addressHash);
+	public Assets getMyAssetsByCode(byte[] hash160, byte[] code) {
+		List<Assets> assetsList = getMyAssetsAccount(hash160);
 		if(assetsList == null || assetsList.size() == 0) {
 			return null;
 		}
