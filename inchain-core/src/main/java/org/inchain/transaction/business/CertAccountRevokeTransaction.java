@@ -49,7 +49,7 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 	protected void parse() {
 		type = readBytes(1)[0] & 0xff;
 		version = readUint32();
-		time = readInt64();
+		time = readUint32();
 		revokeHash160 =  readBytes(Address.LENGTH);
 		hash160 = readBytes(Address.LENGTH);
 
@@ -81,7 +81,7 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 		//版本
 		Utils.uint32ToByteStreamLE(version, stream);
 		//交易时间
-		Utils.int64ToByteStreamLE(time, stream);
+		Utils.uint32ToByteStreamLE(time, stream);
 
 		//hash 160
 		Utils.checkNotNull(revokeHash160);
