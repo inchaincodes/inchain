@@ -803,8 +803,6 @@ public class AccountKit {
 		transferTx.verify();
 		transferTx.verifyScript();
 
-
-
 		//验证交易是否合法
 		ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(transferTx);
 		if(!rs.getResult().isSuccess()) {
