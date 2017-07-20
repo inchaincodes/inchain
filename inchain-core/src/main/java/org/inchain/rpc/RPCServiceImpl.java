@@ -626,7 +626,7 @@ public class RPCServiceImpl implements RPCService {
 			Coin balance = accountKit.getBalance(account);
 			if(Configure.ASSETS_REG_FEE.isGreaterThan(balance)) {
 				result.put("success", false);
-				result.put("message", "余额不足10000INS，无法做资产注册 ");
+				result.put("message", "余额不足10000INS，无法做资产注册");
 				return result;
 			}
 
