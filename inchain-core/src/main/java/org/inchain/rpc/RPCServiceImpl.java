@@ -610,7 +610,6 @@ public class RPCServiceImpl implements RPCService {
 				if(!pwdResult.isSuccess()) {
 					throw new VerificationException("密码错误");
 				}
-
 			}
 
 			//创建交易
@@ -694,14 +693,8 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
-			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
-			byte[] hashReceiver = null;
-			try {
-				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
-			} catch (Exception e) {
-				throw new VerificationException("接收人地址错误");
-			}
+			//2、判断接收人地址是否合法
+			byte[] hashReceiver = new Address(network, receiver).getHash();
 
 			//3、根据code获取资产注册交易是否存在
 			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
@@ -786,8 +779,22 @@ public class RPCServiceImpl implements RPCService {
 				account = accountKit.getAccount(address);
 			}
 
+			if(account == null) {
+				throw new VerificationException("账户不存在");
+			}
+			if(account.isEncrypted()) {
+				if(StringUtil.isEmpty(password)) {
+					throw new VerificationException("账户已加密，请解密或者传入密码");
+				}
+				//解密钱包
+				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				if(!pwdResult.isSuccess()) {
+					throw new VerificationException("密码错误");
+				}
+			}
+
 			List<JSONObject> jsonList = new ArrayList<>();
-			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash160());
+			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash());
 			for(Assets assets : list) {
 				AssetsRegisterTransaction registerTx = chainstateStoreProvider.getAssetsRegisterTxByCodeHash256(assets.getCode());
 				if(registerTx != null) {
@@ -847,16 +854,10 @@ public class RPCServiceImpl implements RPCService {
 
 
 			//2、判断接收人地址是否合法
-			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接收人的账户类型，所以采用了默认的hash，长度为25位
-			byte[] hashReceiver = null;
-			try {
-				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
-			} catch (Exception e) {
-				throw new VerificationException("接收人地址错误");
-			}
+			byte[] hashReceiver = new Address(network, receiver).getHash();
+
 			//判断转账人和接收人是不是同一个人
-			if(Arrays.equals(account.getAddress().getHash160(), hashReceiver)) {
+			if(Arrays.equals(account.getAddress().getHash(), hashReceiver)) {
 				throw new VerificationException("接收人和转账人不能是同一人");
 			}
 

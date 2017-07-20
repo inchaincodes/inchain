@@ -993,8 +993,13 @@ public class TransactionValidator {
 			//资产交易
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
 
-			byte[] sender =  assetsTransferTx.getHash160();
-			byte[] receiver = assetsTransferTx.getReceiver();
+			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(assetsTransferTx.getHash160());
+			if(accountInfo == null) {
+				result.setResult(false, "账户不存在");
+				return validatorResult;
+			}
+			Address address = new Address(network, accountInfo.getType(), accountInfo.getHash160());
+			byte[] sender = address.getHash();
 			Sha256Hash assetsTxHash = assetsTransferTx.getAssetsHash();
 			//验证资产是否存在
 			TransactionStore assetsRegisterTxStore = blockStoreProvider.getTransaction(assetsTxHash.getBytes());

@@ -52,7 +52,7 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 	public void verify() throws VerificationException {
 		super.verify();
 		//验证接收人
-		if(receiver == null || receiver.length != Address.LENGTH) {
+		if(receiver == null || receiver.length != Address.HASH_LENGTH) {
 			throw new VerificationException("接收人不正确");
 		}
 		if(amount <= 0) {
@@ -84,7 +84,7 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		super.parse();
 
 		assetsHash = readHash();
-		receiver = readBytes(20);
+		receiver = readBytes(Address.HASH_LENGTH);
 		amount = readInt64();
 		remark = readBytes((int)readVarInt());
 
