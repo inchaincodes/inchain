@@ -50,7 +50,7 @@
 					<outputDirectory>${basedir}/lib</outputDirectory>
 					<excludeTransitive>false</excludeTransitive>
 					<stripVersion>true</stripVersion>
-                	<overWrite>true</overWrite>
+                	<!--<overWrite>true</overWrite>-->
 				</configuration>
 			</plugin>
 			
@@ -86,6 +86,8 @@
 			<groupId>org.inchain</groupId>
 			<artifactId>inchain-core</artifactId>
 			<version>0.1</version>
-		</dependency>
+            <scope>system</scope>
+            <systemPath>${basedir}/../inchain-core/target/inchain-core-0.1.jar</systemPath>
+        </dependency>
     </dependencies>
 </project>
