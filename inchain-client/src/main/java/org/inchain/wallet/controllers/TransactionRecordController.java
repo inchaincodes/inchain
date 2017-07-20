@@ -588,11 +588,8 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-
-					Address address = Address.fromHashs(network, issuedTx.getReceiver());
-					detail += "接收人：" + address.getBase58()+ "\n";
+					detail += "接收人：" + issuedTx.getReceiveAddress()+ "\n";
 				}
-
 				else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
 					AssetsTransferTransaction transferTx = (AssetsTransferTransaction)tx;
 					type = "资产转让";
@@ -600,10 +597,9 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-
-					Address address = Address.fromHashs(network, transferTx.getReceiver());
-					detail += "接收人：" + address.getBase58()+ "\n";
-				}else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){
+					detail += "接收人：" + transferTx.getReceiveAddress()+ "\n";
+				}
+				else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){
 					CertAccountRevokeTransaction revokeTx = (CertAccountRevokeTransaction)tx;
 					type = "账户吊销";
 					byte[] revokedhash = revokeTx.getRevokeHash160();

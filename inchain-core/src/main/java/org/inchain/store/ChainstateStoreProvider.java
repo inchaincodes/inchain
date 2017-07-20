@@ -1085,7 +1085,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 * 资产注册交易回滚
-	 * @param assetsRegisterTx
+	 * @param tx
 	 */
 	public void rollbackAssetsRegisterTx(Transaction tx) {
 		AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)tx;
@@ -1235,33 +1235,31 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 				if(Arrays.equals(txHash, assetsIssueHash256s)) {
 					delete(key);
 				}
-				return;
-			}
+			}else {
+				//找到该笔资产发行交易，然后删除
+				for(int j = 0; j < assetsIssueHash256s.length; j++) {
+					byte[] current = new byte[Sha256Hash.LENGTH];
+					System.arraycopy(assetsIssueHash256s, j, current, 0, Sha256Hash.LENGTH);
+					if(Arrays.equals(current, txHash)) {
+						byte [] before = new byte[j];
+						System.arraycopy(assetsIssueHash256s, 0, before, 0, j);
 
-			//找到该笔资产发行交易，然后删除
-			for(int j = 0; j < assetsIssueHash256s.length; j++) {
-				byte[] current = new byte[Sha256Hash.LENGTH];
-				System.arraycopy(assetsIssueHash256s, j, current, 0, Sha256Hash.LENGTH);
-				if(Arrays.equals(current, txHash)) {
-					byte [] before = new byte[j];
-					System.arraycopy(assetsIssueHash256s, 0, before, 0, j);
+						byte [] end = new byte[assetsIssueHash256s.length - j - Sha256Hash.LENGTH];
+						System.arraycopy(assetsIssueHash256s, j + Sha256Hash.LENGTH, end, 0, end.length);
 
-					byte [] end = new byte[assetsIssueHash256s.length - j - Sha256Hash.LENGTH];
-					System.arraycopy(assetsIssueHash256s, j + Sha256Hash.LENGTH, end, 0, end.length);
+						//newHash = before + end;
+						byte []newHash = new byte[assetsIssueHash256s.length - Sha256Hash.LENGTH];
+						System.arraycopy(before, 0, newHash, 0, before.length);
+						System.arraycopy(end, 0, newHash, before.length, end.length);
 
-					//newHash = before + end;
-					byte []newHash = new byte[assetsIssueHash256s.length - Sha256Hash.LENGTH];
-					System.arraycopy(before, 0, newHash, 0, before.length);
-					System.arraycopy(end, 0, newHash, before.length, end.length);
-
-					put(key, newHash);
-					break;
+						put(key, newHash);
+						break;
+					}
 				}
 			}
 
 			//从我的资产账户中，清除这笔交易
 			updateAccountAssets(hash256, assetsIssuedTx.getReceiver(), assetsIssuedTx.getAmount(), -1);
-
 		}catch (Exception e) {
 			log.error("出错了{}", e.getMessage(), e);
 		}finally {
@@ -1272,16 +1270,16 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	/**
 	 * 更新账户的资产信息
 	 * @param code 注册交易的code
-	 * @param hash160 用户地址的hash160
+	 * @param addressHash 用户地址的hash
 	 * @param amount 变动的金额
 	 * @param symbol 变动的方向  1，-1
 	 */
-	private void updateAccountAssets(byte[] code,  byte[] hash160, long amount, int symbol) {
+	private void updateAccountAssets(byte[] code,  byte[] addressHash, long amount, int symbol) {
 		//资产账户的key 规则为 [1],[1] + recevier
-		byte[] key = new byte[hash160.length + 2];
+		byte[] key = new byte[addressHash.length + 2];
 		//固定key的前两位为 [1],[1]
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
-		System.arraycopy(hash160, 0, key, 2, hash160.length);
+		System.arraycopy(addressHash, 0, key, 2, addressHash.length);
 
 		//获取接收人资产账户列表
 		byte[] myAssets = getBytes(key);
@@ -1361,14 +1359,14 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 *  获取我的资产
-	 * @param address
+	 * @param addressHash
 	 * @return
 	 */
-	public List<Assets> getMyAssetsAccount(byte[] hash160) {
+	public List<Assets> getMyAssetsAccount(byte[] addressHash) {
 		//资产账户的key 规则为 [1],[1] + recevier
-		byte[] key = new byte[hash160.length + 2];
+		byte[] key = new byte[addressHash.length + 2];
 		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
-		System.arraycopy(hash160, 0, key, 2, hash160.length);
+		System.arraycopy(addressHash, 0, key, 2, addressHash.length);
 
 		byte[] myAssets = getBytes(key);
 		if(myAssets == null) {
@@ -1387,12 +1385,12 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 
 	/**
 	 *  根据资产code，获取我相关的资产信息
-	 * @param hash160
+	 * @param addressHash
 	 * @param code
 	 * @return
 	 */
-	public Assets getMyAssetsByCode(byte[] hash160, byte[] code) {
-		List<Assets> assetsList = getMyAssetsAccount(hash160);
+	public Assets getMyAssetsByCode(byte[] addressHash, byte[] code) {
+		List<Assets> assetsList = getMyAssetsAccount(addressHash);
 		if(assetsList == null || assetsList.size() == 0) {
 			return null;
 		}
@@ -1406,7 +1404,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
-	 * 资产交易
+	 * 资产转让
 	 * @param assetsTransferTx
 	 */
 	public void assetsTransfer(AssetsTransferTransaction assetsTransferTx) {
@@ -1414,13 +1412,21 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		try{
 			TransactionStore txs =  blockStoreProvider.getTransaction(assetsTransferTx.getAssetsHash().getBytes());
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
-			byte[] sender =  assetsTransferTx.getHash160();
+
+			//获取转账人的hash
+			byte[] hash160 =  assetsTransferTx.getHash160();
+			AccountStore accountStore = getAccountInfo(hash160);
+			if(accountStore == null) {
+				throw new RuntimeException("转账账户未找到");
+			}
+			Address address = new Address(network,accountStore.getType(), hash160);
+
+			byte[] sender = address.getHash();
 			byte[] receiver = assetsTransferTx.getReceiver();
 			//首先判断转让人 余额是否充足
 			Assets assets = getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
 			if(assets == null) {
 				throw new RuntimeException("转让人没有与资产相关的信息");
-
 			}
 			if(assets.getBalance() < assetsTransferTx.getAmount()) {
 				throw new RuntimeException("转让人资产余额不足");
@@ -1444,13 +1450,19 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 		assetsLock.lock();
 		try {
 			AssetsTransferTransaction transferTx = (AssetsTransferTransaction)tx;
+
 			byte[] sender =  transferTx.getHash160();
+			AccountStore accountStore = getAccountInfo(sender);
+			if(accountStore == null) {
+				throw new RuntimeException("转账账户未找到");
+			}
+			Address address = new Address(network,accountStore.getType(), sender);
 			byte[] receiver = transferTx.getReceiver();
 			//与资产转让交易做反向操作
 			TransactionStore txs =  blockStoreProvider.getTransaction(transferTx.getAssetsHash().getBytes());
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
 			byte[] hash256 = Sha256Hash.hash(assetsRegisterTx.getCode());
-			updateAccountAssets(hash256, sender, transferTx.getAmount(),  1);
+			updateAccountAssets(hash256, address.getHash(), transferTx.getAmount(),  1);
 			updateAccountAssets(hash256, receiver, transferTx.getAmount(), -1);
 		}catch (Exception e) {
 			log.error("出错了{}", e.getMessage(), e);
