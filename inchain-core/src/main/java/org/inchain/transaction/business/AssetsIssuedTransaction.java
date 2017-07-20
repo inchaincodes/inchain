@@ -115,6 +115,9 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 		this.assetsHash = assetsHash;
 	}
 
+	public String getReceiveAddress() {
+		return Address.fromHashs(network, receiver).getBase58();
+	}
 
 	@Override
 	public String toString() {

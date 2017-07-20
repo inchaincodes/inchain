@@ -626,7 +626,7 @@ public class RPCServiceImpl implements RPCService {
 			Coin balance = accountKit.getBalance(account);
 			if(Configure.ASSETS_REG_FEE.isGreaterThan(balance)) {
 				result.put("success", false);
-				result.put("message", "余额不足10000INS，无法做资产注册 ");
+				result.put("message", "余额不足10000INS，无法做资产注册");
 				return result;
 			}
 
@@ -694,11 +694,10 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
-			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
-			byte[] hashReceiver = null;
+			//2、判断接收人地址是否合法
+			byte[] hashReceiver;
 			try {
-				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
+				hashReceiver = new Address(network, receiver).getHash();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -787,7 +786,7 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			List<JSONObject> jsonList = new ArrayList<>();
-			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash160());
+			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash());
 			for(Assets assets : list) {
 				AssetsRegisterTransaction registerTx = chainstateStoreProvider.getAssetsRegisterTxByCodeHash256(assets.getCode());
 				if(registerTx != null) {
@@ -845,18 +844,15 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
-
 			//2、判断接收人地址是否合法
-			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接收人的账户类型，所以采用了默认的hash，长度为25位
-			byte[] hashReceiver = null;
+			byte[] hashReceiver;
 			try {
-				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
+				hashReceiver = new Address(network, receiver).getHash();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
 			//判断转账人和接收人是不是同一个人
-			if(Arrays.equals(account.getAddress().getHash160(), hashReceiver)) {
+			if(Arrays.equals(account.getAddress().getHash(), hashReceiver)) {
 				throw new VerificationException("接收人和转账人不能是同一人");
 			}
 
@@ -3042,16 +3038,8 @@ public class RPCServiceImpl implements RPCService {
 
 		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-			AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
-			Address address = null;
-
-			if(accountStore == null) {
-				address = new Address(network, aitx.getReceiver());
-			}else {
-				address = new Address(network,accountStore.getType(), aitx.getReceiver());
-			}
 			json.put("amount", aitx.getAmount());
-			json.put("receiver", address.getBase58());
+			json.put("receiver", aitx.getReceiveAddress());
 		}
 
 		return json;
