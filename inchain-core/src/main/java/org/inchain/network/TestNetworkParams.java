@@ -20,15 +20,14 @@ public class TestNetworkParams extends NetworkParams {
 	public TestNetworkParams() {
 		seedManager = new RemoteSeedManager();
 
-		seedManager.addDnsSeed("test1.seed.inchain.org");
-		seedManager.addDnsSeed("test2.seed.inchain.org");
 
 //    	seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.249.26", Configure.DEFAULT_PORT)));
 //   	seedManager.add(new Seed(new InetSocketAddress("119.23.253.3", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.254.99", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.190", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.186", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.190", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.186", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.187", Configure.DEFAULT_PORT)));
 		init();
 	}
 
@@ -42,7 +41,7 @@ public class TestNetworkParams extends NetworkParams {
 
 		id = ID_TESTNET;
 
-		packetMagic = 629266579L;
+		packetMagic = 629268888L;
 
 		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}
