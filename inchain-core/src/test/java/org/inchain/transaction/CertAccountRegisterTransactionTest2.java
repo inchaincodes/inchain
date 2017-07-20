@@ -63,7 +63,6 @@ public class CertAccountRegisterTransactionTest2 extends TestNetBaseTestCase {
 
 		
 		Account account = accountKit.createNewCertAccount("inchain123456", "inchain123", body, "inchain123",null);
-		System.out.println("hash160: " + Hex.encode(account.getAddress().getHash160()));
 		
 		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),managerAccount.getAddress().getHash160(),managerAccount.getLevel());
 		

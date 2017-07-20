@@ -34,10 +34,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.*;
-import org.inchain.utils.Base58;
-import org.inchain.utils.DateUtil;
-import org.inchain.utils.StringUtil;
-import org.inchain.utils.Utils;
+import org.inchain.utils.*;
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.entity.DetailValue;
 import org.inchain.wallet.entity.DetailValueCell;
@@ -609,6 +606,11 @@ public class TransactionRecordController implements SubPageController {
 					byte[] revokedhash = revokeTx.getRevokeHash160();
 					Address raddress = new Address(network,network.getCertAccountVersion(),revokedhash);
 					detail += "吊销账户："+raddress.getBase58()+"\n";
+				}else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_BIND){
+					AntifakeCodeBindTransaction bindTx = (AntifakeCodeBindTransaction) tx;
+					type = "绑定防伪码";
+					detail += Base58.encode(bindTx.getAntifakeCode())+"绑定到"+ Hex.encode(bindTx.getProductTx().getBytes());
+
 				}
 
 				if(tx.isPaymentTransaction() && tx.getOutputs().size() > 0) {

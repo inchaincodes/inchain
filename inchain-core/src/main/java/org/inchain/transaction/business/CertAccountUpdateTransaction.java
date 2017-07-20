@@ -17,7 +17,7 @@ import org.inchain.network.NetworkParams;
 public class CertAccountUpdateTransaction extends CertAccountRegisterTransaction {
 	
 	public CertAccountUpdateTransaction(NetworkParams network, byte[] hash160, byte[][] mgPubkeys, byte[][] trPubkeys, AccountBody body,byte[] superhash160,int superlevel) {
-		super(network, hash160, mgPubkeys, trPubkeys, body,superhash160,superlevel);
+		super(network, hash160, mgPubkeys, trPubkeys, body,superhash160,superlevel-1);
 		this.setType(Definition.TYPE_CERT_ACCOUNT_UPDATE);
 	}
 	

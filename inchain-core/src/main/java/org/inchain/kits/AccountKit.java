@@ -396,7 +396,6 @@ public class AccountKit {
 		}
 
 		try {
-			//对应的商品不能为空
 			AntifakeCodeMakeTransaction tx = null;
 			if(productTx == null || productTx.isEmpty()) {
 				tx= new AntifakeCodeMakeTransaction(network);
@@ -456,9 +455,10 @@ public class AccountKit {
 			System.arraycopy(account.getAddress().getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
 
 			Sha256Hash verifyCodeConent = Sha256Hash.twiceOf(verifyContent);
-
-			Script out = ScriptBuilder.createAntifakeOutputScript(account.getAddress().getHash160(), verifyCodeConent);
-			tx.addOutput(money, out);
+			if( money.isGreaterThan(Coin.ZERO)) {
+				Script out = ScriptBuilder.createAntifakeOutputScript(account.getAddress().getHash160(), verifyCodeConent);
+				tx.addOutput(money, out);
+			}
 
 			//是否找零
 			if(totalInputCoin.isGreaterThan(money)) {
@@ -475,9 +475,9 @@ public class AccountKit {
 
 			tx.verify();
 			tx.verifyScript();
-
 			//验证交易是否合法
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+
 			if(!rs.getResult().isSuccess()) {
 				throw new VerificationException(rs.getResult().getMessage());
 			}
@@ -549,9 +549,15 @@ public class AccountKit {
 		}
 
 		Sha256Hash productTxHash = Sha256Hash.wrap(productTx);
-		AntifakeCode antifakeCode = AntifakeCode.base58Decode(antiCode);
-		byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
-
+		byte [] antibyte = Base58.decode(antiCode);
+		AntifakeCode antifakeCode = null;
+		byte[] makebind = null;
+		if(antibyte.length>20) {
+			antifakeCode = AntifakeCode.base58Decode(antiCode);
+			makebind = chainstateStoreProvider.getBytes(antifakeCode.getAntifakeCode());
+		}else {
+			makebind = chainstateStoreProvider.getBytes(antibyte);
+		}
 		if(makebind == null) {
 			throw new VerificationException("防伪码不存在");
 		}
@@ -2015,7 +2021,7 @@ public class AccountKit {
 			return new BroadcastResult(false, "账户不存在");
 		}
 
-		ECKey[] eckey = account.decryptionMg(mgPw);
+		ECKey[] eckey = account.decryptionTr(mgPw);
 		if(eckey == null) {
 			return new BroadcastResult(false, "密码错误");
 		}
@@ -2023,7 +2029,7 @@ public class AccountKit {
 		locker.lock();
 		try {
 			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),account.getLevel());
-			cutx.sign(account, Definition.TX_VERIFY_MG);
+			cutx.sign(account, Definition.TX_VERIFY_TR);
 
 			cutx.verify();
 			cutx.verifyScript();
