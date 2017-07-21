@@ -1450,10 +1450,9 @@ public class AccountKit {
 
 	/**
 	 * 广播交易
-	 * @param account
-	 * @param money
-	 * @param fee
-	 * @param tx
+	 * @param myAccount
+	 * @param moneyCoin
+	 * @param feeCoin
 	 * @param fromOutputs
 	 * @param receiveAddress
 	 * @return
@@ -3368,6 +3367,15 @@ public class AccountKit {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 根据hash160获取用户store信息
+	 * @param hash160
+	 * @return
+	 */
+	public AccountStore getAccountStore(byte[] hash160) {
+		return chainstateStoreProvider.getAccountInfo(hash160);
 	}
 
 	/**
