@@ -83,13 +83,9 @@ public class VersionMessage extends Message {
         nonce = RandomUtil.randomLong();
         try {
         	if(myAddress == null) {
-        		try {
-        			myAddr = new PeerAddress(InetAddress.getLocalHost(), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
-        		} catch (Exception e) {
-        			final byte[] localhost = { 0, 0, 0, 0 };
-                    myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
-				}
-        	} else {
+				final byte[] localhost = { 0, 0, 0, 0 };
+				myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
+			} else {
         		myAddr = myAddress;
         	}
             if(remoteAddress == null) {
