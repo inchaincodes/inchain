@@ -2937,7 +2937,11 @@ public class RPCServiceImpl implements RPCService {
 					return json;
 				}
 				try {
-					json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+					if(makebind.length == 2*Sha256Hash.LENGTH) {
+						json.put("antifakeCode", Base58.encode(bindCodeTx.getAntifakeCode()));
+					}else{
+						json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
