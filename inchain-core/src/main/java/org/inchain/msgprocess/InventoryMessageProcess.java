@@ -199,7 +199,7 @@ public class InventoryMessageProcess implements MessageProcess {
 			Future<GetDataResult> resultFuture = peer.sendGetDataMessage(new GetDatasMessage(peer.getNetwork(), inventoryItem));
 			
 			//获取下载结果，有超时时间
-			GetDataResult result = resultFuture.get(3, TimeUnit.SECONDS);
+			GetDataResult result = resultFuture.get(6, TimeUnit.SECONDS);
 
 			filter.insert(inventoryItem.getHash().getBytes());
 			

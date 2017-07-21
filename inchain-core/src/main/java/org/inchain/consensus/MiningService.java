@@ -1,24 +1,12 @@
 package org.inchain.consensus;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
-import org.inchain.core.Coin;
-import org.inchain.core.DataSynchronizeHandler;
-import org.inchain.core.Definition;
-import org.inchain.core.NotBroadcastBlockViolationEvidence;
-import org.inchain.core.RepeatBlockViolationEvidence;
-import org.inchain.core.TimeService;
-import org.inchain.core.ViolationEvidence;
+import org.inchain.core.*;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.filter.BloomFilter;
@@ -48,17 +36,8 @@ import org.inchain.transaction.Output;
 import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
-import org.inchain.transaction.business.AntifakeCodeMakeTransaction;
-import org.inchain.transaction.business.AntifakeCodeVerifyTransaction;
-import org.inchain.transaction.business.CreditTransaction;
-import org.inchain.transaction.business.ProductTransaction;
-import org.inchain.transaction.business.RegConsensusTransaction;
-import org.inchain.transaction.business.RemConsensusTransaction;
-import org.inchain.transaction.business.ViolationTransaction;
-import org.inchain.utils.ConsensusCalculationUtil;
-import org.inchain.utils.DateUtil;
-import org.inchain.utils.Hex;
-import org.inchain.utils.RandomUtil;
+import org.inchain.transaction.business.*;
+import org.inchain.utils.*;
 import org.inchain.validator.TransactionValidator;
 import org.inchain.validator.TransactionValidatorResult;
 import org.inchain.validator.ValidatorResult;
@@ -225,6 +204,9 @@ public final class MiningService implements Mining {
 			}
 		}
 
+		//在这里对transactionList的资产转账交易做特殊处理
+
+ 		this.verifyAssetsTx(transactionList);
 		//获取我的时段开始时间
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
 
@@ -340,6 +322,71 @@ public final class MiningService implements Mining {
 			}
 		} catch (IOException e) {
 			log.error("共识产生的新块保存时报错", e);
+		}
+	}
+
+	/**
+	 * 这里对资产转让交易做特殊处理
+	 * 为了防止同一账户在一次共识中针对同一个资产重复提交多次转账交易，
+	 * 从而导致总金额已经超过了账户上该资产的余额，
+	 * 出现此情况时，过滤掉超出金额的那部分交易
+	 * @param list
+	 */
+	private void verifyAssetsTx(List<Transaction> list) {
+		if (list == null || list.size() == 0) {
+			return;
+		}
+
+		//此map的结构 Map<账户id, Map<资产id, 对应交易 >>
+
+		Map<String,Map<String, List<AssetsTransferTransaction>>> map = new HashMap<>();
+		AssetsTransferTransaction transferTx;
+		AssetsRegisterTransaction registerTx;
+
+		for(Transaction tx : list) {
+			if(tx instanceof AssetsTransferTransaction) {
+				transferTx = (AssetsTransferTransaction)tx;
+				//找到对应的注册资产
+				TransactionStore txs =  blockStoreProvider.getTransaction(transferTx.getAssetsHash().getBytes());
+				registerTx = (AssetsRegisterTransaction)txs.getTransaction();
+
+				//生成账户id
+				String userKey = new String(transferTx.getHash160());
+				//生成资产id
+				String txid = new String(registerTx.getCode());
+
+				if(!map.containsKey(userKey)) {
+					Map<String,List<AssetsTransferTransaction>> txMap = new HashMap<>();
+					List<AssetsTransferTransaction> transferList = new ArrayList<>();
+					transferList.add(transferTx);
+					txMap.put(txid, transferList);
+					map.put(userKey, txMap);
+				}else {
+					Map<String,List<AssetsTransferTransaction>> txMap = map.get(userKey);
+					if(!txMap.containsKey(txid)) {
+						List<AssetsTransferTransaction> transferList = new ArrayList<>();
+						transferList.add(transferTx);
+
+						txMap.put(txid, transferList);
+					}else {
+						txMap.get(txid).add(transferTx);
+					}
+				}
+			}
+		}
+		//循环每一个用户的资产交易集合，判断每一个资产的交易总额是否大于用户余额，
+		//如果大于则在总的交易列表里删除该超出金额的交易，让其作废
+		for (Map.Entry<String,Map<String, List<AssetsTransferTransaction>>> entry : map.entrySet()) {
+			byte[] userKey = entry.getKey().getBytes();
+			//根据userKey找到对应的账户
+
+
+
+			Map<String, List<AssetsTransferTransaction>> txMap = entry.getValue();
+			for(Map.Entry<String, List<AssetsTransferTransaction>> txEntry : txMap.entrySet()) {
+				byte[] txKey = txEntry.getKey().getBytes();
+
+			}
 		}
 	}
 	
@@ -894,6 +941,15 @@ public final class MiningService implements Mining {
 				return true;
 			} else {
 				ValidatorResult<TransactionValidatorResult> res = transactionValidator.valDo(tx, transactionList);
+				//如果该交易是资产转让交易，需要特殊处理
+				if(!(tx instanceof AssetsTransferTransaction)) {
+					return res.getResult().isSuccess();
+				}
+				if(res.getResult().isSuccess() == false) {
+					return false;
+				}
+
+				//如果一个账户再一轮共识中同时发起了多笔转账交易，则需要验证
 				return res.getResult().isSuccess();
 			}
 		} catch (Exception e) {

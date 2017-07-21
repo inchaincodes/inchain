@@ -1290,7 +1290,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			myAssets = assets.serialize();
 			put(key, myAssets);
 		}else {
-			// 查询是否已存在资产列表
+			// 查询是否已存在于资产列表中
 			boolean hasAssets = false;
 			for(int j = 0; j < myAssets.length; j += Assets.CODE_LENGTH + 8) {
 				byte[] current = new byte[Assets.CODE_LENGTH + 8];

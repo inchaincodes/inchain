@@ -1002,6 +1002,7 @@ public class TransactionValidator {
 
 			//验证sender余额是否充足
 			byte[] hash160 =  assetsTransferTx.getHash160();
+
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore == null) {
 				result.setResult(false, "账户信息有误");
