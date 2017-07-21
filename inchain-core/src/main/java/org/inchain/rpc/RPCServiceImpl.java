@@ -2904,12 +2904,15 @@ public class RPCServiceImpl implements RPCService {
 
 				AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
 
-				byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode());
+				byte[] makebind = accountKit.getChainstate(atx.getAntifakeCode());
+				byte[] makebyte = new byte[Sha256Hash.LENGTH];
+				System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+
 				//必要的NPT验证
-				if(makeCodeTxBytes == null) {
+				if(makebyte == null) {
 					return json;
 				}
-				TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
+				TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makebyte));
 				if(makeCodeTxStore == null) {
 					return json;
 				}
