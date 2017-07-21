@@ -2906,19 +2906,33 @@ public class RPCServiceImpl implements RPCService {
 
 				byte[] makebind = accountKit.getChainstate(atx.getAntifakeCode());
 				byte[] makebyte = new byte[Sha256Hash.LENGTH];
+				byte[] bindbyte = new byte[Sha256Hash.LENGTH];
 				System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+				if(makebind.length == 2*Sha256Hash.LENGTH){
+					System.arraycopy(makebind,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+				}
 
 				//必要的NPT验证
 				if(makebyte == null) {
 					return json;
 				}
-				TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makebyte));
+				TransactionStore makeCodeTxStore = null;
+				AntifakeCodeMakeTransaction makeCodeTx = null;
+				AntifakeCodeBindTransaction bindCodeTx = null;
+				TransactionStore productTxStore = null;
+				if(makebind.length == 2*Sha256Hash.LENGTH){
+					makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(bindbyte));
+					bindCodeTx = (AntifakeCodeBindTransaction) makeCodeTxStore.getTransaction();
+					productTxStore = accountKit.getTransaction(bindCodeTx.getProductTx());
+				}else {
+					makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makebyte));
+					makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
+					productTxStore =  accountKit.getTransaction(makeCodeTx.getProductTx());
+				}
 				if(makeCodeTxStore == null) {
 					return json;
 				}
-				AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
 
-				TransactionStore productTxStore = accountKit.getTransaction(makeCodeTx.getProductTx());
 				if(productTxStore == null) {
 					return json;
 				}
