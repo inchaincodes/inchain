@@ -86,7 +86,7 @@ public class VersionMessage extends Message {
         		try {
         			myAddr = new PeerAddress(InetAddress.getLocalHost(), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
         		} catch (Exception e) {
-        			final byte[] localhost = { 127, 0, 0, 1 };
+        			final byte[] localhost = { 0, 0, 0, 0 };
                     myAddr = new PeerAddress(InetAddress.getByAddress(localhost), params.getPort(), NetworkParams.ProtocolVersion.CURRENT.getVersion());
 				}
         	} else {
