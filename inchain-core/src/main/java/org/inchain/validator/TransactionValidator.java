@@ -1000,18 +1000,11 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			//验证sender余额是否充足
-			byte[] hash160 =  assetsTransferTx.getHash160();
-
-			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-			if(accountStore == null) {
-				result.setResult(false, "账户信息有误");
-				return validatorResult;
-			}
+			//验证sender余额是否充足, 通过交易的hash160
+			byte[] sender =  assetsTransferTx.getHash160();
 			//获取转让人的资产信息
-			Address address = new Address(network,accountStore.getType(), hash160);
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)assetsRegisterTxStore.getTransaction();
-			Assets assets = chainstateStoreProvider.getMyAssetsByCode(address.getHash(), Sha256Hash.hash(assetsRegisterTx.getCode()));
+			Assets assets = chainstateStoreProvider.getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
 			if(assets == null) {
 				result.setResult(false, "转让人没有与资产相关的信息");
 				return validatorResult;

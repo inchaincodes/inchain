@@ -3036,9 +3036,16 @@ public class RPCServiceImpl implements RPCService {
 			json.put("reason", reason);
 
 		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
-			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-			json.put("amount", aitx.getAmount());
-			json.put("receiver", aitx.getReceiveAddress());
+            AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
+            AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
+            Address address;
+            if(accountStore == null) {
+                address = new Address(network, aitx.getReceiver());
+            }else {
+                address = new Address(network,accountStore.getType(), aitx.getReceiver());
+            }
+            json.put("amount", aitx.getAmount());
+            json.put("receiver", address.getBase58());
 		}
 
 		return json;
