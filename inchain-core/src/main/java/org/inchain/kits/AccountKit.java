@@ -3516,6 +3516,15 @@ public class AccountKit {
 	}
 
 	/**
+	 * 根据hash160获取用户store信息
+	 * @param hash160
+	 * @return
+	 */
+	public AccountStore getAccountStore(byte[] hash160) {
+		return chainstateStoreProvider.getAccountInfo(hash160);
+	}
+
+	/**
 	 * 设置别名
 	 * @param alias
 	 * @return Result
