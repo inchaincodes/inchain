@@ -694,10 +694,10 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 
-			//2、判断接收人地址是否合法
-			byte[] hashReceiver;
+			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
+			byte[] hashReceiver = null;
 			try {
-				hashReceiver = new Address(network, receiver).getHash();
+				hashReceiver = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -786,7 +786,7 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			List<JSONObject> jsonList = new ArrayList<>();
-			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash());
+			List<Assets> list = chainstateStoreProvider.getMyAssetsAccount(account.getAddress().getHash160());
 			for(Assets assets : list) {
 				AssetsRegisterTransaction registerTx = chainstateStoreProvider.getAssetsRegisterTxByCodeHash256(assets.getCode());
 				if(registerTx != null) {
@@ -843,16 +843,15 @@ public class RPCServiceImpl implements RPCService {
 		try {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
-
 			//2、判断接收人地址是否合法
 			byte[] hashReceiver;
 			try {
-				hashReceiver = new Address(network, receiver).getHash();
+				hashReceiver = new Address(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
 			//判断转账人和接收人是不是同一个人
-			if(Arrays.equals(account.getAddress().getHash(), hashReceiver)) {
+			if(Arrays.equals(account.getAddress().getHash160(), hashReceiver)) {
 				throw new VerificationException("接收人和转账人不能是同一人");
 			}
 
@@ -3037,9 +3036,16 @@ public class RPCServiceImpl implements RPCService {
 			json.put("reason", reason);
 
 		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
-			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-			json.put("amount", aitx.getAmount());
-			json.put("receiver", aitx.getReceiveAddress());
+            AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
+            AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
+            Address address;
+            if(accountStore == null) {
+                address = new Address(network, aitx.getReceiver());
+            }else {
+                address = new Address(network,accountStore.getType(), aitx.getReceiver());
+            }
+            json.put("amount", aitx.getAmount());
+            json.put("receiver", address.getBase58());
 		}
 
 		return json;

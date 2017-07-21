@@ -1290,7 +1290,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			myAssets = assets.serialize();
 			put(key, myAssets);
 		}else {
-			// 查询是否已存在资产列表
+			// 查询是否已存在于资产列表中
 			boolean hasAssets = false;
 			for(int j = 0; j < myAssets.length; j += Assets.CODE_LENGTH + 8) {
 				byte[] current = new byte[Assets.CODE_LENGTH + 8];
@@ -1413,15 +1413,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			TransactionStore txs =  blockStoreProvider.getTransaction(assetsTransferTx.getAssetsHash().getBytes());
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)txs.getTransaction();
 
-			//获取转账人的hash
-			byte[] hash160 =  assetsTransferTx.getHash160();
-			AccountStore accountStore = getAccountInfo(hash160);
-			if(accountStore == null) {
-				throw new RuntimeException("转账账户未找到");
-			}
-			Address address = new Address(network,accountStore.getType(), hash160);
-
-			byte[] sender = address.getHash();
+			byte[] sender = assetsTransferTx.getHash160();
 			byte[] receiver = assetsTransferTx.getReceiver();
 			//首先判断转让人 余额是否充足
 			Assets assets = getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
