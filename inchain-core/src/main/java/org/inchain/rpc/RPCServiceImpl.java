@@ -2945,7 +2945,7 @@ public class RPCServiceImpl implements RPCService {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				json.put("antifakeMakeTx", makeCodeTx.getHash());
+				json.put("antifakeMakeTx", makeCodeTx!=null?makeCodeTx.getHash():bindCodeTx.getHash());
 				json.put("antifakeVerifyTx", atx.getHash());
 				json.put("productTx", productTxStore.getTransaction().getHash());
 
