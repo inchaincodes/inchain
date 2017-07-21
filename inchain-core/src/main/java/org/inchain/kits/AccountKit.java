@@ -1450,10 +1450,9 @@ public class AccountKit {
 
 	/**
 	 * 广播交易
-	 * @param account
-	 * @param money
-	 * @param fee
-	 * @param tx
+	 * @param myAccount
+	 * @param moneyCoin
+	 * @param feeCoin
 	 * @param fromOutputs
 	 * @param receiveAddress
 	 * @return
