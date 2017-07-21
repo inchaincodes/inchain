@@ -12,10 +12,10 @@ public class RpcClientTest {
 	static String cmd_makeanti= "createantifakewithoutproduct {count:1} inchain123 0 ckDVgizRL9MLNTW2AS6BseMCqxtMxobPGz";
 	static String[] paras = cmd_makeanti.split(" ");
 	public static void main(String [] ar){
-		for(int j =0;j<100;j ++) {
+		for(int j =0;j<1;j ++) {
 			new Thread() {
 				public void run() {
-					for (int i = 0; i < 10000; i++) {
+					for (int i = 0; i < 10001; i++) {
 						try {
 							RPCClient.main(paras);
 						} catch (IOException e) {
