@@ -350,7 +350,7 @@ public final class MiningService implements Mining {
 				registerTx = (AssetsRegisterTransaction)txs.getTransaction();
 
 				//生成账户id
-				String userKey = new String(transferTx.getHash160());
+				String userKey = new String(transferTx.getHash160(), Utils.UTF_8);
 				//生成资产id，用资产code作为key
 				String txKey = new String(registerTx.getCode());
 
@@ -378,14 +378,14 @@ public final class MiningService implements Mining {
 		//循环每一个用户的资产交易集合，判断每一个资产的交易总额是否大于用户余额，
 		//如果大于则在总的交易列表里删除该超出金额的交易，让其作废
 		for (Map.Entry<String,Map<String, List<AssetsTransferTransaction>>> entry : map.entrySet()) {
-			byte[] userKey = entry.getKey().getBytes();
 			Map<String, List<AssetsTransferTransaction>> txMap = entry.getValue();
 			for(Map.Entry<String, List<AssetsTransferTransaction>> txEntry : txMap.entrySet()) {
 				byte[] txKey = txEntry.getKey().getBytes();
 				//根据userKey和txkey找到对应的账户
-				Assets assets = chainstateStoreProvider.getMyAssetsByCode(userKey, Sha256Hash.hash(txKey));
 				//求和交易总金额
 				List<AssetsTransferTransaction> txList = txEntry.getValue();
+				byte[] userKey = txList.get(0).getHash160();
+				Assets assets = chainstateStoreProvider.getMyAssetsByCode(userKey, Sha256Hash.hash(txKey));
 				long sum = 0;
 				for(AssetsTransferTransaction tx : txList) {
 					if(sum < assets.getBalance()) {
