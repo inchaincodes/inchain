@@ -205,7 +205,6 @@ public final class MiningService implements Mining {
 		}
 
 		//在这里对transactionList的资产转账交易做特殊处理
-
  		this.verifyAssetsTx(transactionList);
 		//获取我的时段开始时间
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
@@ -338,13 +337,13 @@ public final class MiningService implements Mining {
 		}
 
 		//此map的结构 Map<账户id, Map<资产id, 对应交易 >>
-
 		Map<String,Map<String, List<AssetsTransferTransaction>>> map = new HashMap<>();
 		AssetsTransferTransaction transferTx;
 		AssetsRegisterTransaction registerTx;
-
+		//循环所有交易，将转账交易按照map结构，存放进去
 		for(Transaction tx : list) {
 			if(tx instanceof AssetsTransferTransaction) {
+				//找到资产转让交易
 				transferTx = (AssetsTransferTransaction)tx;
 				//找到对应的注册资产
 				TransactionStore txs =  blockStoreProvider.getTransaction(transferTx.getAssetsHash().getBytes());
@@ -352,24 +351,26 @@ public final class MiningService implements Mining {
 
 				//生成账户id
 				String userKey = new String(transferTx.getHash160());
-				//生成资产id
-				String txid = new String(registerTx.getCode());
+				//生成资产id，用资产code作为key
+				String txKey = new String(registerTx.getCode());
 
 				if(!map.containsKey(userKey)) {
+					//如果map里不包含用户，则直接新增
 					Map<String,List<AssetsTransferTransaction>> txMap = new HashMap<>();
 					List<AssetsTransferTransaction> transferList = new ArrayList<>();
 					transferList.add(transferTx);
-					txMap.put(txid, transferList);
+					txMap.put(txKey, transferList);
 					map.put(userKey, txMap);
 				}else {
+					//如果用户存在则判断当前交易是否已存在同样的资产注册交易
 					Map<String,List<AssetsTransferTransaction>> txMap = map.get(userKey);
-					if(!txMap.containsKey(txid)) {
+					if(txMap.containsKey(txKey)) {
+						//存在则直接新增
+						txMap.get(txKey).add(transferTx);
+					}else {
 						List<AssetsTransferTransaction> transferList = new ArrayList<>();
 						transferList.add(transferTx);
-
-						txMap.put(txid, transferList);
-					}else {
-						txMap.get(txid).add(transferTx);
+						txMap.put(txKey, transferList);
 					}
 				}
 			}
@@ -378,14 +379,23 @@ public final class MiningService implements Mining {
 		//如果大于则在总的交易列表里删除该超出金额的交易，让其作废
 		for (Map.Entry<String,Map<String, List<AssetsTransferTransaction>>> entry : map.entrySet()) {
 			byte[] userKey = entry.getKey().getBytes();
-			//根据userKey找到对应的账户
-
-
-
 			Map<String, List<AssetsTransferTransaction>> txMap = entry.getValue();
 			for(Map.Entry<String, List<AssetsTransferTransaction>> txEntry : txMap.entrySet()) {
 				byte[] txKey = txEntry.getKey().getBytes();
-
+				//根据userKey和txkey找到对应的账户
+				Assets assets = chainstateStoreProvider.getMyAssetsByCode(userKey, Sha256Hash.hash(txKey));
+				//求和交易总金额
+				List<AssetsTransferTransaction> txList = txEntry.getValue();
+				long sum = 0;
+				for(AssetsTransferTransaction tx : txList) {
+					if(sum < assets.getBalance()) {
+						sum += tx.getAmount();
+					}
+					if(sum > assets.getBalance()) {
+						sum = sum - tx.getAmount();
+						list.remove(tx);
+					}
+				}
 			}
 		}
 	}
