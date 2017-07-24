@@ -2535,10 +2535,7 @@ public class AccountKit {
 		tx.verifyScript();
 
 		peerKit.broadcastMessage(tx);
-
 		account.setAccountTransaction(tx);
-		//account.setTxhash(tx.getHash());
-
 		return account;
 	}
 
