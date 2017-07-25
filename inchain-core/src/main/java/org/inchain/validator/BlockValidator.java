@@ -104,9 +104,13 @@ public class BlockValidator {
 			if(Math.abs(timeDiff) > 6 * Configure.BLOCK_GEN_TIME) {
 				return new Result(false, "新区块时间误差过大，拒绝接收");
 			}
-			
+
+			if(block.getTime() > TimeService.currentTimeSeconds()){
+				return new Result(false,"提前出块，拒绝接受");
+			}
+
 			BlockHeader bestBlock = networkParams.getBestBlockHeader();
-			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && (bestBlock.getTimePeriod() - block.getTimePeriod() > 6)) {
+			if(bestBlock.getPeriodStartTime() == block.getPeriodStartTime() && (bestBlock.getTimePeriod() - block.getTimePeriod() > 0)) {
 				return new Result(false, "新区块时段比老区块小，禁止接收");
 			}
 			
