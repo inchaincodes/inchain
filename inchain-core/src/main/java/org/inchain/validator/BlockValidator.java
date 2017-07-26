@@ -105,8 +105,9 @@ public class BlockValidator {
 				return new Result(false, "新区块时间误差过大，拒绝接收");
 			}
 
-			if(block.getTime() > TimeService.currentTimeSeconds()){
-				return new Result(false,"提前出块，拒绝接受");
+			//节点之间存在一定的时间误差，容忍提前3秒出块
+			if(block.getTime() - TimeService.currentTimeSeconds()>3){
+				return new Result(false,"提前出块，拒绝接收");
 			}
 
 			BlockHeader bestBlock = networkParams.getBestBlockHeader();
