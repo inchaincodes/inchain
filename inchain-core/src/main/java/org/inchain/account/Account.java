@@ -62,6 +62,8 @@ public class Account implements Cloneable {
 	private Transaction accountTransaction;
 	private Sha256Hash txhash;
 
+	private byte[] extend;
+
 	public Account() {
 	}
 
