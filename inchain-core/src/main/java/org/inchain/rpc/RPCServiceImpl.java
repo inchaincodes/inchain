@@ -2122,7 +2122,7 @@ public class RPCServiceImpl implements RPCService {
 
 		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money)) {
 			json.put("success", false);
-			json.put("message", "params error");
+			json.put("message", "参数缺少");
 			return json;
 		}
 
@@ -2181,6 +2181,7 @@ public class RPCServiceImpl implements RPCService {
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
+			json.put("txid", br.getHash());
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);
