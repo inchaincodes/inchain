@@ -15,7 +15,7 @@ public class RpcClientTest {
 		for(int j =0;j<1;j ++) {
 			new Thread() {
 				public void run() {
-					for (int i = 0; i < 1; i++) {
+					for (int i = 0; i < 51; i++) {
 						try {
 							RPCClient.main(paras);
 						} catch (IOException e) {

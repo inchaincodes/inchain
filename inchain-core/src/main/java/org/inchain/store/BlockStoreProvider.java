@@ -174,9 +174,9 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				
 				Transaction tx = block.getTxs().get(i);
 				TransactionStore txs = new TransactionStore(network,  tx, block.getHeight(), null);
-		        
+
 				db.put(tx.getHash().getBytes(), txs.baseSerialize());
-				
+
 				saveChainstate(block, txs);
 			}
 			
