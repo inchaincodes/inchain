@@ -85,9 +85,7 @@ public class CirculationTransaction extends CommonlyTransaction {
 	}
 
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(new VarInt(antifakeCode.length).encode());
 		stream.write(antifakeCode);
 		
@@ -99,14 +97,10 @@ public class CirculationTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-		
+	protected void parseBody() throws ProtocolException {
 		antifakeCode = readBytes((int) readVarInt());
 		tag = readBytes((int) readVarInt());
 		content = readBytes((int) readVarInt());
-		
-		length = cursor - offset;
 	}
 
 	public byte[] getAntifakeCode() {

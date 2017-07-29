@@ -48,16 +48,14 @@ public class ViolationTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(violationEvidence.serialize());
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		violationEvidence = ViolationEvidence.fromBytes(payload, cursor);
-		length += violationEvidence.getLength();
+		cursor += violationEvidence.getLength();
 	}
 
 	@Override

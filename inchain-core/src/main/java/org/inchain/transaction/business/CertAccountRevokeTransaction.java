@@ -46,76 +46,16 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 	/**
 	 * 反序列化交易
 	 */
-	protected void parse() {
-		type = readBytes(1)[0] & 0xff;
-		version = readUint32();
-		time = readInt64();
+	protected void parseBody() {
 		revokeHash160 =  readBytes(Address.LENGTH);
 		hash160 = readBytes(Address.LENGTH);
-
-		//账户管理公钥
-		int mgPubkeysCount = readBytes(1)[0] & 0xff;
-		mgPubkeys = new byte[mgPubkeysCount][];
-		for (int i = 0; i < mgPubkeysCount; i++) {
-			mgPubkeys[i] = readBytes((int) readVarInt());
-		}
-
-		//交易公匙
-		int trPubkeysCount = readBytes(1)[0] & 0xff;
-		trPubkeys = new byte[trPubkeysCount][];
-		for (int i = 0; i < trPubkeysCount; i++) {
-			trPubkeys[i] = readBytes((int) readVarInt());
-		}
-
-		//签名
-		scriptBytes = readBytes((int) readVarInt());
-		scriptSig = new Script(scriptBytes);
-
-		length = cursor - offset;
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		//交易类型
-		stream.write(type);
-		//版本
-		Utils.uint32ToByteStreamLE(version, stream);
-		//交易时间
-		Utils.int64ToByteStreamLE(time, stream);
-
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		//hash 160
 		Utils.checkNotNull(revokeHash160);
 		stream.write(revokeHash160);
-
-		//superhash 160
-		Utils.checkNotNull(hash160);
-		stream.write(hash160);
-
-		//帐户管理公匙
-		Utils.checkNotNull(mgPubkeys);
-		//公钥个数
-		stream.write(mgPubkeys.length);
-		for (byte[] bs : mgPubkeys) {
-			//公钥长度
-			stream.write(new VarInt(bs.length).encode());
-			stream.write(bs);
-		}
-
-		//交易公匙
-		Utils.checkNotNull(trPubkeys);
-		stream.write(trPubkeys.length);
-		for (byte[] bs : trPubkeys) {
-			//公钥长度
-			stream.write(new VarInt(bs.length).encode());
-			stream.write(bs);
-		}
-
-		if(scriptBytes != null) {
-			//签名的长度
-			stream.write(new VarInt(scriptBytes.length).encode());
-			//签名
-			stream.write(scriptBytes);
-		}
 	}
 	
 	/**

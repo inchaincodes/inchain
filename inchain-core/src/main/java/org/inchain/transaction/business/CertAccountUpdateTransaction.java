@@ -32,13 +32,13 @@ public class CertAccountUpdateTransaction extends CertAccountRegisterTransaction
 	/**
 	 * 反序列化交易
 	 */
-	protected void parse() {
-		super.parse();
+	protected void parseBody() {
+		super.parseBody();
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
+		super.serializeBodyToStream(stream);
 	}
 	
 	/**

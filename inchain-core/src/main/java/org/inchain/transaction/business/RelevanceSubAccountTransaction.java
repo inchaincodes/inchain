@@ -61,26 +61,19 @@ public class RelevanceSubAccountTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(relevanceHashs);
-		
 		stream.write(new VarInt(alias.length).encode());
 		stream.write(alias);
-		
 		stream.write(new VarInt(content.length).encode());
 		stream.write(content);
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		relevanceHashs = readBytes(Address.HASH_LENGTH);
-		
 		alias = readBytes((int)readVarInt());
 		content = readBytes((int)readVarInt());
-		
-		length = cursor - offset;
 	}
 	
 	public byte[] getRelevanceHashs() {

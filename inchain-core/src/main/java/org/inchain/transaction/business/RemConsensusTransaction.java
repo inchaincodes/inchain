@@ -54,16 +54,16 @@ public class RemConsensusTransaction extends BaseCommonlyTransaction {
 	 * 序列化
 	 */
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
+		super.serializeBodyToStream(stream);
 	}
 	
 	/**
 	 * 反序列化
 	 */
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
+		super.parseBody();
 	}
 	
 	public long getVersion() {

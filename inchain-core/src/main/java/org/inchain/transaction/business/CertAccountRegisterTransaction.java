@@ -47,10 +47,7 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 	/**
 	 * 反序列化交易
 	 */
-	protected void parse() {
-		type = readBytes(1)[0] & 0xff;
-		version = readUint32();
-		time = readInt64();
+	protected void parseBody() {
 		hash160 = readBytes(Address.LENGTH);
 		superhash160 = readBytes(Address.LENGTH);
 		level = readBytes(1)[0] & 0xff;
@@ -70,23 +67,10 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 		for (int i = 0; i < trPubkeysCount; i++) {
 			trPubkeys[i] = readBytes((int) readVarInt());
 		}
-
-		//签名
-		scriptBytes = readBytes((int) readVarInt());
-		scriptSig = new Script(scriptBytes);
-		
-		length = cursor - offset;
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		//交易类型
-		stream.write(type);
-		//版本
-		Utils.uint32ToByteStreamLE(version, stream);
-		//交易时间
-		Utils.int64ToByteStreamLE(time, stream);
-
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		//hash 160
 		Utils.checkNotNull(hash160);
 		stream.write(hash160);
@@ -120,13 +104,6 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 			//公钥长度
 	        stream.write(new VarInt(bs.length).encode());
 			stream.write(bs);
-		}
-		
-		if(scriptBytes != null) {
-			//签名的长度
-	        stream.write(new VarInt(scriptBytes.length).encode());
-			//签名
-			stream.write(scriptBytes);
 		}
 	}
 	

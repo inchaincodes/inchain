@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
+import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
@@ -51,34 +52,21 @@ public class AntifakeTransferTransaction extends CommonlyTransaction {
 		}
 		
 		//备注不能超过100 byte
-		if(remark != null && remark.length > 100) {
+		if(remark != null && remark.length > Configure.MAX_REMARK_LEN) {
 			throw new VerificationException("备注不能超过100字节");
 		}
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(antifakeCode);
 		stream.write(receiveHashs);
-		if(remark == null) {
-			stream.write(0);
-		} else {
-			stream.write(new VarInt(remark.length).encode());
-			stream.write(remark);
-		}
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-		
+	protected void parseBody() throws ProtocolException {
 		antifakeCode = readBytes(20);
 		receiveHashs = readBytes(Address.HASH_LENGTH);
-		remark = readBytes((int)readVarInt());
-		
-		length = cursor - offset;
 	}
 
 	public byte[] getAntifakeCode() {

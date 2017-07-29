@@ -44,17 +44,14 @@ public class UpdateAliasTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(new VarInt(alias.length).encode());
 		stream.write(alias);
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		alias = readBytes((int)readVarInt());
-		length = cursor - offset;
 	}
 
 	public byte[] getAlias() {

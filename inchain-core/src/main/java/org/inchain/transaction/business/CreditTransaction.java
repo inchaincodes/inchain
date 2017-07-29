@@ -5,6 +5,7 @@ import java.io.OutputStream;
 
 import org.inchain.account.Address;
 import org.inchain.core.Definition;
+import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.network.NetworkParams;
@@ -50,27 +51,20 @@ public class CreditTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-		
+	protected void parseBody() throws ProtocolException {
 		ownerHash160 = readBytes(Address.LENGTH);
 		credit = readInt64();
 		reasonType = readBytes(1)[0] & 0XFF;
 		reason = readHash();
-		
-		length = cursor - offset;
 	}
 	
 	/**
 	 * 序列化
 	 */
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(ownerHash160);
 		Utils.int64ToByteStreamLE(credit, stream);
 		stream.write(reasonType);
-		
 		if(reason == null) {
 			reason = Sha256Hash.ZERO_HASH;
 		}

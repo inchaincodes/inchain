@@ -23,7 +23,7 @@ import java.util.List;
  * @author ln
  *
  */
-public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
+public class AntifakeCodeBindTransaction extends CommonlyTransaction {
 	/** 关联产品，商家产品信息事先广播到连上时，直接进行关联 **/
 	protected Sha256Hash productTx;
 	/**产品防伪码**/
@@ -48,22 +48,16 @@ public class AntifakeCodeBindTransaction extends BaseCommonlyTransaction {
 	}
 
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		antifakeCode = readBytes(20);
 		productTx = readHash();
-
 		nonce = readInt64();
-
-		length = cursor - offset;
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(antifakeCode);
 		stream.write(productTx.getReversedBytes());
-		
 		Utils.int64ToByteStreamLE(nonce, stream);
 	}
 	

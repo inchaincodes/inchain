@@ -52,8 +52,7 @@ public class AssetsTransferTransaction extends AssetsIssuedTransaction {
 	}
 
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
+		super.parseBody();
 	}
-
 }

@@ -214,6 +214,9 @@ public final class Configure {
 	 */
 	public final static int TRANSFER_PREFERRED = getProperty("transfer.preferred", 1);
 
+	//交易备注最大字符长度
+	public final static int MAX_REMARK_LEN = 128;
+
 	/*************  交易相关配置   end  *****************/
 
 	/*************  系统级配置   begin  *****************/

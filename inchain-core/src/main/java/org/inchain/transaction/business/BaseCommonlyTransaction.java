@@ -48,27 +48,56 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	 */
 	@Override
 	protected void serializeToStream(OutputStream stream) throws IOException {
+		serializeHeadToStream(stream);
+		serializeBodyToStream(stream);
+	}
+
+
+	protected void serializeHeadToStream(OutputStream stream) throws IOException {
 		super.serializeToStream(stream);
 		
 		//签名
 		if(scriptBytes != null) {
 			stream.write(new VarInt(scriptBytes.length).encode());
 			stream.write(scriptBytes);
+		}else{
+			stream.write(new VarInt(0).encode());
 		}
 	}
+
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
+
+	}
+
 	
 	/**
-	 * 反序列化
+	 * 反序列化，BaseCommonlyTransaction涉及代币的交易remark字段已经在父类处理
 	 */
 	@Override
-	protected void parse() throws ProtocolException {
-		
-		super.parse();
-		
-		this.scriptBytes = readBytes((int)readVarInt());
-		this.scriptSig = new Script(this.scriptBytes);
-		
+	protected void parse()throws ProtocolException{
+		parseHead();
+		parseBody();
 		length = cursor - offset;
+	}
+
+	/*
+		凡是继承BaseCommonlyTransactin 都涉及代币交易，parsehead反序列化代币交易,然后反序列化公共头部
+	*/
+	protected void parseHead()throws ProtocolException{
+		super.parse();
+
+		int  scriptLen = (int)readVarInt();
+		if(scriptLen>0) {
+			this.scriptBytes = readBytes(scriptLen);
+			this.scriptSig = new Script(this.scriptBytes);
+		}else {
+			this.scriptBytes = null;
+			this.scriptSig = null;
+		}
+	}
+
+	protected void parseBody() throws ProtocolException {
+
 	}
 	
 	/**
@@ -258,5 +287,4 @@ public abstract class BaseCommonlyTransaction extends Transaction {
 	public void setScriptSig(Script scriptSig) {
 		this.scriptSig = scriptSig;
 	}
-	
 }

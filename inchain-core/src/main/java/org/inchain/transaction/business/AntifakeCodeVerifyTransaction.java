@@ -60,20 +60,14 @@ public class AntifakeCodeVerifyTransaction extends BaseCommonlyTransaction {
 	}
 
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-		
+	protected void parseBody() throws ProtocolException {
 		antifakeCode = readBytes(20);
 		longitude = readDouble();
 		latitude = readDouble();
-
-		length = cursor - offset;
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(antifakeCode);
 		Utils.doubleToByteStream(longitude, stream);
 		Utils.doubleToByteStream(latitude, stream);

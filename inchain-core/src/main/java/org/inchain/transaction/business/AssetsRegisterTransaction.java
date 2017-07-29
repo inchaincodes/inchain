@@ -84,8 +84,8 @@ public class AssetsRegisterTransaction extends BaseCommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
+
 		stream.write(new VarInt(name.length).encode());
 		stream.write(name);
 
@@ -98,24 +98,14 @@ public class AssetsRegisterTransaction extends BaseCommonlyTransaction {
 		stream.write(new VarInt(logo.length).encode());
 		stream.write(logo);
 
-		//备注
-		if(remark == null || remark.length == 0) {
-			stream.write(0);
-		} else {
-			stream.write(new VarInt(remark.length).encode());
-			stream.write(remark);
-		}
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		name = readBytes((int)readVarInt());
 		description = readBytes((int)readVarInt());
 		code = readBytes((int)readVarInt());
 		logo = readBytes((int)readVarInt());
-		remark = readBytes((int)readVarInt());
-		length = cursor - offset;
 	}
 
 	public byte[] getName() {

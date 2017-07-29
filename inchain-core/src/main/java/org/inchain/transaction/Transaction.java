@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.inchain.Configure;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -120,7 +121,11 @@ public class Transaction extends Message {
         Utils.uint32ToByteStreamLE(lockTime, stream);
         if(remark == null) {
         	stream.write(new VarInt(0).encode());
-        } else {
+        }
+        if(remark.length>Configure.MAX_REMARK_LEN){
+			stream.write(new VarInt(Configure.MAX_REMARK_LEN).encode());
+			stream.write(remark,0,Configure.MAX_REMARK_LEN);
+		} else {
         	stream.write(new VarInt(remark.length).encode());
         	stream.write(remark);
         }
@@ -178,7 +183,7 @@ public class Transaction extends Message {
 		}
 		
 		//备注不能超过100 byte
-		if(remark != null && remark.length > 100) {
+		if(remark != null && remark.length > Configure.MAX_REMARK_LEN) {
 			throw new VerificationException("备注不能超过100字节");
 		}
 		

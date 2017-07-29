@@ -61,34 +61,18 @@ public class AssetsIssuedTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(assetsHash.getReversedBytes());
-
 		stream.write(receiver);
-
 		Utils.int64ToByteStreamLE(amount, stream);
 
-		//备注
-		if(remark == null || remark.length == 0) {
-			stream.write(0);
-		} else {
-			stream.write(new VarInt(remark.length).encode());
-			stream.write(remark);
-		}
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-
+	protected void parseBody() throws ProtocolException {
 		assetsHash = readHash();
 		receiver = readBytes(20);
 		amount = readInt64();
-		remark = readBytes((int)readVarInt());
-
-		length = cursor - offset;
 	}
 
 	public byte[] getReceiver() {

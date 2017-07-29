@@ -126,6 +126,11 @@ public class Account implements Cloneable {
 					bos.write(sign);
 				}
 			}
+			if(extend!= null && extend.length>0) {
+				bos.write(extend.length);
+				bos.write(extend);
+			}
+
 			return bos.toByteArray();
 		} finally {
 			bos.close();
@@ -263,6 +268,18 @@ public class Account implements Cloneable {
 			cursor += length;
 
 			account.setSigns(new byte[][] {sign1, sign2});
+
+
+		}
+		int extendlen = 0;
+		try {
+			extendlen = datas[cursor]& 0xff;
+			cursor ++;
+			byte[] extendbytes = readBytes(cursor,extendlen,datas);
+			account.setExtend(extendbytes);
+		}catch (ArrayIndexOutOfBoundsException e){
+			log.info("old version accout: " + account.getAddress());
+			account.setExtend(new byte[0]);
 		}
 
 		return account;
@@ -690,5 +707,13 @@ public class Account implements Cloneable {
 
 	public int getLevel(){
 		return this.level;
+	}
+
+	public byte[] getExtend() {
+		return extend;
+	}
+
+	public void setExtend(byte[] extend) {
+		this.extend = extend;
 	}
 }

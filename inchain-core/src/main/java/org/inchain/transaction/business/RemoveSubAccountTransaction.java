@@ -5,6 +5,7 @@ import java.io.OutputStream;
 
 import org.inchain.account.Address;
 import org.inchain.core.Definition;
+import org.inchain.core.VarInt;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.Sha256Hash;
@@ -48,18 +49,15 @@ public class RemoveSubAccountTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(relevanceHashs);
 		stream.write(txhash.getReversedBytes());
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		relevanceHashs = readBytes(25);
 		txhash = readHash();
-		length = cursor - offset;
 	}
 
 	public byte[] getRelevanceHashs() {

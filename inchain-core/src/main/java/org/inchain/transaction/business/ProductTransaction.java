@@ -65,26 +65,15 @@ public class ProductTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
-		
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		byte[] productBytes = product.serialize();
 		stream.write(new VarInt(productBytes.length).encode());
 		stream.write(productBytes);
 	}
 	
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
-		
+	protected void parseBody() throws ProtocolException {
 		product = new Product(readBytes((int)readVarInt()));
-		
-		length = cursor - offset;
-	}
-	
-	@Override
-	public boolean isCompatible() {
-		return false;
 	}
 
 	@Override

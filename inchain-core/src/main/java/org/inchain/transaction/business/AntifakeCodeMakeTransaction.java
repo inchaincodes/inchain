@@ -66,20 +66,16 @@ public class AntifakeCodeMakeTransaction extends BaseCommonlyTransaction {
 	}
 
 	@Override
-	protected void parse() throws ProtocolException {
-		super.parse();
+	protected void parseBody() throws ProtocolException {
 		hasProduct = 0xff&(readBytes(1)[0]);
 		if(hasProduct==0) {
 			productTx = readHash();
 		}
 		nonce = readInt64();
-
-		length = cursor - offset;
 	}
 	
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
 		stream.write(hasProduct);
 		if (hasProduct == 0){
 			stream.write(productTx.getReversedBytes());
