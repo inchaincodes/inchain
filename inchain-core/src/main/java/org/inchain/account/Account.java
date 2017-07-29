@@ -6,6 +6,7 @@ import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import org.inchain.Configure;
 import org.inchain.core.UnsafeByteArrayOutputStream;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -127,8 +128,13 @@ public class Account implements Cloneable {
 				}
 			}
 			if(extend!= null && extend.length>0) {
-				bos.write(extend.length);
-				bos.write(extend);
+				if(extend.length> Configure.MAX_REMARK_LEN){
+					bos.write(Configure.MAX_REMARK_LEN);
+					bos.write(extend,0,Configure.MAX_REMARK_LEN);
+				}else {
+					bos.write(extend.length);
+					bos.write(extend);
+				}
 			}
 
 			return bos.toByteArray();
