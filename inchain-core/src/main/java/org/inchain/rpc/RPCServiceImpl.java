@@ -406,7 +406,7 @@ public class RPCServiceImpl implements RPCService {
 
 				Account account = accountKit.getAccount(address);
 				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
-				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])).put(Hex.encode(account.getTrPubkeys()[1])));
+				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])));
 			}
 		} catch (Exception e) {
 			result.put("success", false);

@@ -2232,13 +2232,13 @@ public class AccountKit {
 			ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
 
 			ECKey trkey1 = ECKey.fromPrivate(trPri1);
-			ECKey trkey2 = ECKey.fromPrivate(trPri2);
+			ECKey trkey2 = null;
 
 			tempAccount.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
-			tempAccount.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
+			tempAccount.setTrPubkeys(new byte[][] {trkey1.getPubKey(true)});//存储交易公匙
 
 			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, tempAccount.getAddress().getHash160(), tempAccount.getMgPubkeys(), tempAccount.getTrPubkeys(), tempAccount.getBody(),account.getSupervisor(),account.getLevel());
-			cutx.sign(account, Definition.TX_VERIFY_MG);
+			cutx.sign(account, Definition.TX_VERIFY_TR);
 
 			cutx.verify();
 			cutx.verifyScript();
@@ -2685,7 +2685,8 @@ public class AccountKit {
 						account.setMgEckeys(new ECKey[] {key1, key2});
 						account.setMgPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
 					} else {
-						account.setTrPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
+						account.setTrEckeys(new ECKey[]{key1});
+						account.setTrPubkeys(new byte[][] {key1.getPubKey(true)});
 					}
 					//重新签名
 					account.signAccount();
@@ -2695,7 +2696,7 @@ public class AccountKit {
 					CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(),
 							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),account.getSupervisor(),account.getLevel());
 
-					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_MG);
+					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_TR);
 					rtx.verify();
 					rtx.verifyScript();
 
