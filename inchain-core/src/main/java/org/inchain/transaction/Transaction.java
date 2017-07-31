@@ -121,11 +121,10 @@ public class Transaction extends Message {
         Utils.uint32ToByteStreamLE(lockTime, stream);
         if(remark == null) {
         	stream.write(new VarInt(0).encode());
-        }
-        if(remark.length>Configure.MAX_REMARK_LEN){
+        }else if(remark.length>Configure.MAX_REMARK_LEN){
 			stream.write(new VarInt(Configure.MAX_REMARK_LEN).encode());
 			stream.write(remark,0,Configure.MAX_REMARK_LEN);
-		} else {
+		} else{
         	stream.write(new VarInt(remark.length).encode());
         	stream.write(remark);
         }

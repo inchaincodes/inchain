@@ -70,12 +70,10 @@ public abstract class CommonlyTransaction extends BaseCommonlyTransaction {
 
 		if(remark == null || remark.length == 0) {
 			stream.write(0);
-		}
-		if(remark.length> Configure.MAX_REMARK_LEN){
+		}else if(remark.length> Configure.MAX_REMARK_LEN){
 			stream.write(new VarInt(Configure.MAX_REMARK_LEN).encode());
 			stream.write(remark,0,Configure.MAX_REMARK_LEN);
-		}
-		else {
+		} else {
 			stream.write(new VarInt(remark.length).encode());
 			stream.write(remark);
 		}
