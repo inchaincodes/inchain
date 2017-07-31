@@ -81,8 +81,8 @@ public class AccountStore extends Store {
 		}
 		
 		Utils.int64ToByteStreamLE(balance, stream);
-		Utils.int64ToByteStreamLE(lastModifyTime, stream);
-		Utils.int64ToByteStreamLE(createTime, stream);
+		Utils.uint32ToByteStreamLE(lastModifyTime, stream);
+		Utils.uint32ToByteStreamLE(createTime, stream);
 		Utils.int64ToByteStreamLE(cert, stream);
 
 		stream.write(accountBody.serialize());
@@ -113,8 +113,8 @@ public class AccountStore extends Store {
 			infoTxid = readHash();
 		}
 		balance = readInt64();
-		lastModifyTime = readInt64();
-		createTime = readInt64();
+		lastModifyTime = readUint32();
+		createTime = readUint32();
 		cert = readInt64();
 
 		

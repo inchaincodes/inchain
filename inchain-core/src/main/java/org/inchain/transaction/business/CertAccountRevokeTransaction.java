@@ -56,6 +56,10 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 		//hash 160
 		Utils.checkNotNull(revokeHash160);
 		stream.write(revokeHash160);
+
+		//superhash 160
+		Utils.checkNotNull(hash160);
+		stream.write(hash160);
 	}
 	
 	/**

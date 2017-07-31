@@ -52,7 +52,7 @@ public abstract class CommonlyTransaction extends BaseCommonlyTransaction {
 		//版本号
 		Utils.uint32ToByteStreamLE(version, stream);
 		//时间
-		Utils.int64ToByteStreamLE(time, stream);
+		Utils.uint32ToByteStreamLE(time, stream);
 		//签名
 		if(scriptBytes != null) {
 			stream.write(new VarInt(scriptBytes.length).encode());
@@ -100,7 +100,7 @@ public abstract class CommonlyTransaction extends BaseCommonlyTransaction {
 		if(isCompatible()) {
 			length = (int) readUint32();
 		}
-		this.time = readInt64();
+		this.time = readUint32();
 		int scriptLen = (int)readVarInt();
 		if(scriptLen>0) {
 			this.scriptBytes = readBytes(scriptLen);

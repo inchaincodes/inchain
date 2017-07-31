@@ -136,7 +136,7 @@ public class BusinessRecordController implements SubPageController {
     	time.setCellValueFactory(new PropertyValueFactory<BusinessEntity, String>("time") {
     		@Override
     		public ObservableValue<String> call(CellDataFeatures<BusinessEntity, String> param) {
-    			return new ReadOnlyObjectWrapper<String>(DateUtil.convertDate(new Date(param.getValue().getTime())));
+    			return new ReadOnlyObjectWrapper<String>(DateUtil.convertDate(new Date(param.getValue().getTime()*1000)));
     		}
     	});
     }
