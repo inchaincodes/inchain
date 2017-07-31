@@ -2186,6 +2186,7 @@ public class RPCServiceImpl implements RPCService {
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
+			json.put("txid", br.getHash());
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);
