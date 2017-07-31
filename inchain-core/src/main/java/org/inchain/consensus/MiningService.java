@@ -151,7 +151,7 @@ public final class MiningService implements Mining {
 		
 		int txsSize = 0;
 		int maxTxsSize = Definition.MAX_BLOCK_SIZE - 10000;
-		
+
 		while (true) {
 			//每次获取内存里面的一个交易
 			Transaction tx = null;
@@ -285,7 +285,7 @@ public final class MiningService implements Mining {
 
 		try {
 
-			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} , 内存交易数 {}", block.getHeight(), DateUtil.convertDate(new Date(block.getTime() * 1000)), transactionList.size(), fee, MempoolContainer.getInstace().getTxCount());
+			log.info("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} , 内存交易数 {},块长度{}", block.getHeight(), DateUtil.convertDate(new Date(block.getTime() * 1000)), transactionList.size(), fee, MempoolContainer.getInstace().getTxCount(),txsSize);
 			if(log.isDebugEnabled()) {
 				log.debug("高度 {} , 出块时间 {} , 交易数量 {} , 手续费 {} ", block.getHeight(), DateUtil.convertDate(new Date(block.getTime())), transactionList.size(), fee);
 			}
@@ -966,7 +966,7 @@ public final class MiningService implements Mining {
 			log.warn(e.getMessage(), e);
 			return false;
 		} finally {
-			System.out.println("验证交易 {} "+tx.getHash()+" 耗时："+(System.currentTimeMillis() - time)+"ms");
+			//System.out.println("验证交易 {} "+tx.getHash()+" 耗时："+(System.currentTimeMillis() - time)+"ms");
 		}
 	}
 
