@@ -587,6 +587,9 @@ public class Account implements Cloneable {
 	 */
 	public void setAccountTransaction(Transaction accountTransaction) {
 		this.accountTransaction = accountTransaction;
+		if(accountTransaction!=null){
+			this.txhash = accountTransaction.getHash();
+		}
 	}
 
 	@Override

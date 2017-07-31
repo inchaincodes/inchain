@@ -29,27 +29,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class AccountTest {
 
 	//	private Logger log = LoggerFactory.getLogger(getClass());
-//
 //	@Autowired
 //	private NetworkParams network;
 	public static void main(String[] args) {
 		//@Test
 //	public void testUser(){
-		AccountKeyValue[] avalues = {new AccountKeyValue("name", "名称", "重庆印链科技有限公司"),
-				new AccountKeyValue("address", "地址", "重庆市南岸区"),
-				new AccountKeyValue("website", "官网", "https://www.inchain.org"),
-				new AccountKeyValue("descript", "描述", "测试认证账户1"),
-
-				//new AccountKeyValue("descript", "描述", "重庆印链科技有限公司是一家以区块链技术驱动的创新型企业，其主导的区块链社区项目Inchain-印链是一个以防伪为基础业务的公开平台，为社会各企业、机构、艺术家等提供品牌、知识产权保护服务。"),
+		AccountKeyValue[] avalues = {new AccountKeyValue("name", "名称", "阿尼斯服装"),
+				new AccountKeyValue("address", "地址", "重庆永川"),
+				new AccountKeyValue("descript", "描述", "韩版女士服装"),
 		};
 		AccountBody body = new AccountBody(avalues);
 		String ahexString = Base58.encode(body.serialize());
 		System.out.println(ahexString);
 
 
-		ProductKeyValue[] pvalues = {new ProductKeyValue("name", "名称", "测试商品1"),
-				new ProductKeyValue("website", "官网", "https://www.inchain.org"),
-				new ProductKeyValue("descript", "描述", "测试商品1")
+		ProductKeyValue[] pvalues = {new ProductKeyValue("name", "名称", "正宗普绿茶"),
+				//new ProductKeyValue("website", "官网", "https://www.inchain.or"),
+				new ProductKeyValue("descript", "描述", "西湖龙井")
 		};
 
 		Product p = new Product(pvalues);

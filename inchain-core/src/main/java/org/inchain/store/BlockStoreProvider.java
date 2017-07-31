@@ -466,7 +466,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			AssetsIssuedTransaction assetsIssuedTx = (AssetsIssuedTransaction) tx;
 			chainstateStoreProvider.assetsIssued(assetsIssuedTx);
 		} else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
-			//资产交易
+			//资产转让
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
 			chainstateStoreProvider.assetsTransfer(assetsTransferTx);
 		}else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REVOKE){

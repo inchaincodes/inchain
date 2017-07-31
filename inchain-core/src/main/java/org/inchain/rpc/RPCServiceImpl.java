@@ -626,7 +626,7 @@ public class RPCServiceImpl implements RPCService {
 			Coin balance = accountKit.getBalance(account);
 			if(Configure.ASSETS_REG_FEE.isGreaterThan(balance)) {
 				result.put("success", false);
-				result.put("message", "余额不足10000INS，无法做资产注册 ");
+				result.put("message", "余额不足10000INS，无法做资产注册");
 				return result;
 			}
 
@@ -697,7 +697,6 @@ public class RPCServiceImpl implements RPCService {
 			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
 			byte[] hashReceiver = null;
 			try {
-				Address ar = Address.fromBase58(network, receiver);
 				hashReceiver = Address.fromBase58(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
@@ -844,14 +843,10 @@ public class RPCServiceImpl implements RPCService {
 		try {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
-
-
 			//2、判断接收人地址是否合法
-			// PS：通常底层存储都是address的hash160，长度为20，这里由于不能提前知道接收人的账户类型，所以采用了默认的hash，长度为25位
-			byte[] hashReceiver = null;
+			byte[] hashReceiver;
 			try {
-				Address ar = Address.fromBase58(network, receiver);
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
+				hashReceiver = new Address(network, receiver).getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
@@ -2127,7 +2122,7 @@ public class RPCServiceImpl implements RPCService {
 
 		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money)) {
 			json.put("success", false);
-			json.put("message", "params error");
+			json.put("message", "参数缺少");
 			return json;
 		}
 
@@ -3063,17 +3058,16 @@ public class RPCServiceImpl implements RPCService {
 			json.put("reason", reason);
 
 		} else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
-			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-			AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
-			Address address = null;
-
-			if(accountStore == null) {
-				address = new Address(network, aitx.getReceiver());
-			}else {
-				address = new Address(network,accountStore.getType(), aitx.getReceiver());
-			}
-			json.put("amount", aitx.getAmount());
-			json.put("receiver", address.getBase58());
+            AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
+            AccountStore accountStore =chainstateStoreProvider.getAccountInfo(aitx.getReceiver());
+            Address address;
+            if(accountStore == null) {
+                address = new Address(network, aitx.getReceiver());
+            }else {
+                address = new Address(network,accountStore.getType(), aitx.getReceiver());
+            }
+            json.put("amount", aitx.getAmount());
+            json.put("receiver", address.getBase58());
 		}
 
 		return json;

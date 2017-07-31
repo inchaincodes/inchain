@@ -641,6 +641,10 @@ public class AccountKit {
 			totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
 		}
 
+		if(totalInputCoin.isLessThan(Configure.ASSETS_REG_FEE)) {
+			throw new VerificationException("VerificationException");
+		}
+
 		//创建一个输入的空签名
 		if(account.getAccountType() == network.getSystemAccountVersion()) {
 			//普通账户的签名
@@ -650,8 +654,6 @@ public class AccountKit {
 			input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
 		}
 		assetsRegisterTx.addInput(input);
-
-
 
 		//创建输出
 		//1.手续费给到固定的社区账号里
@@ -697,15 +699,12 @@ public class AccountKit {
 
 		try {
 			BroadcastResult br = peerKit.broadcast(assetsRegisterTx).get();
-
 			//等待广播回应
 			if(br.isSuccess()) {
 				//更新交易记录
 				transactionStoreProvider.processNewTransaction(new TransactionStore(network, assetsRegisterTx));
 			}
-
 			return br;
-
 		} catch (Exception e) {
 			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
 		}
@@ -2389,10 +2388,7 @@ public class AccountKit {
 		tx.verifyScript();
 
 		peerKit.broadcastMessage(tx);
-
 		account.setAccountTransaction(tx);
-		//account.setTxhash(tx.getHash());
-
 		return account;
 	}
 

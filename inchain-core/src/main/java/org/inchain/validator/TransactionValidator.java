@@ -982,7 +982,7 @@ public class TransactionValidator {
 				result.setResult(false, "资产不存在");
 				return validatorResult;
 			}
-
+			//验证资产发行账户是否是注册资产的账户
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction) assetsRegisterTxStore.getTransaction();
 			if(!Arrays.equals(assetsRegisterTx.getHash160(), opertioner)) {
 				result.setResult(false, "没有权限发行该资产");
@@ -990,11 +990,8 @@ public class TransactionValidator {
 			}
 
 		} else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
-			//资产交易
+			//资产转让验证
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;
-
-			byte[] sender =  assetsTransferTx.getHash160();
-			byte[] receiver = assetsTransferTx.getReceiver();
 			Sha256Hash assetsTxHash = assetsTransferTx.getAssetsHash();
 			//验证资产是否存在
 			TransactionStore assetsRegisterTxStore = blockStoreProvider.getTransaction(assetsTxHash.getBytes());
@@ -1003,7 +1000,9 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			//验证sender余额是否充足
+			//验证sender余额是否充足, 通过交易的hash160
+			byte[] sender =  assetsTransferTx.getHash160();
+			//获取转让人的资产信息
 			AssetsRegisterTransaction assetsRegisterTx = (AssetsRegisterTransaction)assetsRegisterTxStore.getTransaction();
 			Assets assets = chainstateStoreProvider.getMyAssetsByCode(sender, Sha256Hash.hash(assetsRegisterTx.getCode()));
 			if(assets == null) {
