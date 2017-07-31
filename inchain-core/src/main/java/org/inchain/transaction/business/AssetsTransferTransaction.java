@@ -47,8 +47,8 @@ public class AssetsTransferTransaction extends AssetsIssuedTransaction {
 	}
 
 	@Override
-	protected void serializeToStream(OutputStream stream) throws IOException {
-		super.serializeToStream(stream);
+	protected void serializeBodyToStream(OutputStream stream) throws IOException {
+		super.serializeBodyToStream(stream);
 	}
 
 	@Override

@@ -14,7 +14,6 @@ import org.inchain.core.Definition;
 import org.inchain.core.Result;
 import org.inchain.core.TimeService;
 import org.inchain.core.exception.VerificationException;
-import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
 import org.inchain.network.NetworkParams;
