@@ -150,17 +150,17 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 		json.put("version", blockHeader.getVersion())
-		.put("height", blockHeader.getHeight())
-		.put("hash", blockHeader.getHash())
-		.put("preHash", blockHeader.getPreHash())
-		.put("merkleHash", blockHeader.getMerkleHash())
-		.put("time", blockHeader.getTime())
-		.put("periodStartTime", blockHeader.getPeriodStartTime())
-		.put("timePeriod", blockHeader.getTimePeriod())
-		.put("packAddress", blockHeader.getScriptSig().getAccountBase58(network))
-		.put("scriptSig", blockHeader.getScriptSig())
-		.put("txCount", blockHeader.getTxCount())
-		.put("txs", blockHeader.getTxHashs());
+				.put("height", blockHeader.getHeight())
+				.put("hash", blockHeader.getHash())
+				.put("preHash", blockHeader.getPreHash())
+				.put("merkleHash", blockHeader.getMerkleHash())
+				.put("time", blockHeader.getTime())
+				.put("periodStartTime", blockHeader.getPeriodStartTime())
+				.put("timePeriod", blockHeader.getTimePeriod())
+				.put("packAddress", blockHeader.getScriptSig().getAccountBase58(network))
+				.put("scriptSig", blockHeader.getScriptSig())
+				.put("txCount", blockHeader.getTxCount())
+				.put("txs", blockHeader.getTxHashs());
 
 		return json;
 	}
@@ -191,17 +191,17 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 		json.put("version", block.getVersion())
-		.put("height", block.getHeight())
-		.put("hash", block.getHash())
-		.put("preHash", block.getPreHash())
-		.put("merkleHash", block.getMerkleHash())
-		.put("time", block.getTime())
-		.put("periodStartTime", block.getPeriodStartTime())
-		.put("timePeriod", block.getTimePeriod())
-		.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
-		.put("scriptSig", block.getScriptSig())
-		.put("txCount", block.getTxCount())
-		.put("txs", block.getTxs());
+				.put("height", block.getHeight())
+				.put("hash", block.getHash())
+				.put("preHash", block.getPreHash())
+				.put("merkleHash", block.getMerkleHash())
+				.put("time", block.getTime())
+				.put("periodStartTime", block.getPeriodStartTime())
+				.put("timePeriod", block.getTimePeriod())
+				.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
+				.put("scriptSig", block.getScriptSig())
+				.put("txCount", block.getTxCount())
+				.put("txs", block.getTxs());
 
 		List<Transaction> txList = block.getTxs();
 
@@ -237,17 +237,17 @@ public class RPCServiceImpl implements RPCService {
 		Block block = blockForkStore.getBlock();
 
 		json.put("version", block.getVersion())
-		.put("height", block.getHeight())
-		.put("hash", block.getHash())
-		.put("preHash", block.getPreHash())
-		.put("merkleHash", block.getMerkleHash())
-		.put("time", block.getTime())
-		.put("periodStartTime", block.getPeriodStartTime())
-		.put("timePeriod", block.getTimePeriod())
-		.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
-		.put("scriptSig", block.getScriptSig())
-		.put("txCount", block.getTxCount())
-		.put("txs", block.getTxs());
+				.put("height", block.getHeight())
+				.put("hash", block.getHash())
+				.put("preHash", block.getPreHash())
+				.put("merkleHash", block.getMerkleHash())
+				.put("time", block.getTime())
+				.put("periodStartTime", block.getPeriodStartTime())
+				.put("timePeriod", block.getTimePeriod())
+				.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
+				.put("scriptSig", block.getScriptSig())
+				.put("txCount", block.getTxCount())
+				.put("txs", block.getTxs());
 
 		List<Transaction> txList = block.getTxs();
 
@@ -615,11 +615,11 @@ public class RPCServiceImpl implements RPCService {
 
 			//创建交易
 			AssetsRegisterTransaction assetsRegisterTx = new AssetsRegisterTransaction(network,
-																name.getBytes(Utils.UTF_8),
-																description.getBytes(Utils.UTF_8),
-																code.getBytes(Utils.UTF_8),
-																logo.getBytes(Utils.UTF_8),
-																remark.getBytes(Utils.UTF_8));
+					name.getBytes(Utils.UTF_8),
+					description.getBytes(Utils.UTF_8),
+					code.getBytes(Utils.UTF_8),
+					logo.getBytes(Utils.UTF_8),
+					remark.getBytes(Utils.UTF_8));
 
 
 			//资产注册认证需要10000个INS手续费，这里验证余额是否充足
@@ -1258,7 +1258,7 @@ public class RPCServiceImpl implements RPCService {
 	 */
 	@Override
 	public JSONObject addCirculation(String antifakeCode, String tag, String content, String address,
-			String privateKeyOrPassword) throws JSONException {
+									 String privateKeyOrPassword) throws JSONException {
 
 		JSONObject result = new JSONObject();
 
@@ -1429,7 +1429,7 @@ public class RPCServiceImpl implements RPCService {
 	 */
 	@Override
 	public JSONObject transferAntifake(String antifakeCode, String receiver, String remark, String address,
-			String privateKeyOrPassword) throws JSONException {
+									   String privateKeyOrPassword) throws JSONException {
 
 		JSONObject result = new JSONObject();
 
@@ -2122,7 +2122,7 @@ public class RPCServiceImpl implements RPCService {
 
 		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(money)) {
 			json.put("success", false);
-			json.put("message", "params error");
+			json.put("message", "参数缺少");
 			return json;
 		}
 
@@ -2181,6 +2181,7 @@ public class RPCServiceImpl implements RPCService {
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
+			json.put("txid", br.getHash());
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);
@@ -2417,32 +2418,32 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		if(accountKit.checkConsensusing(null)) {
-    		ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
-    		consensusMeeting.waitMeeting();
-    		MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
-    		String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
-    		String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
-    		String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
+			ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
+			consensusMeeting.waitMeeting();
+			MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
+			String periodStartTime = DateUtil.convertDate(new Date(miningInfo.getPeriodStartTime()*1000), "HH:mm:ss");
+			String beginTime = DateUtil.convertDate(new Date(miningInfo.getBeginTime()*1000), "HH:mm:ss");
+			String endTime = DateUtil.convertDate(new Date(miningInfo.getEndTime()*1000), "HH:mm:ss");
 
-    		String msg = null;
-    		if(miningInfo.getBeginTime() == 0l) {
-    			if(consensusMeeting.getAccount() == null) {
-    				msg = "但钱包已加密不能打包，需要再次申请共识";
-    			} else {
-    				msg = "正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
-    			}
-    		} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
-    			msg = "正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒,当前轮开始时间：" + periodStartTime + ",我的共识时间：" + beginTime + " - " + endTime;
-    		} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
-    			msg = "正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
-    		} else {
-    			msg = "正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒";
-    		}
+			String msg = null;
+			if(miningInfo.getBeginTime() == 0l) {
+				if(consensusMeeting.getAccount() == null) {
+					msg = "但钱包已加密不能打包，需要再次申请共识";
+				} else {
+					msg = "正在等待当前轮结束：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
+				}
+			} else if(TimeService.currentTimeSeconds() < miningInfo.getBeginTime()) {
+				msg = "正在排队共识,预计" + (miningInfo.getBeginTime() - TimeService.currentTimeSeconds()) + "秒,当前轮开始时间：" + periodStartTime + ",我的共识时间：" + beginTime + " - " + endTime;
+			} else if(TimeService.currentTimeSeconds() > miningInfo.getEndTime()) {
+				msg = "正在等待进入下一轮共识队列：预计" + (miningInfo.getPeriodEndTime() - TimeService.currentTimeSeconds()) + "秒";
+			} else {
+				msg = "正在打包中: 倒计时 " + (miningInfo.getEndTime() - TimeService.currentTimeSeconds()) + "秒";
+			}
 
-    		json.put("message", "当前已在共识中。" + msg);
-    	} else {
-    		json.put("message", "未参与共识");
-    	}
+			json.put("message", "当前已在共识中。" + msg);
+		} else {
+			json.put("message", "未参与共识");
+		}
 
 		json.put("success", true);
 		return json;
@@ -2899,27 +2900,48 @@ public class RPCServiceImpl implements RPCService {
 
 				AntifakeCodeVerifyTransaction atx = (AntifakeCodeVerifyTransaction) tx;
 
-				byte[] makeCodeTxBytes = accountKit.getChainstate(atx.getAntifakeCode());
+				byte[] makebind = accountKit.getChainstate(atx.getAntifakeCode());
+				byte[] makebyte = new byte[Sha256Hash.LENGTH];
+				byte[] bindbyte = new byte[Sha256Hash.LENGTH];
+				System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+				if(makebind.length == 2*Sha256Hash.LENGTH){
+					System.arraycopy(makebind,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+				}
+
 				//必要的NPT验证
-				if(makeCodeTxBytes == null) {
+				if(makebyte == null) {
 					return json;
 				}
-				TransactionStore makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makeCodeTxBytes));
+				TransactionStore makeCodeTxStore = null;
+				AntifakeCodeMakeTransaction makeCodeTx = null;
+				AntifakeCodeBindTransaction bindCodeTx = null;
+				TransactionStore productTxStore = null;
+				if(makebind.length == 2*Sha256Hash.LENGTH){
+					makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(bindbyte));
+					bindCodeTx = (AntifakeCodeBindTransaction) makeCodeTxStore.getTransaction();
+					productTxStore = accountKit.getTransaction(bindCodeTx.getProductTx());
+				}else {
+					makeCodeTxStore = accountKit.getTransaction(Sha256Hash.wrap(makebyte));
+					makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
+					productTxStore =  accountKit.getTransaction(makeCodeTx.getProductTx());
+				}
 				if(makeCodeTxStore == null) {
 					return json;
 				}
-				AntifakeCodeMakeTransaction makeCodeTx = (AntifakeCodeMakeTransaction)makeCodeTxStore.getTransaction();
 
-				TransactionStore productTxStore = accountKit.getTransaction(makeCodeTx.getProductTx());
 				if(productTxStore == null) {
 					return json;
 				}
 				try {
-					json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+					if(makebind.length == 2*Sha256Hash.LENGTH) {
+						json.put("antifakeCode", Base58.encode(bindCodeTx.getAntifakeCode()));
+					}else{
+						json.put("antifakeCode", Base58.encode(makeCodeTx.getAntifakeCode()));
+					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				json.put("antifakeMakeTx", makeCodeTx.getHash());
+				json.put("antifakeMakeTx", makeCodeTx!=null?makeCodeTx.getHash():bindCodeTx.getHash());
 				json.put("antifakeVerifyTx", atx.getHash());
 				json.put("productTx", productTxStore.getTransaction().getHash());
 

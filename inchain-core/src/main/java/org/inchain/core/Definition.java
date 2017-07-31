@@ -1,8 +1,10 @@
 package org.inchain.core;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.inchain.message.AddressMessage;
 import org.inchain.message.Block;
@@ -139,6 +141,8 @@ public final class Definition {
 	public static final Map<String, Class<? extends Message>> COMMANDS_MESSAGE = new HashMap<String, Class<? extends Message>>();
 	//消息对应处理器
     public static final Map<Class<? extends Message>, String> PROCESS_FACTORYS = new HashMap<Class<? extends Message>, String>();
+	//交易命令
+	public static final Set<String> TRANSACTION_COMMANDS = new HashSet<>();
 
 	static {
     	//===========================-分割线=============================//
@@ -198,30 +202,53 @@ public final class Definition {
     	MESSAGE_COMMANDS.put(InventoryMessage.class, "inv");
     	MESSAGE_COMMANDS.put(GetDatasMessage.class, "getdatas");
     	MESSAGE_COMMANDS.put(DataNotFoundMessage.class, "notfound");
-    	
-    	MESSAGE_COMMANDS.put(Transaction.class, "tx");
-    	MESSAGE_COMMANDS.put(RegAliasTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(UpdateAliasTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(CertAccountRegisterTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(CertAccountUpdateTransaction.class, "tx");
-		MESSAGE_COMMANDS.put(CertAccountRevokeTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(RelevanceSubAccountTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(RemoveSubAccountTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(ViolationTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(CreditTransaction.class, "tx");
 
-    	MESSAGE_COMMANDS.put(ProductTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AntifakeCodeMakeTransaction.class, "tx");
-		MESSAGE_COMMANDS.put(AntifakeCodeBindTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(CirculationTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AntifakeTransferTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AssetsIssuedTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AssetsRegisterTransaction.class, "tx");
-    	MESSAGE_COMMANDS.put(AssetsTransferTransaction.class, "tx");
+		MESSAGE_COMMANDS.put(Transaction.class, "tx_0");
+		MESSAGE_COMMANDS.put(RegAliasTransaction.class, "tx_" + TYPE_REG_ALIAS);
+		MESSAGE_COMMANDS.put(UpdateAliasTransaction.class, "tx_" + TYPE_UPDATE_ALIAS);
+		MESSAGE_COMMANDS.put(CertAccountRegisterTransaction.class, "tx_" + TYPE_CERT_ACCOUNT_REGISTER);
+		MESSAGE_COMMANDS.put(CertAccountUpdateTransaction.class, "tx_" + TYPE_CERT_ACCOUNT_UPDATE);
+		MESSAGE_COMMANDS.put(CertAccountRevokeTransaction.class, "tx_" + TYPE_CERT_ACCOUNT_REVOKE);
+		MESSAGE_COMMANDS.put(RegConsensusTransaction.class, "tx_" + TYPE_REG_CONSENSUS);
+		MESSAGE_COMMANDS.put(RemConsensusTransaction.class, "tx_" + TYPE_REM_CONSENSUS);
+		MESSAGE_COMMANDS.put(RelevanceSubAccountTransaction.class, "tx_" + TYPE_RELEVANCE_SUBACCOUNT);
+		MESSAGE_COMMANDS.put(RemoveSubAccountTransaction.class, "tx_" + TYPE_REMOVE_SUBACCOUNT);
+		MESSAGE_COMMANDS.put(ViolationTransaction.class, "tx_" + TYPE_VIOLATION);
+		MESSAGE_COMMANDS.put(CreditTransaction.class, "tx_" + TYPE_CREDIT);
+		MESSAGE_COMMANDS.put(ProductTransaction.class, "tx_" + TYPE_CREATE_PRODUCT);
+		MESSAGE_COMMANDS.put(GeneralAntifakeTransaction.class, "tx_" + TYPE_GENERAL_ANTIFAKE);
+		MESSAGE_COMMANDS.put(AntifakeCodeMakeTransaction.class, "tx_" + TYPE_ANTIFAKE_CODE_MAKE);
+		MESSAGE_COMMANDS.put(AntifakeCodeBindTransaction.class, "tx_" + TYPE_ANTIFAKE_CODE_BIND);
+		MESSAGE_COMMANDS.put(AntifakeCodeVerifyTransaction.class, "tx_" + TYPE_ANTIFAKE_CODE_VERIFY);
+		MESSAGE_COMMANDS.put(CirculationTransaction.class, "tx_" + TYPE_ANTIFAKE_CIRCULATION);
+		MESSAGE_COMMANDS.put(AntifakeTransferTransaction.class, "tx_" + TYPE_ANTIFAKE_TRANSFER);
+		MESSAGE_COMMANDS.put(AssetsIssuedTransaction.class, "tx_" + TYPE_ASSETS_ISSUED);
+		MESSAGE_COMMANDS.put(AssetsRegisterTransaction.class, "tx_" + TYPE_ASSETS_REGISTER);
+		MESSAGE_COMMANDS.put(AssetsTransferTransaction.class, "tx_" + TYPE_ASSETS_TRANSFER);
+
+		//===========================-分割线=============================//
+		TRANSACTION_COMMANDS.add("tx_0");
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_REG_ALIAS);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_UPDATE_ALIAS);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_CERT_ACCOUNT_REGISTER);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_CERT_ACCOUNT_UPDATE);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_CERT_ACCOUNT_REVOKE);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_REG_CONSENSUS);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_REM_CONSENSUS);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_RELEVANCE_SUBACCOUNT);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_REMOVE_SUBACCOUNT);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_VIOLATION);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_CREDIT);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_CREATE_PRODUCT);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_GENERAL_ANTIFAKE);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ANTIFAKE_CODE_MAKE);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ANTIFAKE_CODE_BIND);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ANTIFAKE_CODE_VERIFY);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ANTIFAKE_CIRCULATION);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ANTIFAKE_TRANSFER);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ASSETS_ISSUED);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ASSETS_REGISTER);
+		TRANSACTION_COMMANDS.add("tx_" + TYPE_ASSETS_TRANSFER);
 
     	//===========================-分割线=============================//
     	
