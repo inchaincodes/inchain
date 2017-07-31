@@ -516,7 +516,7 @@ public class RPCServiceImpl implements RPCService {
 							sourcesList.add(sourcesArray.getString(j));
 						}
 					}
-					BroadcastMakeAntifakeCodeResult broadcastResult = accountKit.makeAntifakeCode_test(productTx, reward, sourcesList, account, trpw);
+					BroadcastMakeAntifakeCodeResult broadcastResult = accountKit.makeAntifakeCode(productTx, reward, sourcesList, account, trpw);
 
 					if(broadcastResult.isSuccess()) {
 						JSONObject antifakeJson = new JSONObject();
