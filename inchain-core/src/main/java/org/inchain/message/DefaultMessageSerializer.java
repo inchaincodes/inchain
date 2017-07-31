@@ -115,7 +115,7 @@ public class DefaultMessageSerializer extends MessageSerializer {
 
 	private Message makeMessage(String command, int size, byte[] payloadBytes, byte[] hash, byte[] checksum) {
 		Message message = null;
-		if("tx".equals(command)) {
+		if(Definition.TRANSACTION_COMMANDS.contains(command)) {
 			//根据交易类型来创建交易
 			return makeTransaction(payloadBytes, 0);
 		} else {
