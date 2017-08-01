@@ -146,6 +146,7 @@ public class RPCServiceImpl implements RPCService {
 
 		JSONObject json = new JSONObject();
 		if(blockHeader == null) {
+			json.put("success", "false");
 			json.put("message", "not found");
 			return json;
 		}
