@@ -1,5 +1,8 @@
 package org.inchain.wallet.controllers;
 
+import javafx.event.EventHandler;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -30,6 +33,56 @@ public class ChangeCertAccountPasswordController extends DailogController {
 	public void initialize() {
 		cancelId.setOnAction(e -> cancel());
 		okId.setOnAction(e -> encryptWallet());
+		oldPasswordId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					passwordId.requestFocus();
+				}
+			}
+		});
+		oldPasswordId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					oldPasswordId.deletePreviousChar();
+				}
+			}
+		});
+		passwordId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					repeatId.requestFocus();
+				}if(event.getCode() == KeyCode.SPACE ){
+					event.consume();
+				}
+			}
+		});
+		passwordId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					passwordId.deletePreviousChar();
+				}
+			}
+		});
+		repeatId.setOnKeyPressed(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.ENTER) {
+					encryptWallet();
+				}
+			}
+		});
+		repeatId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					repeatId.deletePreviousChar();
+				}
+			}
+		});
 	}
 	
 	/*

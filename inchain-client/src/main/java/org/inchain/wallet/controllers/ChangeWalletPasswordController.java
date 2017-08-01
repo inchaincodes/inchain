@@ -1,5 +1,6 @@
 package org.inchain.wallet.controllers;
 
+import javafx.scene.Cursor;
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -37,6 +38,14 @@ public class ChangeWalletPasswordController extends DailogController {
 				}
 			}
 		});
+		oldPasswordId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					oldPasswordId.deletePreviousChar();
+				}
+			}
+		});
 		passwordId.setOnKeyPressed(new EventHandler<KeyEvent>() {
 			@Override
 			public void handle(KeyEvent event) {
@@ -45,11 +54,27 @@ public class ChangeWalletPasswordController extends DailogController {
 				}
 			}
 		});
+		passwordId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					passwordId.deletePreviousChar();
+				}
+			}
+		});
 		repeatId.setOnKeyPressed(new EventHandler<KeyEvent>() {
 			@Override
 			public void handle(KeyEvent event) {
 				if(event.getCode() == KeyCode.ENTER) {
 					encryptWallet();
+				}
+			}
+		});
+		repeatId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					repeatId.deletePreviousChar();
 				}
 			}
 		});

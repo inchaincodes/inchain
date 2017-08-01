@@ -455,10 +455,10 @@ public class AccountKit {
 			System.arraycopy(account.getAddress().getHash160(), 0, verifyContent, Sha256Hash.LENGTH + 20, 20);
 
 			Sha256Hash verifyCodeConent = Sha256Hash.twiceOf(verifyContent);
-			if( money.isGreaterThan(Coin.ZERO)) {
-				Script out = ScriptBuilder.createAntifakeOutputScript(account.getAddress().getHash160(), verifyCodeConent);
-				tx.addOutput(money, out);
-			}
+			//if( money.isGreaterThan(Coin.ZERO)) {
+			Script out = ScriptBuilder.createAntifakeOutputScript(account.getAddress().getHash160(), verifyCodeConent);
+			tx.addOutput(money, out);
+			//}
 
 			//是否找零
 			if(totalInputCoin.isGreaterThan(money)) {
@@ -2660,75 +2660,49 @@ public class AccountKit {
 
 		int successCount = 0; //成功个数
 		//加密钱包
-		for (Account account : accountList) {
-			try {
-				if(account.isCertAccount()) {
+		Account account = accountList.get(0);
+		try {
+			if(account.isCertAccount()) {
 
-					//认证账户
-					//生成私匙
-					ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
-					byte[] seedPribs = seedPri.getPubKey(false);
+				//认证账户
+				//生成私匙
+				ECKey seedPri = ECKey.fromPublicOnly(account.getPriSeed());
+				byte[] seedPribs = seedPri.getPubKey(false);
 
-					BigInteger pri1 = AccountTool.genPrivKey1(seedPribs, newPassword.getBytes());
-					BigInteger pri2 = AccountTool.genPrivKey2(seedPribs, newPassword.getBytes());
+				BigInteger pri1 = AccountTool.genPrivKey1(seedPribs, newPassword.getBytes());
+				BigInteger pri2 = AccountTool.genPrivKey2(seedPribs, newPassword.getBytes());
 
-					ECKey key1 = ECKey.fromPrivate(pri1);
-					ECKey key2 = ECKey.fromPrivate(pri2);
+				ECKey key1 = ECKey.fromPrivate(pri1);
+				ECKey key2 = ECKey.fromPrivate(pri2);
 
-					//重新设置账户的公钥
-					ECKey[] oldMgEckeys = account.getMgEckeys();
-					if(type == 1) {
-						account.setMgEckeys(new ECKey[] {key1, key2});
-						account.setMgPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
-					} else {
-						account.setTrEckeys(new ECKey[]{key1});
-						account.setTrPubkeys(new byte[][] {key1.getPubKey(true)});
-					}
-					//重新签名
-					account.signAccount();
-					account.verify();
-
-					//广播
-					CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(),
-							account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),account.getSupervisor(),account.getLevel());
-
-					rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_TR);
-					rtx.verify();
-					rtx.verifyScript();
-
-					MempoolContainer.getInstace().add(rtx);
-
-					BroadcastResult broadcastResult = peerKit.broadcast(rtx).get();
-					if(broadcastResult.isSuccess()) {
-						account.setAccountTransaction(rtx);
-						//回写到钱包文件
-						File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
-						FileOutputStream fos = new FileOutputStream(accountFile);
-						try {
-							//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-							fos.write(account.serialize());
-							successCount++;
-						} finally {
-							fos.close();
-						}
-					} else {
-						log.error(broadcastResult.getMessage());
-					}
+				//重新设置账户的公钥
+				ECKey[] oldMgEckeys = account.getMgEckeys();
+				if(type == 1) {
+					account.setMgEckeys(new ECKey[] {key1, key2});
+					account.setMgPubkeys(new byte[][] {key1.getPubKey(true), key2.getPubKey(true)});
 				} else {
-					//普通账户，也就无所谓管理或者交易密码了
-					ECKey eckey = account.getEcKey();
-					ECKey newKey = eckey.encrypt(newPassword);
-					account.setEcKey(newKey);
-					account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+					account.setTrEckeys(new ECKey[]{key1});
+					account.setTrPubkeys(new byte[][] {key1.getPubKey(true)});
+				}
+				//重新签名
+				account.signAccount();
+				account.verify();
 
-					//重新签名
-					account.signAccount(eckey, null);
+				//广播
+				CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(),
+						account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),account.getSupervisor(),account.getLevel());
 
-					account.verify();
+				rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_TR);
+				rtx.verify();
+				rtx.verifyScript();
 
+				MempoolContainer.getInstace().add(rtx);
+
+				BroadcastResult broadcastResult = peerKit.broadcast(rtx).get();
+				if(broadcastResult.isSuccess()) {
+					account.setAccountTransaction(rtx);
 					//回写到钱包文件
 					File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
-
 					FileOutputStream fos = new FileOutputStream(accountFile);
 					try {
 						//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
@@ -2737,16 +2711,41 @@ public class AccountKit {
 					} finally {
 						fos.close();
 					}
-					eckey = null;
+				} else {
+					log.error(broadcastResult.getMessage());
 				}
-			} catch (Exception e) {
-				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
-				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
-			} finally {
-				account.resetKey();
+			} else {
+				//普通账户，也就无所谓管理或者交易密码了
+				ECKey eckey = account.getEcKey();
+				ECKey newKey = eckey.encrypt(newPassword);
+				account.setEcKey(newKey);
+				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+
+				//重新签名
+				account.signAccount(eckey, null);
+
+				account.verify();
+
+				//回写到钱包文件
+				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+
+				FileOutputStream fos = new FileOutputStream(accountFile);
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+					successCount++;
+				} finally {
+					fos.close();
+				}
+				eckey = null;
 			}
+		} catch (Exception e) {
+			log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
+			return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+		} finally {
+			account.resetKey();
 		}
-		String message = "成功修改"+successCount+"个账户的密码";
+		String message = "修改密码成功";
 		return new Result(true, message);
 	}
 

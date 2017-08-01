@@ -35,11 +35,27 @@ public class EncryptWalletController extends DailogController {
 				}
 			}
 		});
+		passwordId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					passwordId.deletePreviousChar();
+				}
+			}
+		});
 		repeatId.setOnKeyPressed(new EventHandler<KeyEvent>() {
 			@Override
 			public void handle(KeyEvent event) {
 				if(event.getCode() == KeyCode.ENTER) {
 					encryptWallet();
+				}
+			}
+		});
+		repeatId.setOnKeyReleased(new EventHandler<KeyEvent>() {
+			@Override
+			public void handle(KeyEvent event) {
+				if(event.getCode() == KeyCode.SPACE){
+					repeatId.deletePreviousChar();
 				}
 			}
 		});
