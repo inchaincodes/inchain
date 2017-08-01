@@ -609,7 +609,7 @@ public class RPCHanlder {
 			} catch (JSONException e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
-					result.put("message", "缺少参数，命令用法：createantifake [product hash] [count] [trpassword] ([reward]) [address]");
+					result.put("message", "缺少参数，命令用法：createantifake [product hash] [count] [trpassword] ([reward]) ([address])");
 					return result;
 				}
 				result.put("success", false);

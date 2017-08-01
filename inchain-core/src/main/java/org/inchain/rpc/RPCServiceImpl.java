@@ -2064,7 +2064,9 @@ public class RPCServiceImpl implements RPCService {
 	 */
 	public JSONObject getTx(String txid) throws JSONException {
 		TransactionStore txs = blockStoreProvider.getTransaction(Hex.decode(txid));
-
+		if(txs.getTransaction().getType() == 0) {
+			txs = null;
+		}
 		if(txs == null) {
 			JSONObject json = new JSONObject();
 			json.put("message", "not found");

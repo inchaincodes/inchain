@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 
- * 核心客户端RPC服务，RPC服务随核心启动，端口配置参考 {@link org.inchain.Configure.RPC_SERVER_PORT }
+ * 核心客户端RPC服务，RPC服务随核心启动，端口配置参考 { org.inchain.Configure.RPC_SERVER_PORT }
  * 命令列表： help 帮助命令，列表出所有命令
  * 
  * --- 区块相关 getblockcount 获取区块的数量 getnewestblockheight 获取最新区块的高度
@@ -56,7 +56,7 @@ public class RPCServer implements Server {
 	private final static Properties property = new Properties();
 
 	/**
-	 * RPC服务启动方法，启动之后监听本地端口 {@link org.inchain.Configure.RPC_SERVER_PORT}提供服务
+	 * RPC服务启动方法，启动之后监听本地端口 { org.inchain.Configure.RPC_SERVER_PORT}提供服务
 	 * 
 	 */
 	private static ExecutorService executor = Executors.newCachedThreadPool();
@@ -177,7 +177,7 @@ public class RPCServer implements Server {
 		}
 		
 		private JSONObject readMessage() throws JSONException, IOException {
-			String message = br.readLine();
+			String message = br.readLine().trim();
 			if(StringUtil.isEmpty(message)) {
 				return null;
 			} else {
@@ -202,7 +202,11 @@ public class RPCServer implements Server {
 //			} catch (UnsupportedEncodingException e) {
 //				e.printStackTrace();
 //			}
-			pw.println(result.toString());
+			String info = result.toString().trim();
+			String pad = "00000000";
+			String len = info.length()+"";
+			String head = pad.substring(len.length())+len;
+			pw.println(head + info);
 			pw.flush();
 		}
 
