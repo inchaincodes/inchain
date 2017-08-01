@@ -695,13 +695,14 @@ public class TransactionValidator {
 			byte[] hash160 = revokeTx.getHash160();
 			byte[] revokehash160 = revokeTx.getRevokeHash160();
 
-			if(revokeTx.getLevel() >= Configure.MAX_CERT_LEVEL){
-				result.setResult(false, "签发该账户的上级账户不具备该权限");
-				return validatorResult;
-			}
+
 			//检查用户是否为认证账户，检查用户状态是否可用
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			AccountStore raccountinfo  = chainstateStoreProvider.getAccountInfo(revokehash160);
+			if(accountInfo.getLevel() >= Configure.MAX_CERT_LEVEL){
+				result.setResult(false, "签发该账户的上级账户不具备该权限");
+				return validatorResult;
+			}
 
 
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion() || accountInfo.getStatus() !=0 ) {
