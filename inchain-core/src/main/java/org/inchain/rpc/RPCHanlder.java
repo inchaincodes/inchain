@@ -1067,7 +1067,7 @@ public class RPCHanlder {
 		}
 		
 		//获取认证商家子账户个数
-		case "checksssubaccount": {
+		case "checkissubaccount": {
 			if(params.length() < 2) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
@@ -1222,24 +1222,21 @@ public class RPCHanlder {
 		//查看账户的私钥
 		case "getprivatekey": {
 			
-			String pw = null;
+			String pwd = null;
 			String address = null;
-			if(params.length() > 0) {
-				pw = params.getString(0);
-			}
-			if(params.length() > 1) {
-				address = params.getString(1);
-			}
 			if(params.length() == 1) {
 				//当参数只有一个时，判断是密码还是地址
 				try {
 					Address.fromBase58(network, address);
 					address = params.getString(0);
-					pw = null;
+					pwd = null;
 				} catch (Exception e) {
 				}
+			}else if(params.length() > 1) {
+				address = params.getString(0);
+				pwd = params.getString(1);
 			}
-			return rpcService.getPrivatekey(address, pw);
+			return rpcService.getPrivatekey(address, pwd);
 		}
 		
 		//查看账户的私钥
@@ -1266,8 +1263,8 @@ public class RPCHanlder {
 		sb.append("  getbestblockheight              获取最新区块的高度\n");
 		sb.append("  getbestblockhash                获取最新区块的hash\n");
 		sb.append("  getblockhash                    通过高度获取区块hash\n");
-		sb.append("  getblockheader [param] (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
-		sb.append("  getblock [param] (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
+		sb.append("  getblockheader <param> (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
+		sb.append("  getblock <param> (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
 		sb.append("\n");
 		sb.append(" --- 帐户相关 --- \n");
 		sb.append("  getbalance                      获取账户的余额\n");
@@ -1276,8 +1273,8 @@ public class RPCHanlder {
 		sb.append("  gettransaction                  获取帐户的交易记录\n");
 		sb.append("  encryptwallet                   加密钱包\n");
 		sb.append("  password                        修改钱包密码\n");
-		sb.append("  getprivatekey [password] [address]                        查看账户的私钥\n");
-		sb.append("  getaddressbypubkey [pubkey] 			通过账户公钥获取地址\n");
+		sb.append("  getprivatekey [address] [password]                         查看账户的私钥\n");
+		sb.append("  getaddressbypubkey <pubkey> 			通过账户公钥获取地址\n");
 
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
