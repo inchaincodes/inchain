@@ -217,6 +217,9 @@ public class RPCClient {
 	 */
 	private JSONObject receiveResult() throws JSONException, IOException {
 		String s = br.readLine();
+		if(s.length() > 8) {
+			s = s.substring(8,s.length());
+		}
 		JSONObject result = new JSONObject(s);
 		return result;
 	}
@@ -225,7 +228,11 @@ public class RPCClient {
 	 * 发送命令
 	 */
 	private void sendCommands(JSONObject infos) {
-		pw.println(infos.toString());
+		String info = infos.toString().trim();
+		String pad = "00000000";
+		String len = info.length()+"";
+		String head = pad.substring(len.length())+len;
+		pw.println(head + info);
 		pw.flush();
 	}
 
