@@ -1171,7 +1171,7 @@ public class RPCServiceImpl implements RPCService {
 				privateKey = param4;
 			}
 
-			if(antifakeContent == null) {
+			if(antifakeContent == null || antifakeContent.length()<32) {
 				if(StringUtil.isEmpty(antifakeCode) && StringUtil.isEmpty(verifyCode)) {
 					result.put("success", false);
 					result.put("message", "防伪码为空");
