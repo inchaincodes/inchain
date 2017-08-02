@@ -181,7 +181,10 @@ public class RPCServer implements Server {
 			if(StringUtil.isEmpty(message)) {
 				return null;
 			} else {
-				return new JSONObject(message.substring(Configure.RPC_HEAD_LENGTH));
+				if(message.charAt(0) != '{' || message.charAt(0) != '[') {
+					message = message.substring(Configure.RPC_HEAD_LENGTH);
+				}
+				return new JSONObject(message);
 			}
 		}
 		
@@ -193,19 +196,12 @@ public class RPCServer implements Server {
 		}
 		
 		private void writeMessage(JSONObject result) throws JSONException {
-//			try {
-//				System.out.println("================");
-//				System.out.println(new String(result.toString()));
-//				System.out.println("================");
-//				pw.println(new String(result.toString().getBytes("utf-8")));
-//				pw.flush();
-//			} catch (UnsupportedEncodingException e) {
-//				e.printStackTrace();
-//			}
+			//写出消息时，抬头写出消息的固定8位长度
 			String info = result.toString().trim();
-			String pad = "00000000";
+			String regix = "00000000";
 			String len = info.length()+"";
-			String head = pad.substring(len.length())+len;
+			String head = regix.substring(len.length())+len;
+
 			pw.println(head + info);
 			pw.flush();
 		}
