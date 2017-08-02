@@ -404,8 +404,12 @@ public class RPCServiceImpl implements RPCService {
 			} else {
 				result.put("success", true);
 				result.put("txid", res.getHash());
-
-				Account account = accountKit.getAccount(address);
+				Account account = null;
+				if(address !=null) {
+					account = accountKit.getAccount(address);
+				}else {
+					account = accountKit.getDefaultAccount();
+				}
 				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
 				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])));
 			}

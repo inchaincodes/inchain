@@ -2211,10 +2211,11 @@ public class AccountKit {
 		}
 
 		ECKey[] eckey = account.decryptionMg(oldMgpw);
+
 		if(eckey == null) {
 			return new BroadcastResult(false, "旧密码错误");
 		}
-
+		account.setMgEckeys(eckey);
 		locker.lock();
 		try {
 			Account tempAccount = account.clone();
@@ -2240,7 +2241,7 @@ public class AccountKit {
 			tempAccount.setTrPubkeys(new byte[][] {trkey1.getPubKey(true)});//存储交易公匙
 
 			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, tempAccount.getAddress().getHash160(), tempAccount.getMgPubkeys(), tempAccount.getTrPubkeys(), tempAccount.getBody(),account.getSupervisor(),account.getLevel());
-			cutx.sign(account, Definition.TX_VERIFY_TR);
+			cutx.sign(account, Definition.TX_VERIFY_MG);
 
 			cutx.verify();
 			cutx.verifyScript();
