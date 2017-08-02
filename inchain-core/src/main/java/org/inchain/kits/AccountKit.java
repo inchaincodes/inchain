@@ -981,10 +981,13 @@ public class AccountKit {
 			return verifyResult;
 
 		}
-
-
-
 		AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) makeTx;
+		if(codeMakeTx.getHasProduct()== 1 && makebind.length != Sha256Hash.LENGTH*2){
+			verifyResult.setSuccess(false);
+			verifyResult.setMessage("防伪码没有关联商品");
+			return verifyResult;
+		}
+
 		TransactionStore productTxStore = null;
 		if(bdtxStore != null){
 			AntifakeCodeBindTransaction codeBindTx = (AntifakeCodeBindTransaction)bdtxStore.getTransaction();
