@@ -217,8 +217,8 @@ public class RPCClient {
 	 */
 	private JSONObject receiveResult() throws JSONException, IOException {
 		String s = br.readLine();
-		if(s.length() > 8) {
-			s = s.substring(8,s.length());
+		if(s.length() > Configure.RPC_HEAD_LENGTH) {
+			s = s.substring(Configure.RPC_HEAD_LENGTH, s.length());
 		}
 		JSONObject result = new JSONObject(s);
 		return result;

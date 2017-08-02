@@ -181,7 +181,7 @@ public class RPCServer implements Server {
 			if(StringUtil.isEmpty(message)) {
 				return null;
 			} else {
-				return new JSONObject(message);
+				return new JSONObject(message.substring(Configure.RPC_HEAD_LENGTH));
 			}
 		}
 		

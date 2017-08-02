@@ -124,6 +124,10 @@ public final class Configure {
 	 * RPC 默认用户名
 	 */
 	public static String RPC_SERVER_USER = "user";
+	/**
+	 * PRC 消息体前缀固定8位记录信息长度
+	 */
+	public static int RPC_HEAD_LENGTH = 8;
 	
 	/*************  RPC 相关配置   end  *****************/
 	
