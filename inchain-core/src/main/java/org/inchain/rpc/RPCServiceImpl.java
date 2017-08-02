@@ -2056,6 +2056,24 @@ public class RPCServiceImpl implements RPCService {
 		return array;
 	}
 
+
+	public JSONArray getTransferTx(String address) throws JSONException {
+		List<TransactionStore> mineList = transactionStoreProvider.getMineTxList(address);
+
+		JSONArray array = new JSONArray();
+
+		long bestHeight = network.getBestBlockHeight();
+		List<Account> accountList = accountKit.getAccountList();
+
+		for (TransactionStore transactionStore : mineList) {
+			if(transactionStore.getTransaction().getType() == Definition.TYPE_PAY) {
+				array.put(txConver(transactionStore, bestHeight, accountList));
+			}
+		}
+
+		return array;
+	}
+
 	/**
 	 * 通过交易hash获取条交易详情
 	 * @param txid

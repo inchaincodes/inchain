@@ -191,6 +191,14 @@ public interface RPCService {
 	JSONArray getTransaction(String address) throws JSONException;
 
 	/**
+	 * 获取帐户的代币交易记录
+	 * @param address
+	 * @return JSONArray
+	 * @throws JSONException
+	 */
+	JSONArray getTransferTx(String address) throws JSONException;
+
+	/**
 	 * 通过交易hash获取条交易详情
 	 * @param txid
 	 * @return JSONObject

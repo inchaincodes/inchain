@@ -413,6 +413,21 @@ public class RPCHanlder {
 				return result;
 			}
 
+			case "gettransfertx" : {
+				String address = null;
+
+				if(params.length() > 0) {
+					address = params.getString(0);
+				}
+
+				JSONArray txs = rpcService.getTransferTx(address);
+
+				result.put("success", true);
+				result.put("txs", txs);
+
+				return result;
+			}
+
 			//获取账户交易
 			case "gettransaction": {
 				String address = null;

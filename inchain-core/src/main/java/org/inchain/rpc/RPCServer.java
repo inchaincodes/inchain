@@ -181,7 +181,7 @@ public class RPCServer implements Server {
 			if(StringUtil.isEmpty(message)) {
 				return null;
 			} else {
-				if(message.charAt(0) != '{' || message.charAt(0) != '[') {
+				if(message.charAt(0) != '{' && message.charAt(0) != '[') {
 					message = message.substring(Configure.RPC_HEAD_LENGTH);
 				}
 				return new JSONObject(message);
