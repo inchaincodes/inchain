@@ -49,6 +49,20 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 	protected void parseBody() {
 		revokeHash160 =  readBytes(Address.LENGTH);
 		hash160 = readBytes(Address.LENGTH);
+
+		//管理公钥
+		int mgPubkeysCount = readBytes(1)[0] & 0xff;
+		mgPubkeys = new byte[mgPubkeysCount][];
+		for (int i = 0; i < mgPubkeysCount; i++) {
+			mgPubkeys[i] = readBytes((int) readVarInt());
+		}
+
+		//交易公匙
+		int trPubkeysCount = readBytes(1)[0] & 0xff;
+		trPubkeys = new byte[trPubkeysCount][];
+		for (int i = 0; i < trPubkeysCount; i++) {
+			trPubkeys[i] = readBytes((int) readVarInt());
+		}
 	}
 	
 	@Override
@@ -60,6 +74,25 @@ public class CertAccountRevokeTransaction extends CertAccountTransaction {
 		//superhash 160
 		Utils.checkNotNull(hash160);
 		stream.write(hash160);
+
+		//帐户管理公匙
+		Utils.checkNotNull(mgPubkeys);
+		//公钥个数
+		stream.write(mgPubkeys.length);
+		for (byte[] bs : mgPubkeys) {
+			//公钥长度
+			stream.write(new VarInt(bs.length).encode());
+			stream.write(bs);
+		}
+
+		//交易公匙
+		Utils.checkNotNull(trPubkeys);
+		stream.write(trPubkeys.length);
+		for (byte[] bs : trPubkeys) {
+			//公钥长度
+			stream.write(new VarInt(bs.length).encode());
+			stream.write(bs);
+		}
 	}
 	
 	/**
