@@ -1010,10 +1010,10 @@ public class RPCHanlder {
 			String content = params.getString(2);
 			
 			String trpw = params.getString(3);
+
 			String address = null;
-			
-			if(params.length() > 4) {
-				address = params.getString(4); 
+			if(params.length() == 5) {
+				address = params.getString(4);
 			}
 			
 			return rpcService.relevanceSubAccount(relevancer, alias, content, trpw, address);
