@@ -239,7 +239,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 				if(Arrays.equals(creditTransaction.getHash160(), creditTransaction.getOwnerHash160())) {
 					//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 					accountInfo = chainstateStoreProvider.createNewAccountInfo(creditTransaction, AccountBody.empty(), new byte[][] {creditTransaction.getPubkey()});
-					accountInfo.setSupervisor(creditTransaction.getOwnerHash160());
+					accountInfo.setSupervisor(null);
 					accountInfo.setLevel(0);
 				} else {
 					//不存在时，直接写入信用
@@ -253,7 +253,7 @@ public class BlockStoreProvider extends BaseStoreProvider {
 					accountInfo.setLastModifyTime(tx.getTime());
 					accountInfo.setInfoTxid(tx.getHash());
 					accountInfo.setLevel(0);
-					accountInfo.setSupervisor(creditTransaction.getOwnerHash160());
+					accountInfo.setSupervisor(null);
 					accountInfo.setType(network.getSystemAccountVersion());
 					
 					//获取公钥，理论上有转账记录

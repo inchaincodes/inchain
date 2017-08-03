@@ -59,8 +59,12 @@ public class AccountStore extends Store {
 		stream.write(hash160);
 		stream.write(status);
 		stream.write(level);
-		stream.write(new VarInt(supervisor.length).encode());
-		stream.write(supervisor);
+		if(supervisor == null){
+			stream.write(new VarInt(0).encode());
+		}else {
+			stream.write(new VarInt(supervisor.length).encode());
+			stream.write(supervisor);
+		}
 
 		if(alias == null) {
 			stream.write(new VarInt(0).encode());

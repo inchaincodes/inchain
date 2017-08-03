@@ -773,7 +773,7 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 			if(accountInfo == null) {
 				//理论上只有普通账户才有可能没信息，注册账户没有注册信息的话，交易验证不通过
 				accountInfo = createNewAccountInfo(tx, AccountBody.empty(), new byte[][] {tx.getPubkey()});
-				accountInfo.setSupervisor(accountInfo.getHash160());
+				accountInfo.setSupervisor(null);
 				accountInfo.setLevel(0);
 				put(hash160, accountInfo.baseSerialize());
 			} else {

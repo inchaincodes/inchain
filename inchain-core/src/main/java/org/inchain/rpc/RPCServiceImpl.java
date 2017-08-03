@@ -1935,8 +1935,9 @@ public class RPCServiceImpl implements RPCService {
 		json.put("blanace", blanaces[0].add(blanaces[1]).value);
 		json.put("canUseBlanace", blanaces[0].value);
 		json.put("cannotUseBlanace", blanaces[1].value);
-
 		json.put("cert", info.getCert());
+		json.put("level",info.getLevel());
+		json.put("supervisor",(info.getSupervisor()==null||info.getSupervisor().length!=20)?"":new Address(network,network.getCertAccountVersion(), info.getSupervisor()).getBase58());
 
 		if(network.getSystemAccountVersion() == info.getType()) {
 			json.put("pubkey", Hex.encode(info.getPubkeys()[0]));

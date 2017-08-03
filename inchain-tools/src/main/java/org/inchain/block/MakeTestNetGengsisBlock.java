@@ -140,9 +140,22 @@ public class MakeTestNetGengsisBlock {
 				
 				Account account = new Account(network);
 				account.setAddress(addressTemp);
+
 				account.setEcKey(keyTemp);
 				account.setMgPubkeys(new byte[][]{ keyTemp.getPubKey()});
+				account.setPriSeed(keyTemp.getPrivKeyBytes());
+				account.signAccount();
+				account.verify();
 
+				File accountFile = new File("./data/account/", addressTemp.getBase58()+".dat");
+
+				FileOutputStream fos = new FileOutputStream(accountFile);
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+				} finally {
+					fos.close();
+				}
 				
 				//注册账户授予信用值
 				CreditTransaction creditTx = new CreditTransaction(network, addressTemp.getHash160(), Configure.CONSENSUS_CREDIT, 0, Sha256Hash.ZERO_HASH);
@@ -182,15 +195,7 @@ public class MakeTestNetGengsisBlock {
 					
 					txs.add(regConsensusTransaction);
 				}
-				File accountFile = new File("./data/account/", addressTemp.getBase58()+".dat");
 
-				FileOutputStream fos = new FileOutputStream(accountFile);
-				try {
-					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-					fos.write(account.serialize());
-				} finally {
-					fos.close();
-				}
 			}
 			
 			//注册创世管理帐户

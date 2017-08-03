@@ -2020,7 +2020,7 @@ public class AccountKit {
 			return new BroadcastResult(false, "账户不存在");
 		}
 
-		ECKey[] eckey = account.decryptionTr(mgPw);
+		ECKey[] eckey = account.decryptionMg(mgPw);
 		if(eckey == null) {
 			return new BroadcastResult(false, "密码错误");
 		}
@@ -2028,7 +2028,7 @@ public class AccountKit {
 		locker.lock();
 		try {
 			CertAccountUpdateTransaction cutx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),account.getLevel());
-			cutx.sign(account, Definition.TX_VERIFY_TR);
+			cutx.sign(account, Definition.TX_VERIFY_MG);
 
 			cutx.verify();
 			cutx.verifyScript();
@@ -2697,7 +2697,7 @@ public class AccountKit {
 				CertAccountUpdateTransaction rtx = new CertAccountUpdateTransaction(network, account.getAddress().getHash160(),
 						account.getMgPubkeys(), account.getTrPubkeys(), account.getBody(),account.getSupervisor(),account.getLevel());
 
-				rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_TR);
+				rtx.calculateSignature(account.getAccountTransaction().getHash(), oldMgEckeys[0], oldMgEckeys[1], account.getAddress().getHash160(), Definition.TX_VERIFY_MG);
 				rtx.verify();
 				rtx.verifyScript();
 
