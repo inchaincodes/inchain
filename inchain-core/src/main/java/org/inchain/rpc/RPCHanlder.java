@@ -1011,7 +1011,7 @@ public class RPCHanlder {
 		//认证商家关联子账户
 		case "relevancesubaccount": {
 			
-			if(params.length()  < 3) {
+			if(params.length()  < 4) {
 				result.put("success", false);
 				result.put("message", "缺少参数");
 				return result;
