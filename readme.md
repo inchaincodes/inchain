@@ -277,15 +277,25 @@ consensus
 
 TX协议
 ---
+> 注意：所有TX交易都以remark长度和remark内容结尾
+> 
+> |尺寸|字段|数据类型|说明|
+> |---|---|---|---|
+> |?|remark length|varint|remark长度|
+> |?|remark|byte[?]|remark|
+
+
+---
+
 
 CommonlyTransaction
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|Trans type|uint32|交易类型|
+|1|Type|byte|交易类型|
 |4|version|uint32|版本号|
-|8|time|uint64|时间|
-|?|script length|varint|签名内容长度|
+|4|time|uint32|时间|
+|?|script length|varint|签名内容长度,可能为0|
 |?|script|byte[?]|签名|
 
 
@@ -339,8 +349,6 @@ AssetsIssuedTransaction : CommonlyTransaction
 |32|assets|sha256|资产Hash|
 |32|receiver|sha256|接收人|
 |8|amount|int64|数量|
-|?|remark length|varint|remark长度|
-|?|remark|byte[]|备注|
 
 ---
 
@@ -352,7 +360,6 @@ AssetsRegisterTransaction : CommonlyTransaction
 |?|description|varstr|资产描述|
 |?|code|varstr|资产代号|
 |?|logo|varstr|资产Logo图片|
-|?|remark|varstr|备注|
 
 ---
 
