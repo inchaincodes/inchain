@@ -324,7 +324,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("mgPubkeys", new JSONArray().put(Hex.encode(account.getMgPubkeys()[0])).put(Hex.encode(account.getMgPubkeys()[1])));
 				result.put("trPubkeys", new JSONArray().put(Hex.encode(account.getTrPubkeys()[0])));
 
-				result.put("txid", account.getAccountTransaction().getHash());
+				result.put("txhash", account.getAccountTransaction().getHash());
 			}
 		} catch (Exception e) {
 			result.put("success", false);
@@ -350,7 +350,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("message", res.getMessage());
 			} else {
 				result.put("success", true);
-				result.put("txid", res.getHash());
+				result.put("txhash", res.getHash());
 			}
 		} catch (Exception e) {
 			result.put("success", false);
@@ -376,7 +376,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("message", res.getMessage());
 			} else {
 				result.put("success", true);
-				result.put("txid", res.getHash());
+				result.put("txhash", res.getHash());
 			}
 		} catch (Exception e) {
 			result.put("success", false);
@@ -403,7 +403,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("message", res.getMessage());
 			} else {
 				result.put("success", true);
-				result.put("txid", res.getHash());
+				result.put("txhash", res.getHash());
 				Account account = null;
 				if(address !=null) {
 					account = accountKit.getAccount(address);
@@ -457,7 +457,7 @@ public class RPCServiceImpl implements RPCService {
 
 			result.put("success", res.isSuccess());
 			result.put("message", res.getMessage());
-			result.put("txid", res.getHash());
+			result.put("txhash", res.getHash());
 		} catch (Exception e) {
 			log.error("创建商品出错：", e);
 			result.put("success", false);
@@ -577,7 +577,7 @@ public class RPCServiceImpl implements RPCService {
 				result.put("message", rs.getMessage());
 			}else{
 				result.put("success", true);
-				result.put("txid",rs.getMessage());
+				result.put("txhash",rs.getMessage());
 			}
 
 		}catch (Exception e){
@@ -2207,7 +2207,7 @@ public class RPCServiceImpl implements RPCService {
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
-			json.put("txid", br.getHash());
+			json.put("txHash", br.getHash());
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);

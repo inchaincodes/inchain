@@ -41,7 +41,7 @@ array：数组，由一个变长整数后接元素序列构成。
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|8| Timestamp |int64|当前时间|
+|8| Timestamp |int64|当前时间戳，毫秒|
 |4|Service Version|uint32|服务版本|
 |16|IP Address|byte[16]|IPv6地址|
 |2|Port|uint16|端口|
@@ -75,8 +75,8 @@ array：数组，由一个变长整数后接元素序列构成。
 |?|input|input[]|输入交易|
 |?|output tx count|VarInt|输出交易数|
 |?|output|output[]|输出交易|
-|8|time|int64|时间戳|
-|8|lock time|int64|锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度|
+|4|time|uint32|时间戳,秒|
+|4|lock time|uint32|锁定时间，小于0永久锁定，大于等于0为锁定的时间或者区块高度|
 |?|remark|varstr|备注|
 |?|sign script|varstr|签名脚本|
 
@@ -91,11 +91,11 @@ array：数组，由一个变长整数后接元素序列构成。
 |4|version|uint32|区块版本|
 |32|prev Hash|SHA256|上一个区块Hash|
 |32|markle Hash|SHA256|markle Hash|
-|4|time|Timespan|时间戳|
+|4|time|uint32|时间戳，秒|
 |4|hight|uint32|高度|
-|4|period count|uint32|该时段共识人数|
-|4|time period|int32|时段，一轮共识中的第几个时间段|
-|4|period start time|uint32|本轮开始的时间点|
+|?|period count|varint|该时段共识人数|
+|?|time period|varint|时段，一轮共识中的第几个时间段|
+|4|period start time|uint32|本轮开始的时间点，秒|
 |4|script length|uint32|验证脚本长度|
 |?|script|byte[?]|验证脚本|
 |4|tx count|uint32|交易数量|
@@ -128,7 +128,7 @@ array：数组，由一个变长整数后接元素序列构成。
 > |值|说明|
 > |---|---|
 > |0x05209A2A|正式网|
-> |0x2581D888|测试网|
+> |0x2581E1FD|测试网|
 > |0x0001B6A0|单元测试网|
 
 Command采用utf8编码，长度为12字节，多余部分用0填充。
@@ -149,7 +149,7 @@ version
 |---|---|---|---|
 |1|localServices|uint8|哪个网络服务|
 |4|client version|uint32|客户端版本|
-|8|local time|uint64|时间戳|
+|8|local time|uint64|时间戳，毫秒|
 |30|local peer address|PeerAddress|本机地址|
 |30|remote peer address|PeerAddress|请求者地址|
 |4|UserAgent length|uint32|版本字符串长度|
@@ -168,7 +168,7 @@ verack
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|8|current time|int64|当前时间戳|
+|8|current time|uint64|当前时间戳，毫秒|
 |8|nonce|int64|收到的VersionMessage中的nonce值|
 
 ---
@@ -193,7 +193,7 @@ getaddr
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|8|time|int64|当前时间戳|
+|8|time|uint64|当前时间戳,毫秒|
 
 ---
 addr
@@ -269,7 +269,7 @@ consensus
 |4|protocol version|int32|协议版本|
 |20|sender|hash160|消息发送人|
 |4|height|uint32|高度|
-|8|time|Timespane|时间戳|
+|8|time|uint64|时间戳,毫秒|
 |8|nonce|int64|随机数|
 |?|content|varstr|内容|
 |?*?| Signs| Sign[]|签名|
@@ -277,15 +277,25 @@ consensus
 
 TX协议
 ---
+> 注意：所有TX交易都以remark长度和remark内容结尾
+> 
+> |尺寸|字段|数据类型|说明|
+> |---|---|---|---|
+> |?|remark length|varint|remark长度|
+> |?|remark|byte[?]|remark|
+
+
+---
+
 
 CommonlyTransaction
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|Trans type|uint32|交易类型|
+|1|Type|byte|交易类型|
 |4|version|uint32|版本号|
-|8|time|uint64|时间|
-|?|script length|varint|签名内容长度|
+|4|time|uint32|时间戳，秒|
+|?|script length|varint|签名内容长度,可能为0|
 |?|script|byte[?]|签名|
 
 
@@ -327,8 +337,6 @@ AntifakeTransferTransaction : CommonlyTransaction
 |---|---|---|---|
 |?|antifakecode|byte[]|防伪码|
 |32|receiver|sha256|接收人|
-|?|remark length|varint|remark长度|
-|?|remark|byte[]|备注|
 
 ---
 
@@ -339,8 +347,6 @@ AssetsIssuedTransaction : CommonlyTransaction
 |32|assets|sha256|资产Hash|
 |32|receiver|sha256|接收人|
 |8|amount|int64|数量|
-|?|remark length|varint|remark长度|
-|?|remark|byte[]|备注|
 
 ---
 
@@ -352,7 +358,6 @@ AssetsRegisterTransaction : CommonlyTransaction
 |?|description|varstr|资产描述|
 |?|code|varstr|资产代号|
 |?|logo|varstr|资产Logo图片|
-|?|remark|varstr|备注|
 
 ---
 
@@ -368,7 +373,7 @@ CertAccountRegisterTransaction
 |---|---|---|---|
 |4|type|int32|交易类型|
 |4|version|uint32|版本|
-|4|time|uint32|时间|
+|4|time|uint32|时间戳，秒|
 |32|hash|sha256|账户信息|
 |32|superhash|sha256|superHash160|
 |4|level|int32|level|
@@ -386,9 +391,9 @@ CertAccountRevokeTransaction
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|type|int32|交易类型|
+|1|type|byte|交易类型|
 |4|version|uint32|版本|
-|4|time|uint32|时间|
+|4|time|uint32|时间戳，秒|
 |32|revoke hash|sha256|撤销信息|
 |32|hash|sha256|账户信息|
 |32|superhash|sha256|superHash160|
@@ -436,9 +441,9 @@ GeneralAntifakeTransaction
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|type|int32|交易类型|
+|1|type|byte|交易类型|
 |4|version|uint32|版本|
-|8|time|int64|时间|
+|4|time|uint32|时间戳，秒|
 |4|flags|int32|类型|
 |32|product tx|sha256|关联产品|
 |8|nonce|int64|商品编号|
