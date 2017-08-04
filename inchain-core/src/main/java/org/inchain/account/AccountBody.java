@@ -10,6 +10,7 @@ import org.inchain.core.AccountKeyValue;
 import org.inchain.core.VarInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.inchain.core.exception.ContentErrorExcetption;
 
 /**
  * 账户主体
@@ -22,8 +23,8 @@ public class AccountBody {
 	
 	private List<AccountKeyValue> contents;
 	
-	public AccountBody(byte[] content) {
-		parse(content);
+	public AccountBody(byte[] content) throws ContentErrorExcetption{
+			parse(content);
 	}
 	
 	public AccountBody(List<AccountKeyValue> contents) {
@@ -35,7 +36,13 @@ public class AccountBody {
 	}
 	
 	public static AccountBody empty() {
-		return new AccountBody(new byte[0]);
+		AccountBody ab = null;
+		try {
+			ab = new AccountBody(new byte[0]);
+		}catch (Exception e){
+			System.out.print("never happen");
+		}
+		return ab;
 	}
 	
 	public final byte[] serialize() {
@@ -63,7 +70,7 @@ public class AccountBody {
 	}
 	
 
-	public void parse(byte[] content) {
+	public void parse(byte[] content) throws ContentErrorExcetption{
 		if(content == null || content.length == 0) {
 			return;
 		}

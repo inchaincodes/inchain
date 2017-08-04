@@ -199,6 +199,10 @@ public class AntifakeController implements SubPageController {
 				throw new VerificationException("防伪码类型错误");
 			}
 			AntifakeCodeMakeTransaction codeMakeTx = (AntifakeCodeMakeTransaction) fromTx;
+
+			if(codeMakeTx.getHasProduct()==1 && bindStore ==null){
+				throw new VerificationException("防伪码没有关联产品");
+			}
 			
 			//验证防伪码是否已经被验证了
 			//保证该防伪码没有被验证

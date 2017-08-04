@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 import org.inchain.Configure;
 import org.inchain.core.UnsafeByteArrayOutputStream;
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
 import org.inchain.crypto.ECKey.ECDSASignature;
@@ -259,7 +260,11 @@ public class Account implements Cloneable {
 			//主体
 			length = (int) Utils.readUint32(datas, cursor);
 			cursor += 4;
-			account.setBody(new AccountBody(readBytes(cursor, length, datas)));
+			try {
+				account.setBody(new AccountBody(readBytes(cursor, length, datas)));
+			}catch (ContentErrorExcetption e){
+				log.info("account "+account.getAddress()+" accountBody内容格式错误");
+			}
 			cursor += length;
 
 			//签名

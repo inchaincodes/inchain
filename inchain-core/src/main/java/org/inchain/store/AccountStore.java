@@ -123,7 +123,11 @@ public class AccountStore extends Store {
 
 		
 		if(cursor < payload.length) {
-			accountBody = new AccountBody(Arrays.copyOfRange(payload, cursor, payload.length));
+			try {
+				accountBody = new AccountBody(Arrays.copyOfRange(payload, cursor, payload.length));
+			}catch (Exception e){
+				accountBody = AccountBody.empty();
+			}
 		} else {
 			accountBody = AccountBody.empty();
 		}

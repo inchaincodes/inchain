@@ -12,6 +12,7 @@ import org.inchain.core.Coin;
 import org.inchain.core.Definition;
 import org.inchain.core.Product;
 import org.inchain.core.exception.AddressFormatException;
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
 import org.inchain.service.impl.VersionService;
@@ -224,7 +225,11 @@ public class RPCHanlder {
 
 			//新建认证账户
 			case "newcertaccount": {
-
+				if(params.length()<4){
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex] [managerMgPw]");
+					return result;
+				}
 				try {
 					String mggpw = params.getString(0);
 					String trpw = params.getString(1);
@@ -237,10 +242,10 @@ public class RPCHanlder {
 					}
 
 					result = rpcService.newCertAccount(mggpw, trpw, body,certpw,managerAddress);
-				} catch (JSONException e) {
-					if(e instanceof JSONException) {
+				} catch (Exception e) {
+					if(e instanceof JSONException ||e instanceof ContentErrorExcetption) {
 						result.put("success", false);
-						result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex]");
+						result.put("message", "缺少参数，命令用法：newcertaccount [mgpw] [trpw] [body hex] [managerMgPw]");
 						return result;
 					}
 					result.put("success", false);
@@ -263,8 +268,8 @@ public class RPCHanlder {
 					}
 
 					result = rpcService.updateCertAccount(body, pw, address);
-				} catch (JSONException e) {
-					if(e instanceof JSONException) {
+				} catch (Exception e) {
+					if(e instanceof JSONException ||e instanceof ContentErrorExcetption) {
 						result.put("success", false);
 						result.put("message", "缺少参数，命令用法：updatecertaccount [body hex] [pw]");
 						return result;

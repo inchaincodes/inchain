@@ -28,28 +28,68 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class AccountTest {
 
-	//	private Logger log = LoggerFactory.getLogger(getClass());
-//	@Autowired
-//	private NetworkParams network;
 	public static void main(String[] args) {
-		//@Test
-//	public void testUser(){
-		AccountKeyValue[] avalues = {new AccountKeyValue("name", "名称", "阿尼斯服装"),
-				new AccountKeyValue("address", "地址", "重庆永川"),
-				new AccountKeyValue("descript", "描述", "韩版女士服装"),
+		AccountKeyValue[] avalues = {new AccountKeyValue("name", "名称", "印链管理员2"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "用户总管理员（Level_2）"),
 		};
 		AccountBody body = new AccountBody(avalues);
 		String ahexString = Base58.encode(body.serialize());
+		System.out.println("用户总管理员(Level_2)：");
 		System.out.println(ahexString);
 
+		AccountKeyValue[] avalues31 = {new AccountKeyValue("name", "名称", "机构管理员31"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "机构用户管理员（Level_3_1）"),
+		};
+		body = new AccountBody(avalues31);
+		ahexString = Base58.encode(body.serialize());
+		System.out.println("机构用户管理员(Level_3_1)：");
+		System.out.println(ahexString);
 
-		ProductKeyValue[] pvalues = {new ProductKeyValue("name", "名称", "正宗普绿茶"),
-				//new ProductKeyValue("website", "官网", "https://www.inchain.or"),
+		AccountKeyValue[] avalues32 = {new AccountKeyValue("name", "名称", "机构管理员32"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "机构用户管理员（Level_3_2）"),
+		};
+		body = new AccountBody(avalues32);
+		ahexString = Base58.encode(body.serialize());
+		System.out.println("机构用户管理员(Level_3_2)：");
+		System.out.println(ahexString);
+
+		AccountKeyValue[] avalues41 = {new AccountKeyValue("name", "名称", "认证账户测试41"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "测试认证账户1（Level_4_1）"),
+		};
+		body = new AccountBody(avalues41);
+		ahexString = Base58.encode(body.serialize());
+		System.out.println("认证账户(Level_4_1)：");
+		System.out.println(ahexString);
+
+		AccountKeyValue[] avalues42 = {new AccountKeyValue("name", "名称", "认证账户测试42"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "测试认证账户1（Level_4_2）"),
+		};
+		body = new AccountBody(avalues42);
+		ahexString = Base58.encode(body.serialize());
+		System.out.println("认证账户(Level_4_2)：");
+		System.out.println(ahexString);
+
+		AccountKeyValue[] avalues43 = {new AccountKeyValue("name", "名称", "认证账户测试43"),
+				new AccountKeyValue("address", "地址", "重庆南岸"),
+				new AccountKeyValue("descript", "描述", "测试认证账户1（Level_4_3）"),
+		};
+		body = new AccountBody(avalues43);
+		ahexString = Base58.encode(body.serialize());
+		System.out.println("认证账户(Level_4_3)：");
+		System.out.println(ahexString);
+
+		ProductKeyValue[] pvalues = {new ProductKeyValue("name", "名称", "测试商品1"),
 				new ProductKeyValue("descript", "描述", "西湖龙井")
 		};
 
 		Product p = new Product(pvalues);
 		String phexString = Base58.encode(p.serialize());
+		System.out.println("测试产品");
 		System.out.println(phexString);
 /*
 	@Test

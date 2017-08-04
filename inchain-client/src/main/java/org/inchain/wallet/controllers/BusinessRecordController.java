@@ -184,7 +184,8 @@ public class BusinessRecordController implements SubPageController {
 		for (AccountStore account : businessList) {
 			//认证账户注册
 			List<AccountKeyValue> bodyContents = account.getAccountBody().getContents();
-			
+			if(bodyContents == null)
+				continue;
 			BusinessEntity entity = new BusinessEntity();
 			entity.setTime(account.getCreateTime());
 			

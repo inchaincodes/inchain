@@ -55,11 +55,6 @@ public abstract class CertAccountTransaction extends CommonlyTransaction {
 		if(mgPubkeys == null || mgPubkeys.length != 2) {
 			throw new VerificationException("账户管理公钥个数不正确");
 		}
-
-		/*
-		if(trPubkeys == null || trPubkeys.length != 2) {
-			throw new VerificationException("交易公钥个数不正确");
-		}*/
 		
 		if(scriptBytes == null) {
 			throw new VerificationException("缺少签名信息");

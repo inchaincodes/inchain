@@ -649,8 +649,13 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
+			if(chainstateStoreProvider.isCertAccountRevoked(regTx.getSuperhash160())){
+				result.setResult(false, "新增该账户的上级账户已经被吊销");
+				return validatorResult;
+			}
+
 			if(regTx.getLevel()>Configure.MAX_CERT_LEVEL){
-				result.setResult(false, "签发该账户的上级账户不具备该权限");
+				result.setResult(false, "新增该账户的上级账户不具备该权限");
 				return validatorResult;
 			}
 
@@ -859,24 +864,33 @@ public class TransactionValidator {
 			//通过防伪码查询到防伪信息
 			byte[] antifakeCode = ctx.getAntifakeCode();
 			//先验证防伪码是否是合法状态
-			byte[] antifakeCodeVerifyMakeTxHash = chainstateStoreProvider.getBytes(antifakeCode);
-			if(antifakeCodeVerifyMakeTxHash == null) {
+			byte[] makebind = chainstateStoreProvider.getBytes(antifakeCode);
+			byte[] makebyte = new byte[Sha256Hash.LENGTH];
+			byte[] bindbyte = new byte[Sha256Hash.LENGTH];
+			if(makebind == null) {
 				result.setResult(false, "防伪码不存在");
 				return validatorResult;
 			}
+			System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
+			TransactionStore makeStore = blockStoreProvider.getTransaction(makebyte);
+			TransactionStore bindStore = null;
+			if(makebind.length == 2* Sha256Hash.LENGTH){
+				System.arraycopy(makebind,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+				bindStore = blockStoreProvider.getTransaction(bindbyte);
+			}
 
-			TransactionStore txStore = blockStoreProvider.getTransaction(antifakeCodeVerifyMakeTxHash);
-			if(txStore == null || txStore.getTransaction() == null) {
+
+			if(makeStore == null || makeStore.getTransaction() == null) {
 				result.setResult(false, "防伪码生成交易不存在");
 				return validatorResult;
 			}
-			Transaction avmTx = txStore.getTransaction();
+			Transaction avmTx = makeStore.getTransaction();
 			if(avmTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 				result.setResult(false, "错误的防伪码");
 				return validatorResult;
 			}
 			AntifakeCodeMakeTransaction antifakeMakeTx = (AntifakeCodeMakeTransaction) avmTx;
-			if(antifakeMakeTx.getHasProduct() == 1){
+			if(antifakeMakeTx.getHasProduct() == 1 && bindStore == null){
 				result.setResult(false, "防伪码尚未关联产品");
 				return validatorResult;
 			}

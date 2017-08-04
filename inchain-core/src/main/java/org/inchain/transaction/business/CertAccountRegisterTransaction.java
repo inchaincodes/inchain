@@ -8,6 +8,7 @@ import org.inchain.account.Address;
 import org.inchain.core.TimeService;
 import org.inchain.core.Definition;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
@@ -47,13 +48,16 @@ public class CertAccountRegisterTransaction extends CertAccountTransaction {
 	/**
 	 * 反序列化交易
 	 */
-	protected void parseBody() {
+	protected void parseBody(){
 		hash160 = readBytes(Address.LENGTH);
 		superhash160 = readBytes(Address.LENGTH);
 		level = readBytes(1)[0] & 0xff;
 		//主体
-		body = new AccountBody(readBytes((int) readVarInt()));
-		
+		try {
+			body = new AccountBody(readBytes((int) readVarInt()));
+		}catch (ContentErrorExcetption e){
+			body = AccountBody.empty();
+		}
 		//账户管理公钥
 		int mgPubkeysCount = readBytes(1)[0] & 0xff;
 		mgPubkeys = new byte[mgPubkeysCount][];

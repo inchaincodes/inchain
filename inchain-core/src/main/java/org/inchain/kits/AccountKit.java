@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -2339,7 +2340,6 @@ public class AccountKit {
 		BigInteger trPri1 = AccountTool.genPrivKey1(prikeySeed, trPw.getBytes());
 
 		BigInteger mgPri2 = AccountTool.genPrivKey2(prikeySeed, mgPw.getBytes());
-		//BigInteger trPri2 = AccountTool.genPrivKey2(prikeySeed, trPw.getBytes()); //facjas
 
 		//默认生成一个系统帐户
 
@@ -2352,7 +2352,7 @@ public class AccountKit {
 		ECKey mgkey2 = ECKey.fromPrivate(mgPri2);
 
 		ECKey trkey1 = ECKey.fromPrivate(trPri1);
-		// ECKey trkey2 = ECKey.fromPrivate(trPri2);  //facjas
+
 
 		//帐户信息
 		Account account = new Account(network);
@@ -2364,7 +2364,7 @@ public class AccountKit {
 		account.setPriSeed(key.getPubKey(true)); //存储压缩后的种子私匙
 		account.setMgPubkeys(new byte[][] {mgkey1.getPubKey(true), mgkey2.getPubKey(true)});	//存储帐户管理公匙
 		account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true)});//存储交易公匙
-		//account.setTrPubkeys(new byte[][] {trkey1.getPubKey(true), trkey2.getPubKey(true)});//存储交易公匙
+
 		account.setBody(accountBody);
 
 		//签名帐户
@@ -2386,7 +2386,6 @@ public class AccountKit {
 		CertAccountRegisterTransaction tx = new CertAccountRegisterTransaction(network, account.getAddress().getHash160(), account.getMgPubkeys(), account.getTrPubkeys(), accountBody,account.getSupervisor(),managerAccount.getLevel());
 
 		tx.calculateSignature(managerAccount.getAccountTransaction().getHash(), trEckeys[0], null,managerAccount.getAddress().getHash160(),Definition.TX_VERIFY_TR);
-		//tx.calculateSignature(Sha256Hash.wrap("ff9b49f6c51b03d68463799669cdbe6464f144a7184263ac484ff72e1403a34a"), trEckeys[0], null,managerAccount.getAddress().getHash160(),Definition.TX_VERIFY_TR);
 
 		tx.verify();
 		tx.verifyScript();
@@ -2774,8 +2773,18 @@ public class AccountKit {
 				return name.endsWith(".dat");
 			}
 		});
+		List<File> fileList = new ArrayList();
+		for(int i = 0;i<accountFiles.length;i++){
+			fileList.add(accountFiles[i]);
+		}
+		Collections.sort(fileList, new Comparator< File>() {
+			@Override
+			public int compare(File o1, File o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		});
 
-		for (File accountFile : accountFiles) {
+		for (File accountFile : fileList) {
 			if(accountFile.isDirectory()) {
 				continue;
 			}
@@ -3125,17 +3134,20 @@ public class AccountKit {
 	 */
 	public AccountStore getAccountInfo(String address) throws VerificationException {
 		byte[] hash160 = null;
+		Address address1 = null;
 		if(StringUtil.isEmpty(address)) {
 			hash160 = getDefaultAccount().getAddress().getHash160();
 		} else {
 			try {
-				hash160 = Address.fromBase58(network, address).getHash160();
+				address1 = Address.fromBase58(network, address);
+				hash160 = address1.getHash160();
 			} catch (Exception e) {
 				throw new VerificationException("错误的地址");
 			}
 		}
+
 		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-		if(accountStore == null) {
+		if(accountStore == null && address1.getVersion() == network.getSystemAccountVersion()) {
 			accountStore = new AccountStore(network);
 			accountStore.setAccountBody(AccountBody.empty());
 			accountStore.setCert(0);
@@ -3143,6 +3155,8 @@ public class AccountKit {
 			accountStore.setType(network.getSystemAccountVersion());
 			accountStore.setBalance(getBalance().value);
 			accountStore.setPubkeys(getDefaultAccount().getMgPubkeys());
+		}else if(accountStore == null && address1.getVersion() == network.getCertAccountVersion()){
+			throw new VerificationException("认证账户不存在");
 		}
 		return accountStore;
 	}
