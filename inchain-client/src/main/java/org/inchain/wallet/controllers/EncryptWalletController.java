@@ -95,7 +95,7 @@ public class EncryptWalletController extends DailogController {
 		
 		//加密并判断结果
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-    	Result result = accountKit.encryptWallet(password);
+    	Result result = accountKit.encryptWallet(password,null);
 		if(result.isSuccess()) {
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
     		resetAndclose();

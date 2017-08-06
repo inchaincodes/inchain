@@ -8,6 +8,7 @@ import org.inchain.account.Account;
 import org.inchain.core.Definition;
 import org.inchain.core.Product;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.crypto.ECKey;
@@ -281,7 +282,11 @@ public class GeneralAntifakeTransaction extends CommonlyTransaction {
 		if(productType == 1) {
 			productTx = readHash();
 		} else {
-			product = new Product(readBytes((int)readVarInt()));
+			try {
+				product = new Product(readBytes((int) readVarInt()));
+			}catch (ContentErrorExcetption e){
+				//todo
+			}
 		}
 		nonce = readInt64();
 		password = readInt64();

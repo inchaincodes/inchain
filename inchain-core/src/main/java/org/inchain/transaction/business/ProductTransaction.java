@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import org.inchain.core.Definition;
 import org.inchain.core.Product;
 import org.inchain.core.VarInt;
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.ProtocolException;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
@@ -72,8 +73,12 @@ public class ProductTransaction extends CommonlyTransaction {
 	}
 	
 	@Override
-	protected void parseBody() throws ProtocolException {
-		product = new Product(readBytes((int)readVarInt()));
+	protected void parseBody() throws ProtocolException{
+		try{
+			product = new Product(readBytes((int)readVarInt()));
+		}catch (ContentErrorExcetption e){
+			//todo
+		}
 	}
 
 	@Override

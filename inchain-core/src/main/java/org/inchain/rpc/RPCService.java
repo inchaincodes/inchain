@@ -324,7 +324,7 @@ public interface RPCService {
 	 * @return JSONObject
 	 * @throws JSONException 
 	 */
-	JSONObject remConsensus(String password) throws JSONException;
+	JSONObject remConsensus(String rem,String password) throws JSONException;
 
 	/**
 	 * 获取连接节点信息

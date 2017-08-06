@@ -136,6 +136,8 @@ public class Account implements Cloneable {
 					bos.write(extend.length);
 					bos.write(extend);
 				}
+			}else {
+				//bos.write(0);
 			}
 
 			return bos.toByteArray();

@@ -553,14 +553,15 @@ public class RPCHanlder {
 					Product product = new Product(Base58.decode(productHexStr));
 
 				result = rpcService.createProduct(product, certpw, address);
-			} catch (JSONException e) {
+			} catch (Exception e) {
 				if(e instanceof JSONException) {
 					result.put("success", false);
 					result.put("message", "缺少参数，命令用法：createproduct [product hex] [trpw] [address]");
 					return result;
 				}
+				if(e instanceof ContentErrorExcetption)
 				result.put("success", false);
-				result.put("message", "创建时出错：" + e.getMessage());
+				result.put("message", "创建时出错：产品内容不正确" );
 			}
 			
 			return result;
@@ -1210,10 +1211,20 @@ public class RPCHanlder {
 		
 		//退出共识
 		case "remconsensus": {
-			if(params.length() > 0 && password == null) {
-				password = params.getString(0);
+			String address = null;
+			if(params.length()  == 1){
+				address = params.getString(0);
+			}else if(params.length() == 2){
+				address = params.getString(0);
+				password = params.getString(1);
+			}else {
+				result.put("success",false);
+				result.put("message","remconsensus address [password]");
+				return result;
 			}
-			result = rpcService.remConsensus(password);
+
+
+			result = rpcService.remConsensus(address,password);
 			return result;
 		}
 		

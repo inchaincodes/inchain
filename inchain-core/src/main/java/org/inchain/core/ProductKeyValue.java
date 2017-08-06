@@ -1,5 +1,7 @@
 package org.inchain.core;
 
+import org.inchain.core.exception.ContentErrorExcetption;
+
 import java.io.UnsupportedEncodingException;
 
 public class ProductKeyValue extends KeyValue {
@@ -46,7 +48,7 @@ public class ProductKeyValue extends KeyValue {
 		}
 	}
 	
-	public ProductKeyValue(byte[] content) {
+	public ProductKeyValue(byte[] content) throws ContentErrorExcetption{
 		super(content);
 	}
 	

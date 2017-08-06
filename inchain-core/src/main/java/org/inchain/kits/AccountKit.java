@@ -2534,52 +2534,57 @@ public class AccountKit {
 	 * @param password  密码
 	 * @return Result
 	 */
-	public Result encryptWallet(String password) {
+	public Result encryptWallet(String password,String address) {
 		//密码位数和难度检测
 		if(!validPassword(password)) {
 			return new Result(false, "输入的密码需6位或以上，且包含字母和数字");
 		}
 
 		int successCount = 0; //成功个数
-		//加密钱包
-		for (Account account : accountList) {
-			//判断是否已经加密了
-			if(account.isEncrypted()) {
-				continue;
+		Account account = null;
+		if(address!=null){
+			account = getAccount(address);
+			if(account == null){
+				return new Result(false,"账户"+address+"不存在");
 			}
-			ECKey eckey = account.getEcKey();
+		}else {
+			account = getDefaultAccount();
+		}
+
+		if(account.isEncrypted()) {
+			return new Result(false,"账户"+address+"已经加密");
+		}
+		ECKey eckey = account.getEcKey();
+		try {
+			ECKey newKey = eckey.encrypt(password);
+			account.setEcKey(newKey);
+			account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+
+			//重新签名
+			account.signAccount(eckey, null);
+
+			//回写到钱包文件
+			File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
+
+			FileOutputStream fos = new FileOutputStream(accountFile);
 			try {
-				ECKey newKey = eckey.encrypt(password);
-				account.setEcKey(newKey);
-				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
-
-				//重新签名
-				account.signAccount(eckey, null);
-
-				//回写到钱包文件
-				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
-
-				FileOutputStream fos = new FileOutputStream(accountFile);
-				try {
-					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-					fos.write(account.serialize());
-					successCount++;
-				} finally {
-					fos.close();
-				}
-			} catch (Exception e) {
-				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
-				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+				//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+				fos.write(account.serialize());
+				successCount++;
 			} finally {
-				eckey = null;
+				fos.close();
 			}
+		} catch (Exception e) {
+			log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
+			return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+		} finally {
+			eckey = null;
 		}
+
 		String message = null;
-		if(successCount > 0) {
-			message = "成功加密"+successCount+"个账户";
-		} else {
-			message = "账户已加密，无需重复加密";
-		}
+
+		message = "成功加密"+account.getAddress();
+
 		return new Result(true, message);
 	}
 
@@ -2588,8 +2593,8 @@ public class AccountKit {
 	 * @param password  密码
 	 * @return Result
 	 */
-	public Result decryptWallet(String password) {
-		return decryptWallet(password, Definition.TX_VERIFY_MG);
+	public Result decryptWallet(String password,String address) {
+		return decryptWallet(password,address,Definition.TX_VERIFY_MG);
 	}
 
 	/**
@@ -2598,12 +2603,21 @@ public class AccountKit {
 	 * @param type  1账户管理私钥 ，2交易私钥
 	 * @return Result
 	 */
-	public Result decryptWallet(String password, int type) {
+	public Result decryptWallet(String password,String address,int type) {
 		//密码位数和难度检测
 		if(!validPassword(password)) {
 			return new Result(false, "密码错误");
 		}
-		Account account = getDefaultAccount();
+		Account account = null;
+		if(address == null) {
+			account = getDefaultAccount();
+		}else{
+			account = getAccount(address);
+		}
+		if(account == null){
+			return new Result(false, "账户"+address+"不存在");
+		}
+
 		if(account.getAccountType() == network.getSystemAccountVersion()) {
 			//普通账户的解密
 			account.resetKey(password);
@@ -2638,7 +2652,18 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result changeWalletPassword(String oldPassword, String newPassword) {
-		return changeWalletPassword(oldPassword, newPassword, 1);
+		return changeWalletPassword(oldPassword, newPassword,null ,1);
+	}
+
+	/**
+	 * 修改钱包密码
+	 * 如果没有加密的账户，会被新密码加密
+	 * @param oldPassword   原密码
+	 * @param newPassword 	新密码
+	 * @return Result
+	 */
+	public Result changeWalletPassword(String oldPassword, String newPassword,String address) {
+		return changeWalletPassword(oldPassword, newPassword,address ,1);
 	}
 
 	/**
@@ -2648,7 +2673,7 @@ public class AccountKit {
 	 * @param type  1账户管理私钥 ，2交易私钥
 	 * @return Result
 	 */
-	public Result changeWalletPassword(String oldPassword, String newPassword, int type) {
+	public Result changeWalletPassword(String oldPassword, String newPassword,String address ,int type) {
 		//密码位数和难度检测
 		if(!validPassword(oldPassword) || !validPassword(newPassword)) {
 			return new Result(false, "密码需6位或以上，且包含字母和数字");
@@ -2657,7 +2682,7 @@ public class AccountKit {
 		//先解密
 		//如果修改认证账户，如果修改的是账户管理密码，这里的原密码就是账户管理密码 ，
 		//如果修改的是交易密码，这里的原密码也是账户管理密码，因为必须要账户管理密码才能修改
-		Result res = decryptWallet(oldPassword);
+		Result res = decryptWallet(oldPassword,address);
 		if(!res.isSuccess()) {
 			return res;
 		}
@@ -3011,32 +3036,37 @@ public class AccountKit {
 		}
 	}
 
+	public boolean accountIsEncrypted() {
+		return accountIsEncrypted(null,1);
+	}
 	/**
-	 * 判断账户实际已加密
-	 * 规则，只要有一个账户已加密，则代表已加密 ，因为不能用多个密码加密不同的账户，这样用户管理起来非常麻烦
 	 * @return boolean
 	 */
-	public boolean accountIsEncrypted() {
-		return accountIsEncrypted(1);
+	public boolean accountIsEncrypted(int type) {
+		return accountIsEncrypted(null,type);
 	}
 
 
 	/**
-	 * 判断账户实际已加密
-	 * 规则，只要有一个账户已加密，则代表已加密 ，因为不能用多个密码加密不同的账户，这样用户管理起来非常麻烦
 	 * @param type  1账户管理私钥 ，2交易私钥
 	 * @return boolean
 	 */
-	public boolean accountIsEncrypted(int type) {
-		for (Account account : accountList) {
-			if(!account.isCertAccount() && account.isEncrypted()) {
+	public boolean accountIsEncrypted(String address,int type) {
+		Account account = null;
+		if(address!=null){
+			account = getAccount(address);
+		}
+		if(account == null){
+			account = getDefaultAccount();
+		}
+
+		if(!account.isCertAccount() && account.isEncrypted()) {
+			return true;
+		} else if(account.isCertAccount()) {
+			if(type == Definition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
 				return true;
-			} else if(account.isCertAccount()) {
-				if(type == Definition.TX_VERIFY_MG && account.isEncryptedOfMg()) {
-					return true;
-				} else if(type == Definition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
-					return true;
-				}
+			} else if(type == Definition.TX_VERIFY_TR && account.isEncryptedOfTr()) {
+				return true;
 			}
 		}
 		return false;
@@ -3147,7 +3177,10 @@ public class AccountKit {
 		}
 
 		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-		if(accountStore == null && address1.getVersion() == network.getSystemAccountVersion()) {
+		if (address1 !=null && address1.getVersion() == network.getCertAccountVersion()){
+			throw new VerificationException("账户不存在");
+		}
+		if(accountStore == null ) {
 			accountStore = new AccountStore(network);
 			accountStore.setAccountBody(AccountBody.empty());
 			accountStore.setCert(0);
@@ -3155,8 +3188,6 @@ public class AccountKit {
 			accountStore.setType(network.getSystemAccountVersion());
 			accountStore.setBalance(getBalance().value);
 			accountStore.setPubkeys(getDefaultAccount().getMgPubkeys());
-		}else if(accountStore == null && address1.getVersion() == network.getCertAccountVersion()){
-			throw new VerificationException("认证账户不存在");
 		}
 		return accountStore;
 	}
@@ -3199,6 +3230,8 @@ public class AccountKit {
 		return false;
 	}
 
+
+
 	/**
 	 * 注册成为共识节点
 	 * @return Result
@@ -3208,102 +3241,110 @@ public class AccountKit {
 		try {
 			BlockHeader bestBlockHeader = network.getBestBlockHeader();
 
-			for (Account account : accountList) {
-				AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
-				if((accountStore != null && accountStore.getCert() >= ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()))
-						|| (ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()) <= 0l && accountStore == null)) {
+			Account account =null;
+			if(packagerAddress==null){
+				account = getDefaultAccount();
+			}else{
+				account = getAccount(packagerAddress);
+			}
+			if(account ==null){
+				return new Result(false, "账户"+packagerAddress+"不存在");
+			}
+			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
+			if((accountStore != null && accountStore.getCert() >= ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()))
+					|| (ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()) <= 0l && accountStore == null)) {
 
-					//保证金是否充足
-					//根据当前人数动态计算参与共识的保证金
-					//上下限为1W -- 100W INS
-					//当前共识人数
-					int currentConsensusSize = bestBlockHeader.getPeriodCount();
-					//共识保证金
-					Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, bestBlockHeader.getHeight());
-					//输入金额
-					Coin totalInputCoin = Coin.ZERO;
-					//选择输入
-					List<TransactionOutput> fromOutputs = selectNotSpentTransaction(recognizance, account.getAddress());
-					if(fromOutputs == null || fromOutputs.size() == 0) {
-						return new Result(false, "余额不足,不能申请共识;当前共识人数" + currentConsensusSize + ",所需保证金 " + recognizance.toText() + " INS");
-					}
-					//是否有指定的打包人
-					byte[] packager = null;
-					if(packagerAddress == null) {
-						packager = getDefaultAccount().getAddress().getHash160();
-					} else {
-						try {
-							Address per = Address.fromBase58(network, packagerAddress);
-							packager = per.getHash160();
-							//验证信用是否达标
-						} catch (Exception e) {
-							return new Result(false, "指定共识人不正确");
-						}
-					}
-					RegConsensusTransaction tx = new RegConsensusTransaction(network, Definition.VERSION, bestBlockHeader.getPeriodStartTime(), packager);
-
-					TransactionInput input = new TransactionInput();
-					for (TransactionOutput output : fromOutputs) {
-						input.addFrom(output);
-						totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
-					}
-					//创建一个输入的空签名
-					if(account.getAccountType() == network.getSystemAccountVersion()) {
-						//普通账户的签名
-						input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
-					} else {
-						//认证账户的签名
-						input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
-					}
-					tx.addInput(input);
-
-					//输出到脚本
-					Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCertAccountManagerHash160());
-					tx.addOutput(recognizance, out);
-
-					//是否找零
-					if(totalInputCoin.isGreaterThan(recognizance)) {
-						tx.addOutput(totalInputCoin.subtract(recognizance), account.getAddress());
-					}
-					log.info("共识保证金：{}", recognizance.toText());
-					//签名交易
-					final LocalTransactionSigner signer = new LocalTransactionSigner();
+				//保证金是否充足
+				//根据当前人数动态计算参与共识的保证金
+				//上下限为1W -- 100W INS
+				//当前共识人数
+				int currentConsensusSize = bestBlockHeader.getPeriodCount();
+				//共识保证金
+				Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, bestBlockHeader.getHeight());
+				//输入金额
+				Coin totalInputCoin = Coin.ZERO;
+				//选择输入
+				List<TransactionOutput> fromOutputs = selectNotSpentTransaction(recognizance, account.getAddress());
+				if(fromOutputs == null || fromOutputs.size() == 0) {
+					return new Result(false, "余额不足,不能申请共识;当前共识人数" + currentConsensusSize + ",所需保证金 " + recognizance.toText() + " INS");
+				}
+				//是否有指定的打包人
+				byte[] packager = null;
+				if(packagerAddress == null) {
+					packager = getDefaultAccount().getAddress().getHash160();
+				} else {
 					try {
-						if(account.getAccountType() == network.getSystemAccountVersion()) {
-							//普通账户的签名
-							signer.signInputs(tx, account.getEcKey());
-						} else {
-							//认证账户的签名
-							signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
-						}
+						Address per = Address.fromBase58(network, packagerAddress);
+						packager = per.getHash160();
+						//验证信用是否达标
 					} catch (Exception e) {
-						log.error(e.getMessage(), e);
-						BroadcastResult broadcastResult = new BroadcastResult();
-						broadcastResult.setSuccess(false);
-						broadcastResult.setMessage("签名失败");
-						return broadcastResult;
-					}
-					tx.sign(account);
-					tx.verify();
-					tx.verifyScript();
-
-					//验证交易
-					TransactionValidatorResult valRes = transactionValidator.valDo(tx).getResult();
-					if(!valRes.isSuccess()) {
-						return new Result(false, valRes.getMessage());
-					}
-
-					//加入内存池
-					MempoolContainer.getInstace().add(tx);
-
-					BroadcastResult broadcastResult = peerKit.broadcast(tx).get();
-					if(broadcastResult.isSuccess()) {
-						return new Result(true, "申请共识请求已成功发送到网络,等待网络确认后即可开始共识");
-					} else {
-						MempoolContainer.getInstace().remove(tx.getHash());
+						return new Result(false, "指定共识人不正确");
 					}
 				}
+				RegConsensusTransaction tx = new RegConsensusTransaction(network, Definition.VERSION, bestBlockHeader.getPeriodStartTime(), packager);
+
+				TransactionInput input = new TransactionInput();
+				for (TransactionOutput output : fromOutputs) {
+					input.addFrom(output);
+					totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+				}
+				//创建一个输入的空签名
+				if(account.getAccountType() == network.getSystemAccountVersion()) {
+					//普通账户的签名
+					input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+				} else {
+					//认证账户的签名
+					input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+				}
+				tx.addInput(input);
+
+				//输出到脚本
+				Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCertAccountManagerHash160());
+				tx.addOutput(recognizance, out);
+
+				//是否找零
+				if(totalInputCoin.isGreaterThan(recognizance)) {
+					tx.addOutput(totalInputCoin.subtract(recognizance), account.getAddress());
+				}
+				log.info("共识保证金：{}", recognizance.toText());
+				//签名交易
+				final LocalTransactionSigner signer = new LocalTransactionSigner();
+				try {
+					if(account.getAccountType() == network.getSystemAccountVersion()) {
+						//普通账户的签名
+						signer.signInputs(tx, account.getEcKey());
+					} else {
+						//认证账户的签名
+						signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+					}
+				} catch (Exception e) {
+					log.error(e.getMessage(), e);
+					BroadcastResult broadcastResult = new BroadcastResult();
+					broadcastResult.setSuccess(false);
+					broadcastResult.setMessage("签名失败");
+					return broadcastResult;
+				}
+				tx.sign(account);
+				tx.verify();
+				tx.verifyScript();
+
+				//验证交易
+				TransactionValidatorResult valRes = transactionValidator.valDo(tx).getResult();
+				if(!valRes.isSuccess()) {
+					return new Result(false, valRes.getMessage());
+				}
+
+				//加入内存池
+				MempoolContainer.getInstace().add(tx);
+
+				BroadcastResult broadcastResult = peerKit.broadcast(tx).get();
+				if(broadcastResult.isSuccess()) {
+					return new Result(true, "申请共识请求已成功发送到网络,等待网络确认后即可开始共识");
+				} else {
+					MempoolContainer.getInstace().remove(tx.getHash());
+				}
 			}
+
 		} catch (Exception e) {
 			log.error("共识请求出错", e);
 			return new Result(false, "共识请求出错");

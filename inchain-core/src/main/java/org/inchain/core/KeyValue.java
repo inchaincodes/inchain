@@ -3,6 +3,7 @@ package org.inchain.core;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.utils.ByteArrayTool;
 
 /**

@@ -142,7 +142,7 @@ public class ChangeCertAccountPasswordController extends DailogController {
 		
 		//修改密码并判断结果
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-    	Result result = accountKit.changeWalletPassword(oldPassword, password, "mgpwd".equals(type) ? 1 : 2);
+    	Result result = accountKit.changeWalletPassword(oldPassword, password,null ,"mgpwd".equals(type) ? 1 : 2);
 		if(result.isSuccess()) {
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
     		if(callback != null) {

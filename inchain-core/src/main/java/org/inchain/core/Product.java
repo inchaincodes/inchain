@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.inchain.core.exception.ContentErrorExcetption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ public class Product {
 	private static Logger log = LoggerFactory.getLogger(Product.class);
 
 
-	public Product(byte[] contents) {
+	public Product(byte[] contents) throws ContentErrorExcetption{
 		parse(contents);
 	}
 	
@@ -64,7 +65,7 @@ public class Product {
 	}
 	
 
-	public void parse(byte[] content) {
+	public void parse(byte[] content) throws ContentErrorExcetption{
 		if(content == null || content.length == 0) {
 			return;
 		}

@@ -611,7 +611,7 @@ public class RPCServiceImpl implements RPCService {
 				}
 
 				//解密钱包
-				Result pwdResult = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+				Result pwdResult = accountKit.decryptWallet(password ,address,Definition.TX_VERIFY_TR);
 				if(!pwdResult.isSuccess()) {
 					throw new VerificationException("密码错误");
 				}
@@ -1990,7 +1990,7 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 
-		Result result = accountKit.encryptWallet(password);
+		Result result = accountKit.encryptWallet(password,null);
 		json.put("success", result.isSuccess());
 		json.put("message", result.getMessage());
 
@@ -2191,7 +2191,7 @@ public class RPCServiceImpl implements RPCService {
 				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
 					remark = passwordOrRemark;
 				}
-				Result re = accountKit.decryptWallet(password);
+				Result re = accountKit.decryptWallet(password,null);
 				if(!re.isSuccess()) {
 					json.put("success", false);
 					json.put("message", re.getMessage());
@@ -2443,7 +2443,7 @@ public class RPCServiceImpl implements RPCService {
 	public JSONObject getConsensusStatus() throws JSONException {
 		JSONObject json = new JSONObject();
 
-		if(accountKit.checkConsensusing(null)) {
+		if(accountKit.checkConsensusing(null) ) {
 			ConsensusMeeting consensusMeeting = SpringContextUtils.getBean(ConsensusMeeting.class);
 			consensusMeeting.waitMeeting();
 			MiningInfos miningInfo = consensusMeeting.getMineMiningInfos();
@@ -2486,7 +2486,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		//判断信用是否足够
-		long cert = getAccountCredit(null);
+		long cert = getAccountCredit((consensusAddress==null)?null:consensusAddress);
 
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
@@ -2498,7 +2498,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//判断账户是否加密
-		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
+		if(accountKit.accountIsEncrypted(consensusAddress,Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
@@ -2525,7 +2525,7 @@ public class RPCServiceImpl implements RPCService {
 
 		//解密钱包
 		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+			Result result = accountKit.decryptWallet(password,consensusAddress,Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -2571,21 +2571,21 @@ public class RPCServiceImpl implements RPCService {
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	public JSONObject remConsensus(String password) throws JSONException {
+	public JSONObject remConsensus(String address,String password) throws JSONException {
 
 		JSONObject json = new JSONObject();
 
 		//判断信用是否足够
 
 		//当前是否已经在共识了
-		if(!accountKit.checkConsensusing(null)) {
+		if(!accountKit.checkConsensusing(Address.fromBase58(network,address).getHash160())) {
 			json.put("success", false);
 			json.put("message", "当前没有在共识中");
 			return json;
 		}
 
 		//判断账户是否加密
-		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
+		if(accountKit.accountIsEncrypted(address,Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码退出共识");
@@ -2593,8 +2593,8 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//解密钱包
-		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password, Definition.TX_VERIFY_TR);
+		if(accountKit.accountIsEncrypted(address,1)) {
+			Result result = accountKit.decryptWallet(password,address,Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -3121,7 +3121,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("账户已加密，请解密或者传入密码");
 			}
 			//解密钱包
-			Result pwdResult = accountKit.decryptWallet(password, verifyTr);
+			Result pwdResult = accountKit.decryptWallet(password, address ,verifyTr);
 			if(!pwdResult.isSuccess()) {
 				throw new VerificationException("密码错误");
 			}
