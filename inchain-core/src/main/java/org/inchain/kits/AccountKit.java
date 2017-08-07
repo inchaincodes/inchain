@@ -2805,7 +2805,7 @@ public class AccountKit {
 		Collections.sort(fileList, new Comparator< File>() {
 			@Override
 			public int compare(File o1, File o2) {
-				return o1.getName().compareTo(o2.getName());
+				return o1.getName().toLowerCase().compareTo(o2.getName().toLowerCase());
 			}
 		});
 

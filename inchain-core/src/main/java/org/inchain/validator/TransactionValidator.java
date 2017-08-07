@@ -648,12 +648,12 @@ public class TransactionValidator {
 				result.setResult(false, "注册的账户重复");
 				return validatorResult;
 			}
-
+			/*
 			if(chainstateStoreProvider.isCertAccountRevoked(regTx.getSuperhash160())){
 				result.setResult(false, "新增该账户的上级账户已经被吊销");
 				return validatorResult;
 			}
-
+			*/
 			if(regTx.getLevel()>Configure.MAX_CERT_LEVEL){
 				result.setResult(false, "新增该账户的上级账户不具备该权限");
 				return validatorResult;
