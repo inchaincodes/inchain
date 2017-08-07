@@ -3177,7 +3177,7 @@ public class AccountKit {
 		}
 
 		AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-		if (address1 !=null && address1.getVersion() == network.getCertAccountVersion()){
+		if (address1 !=null && address1.getVersion() == network.getCertAccountVersion()&& accountStore  == null){
 			throw new VerificationException("账户不存在");
 		}
 		if(accountStore == null ) {
