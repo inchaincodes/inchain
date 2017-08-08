@@ -2062,20 +2062,21 @@ public class RPCServiceImpl implements RPCService {
 	}
 
 
-	public JSONArray getTransferTx(String address) throws JSONException {
+	public JSONArray getTransferTx(Long height, Long confirm, String address) throws JSONException {
 		List<TransactionStore> mineList = transactionStoreProvider.getMineTxList(address);
 
 		JSONArray array = new JSONArray();
 
 		long bestHeight = network.getBestBlockHeight();
 		List<Account> accountList = accountKit.getAccountList();
-
+		//这里只取与我相关的转账交易，且确认数等于confirm的
 		for (TransactionStore transactionStore : mineList) {
 			if(transactionStore.getTransaction().getType() == Definition.TYPE_PAY) {
-				array.put(txConver(transactionStore, bestHeight, accountList));
+				if(transactionStore.getHeight() == height &&  bestHeight - transactionStore.getHeight() > confirm) {
+					array.put(txConver(transactionStore, bestHeight, accountList));
+				}
 			}
 		}
-
 		return array;
 	}
 
