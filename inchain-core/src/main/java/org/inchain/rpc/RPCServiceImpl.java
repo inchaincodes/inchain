@@ -2173,7 +2173,7 @@ public class RPCServiceImpl implements RPCService {
 				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
 					remark = passwordOrRemark;
 				}
-				Result re = accountKit.decryptWallet(password,null);
+				Result re = accountKit.decryptWallet(password,address);
 				if(!re.isSuccess()) {
 					json.put("success", false);
 					json.put("message", re.getMessage());

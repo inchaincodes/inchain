@@ -386,6 +386,21 @@ public class TransactionValidator {
 					result.setResult(false, "防伪码生成交易不存在");
 					return validatorResult;
 				}
+
+				if(!((AntifakeCodeMakeTransaction)txStore.getTransaction()).getScriptSig().getAccountBase58(network).equals(bindtx.getScriptSig().getAccountBase58(network))){
+					throw new VerificationException("防伪码不属于该用户");
+				}
+
+				TransactionStore pxStore = blockStoreProvider.getTransaction(bindtx.getProductTx().getBytes());
+				Transaction txTemp = pxStore.getTransaction();
+				if(txTemp == null){
+					throw new VerificationException("商品不存在");
+				}
+
+				ProductTransaction ptx = (ProductTransaction)txTemp;
+				if(!ptx.getScriptSig().getAccountBase58(network).equals(bindtx.getScriptSig().getAccountBase58(network))) {
+					throw new VerificationException("商品不属于该用户");
+				}
 			}
 			else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
 				//防伪码验证交易
@@ -648,12 +663,12 @@ public class TransactionValidator {
 				result.setResult(false, "注册的账户重复");
 				return validatorResult;
 			}
-			/*
+
 			if(chainstateStoreProvider.isCertAccountRevoked(regTx.getSuperhash160())){
 				result.setResult(false, "新增该账户的上级账户已经被吊销");
 				return validatorResult;
 			}
-			*/
+
 			if(regTx.getLevel()>Configure.MAX_CERT_LEVEL){
 				result.setResult(false, "新增该账户的上级账户不具备该权限");
 				return validatorResult;
@@ -816,6 +831,12 @@ public class TransactionValidator {
 				result.setResult(false, "只有认证账户才能添加子账户");
 				return validatorResult;
 			}
+
+			if(rst.getAddress().isCertAccount()){
+				result.setResult(false, "只有系统账户才能作为子账户");
+				return validatorResult;
+			}
+
 			if(accountInfo.getLevel()==Configure.REVOKED_CERT_LEVEL){
 				result.setResult(false, "该认证账户已经被吊销");
 				return validatorResult;
@@ -852,6 +873,30 @@ public class TransactionValidator {
 				result.setResult(false, "认证账户被吊销");
 				return validatorResult;
 			}
+
+			byte[] relavanceByte = rst.getTxhash().getBytes();
+			TransactionStore reltxStore = blockStoreProvider.getTransaction(relavanceByte);
+			if(reltxStore == null){
+				result.setResult(false, "添加子账户交易不存在");
+				return validatorResult;
+			}
+
+			RelevanceSubAccountTransaction rtx = (RelevanceSubAccountTransaction)reltxStore.getTransaction();
+			if(rtx == null){
+				result.setResult(false, "添加子账户交易不存在");
+				return validatorResult;
+			}
+
+			if(rtx.getAddress().equals(rst.getAddress())){
+				result.setResult(false, "添加子账户交易中添加的子账户不匹配");
+				return validatorResult;
+			}
+
+			if(rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){
+				result.setResult(false, "没有该权限");
+				return validatorResult;
+			}
+
 			//验证是否存在
 			Sha256Hash txHash = chainstateStoreProvider.checkIsSubAccount(hash160, rst.getRelevanceHashs());
 			if(txHash == null) {
@@ -930,6 +975,11 @@ public class TransactionValidator {
 			}
 		} else if(tx.getType() == Definition.TYPE_ANTIFAKE_TRANSFER) {
 			AntifakeTransferTransaction attx = (AntifakeTransferTransaction) tx;
+
+			if(Address.fromBase58(network,attx.getReceiveAddress()).isCertAccount()){
+				result.setResult(false, "接收人不能是认证账户");
+				return validatorResult;
+			}
 
 			//账户必须达到规定的信用，才能转让防伪码
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getHash160());
