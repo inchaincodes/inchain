@@ -294,6 +294,14 @@ public class DataSynchronizeHandler implements Runnable {
 	}
 
 	/**
+	 * 同步是否完成
+	 * @return boolean
+	 */
+	public boolean isDownloading() {
+		return synchronousStatus == 1;
+	}
+
+	/**
 	 * 停止同步服务
 	 */
 	public void stop() {
