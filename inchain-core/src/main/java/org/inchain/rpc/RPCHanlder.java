@@ -16,6 +16,7 @@ import org.inchain.core.exception.ContentErrorExcetption;
 import org.inchain.core.exception.VerificationException;
 import org.inchain.network.NetworkParams;
 import org.inchain.service.impl.VersionService;
+import org.inchain.transaction.business.AssetsIssuedTransaction;
 import org.inchain.utils.Base58;
 import org.inchain.utils.DateUtil;
 import org.inchain.utils.StringUtil;
@@ -921,7 +922,6 @@ public class RPCHanlder {
 				result.put("message", "缺少参数");
 				return result;
 			}
-
 			String name = params.getString(0);
 			String description = params.getString(1);
 			String code = params.getString(2);
@@ -960,9 +960,21 @@ public class RPCHanlder {
 
 			String code = params.getString(0);
 			String receiver = params.getString(1);
-			String amount =  params.getString(2);
-			String remark = params.getString(3);
+			Long amount;
+			try {
+				amount =  params.getLong(2);
+			}catch (Exception e) {
+				result.put("success", false);
+				result.put("message", "资产发行金额为正整数");
+				return result;
+			}
+			if(amount > AssetsIssuedTransaction.ASSET_ISSUE_ONCE_MAX_VALUE) {
+				result.put("success", false);
+				result.put("message", "资产发行单次金额不能超过100亿");
+				return result;
+			}
 
+			String remark = params.getString(3);
 			String address = null;
 			String pwd = null;
 			if(params.length() == 5) {
@@ -972,7 +984,6 @@ public class RPCHanlder {
 				} catch (Exception e) {
 					pwd = params.getString(4);
 				}
-
 			}else if(params.length() == 6){
 				address = params.getString(4);
 				pwd = params.getString(5);
@@ -1023,7 +1034,14 @@ public class RPCHanlder {
 
 			String code = params.getString(0);
 			String receiver = params.getString(1);
-			String amount =  params.getString(2);
+			Long amount;
+			try {
+				amount =  params.getLong(2);
+			}catch (Exception e) {
+				result.put("success", false);
+				result.put("message", "资产发行金额为正整数");
+				return result;
+			}
 			String remark = params.getString(3);
 
 			String address = null;

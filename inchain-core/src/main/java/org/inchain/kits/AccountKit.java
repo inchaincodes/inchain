@@ -755,7 +755,6 @@ public class AccountKit {
 		if(!success) {
 			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
 		}
-
 		try {
 			BroadcastResult br = peerKit.broadcast(issuedTx).get();
 			//等待广播回应

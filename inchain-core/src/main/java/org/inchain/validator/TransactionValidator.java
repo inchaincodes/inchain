@@ -988,7 +988,10 @@ public class TransactionValidator {
 		}  else if(tx.getType() == Definition.TYPE_ASSETS_ISSUED) {
 			//资产发行
 			AssetsIssuedTransaction aitx = (AssetsIssuedTransaction) tx;
-
+			if(aitx.getAmount() > AssetsIssuedTransaction.ASSET_ISSUE_ONCE_MAX_VALUE) {
+				result.setResult(false, "资产发行金额不能大于100亿");
+				return validatorResult;
+			}
 			byte[] opertioner =  aitx.getHash160();
 			Sha256Hash assetsTxHash = aitx.getAssetsHash();
 			//验证操作人是否合法
@@ -1003,7 +1006,12 @@ public class TransactionValidator {
 				result.setResult(false, "没有权限发行该资产");
 				return validatorResult;
 			}
-
+			//验证资产发行总金额
+			Long amount = chainstateStoreProvider.getAssetsIssueAmount(assetsRegisterTx.getCode());
+			if(amount + aitx.getAmount() > AssetsIssuedTransaction.ASSET_ISSUE_ALL_MAX_VALUE) {
+				result.setResult(false, "资产发行金额已超出最大值");
+				return validatorResult;
+			}
 		} else if(tx.getType() == Definition.TYPE_ASSETS_TRANSFER) {
 			//资产转让验证
 			AssetsTransferTransaction assetsTransferTx = (AssetsTransferTransaction) tx;

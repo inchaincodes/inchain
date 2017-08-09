@@ -19,6 +19,9 @@ import java.util.Arrays;
  */
 public class AssetsIssuedTransaction extends CommonlyTransaction {
 
+	public static Long ASSET_ISSUE_ALL_MAX_VALUE = 999999999999L; //资产发行总限额
+	public static Long ASSET_ISSUE_ONCE_MAX_VALUE = 10000000000L; //单次发行最大限额
+
 	//注册资产
 	protected Sha256Hash assetsHash;
 	//接收人

@@ -575,7 +575,7 @@ public class TransactionRecordController implements SubPageController {
 				else if(tx.getType() == Definition.TYPE_ASSETS_REGISTER) {
 					//资产注册
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)tx;
-
+					isSendout = true;
 					type = "资产注册";
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "描述：" + new String(artx.getDescription(), Utils.UTF_8) + "\n";
@@ -588,8 +588,8 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-
-					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(issuedTx.getHash160());
+					detail += "发行金额：" + issuedTx.getAmount();
+					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(issuedTx.getReceiver());
 					Address address;
 					if(accountStore == null) {
 						address = new Address(network, issuedTx.getReceiver());
@@ -606,8 +606,8 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-
-					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(transferTx.getHash160());
+					detail += "转让金额：" + transferTx.getAmount();
+					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(transferTx.getReceiver());
 					Address address;
 					if(accountStore == null) {
 						address = new Address(network, transferTx.getReceiver());
