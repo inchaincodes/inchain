@@ -206,6 +206,9 @@ public final class MiningService implements Mining {
 
 		//在这里对transactionList的资产转账交易做特殊处理
  		this.verifyAssetsTx(transactionList);
+
+		//在这里对transactionList的防伪码转账交易做特殊处理
+		this.verifyAntifakeTx(transactionList);
 		//获取我的时段开始时间
 		MiningInfos miningInfos = consensusMeeting.getMineMiningInfos();
 
@@ -393,6 +396,49 @@ public final class MiningService implements Mining {
 					}
 					if(sum > assets.getBalance()) {
 						sum = sum - tx.getAmount();
+						list.remove(tx);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * 这里对防伪码转让交易做特殊处理
+	 * 为了防止同一账户在一次共识中针对同一个防伪码重复提交多次转让交易，
+	 * 从而导致用户的信用额度不足，
+	 * 出现此情况时，过滤掉超出金额的那部分交易
+	 * @param list
+	 */
+	private void verifyAntifakeTx(List<Transaction> list) {
+		if (list == null || list.size() == 0) {
+			return;
+		}
+		//此map的结构 Map<账户id, 信用值>
+		Map<String, Long> map = new HashMap<>();
+
+		for(Transaction tx : list) {
+			if(tx instanceof AntifakeTransferTransaction) {
+				AntifakeTransferTransaction attx = (AntifakeTransferTransaction)tx;
+				//找到交易的转让人
+				String userKey = new String(attx.getHash160(), Utils.UTF_8);
+				if(!map.containsKey(userKey)) {
+					//首先查询用户的信用余额
+					AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(attx.getHash160());
+					//如果有用户信息为空的情况，可能是用户才被创建
+					if(accountInfo == null || accountInfo.getCert() < Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
+						//todo 这里考虑是否应该将该交易从交易列表中除去
+					}else {
+						Long cert = accountInfo.getCert() - Configure.TRANSFER_ANTIFAKECODE_CREDIT;
+						map.put(userKey, cert);
+					}
+				}else {
+					//如果存在直接从map里获取用户的信用余额，不再从链上取数据
+					Long cert = map.get(userKey);
+					if(cert >= Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
+						cert = cert - Configure.TRANSFER_ANTIFAKECODE_CREDIT;
+						map.put(userKey, cert);
+					}else {
 						list.remove(tx);
 					}
 				}
