@@ -266,6 +266,10 @@ public class TransactionRecordController implements SubPageController {
 					} else {
 						//接收，判断是否是共识奖励
 						if(tx.getType() != Definition.TYPE_COINBASE) {
+							if(inputAddress==null)
+							{
+								inputAddress ="未确认交易退款";
+							}
 							detail = "来自 "+inputAddress+"";
 						} else {
 							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;

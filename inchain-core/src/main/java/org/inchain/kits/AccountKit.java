@@ -104,6 +104,9 @@ public class AccountKit {
 	@Autowired
 	private PeerKit peerKit;
 
+	@Autowired
+	private DataSynchronizeHandler dataSynchronizeHandler;
+
 	//交易监听器
 	private TransactionListener transactionListener;
 	private TransactionValidatorResult rs;
@@ -593,6 +596,16 @@ public class AccountKit {
 		if(txTemp.getType() != Definition.TYPE_CREATE_PRODUCT) {
 			throw new VerificationException("产品交易不存在");
 		}
+
+		if(!codeMakeTx.getScriptSig().getAccountBase58(network).equals(account.getAddress().getBase58())) {
+			throw new VerificationException("防伪码不属于该用户");
+		}
+
+		ProductTransaction ptx = (ProductTransaction)txTemp;
+		if(!ptx.getScriptSig().getAccountBase58(network).equals(account.getAddress().getBase58())) {
+			throw new VerificationException("商品不属于该用户");
+		}
+
 
 		AntifakeCodeBindTransaction tx = new AntifakeCodeBindTransaction(network,productTxHash,antifakeCode.getAntifakeCode());
 		tx.sign(account);
@@ -1291,6 +1304,33 @@ public class AccountKit {
 	public BroadcastResult sendMoney(String to, Coin money, Coin fee, byte[] remark, String address, String password) throws MoneyNotEnoughException {
 		//参数不能为空
 		Utils.checkNotNull(to);
+		long bestheight = 0;
+		long localheight = 0;
+		long localbestheighttime = 0;
+
+		bestheight = network.getBestHeight();
+		localheight = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHeight();
+		localbestheighttime = blockStoreProvider.getBestBlockHeader().getBlockHeader().getTime();
+		if(bestheight == 0){
+			if(dataSynchronizeHandler.isDownloading()) {
+				throw new VerificationException("正在同步区块中，请稍后再尝试");
+			}else {
+				peerKit.resetPeers();
+				dataSynchronizeHandler.reset();
+				dataSynchronizeHandler.run();
+				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
+			}
+		}
+		if(TimeService.currentTimeSeconds()-localbestheighttime>60){
+			if(dataSynchronizeHandler.isDownloading()) {
+				throw new VerificationException("正在同步区块中，请稍后再尝试");
+			}else {
+				peerKit.resetPeers();
+				dataSynchronizeHandler.reset();
+				dataSynchronizeHandler.run();
+				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
+			}
+		}
 
 		locker.lock();
 		try {
@@ -3717,6 +3757,10 @@ public class AccountKit {
 			return new BroadcastResult(false, "接收人不能为空");
 		}
 
+		if(Address.fromBase58(network,receiver).isCertAccount()){
+			return new BroadcastResult(false, "接收人不能是认证账户");
+		}
+
 		if(StringUtil.isEmpty(remark)) {
 			return new BroadcastResult(false, "说明不能为空");
 		}
@@ -3860,6 +3904,10 @@ public class AccountKit {
 			account = getDefaultAccount();
 		} else {
 			account = getAccount(address);
+		}
+
+		if(Address.fromBase58(network,relevancer).isCertAccount()){
+			return new BroadcastResult(false, "只有系统账户才能作为子账户");
 		}
 
 		if(!account.isCertAccount()) {
