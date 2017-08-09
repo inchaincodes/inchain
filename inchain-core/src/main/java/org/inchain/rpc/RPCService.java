@@ -192,11 +192,13 @@ public interface RPCService {
 
 	/**
 	 * 获取帐户的代币交易记录
+	 * @param height 区块高度
+	 * @param confirm 确认高度
 	 * @param address
 	 * @return JSONArray
 	 * @throws JSONException
 	 */
-	JSONArray getTransferTx(String address) throws JSONException;
+	JSONArray getTransferTx(Long height, Long confirm, String address) throws JSONException;
 
 	/**
 	 * 通过交易hash获取条交易详情

@@ -419,13 +419,43 @@ public class RPCHanlder {
 			}
 
 			case "gettransfertx" : {
-				String address = null;
-
-				if(params.length() > 0) {
-					address = params.getString(0);
+				if(params.length() == 0) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：gettransfertx <height> [confirm]");
+					return result;
 				}
 
-				JSONArray txs = rpcService.getTransferTx(address);
+				Long height = null;
+				Long confirm = 12L;              //默认确认高度为12
+				String address = null;
+				try {
+					if(params.length() == 1) {
+						height = params.getLong(0);
+					}
+					else if(params.length() == 2) {
+						height = params.getLong(0);
+						try {
+							confirm = params.getLong(1);
+						}catch (Exception e) {
+							address = params.getString(1);
+						}
+					}
+					else if(params.length() > 2) {
+						height = params.getLong(0);
+						confirm = params.getLong(1);
+						address = params.getString(2);
+					}
+					//检查地址是否合法
+					if(address != null) {
+						Address ar = Address.fromBase58(network, address);
+					}
+				}catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "参数错误，命令用法：gettransfertx <height> [confirm] [address]");
+					return result;
+				}
+
+				JSONArray txs = rpcService.getTransferTx(height, confirm, address);
 
 				result.put("success", true);
 				result.put("txs", txs);
