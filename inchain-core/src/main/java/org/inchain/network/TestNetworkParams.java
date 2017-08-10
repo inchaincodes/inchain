@@ -20,13 +20,13 @@ public class TestNetworkParams extends NetworkParams {
 	public TestNetworkParams() {
 		seedManager = new RemoteSeedManager();
 
-
 //    	seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.249.26", Configure.DEFAULT_PORT)));
 //   	seedManager.add(new Seed(new InetSocketAddress("119.23.253.3", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.254.99", Configure.DEFAULT_PORT)));
-		seedManager.add(new Seed(new InetSocketAddress("192.168.1.189", Configure.DEFAULT_PORT)));
-		seedManager.add(new Seed(new InetSocketAddress("192.168.1.187", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.151", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.152", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.153", Configure.DEFAULT_PORT)));
 		//seedManager.add(new Seed(new InetSocketAddress("192.168.1.2", Configure.DEFAULT_PORT)));
 		//seedManager.add(new Seed(new InetSocketAddress("192.168.1.187", Configure.DEFAULT_PORT)));
 		init();
