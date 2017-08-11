@@ -1,6 +1,5 @@
 package org.inchain.wallet.controllers;
 
-import javafx.scene.Cursor;
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -12,6 +11,9 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 修改钱包密码
@@ -26,7 +28,7 @@ public class ChangeWalletPasswordController extends DailogController {
 	
 	public Button okId;
 	public Button cancelId;
-	
+
 	public void initialize() {
 		cancelId.setOnAction(e -> resetAndclose());
 		okId.setOnAction(e -> encryptWallet());
@@ -87,7 +89,20 @@ public class ChangeWalletPasswordController extends DailogController {
 		oldPasswordId.setText("");
 		passwordId.setText("");
 		repeatId.setText("");
+
 		close();
+	}
+
+
+	private void successAndClose() {
+		oldPasswordId.setText("");
+		passwordId.setText("");
+		repeatId.setText("");
+
+		close();
+		if(callback != null) {
+			callback.ok(null);
+		}
 	}
 
 	/*
@@ -125,8 +140,13 @@ public class ChangeWalletPasswordController extends DailogController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	Result result = accountKit.changeWalletPassword(oldPassword, password);
 		if(result.isSuccess()) {
-    		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
-    		resetAndclose();
+			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			close();
 		} else {
 			log.error("密码修改失败,{}", result);
 			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());

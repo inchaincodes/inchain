@@ -1896,7 +1896,11 @@ public class RPCServiceImpl implements RPCService {
 	 */
 	@Override
 	public long getAccountCredit(String address) throws VerificationException {
-		return accountKit.getAccountInfo(address).getCert();
+		AccountStore accountStore = accountKit.getAccountInfo(address);
+		if(accountStore == null) {
+			return 0;
+		}
+		return accountStore.getCert();
 	}
 
 	/**

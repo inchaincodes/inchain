@@ -3904,6 +3904,9 @@ public class AccountKit {
 		} else {
 			account = getAccount(address);
 		}
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
 
 		if(Address.fromBase58(network,relevancer).isCertAccount()){
 			return new BroadcastResult(false, "只有系统账户才能作为子账户");
@@ -3995,7 +3998,9 @@ public class AccountKit {
 		} else {
 			account = getAccount(address);
 		}
-
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
 		if(!account.isCertAccount()) {
 			return new BroadcastResult(false, "非认证账户，没有权限");
 		}
