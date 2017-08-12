@@ -942,13 +942,7 @@ public class AccountKit {
 
 		//验证账户，不能是认证账户
 		if(account == null) {
-			Account systemAccount = getSystemAccount();
-			if(systemAccount == null) {
-				verifyResult.setSuccess(false);
-				verifyResult.setMessage("账户不存在，不能验证");
-				return verifyResult;
-			}
-			account = systemAccount;
+			account = getDefaultAccount();
 		} else if(account.isCertAccount()) {
 			verifyResult.setSuccess(false);
 			verifyResult.setMessage("认证账户不能验证防伪码");

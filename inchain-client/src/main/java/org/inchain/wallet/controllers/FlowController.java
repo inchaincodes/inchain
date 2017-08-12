@@ -92,7 +92,7 @@ public class FlowController implements SubPageController{
 		AccountKit accountKit = SpringContextUtils.getBean(AccountKit.class);
 		if(accountKit.accountIsEncrypted()) {
 			decryptWallet(accountKit);
-			return;
+			//return;
 		}
 		BroadcastResult res = accountKit.addCirculation(antifakeCode, customize, description, null);
 		

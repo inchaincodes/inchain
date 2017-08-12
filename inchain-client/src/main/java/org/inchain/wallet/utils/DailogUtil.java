@@ -31,7 +31,7 @@ import javafx.stage.StageStyle;
  */
 public class DailogUtil {
 	
-	public final static long DEFAULT_HIDE_TIME = 1000l;
+	public final static long DEFAULT_HIDE_TIME = 3000l;
 	
 	/**
 	 * 提示消息
