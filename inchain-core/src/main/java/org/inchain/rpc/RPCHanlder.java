@@ -288,11 +288,7 @@ public class RPCHanlder {
 				try {
 					String revokeAddress = params.getString(0);
 					String pw = params.getString(1);
-					String address = null;
-					if(params.length() > 2) {
-						address = params.getString(2);
-					}
-
+					String address = params.getString(2);
 					result = rpcService.revokeCertAccount(revokeAddress, pw, address);
 				} catch (JSONException e) {
 					if(e instanceof JSONException) {
@@ -682,6 +678,11 @@ public class RPCHanlder {
 
 				int count = params1Json.getInt("count");
 				JSONArray codeList = params1Json.getJSONArray("codelist");
+				if(count!= codeList.length()||count<=1){
+					result.put("success", false);
+					result.put("message", "防伪码数量不正确");
+					return result;
+				}
 				JSONObject results = new JSONObject() ;
 				for(int j=0; j<codeList.length();j++) {
 					JSONObject rs = rpcService.bindAntifake(codeList.get(j).toString(), productHash, trpw, address);

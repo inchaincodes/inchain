@@ -2009,6 +2009,10 @@ public class AccountKit {
 		//强制交易密码和帐户管理密码不一样
 		Utils.checkState(!mgPw.equals(trPw), "账户管理密码和交易密码不能一样");
 
+		if(Address.fromBase58(network,managerAddress).getVersion()==network.getSystemAccountVersion()) {
+			throw new VerificationException("系统账户不具备该权限");
+		}
+
 		locker.lock();
 		try {
 			Account account = genAccountInfos(mgPw, trPw, accountBody,certpw,managerAddress);
