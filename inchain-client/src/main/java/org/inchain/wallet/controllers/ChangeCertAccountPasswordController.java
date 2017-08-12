@@ -111,7 +111,6 @@ public class ChangeCertAccountPasswordController extends DailogController {
 	private void encryptWallet() {
 		
 		//校验密码
-		
 		String oldPassword = oldPasswordId.getText();
 		String password = passwordId.getText();
 		String passwordRepeat = repeatId.getText();
@@ -145,14 +144,10 @@ public class ChangeCertAccountPasswordController extends DailogController {
     	Result result = accountKit.changeWalletPassword(oldPassword, password,null ,"mgpwd".equals(type) ? 1 : 2);
 		if(result.isSuccess()) {
     		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
-    		if(callback != null) {
-    			callback.ok(null);
-    		}
-    		resetAndclose();
+    		cancel();
 		} else {
 			log.error("密码修改失败,{}", result);
 			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());
 		}
-		
 	}
 }

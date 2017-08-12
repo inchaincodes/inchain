@@ -20,7 +20,6 @@ public class TestNetworkParams extends NetworkParams {
 	public TestNetworkParams() {
 		seedManager = new RemoteSeedManager();
 
-
 //    	seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.DEFAULT_PORT)));
 //    	seedManager.add(new Seed(new InetSocketAddress("119.23.249.26", Configure.DEFAULT_PORT)));
 //   	seedManager.add(new Seed(new InetSocketAddress("119.23.253.3", Configure.DEFAULT_PORT)));

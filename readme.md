@@ -371,7 +371,7 @@ CertAccountRegisterTransaction
 
 |尺寸|字段|数据类型|说明|
 |---|---|---|---|
-|4|type|int32|交易类型|
+|1|type|byte|交易类型|
 |4|version|uint32|版本|
 |4|time|uint32|时间戳，秒|
 |32|hash|sha256|账户信息|

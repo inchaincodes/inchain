@@ -1358,6 +1358,31 @@ public class ChainstateStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
+	 * 获取资产发行总金额
+	 * @param code
+	 * @return
+	 */
+	public Long getAssetsIssueAmount(byte[] code) {
+		//资产发行列表的key = [1],[1] + hash256(registerTx.code)
+		byte[] key = new byte[Sha256Hash.LENGTH + 2];
+		byte[] hash256 = Sha256Hash.hash(code);
+		//固定key的前两位为 1,1
+		System.arraycopy(Configure.ASSETS_ISSUE_FIRST_KEYS, 0, key, 0, Configure.ASSETS_ISSUE_FIRST_KEYS.length);
+		System.arraycopy(hash256, 0, key, 2, hash256.length);
+		byte[] assetsRegHash256s = getBytes(key);
+		if(assetsRegHash256s == null) {
+			return 0L;
+		}
+		Long amount = 0L;
+		for (int j = 0; j < assetsRegHash256s.length; j += Sha256Hash.LENGTH) {
+			Sha256Hash txHash = Sha256Hash.wrap(Arrays.copyOfRange(assetsRegHash256s, j, j + Sha256Hash.LENGTH));
+			TransactionStore txs = blockStoreProvider.getTransaction(txHash.getBytes());
+			amount += ((AssetsIssuedTransaction)txs.getTransaction()).getAmount();
+		}
+		return amount;
+	}
+
+	/**
 	 *  获取我的资产
 	 * @param addressHash
 	 * @return

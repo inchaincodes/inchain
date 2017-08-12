@@ -768,7 +768,6 @@ public class AccountKit {
 		if(!success) {
 			throw new VerificationException("加入内存池失败，可能原因[交易重复]");
 		}
-
 		try {
 			BroadcastResult br = peerKit.broadcast(issuedTx).get();
 			//等待广播回应
@@ -3899,6 +3898,9 @@ public class AccountKit {
 		} else {
 			account = getAccount(address);
 		}
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
 
 		if(Address.fromBase58(network,relevancer).isCertAccount()){
 			return new BroadcastResult(false, "只有系统账户才能作为子账户");
@@ -3990,7 +3992,9 @@ public class AccountKit {
 		} else {
 			account = getAccount(address);
 		}
-
+		if(account == null) {
+			return new BroadcastResult(false, "账户不存在");
+		}
 		if(!account.isCertAccount()) {
 			return new BroadcastResult(false, "非认证账户，没有权限");
 		}
