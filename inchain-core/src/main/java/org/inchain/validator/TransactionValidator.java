@@ -892,7 +892,7 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			if(rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){
+			if(!rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){
 				result.setResult(false, "没有该权限");
 				return validatorResult;
 			}
