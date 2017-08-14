@@ -190,7 +190,7 @@ public class Transaction extends Message {
 			return;
 		}
 
-		if(type == Definition.TYPE_PAY && getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
+		if(type == Definition.TYPE_PAY  && getFee().compareTo(Definition.MIN_PAY_FEE) < 0 && network.getBestBlockHeight() > 0) {
 			throw new VerificationException("交易费至少为0.1个INS币");
 		}
 
