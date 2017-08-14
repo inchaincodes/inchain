@@ -156,7 +156,7 @@ public class MakeTestNetGengsisBlock {
 				} finally {
 					fos.close();
 				}
-				
+
 				//注册账户授予信用值
 				CreditTransaction creditTx = new CreditTransaction(network, addressTemp.getHash160(), Configure.CONSENSUS_CREDIT, 0, Sha256Hash.ZERO_HASH);
 				creditTx.sign(account);
@@ -173,7 +173,7 @@ public class MakeTestNetGengsisBlock {
 				
 				txTemp.addOutput(Configure.CONSENSUS_MIN_RECOGNIZANCE, addressTemp);
 				
-				txTemp.addOutput(Coin.valueOf(output.getValue()).subtract(Configure.CONSENSUS_MAX_RECOGNIZANCE), 0, address);
+				txTemp.addOutput(Coin.valueOf(output.getValue()).subtract(Configure.CONSENSUS_MIN_RECOGNIZANCE), 0, address);
 				output = txTemp.getOutput(1);
 				
 				//创建一个输入的空签名

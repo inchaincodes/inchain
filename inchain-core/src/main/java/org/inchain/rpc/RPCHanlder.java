@@ -678,7 +678,7 @@ public class RPCHanlder {
 
 				int count = params1Json.getInt("count");
 				JSONArray codeList = params1Json.getJSONArray("codelist");
-				if(count!= codeList.length()||count<=1){
+				if(count!= codeList.length()||count<1){
 					result.put("success", false);
 					result.put("message", "防伪码数量不正确");
 					return result;
