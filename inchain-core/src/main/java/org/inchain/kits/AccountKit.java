@@ -1519,6 +1519,8 @@ public class AccountKit {
 			//是否找零
 			if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) > 0) {
 				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(feeCoin)), myAccount.getAddress());
+			}else if(totalInputCoin.compareTo(moneyCoin.add(feeCoin)) < 0) {
+				throw new VerificationException("用户余额不足");
 			}
 
 			//签名交易

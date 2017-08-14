@@ -189,6 +189,11 @@ public class Transaction extends Message {
 		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
+
+		if(type == Definition.TYPE_PAY && getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
+			throw new VerificationException("交易费至少为0.1个INS币");
+		}
+
 		if(inputs != null && inputs.size() > 0) {
 			//是否引用了不可用的输出
 			for (int i = 0; i < inputs.size(); i++) {

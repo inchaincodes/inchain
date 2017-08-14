@@ -2214,6 +2214,15 @@ public class RPCServiceImpl implements RPCService {
 		try {
 			Transaction tx = network.getDefaultSerializer().makeTransaction(Hex.decode(txContent), 0);
 
+			//如果是转账交易，检查手续费
+			if(tx.getType() == Definition.TYPE_PAY) {
+				if(tx.getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
+					json.put("success", false);
+					json.put("message", "交易转账手续费至少为0.1个INS币");
+					return json;
+				}
+			}
+
 			try {
 				MempoolContainer.getInstace().add(tx);
 
@@ -2249,10 +2258,9 @@ public class RPCServiceImpl implements RPCService {
 
 			//验证金额是否正确
 			Coin moneyCoin = null;             //转账的币
-			Coin feeCoin = null;               //手续费
+			Coin feeCoin = Definition.MIN_PAY_FEE;               //手续费
 			try {
 				moneyCoin = Coin.parseCoin(amount);
-				feeCoin = Coin.parseCoin("0.1");
 			} catch (Exception e) {
 				throw new VerificationException("金额不正确");
 			}
@@ -2286,6 +2294,10 @@ public class RPCServiceImpl implements RPCService {
 			List<TransactionOutput> fromOutputs = new ArrayList<>();
 			for(int j = 0; j < jsonArray.length(); j++) {
 				JSONObject object = jsonArray.getJSONObject(j);
+				if(!myAddress.getBase58().equals(object.getString("walletAddress"))) {
+					throw new VerificationException("未花费交易与私钥不匹配");
+				}
+
 				String txHash = object.getString("txHash");
 				TransactionStore txStore = blockStoreProvider.getTransaction(Hex.decode(txHash));
 
@@ -2316,6 +2328,7 @@ public class RPCServiceImpl implements RPCService {
 					throw new VerificationException("txHash：" + txHash + "未查询到相关交易输出index:" + index);
 				}
 			}
+
 			//广播交易
 			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress);
 			json.put("success", br.isSuccess());
