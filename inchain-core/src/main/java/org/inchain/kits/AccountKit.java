@@ -1339,7 +1339,7 @@ public class AccountKit {
 				throw new RuntimeException("发送的金额需大于0");
 			}
 			if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
-				fee = Coin.ZERO;
+				fee = Definition.MIN_PAY_FEE;
 			}
 
 			if(accountList == null || accountList.size() == 0) {

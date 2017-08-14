@@ -189,9 +189,28 @@ public class Transaction extends Message {
 		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
+		//验证手续费
+		if(type == Definition.TYPE_PAY && network.getBestBlockHeight() > 0) {
+			Coin inputFee = Coin.ZERO;
+			List<TransactionInput> inputs = getInputs();
+			for (TransactionInput input : inputs) {
+				List<TransactionOutput> froms = input.getFroms();
+				if(froms == null || froms.size() == 0) {
+					continue;
+				}
+				for (TransactionOutput from : froms) {
+					inputFee = inputFee.add(Coin.valueOf(from.getValue()));
+				}
+			}
 
-		if(type == Definition.TYPE_PAY  && getFee().compareTo(Definition.MIN_PAY_FEE) < 0 && network.getBestBlockHeight() > 0) {
-			throw new VerificationException("交易费至少为0.1个INS币");
+			Coin outputFee = Coin.ZERO;
+			List<TransactionOutput> outputs = getOutputs();
+			for (Output output : outputs) {
+				outputFee = outputFee.add(Coin.valueOf(output.getValue()));
+			}
+			if(inputFee.subtract(outputFee).compareTo(Definition.MIN_PAY_FEE) < 0) {
+				throw new VerificationException("交易手续费至少为0.1INS币");
+			}
 		}
 
 		if(inputs != null && inputs.size() > 0) {
