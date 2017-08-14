@@ -191,24 +191,8 @@ public class Transaction extends Message {
 		}
 		//验证手续费
 		if(type == Definition.TYPE_PAY && network.getBestBlockHeight() > 0) {
-			Coin inputFee = Coin.ZERO;
-			List<TransactionInput> inputs = getInputs();
-			for (TransactionInput input : inputs) {
-				List<TransactionOutput> froms = input.getFroms();
-				if(froms == null || froms.size() == 0) {
-					continue;
-				}
-				for (TransactionOutput from : froms) {
-					inputFee = inputFee.add(Coin.valueOf(from.getValue()));
-				}
-			}
 
-			Coin outputFee = Coin.ZERO;
-			List<TransactionOutput> outputs = getOutputs();
-			for (Output output : outputs) {
-				outputFee = outputFee.add(Coin.valueOf(output.getValue()));
-			}
-			if(inputFee.subtract(outputFee).compareTo(Definition.MIN_PAY_FEE) < 0) {
+			if(getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
 				throw new VerificationException("交易手续费至少为0.1INS币");
 			}
 		}
@@ -455,8 +439,24 @@ public class Transaction extends Message {
 	 * @return Coin
 	 */
 	public Coin getFee() {
-		// TODO Auto-generated method stub
-		return null;
+		Coin inputFee = Coin.ZERO;
+		List<TransactionInput> inputs = getInputs();
+		for (TransactionInput input : inputs) {
+			List<TransactionOutput> froms = input.getFroms();
+			if(froms == null || froms.size() == 0) {
+				continue;
+			}
+			for (TransactionOutput from : froms) {
+				inputFee = inputFee.add(Coin.valueOf(from.getValue()));
+			}
+		}
+
+		Coin outputFee = Coin.ZERO;
+		List<TransactionOutput> outputs = getOutputs();
+		for (Output output : outputs) {
+			outputFee = outputFee.add(Coin.valueOf(output.getValue()));
+		}
+		return inputFee.subtract(outputFee);
 	}
 	
     @Override
