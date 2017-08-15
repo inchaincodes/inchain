@@ -439,26 +439,9 @@ public class Transaction extends Message {
 	 * @return Coin
 	 */
 	public Coin getFee() {
-		Coin inputFee = Coin.ZERO;
-		List<TransactionInput> inputs = getInputs();
-		for (TransactionInput input : inputs) {
-			List<TransactionOutput> froms = input.getFroms();
-			if(froms == null || froms.size() == 0) {
-				continue;
-			}
-			for (TransactionOutput from : froms) {
-				inputFee = inputFee.add(Coin.valueOf(from.getValue()));
-			}
-		}
-
-		Coin outputFee = Coin.ZERO;
-		List<TransactionOutput> outputs = getOutputs();
-		for (Output output : outputs) {
-			outputFee = outputFee.add(Coin.valueOf(output.getValue()));
-		}
-		return inputFee.subtract(outputFee);
+		return null;
 	}
-	
+
     @Override
     public String toString() {
     	return "tx: " +getHash() + " inputSize:" + (inputs == null ? 0:inputs.size()) + " outputSize:" + (outputs == null ? 0:outputs.size());

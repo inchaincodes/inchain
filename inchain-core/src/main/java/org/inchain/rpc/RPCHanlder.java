@@ -1311,6 +1311,7 @@ public class RPCHanlder {
 					address = params.getString(0);
 					pwd = null;
 				} catch (Exception e) {
+					pwd = params.getString(0);
 				}
 			}else if(params.length() > 1) {
 				address = params.getString(0);
