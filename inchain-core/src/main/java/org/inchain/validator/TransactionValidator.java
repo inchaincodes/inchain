@@ -312,12 +312,13 @@ public class TransactionValidator {
 				return validatorResult;
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
+			}
+			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0) {
 				if(result.getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
 					result.setResult(false, "手续费至少为0.1个INS");
 					return validatorResult;
 				}
 			}
-
 			//业务交易且带代币交易
 			if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 				//如果是验证码生成交易，则验证产品是否存在
