@@ -263,11 +263,13 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 	 * 初始化新一轮共识
 	 */
 	private void initNewMeetingRound() {
-		
 		currentMetting.startConsensus();
 		meetingRound.incrementAndGet();
-		
-		log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {} , 我的时间 {}", DateUtil.convertDate(new Date(currentMetting.getPeriodStartTime() * 1000)), DateUtil.convertDate(new Date(currentMetting.getPeriodEndTime() * 1000)), DateUtil.convertDate(new Date(currentMetting.getMyPackageTime() * 1000)));
+		 if(currentMetting.getMyPackageTime() > 0) {
+			 log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {} , 我的时间 {}", DateUtil.convertDate(new Date(currentMetting.getPeriodStartTime() * 1000)), DateUtil.convertDate(new Date(currentMetting.getPeriodEndTime() * 1000)), DateUtil.convertDate(new Date(currentMetting.getMyPackageTime() * 1000)));
+		 }else {
+			 log.info("一轮结束，切换新一轮共识 , 开始时间 {} , 结束时间 {}", DateUtil.convertDate(new Date(currentMetting.getPeriodStartTime() * 1000)), DateUtil.convertDate(new Date(currentMetting.getPeriodEndTime() * 1000)));
+		 }
 	}
 
 	/**

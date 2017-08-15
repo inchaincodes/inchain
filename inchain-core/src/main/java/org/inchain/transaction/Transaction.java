@@ -189,13 +189,6 @@ public class Transaction extends Message {
 		if(type == Definition.TYPE_COINBASE) {
 			return;
 		}
-		//验证手续费
-		if(type == Definition.TYPE_PAY && network.getBestBlockHeight() > 0) {
-
-			if(getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
-				throw new VerificationException("交易手续费至少为0.1INS币");
-			}
-		}
 
 		if(inputs != null && inputs.size() > 0) {
 			//是否引用了不可用的输出
