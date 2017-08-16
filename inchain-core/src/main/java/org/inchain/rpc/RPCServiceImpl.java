@@ -1264,6 +1264,13 @@ public class RPCServiceImpl implements RPCService {
 			} else if(StringUtil.isEmpty(address)) {
 				account = accountKit.getDefaultAccount();
 			}
+
+			if(account == null) {
+				result.put("success", false);
+				result.put("message", "账户不存在");
+				return result;
+			}
+
 			boolean reset = false;
 			if(account.isCertAccount() && account.isEncryptedOfTr()) {
 				ECKey[] eckeys = account.decryptionTr(privateKeyOrPassword);
@@ -1302,7 +1309,12 @@ public class RPCServiceImpl implements RPCService {
 		} catch (Exception e) {
 			log.error("新增防伪码流转信息出错", e);
 			result.put("success", false);
-			result.put("message", e.getMessage());
+			if(e.getMessage() == null) {
+				result.put("message", "系统错误");
+			}else {
+				result.put("message", e.getMessage());
+			}
+
 		}
 
 		return result;
