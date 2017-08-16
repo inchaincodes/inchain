@@ -68,6 +68,9 @@ public class PeerKit {
 	private CopyOnWriteArrayList<Peer> inPeers = new CopyOnWriteArrayList<Peer>();
 	//主动连接节点
 	private CopyOnWriteArrayList<Peer> outPeers = new CopyOnWriteArrayList<Peer>();
+
+	//超级节点
+	private CopyOnWriteArrayList<Peer> superPeers = new CopyOnWriteArrayList<Peer>();
 	
 	//连接管理器
 	@Autowired

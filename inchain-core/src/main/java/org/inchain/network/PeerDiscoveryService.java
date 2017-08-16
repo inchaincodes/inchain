@@ -91,6 +91,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	private volatile List<PeerAddressStore> canuseMaps = new CopyOnWriteArrayList<PeerAddressStore>();
 	//状态表，1未连接，2已连接
 	private volatile Map<PeerAddressStore, Seed> connectedStatusMaps = new HashMap<PeerAddressStore, Seed>();
+
+	private volatile Map<PeerAddressStore, Seed> connectedSuperStatusMaps = new HashMap<PeerAddressStore, Seed>();
 	//是否已经加载dns节点
 	private boolean hasLoadDns;
 	//最后获取地址的时间
