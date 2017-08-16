@@ -5,6 +5,7 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class IpUtil {
@@ -75,5 +76,13 @@ public class IpUtil {
         }
         return ips;
     }
+
+    public static void main(String []args){
+		Set<String> ips= IpUtil.getIps();
+		Iterator s = ips.iterator();
+		while(s.hasNext()){
+			System.out.println(s.next());
+		}
+	}
     
 }

@@ -12,6 +12,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
+import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;

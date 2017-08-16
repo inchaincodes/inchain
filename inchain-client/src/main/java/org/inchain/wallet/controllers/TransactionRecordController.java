@@ -288,15 +288,17 @@ public class TransactionRecordController implements SubPageController {
 					type = tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ? "账户注册" : "修改信息";
 					
 					List<AccountKeyValue> bodyContents = crt.getBody().getContents();
-					for (AccountKeyValue keyValuePair : bodyContents) {
-						if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
-							//图标
-							detailValue.setImg(keyValuePair.getValue());
-						} else {
-							if(!"".equals(detail)) {
-								detail += "\r\n";
+					if(bodyContents!=null && bodyContents.size()>0){
+						for (AccountKeyValue keyValuePair : bodyContents) {
+							if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+								//图标
+								detailValue.setImg(keyValuePair.getValue());
+							} else {
+								if(!"".equals(detail)) {
+									detail += "\r\n";
+								}
+								detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 							}
-							detail += keyValuePair.getName()+" : " + keyValuePair.getValueToString();
 						}
 					}
 				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS || 
