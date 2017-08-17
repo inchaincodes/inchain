@@ -522,12 +522,7 @@ public class AccountInfoController implements SubPageController {
 					location = getClass().getResource("/resources/template/changeWalletPassword.fxml");
 				}
 				FXMLLoader loader = new FXMLLoader(location);
-				DailogUtil.showDailog(loader, "修改密码", new Callback() {
-					@Override
-					public void ok(Object param) {
-						DailogUtil.showTipDailogCenter("修改成功",Context.getMainStage());
-					}
-				});
+				DailogUtil.showDailog(loader, "修改密码");
 			} else {
 				// 加密
 				URL location = getClass().getResource("/resources/template/encryptWallet.fxml");

@@ -1470,6 +1470,8 @@ public class AccountKit {
 						transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
 					}
 				} catch (Exception e) {
+					e.printStackTrace();
+					broadcastResult = new BroadcastResult();
 					broadcastResult.setSuccess(false);
 					broadcastResult.setMessage("广播出错，"+e.getMessage());
 				}

@@ -9,6 +9,7 @@ import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Coin;
+import org.inchain.core.Definition;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.network.NetworkParams;
@@ -195,8 +196,8 @@ public class SendAmountController implements SubPageController {
     		DailogUtil.showTip("错误的手续费金额");
     		return;
 		}
-    	if(feeCoin.compareTo(Coin.ZERO) <= 0) {
-    		feeCoin = Coin.parseCoin("0.01");
+    	if(feeCoin.compareTo(Definition.MIN_PAY_FEE) < 0) {
+    		feeCoin = Definition.MIN_PAY_FEE;
     	}
     	
     	String amount = sendAmountId.getText().trim();

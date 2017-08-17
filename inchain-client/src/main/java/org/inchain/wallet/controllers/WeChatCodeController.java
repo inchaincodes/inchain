@@ -7,6 +7,7 @@ import javafx.scene.image.ImageView;
 import org.inchain.account.Account;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
+import org.inchain.utils.Base58;
 import org.inchain.utils.Utils;
 import org.inchain.wallet.utils.QRcodeUtil;
 
@@ -32,9 +33,17 @@ public class WeChatCodeController extends DailogController {
 		try {
 			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 			account = accountKit.getDefaultAccount();
-			String privateKey = account.getEcKey().getPrivateKeyAsHex();
+			byte[] prikeyByte = account.getEcKey().getPrivKeyBytes();
+			byte[] newprikeyByte = new byte[prikeyByte.length+1];
+			if(account.isEncrypted()) {
+				newprikeyByte[0]= "_".getBytes()[0];
+			}else {
+				newprikeyByte[0]= "-".getBytes()[0];
+			}
+			System.arraycopy(prikeyByte,0,newprikeyByte,1,prikeyByte.length);
+			String content = Base58.encode(newprikeyByte);
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			QRcodeUtil.genQrcodeToStream(privateKey, outputStream, 220, 220);
+			QRcodeUtil.genQrcodeToStream(content, outputStream, 220, 220);
 			InputStream inputStream = new ByteArrayInputStream(outputStream.toByteArray());
 			Image image = new Image(inputStream);
 			codeImage.setImage(image);

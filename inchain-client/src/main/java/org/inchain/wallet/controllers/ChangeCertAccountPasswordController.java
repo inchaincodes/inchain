@@ -1,8 +1,10 @@
 package org.inchain.wallet.controllers;
 
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.AnchorPane;
 import org.inchain.core.Result;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -29,8 +31,9 @@ public class ChangeCertAccountPasswordController extends DailogController {
 	public Button cancelId;
 	
 	public ToggleGroup type;
-	
+
 	public void initialize() {
+
 		cancelId.setOnAction(e -> cancel());
 		okId.setOnAction(e -> encryptWallet());
 		oldPasswordId.setOnKeyPressed(new EventHandler<KeyEvent>() {
@@ -94,6 +97,10 @@ public class ChangeCertAccountPasswordController extends DailogController {
 			callback.cancel(null);
 		}
 	}
+
+	private void ok() {
+
+	}
 	
 	/*
 	 * 取消
@@ -143,8 +150,10 @@ public class ChangeCertAccountPasswordController extends DailogController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	Result result = accountKit.changeWalletPassword(oldPassword, password,null ,"mgpwd".equals(type) ? 1 : 2);
 		if(result.isSuccess()) {
-    		DailogUtil.showTipDailogCenter(result.getMessage(),getThisStage());
-    		cancel();
+			oldPasswordId.setText("");
+			passwordId.setText("");
+			repeatId.setText("");
+			DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 		} else {
 			log.error("密码修改失败,{}", result);
 			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());

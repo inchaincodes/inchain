@@ -2184,7 +2184,7 @@ public class RPCServiceImpl implements RPCService {
 				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
 					remark = passwordOrRemark;
 				}
-				Result re = accountKit.decryptWallet(password,address);
+				Result re = accountKit.decryptWallet(password,address,2);
 				if(!re.isSuccess()) {
 					json.put("success", false);
 					json.put("message", re.getMessage());
@@ -2203,6 +2203,7 @@ public class RPCServiceImpl implements RPCService {
 			json.put("txHash", br.getHash());
 			return json;
 		} catch (Exception e) {
+			e.printStackTrace();
 			json.put("success", false);
 			json.put("message", e.getMessage());
 			return json;

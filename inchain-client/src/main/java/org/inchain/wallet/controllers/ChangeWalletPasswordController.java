@@ -93,18 +93,6 @@ public class ChangeWalletPasswordController extends DailogController {
 		close();
 	}
 
-
-	private void successAndClose() {
-		oldPasswordId.setText("");
-		passwordId.setText("");
-		repeatId.setText("");
-
-		close();
-		if(callback != null) {
-			callback.ok(null);
-		}
-	}
-
 	/*
 	 * 加密
 	 */
@@ -140,13 +128,10 @@ public class ChangeWalletPasswordController extends DailogController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	Result result = accountKit.changeWalletPassword(oldPassword, password);
 		if(result.isSuccess()) {
-			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			close();
+			oldPasswordId.setText("");
+			passwordId.setText("");
+			repeatId.setText("");
+			DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 		} else {
 			log.error("密码修改失败,{}", result);
 			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());
