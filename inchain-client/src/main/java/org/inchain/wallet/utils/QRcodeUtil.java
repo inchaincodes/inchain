@@ -18,33 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class QRcodeUtil {
-    public static void main(String[] args) {
-        BufferedReader br = null;
-        try {
-//            int i=0;
-//             br = new BufferedReader(new InputStreamReader(new FileInputStream(new File("D:/src/qrtest/_41200.txt")),
-//                    "UTF-8"));
-//             String line = "";
-//            while((line = br.readLine() ) != null){
-//                /*if(!line.contains("--"))
-//                    continue;
-//                int index = line.lastIndexOf("--");*/
-//                String code = line.trim();
-//                System.out.println((30000+i+1)+" " +code);
-//                i++;
-//
-//
-//
-//
-//            }
-            String privatekey = "00d55060492850b168a0d9cc033ba37627b8fbb76b2d0a1adef3d79b87daa3d3e2";
-            String path = "D:/pk"  + ".png";
-            QRcodeUtil.genQrcode(privatekey, path, 200, 200);
-        }catch (Exception e){
-            System.out.println("File not found");
-        }
-
-    }
 
     private static final int BLACK = 0xFF000000;
     private static final int WHITE = 0xFFFFFFFF;
