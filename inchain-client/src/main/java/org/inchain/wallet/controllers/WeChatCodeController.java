@@ -1,21 +1,16 @@
 package org.inchain.wallet.controllers;
 
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.inchain.account.Account;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
 import org.inchain.utils.Base58;
-import org.inchain.utils.Utils;
 import org.inchain.wallet.utils.QRcodeUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
 
 
 /**
