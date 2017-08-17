@@ -282,7 +282,9 @@ public class TransactionValidator {
 				txOutputFee = txOutputFee.add(outputCoin);
 			}
 			//验证不能给自己转账
+			boolean isLockType = false;
 			if(tx.getType() == Definition.TYPE_PAY) {
+
 				Script inputScript = new Script(scriptBytes);
 				byte[] sender = inputScript.getChunks().get(2).data;
 				TransactionOutput output = outputs.get(0);
@@ -304,6 +306,7 @@ public class TransactionValidator {
 						return validatorResult;
 					}
 				}
+				isLockType = true;
 			}
 
 			//输出金额不能大于输入金额
@@ -313,7 +316,7 @@ public class TransactionValidator {
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
 			}
-			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0) {
+			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0 && !isLockType) {
 				if(result.getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
 					result.setResult(false, "手续费至少为0.1个INS");
 					return validatorResult;
