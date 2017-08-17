@@ -3008,12 +3008,14 @@ public class RPCServiceImpl implements RPCService {
 			JSONArray infos = new JSONArray();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
-			for (AccountKeyValue keyValuePair : bodyContents) {
-				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
-					//图标
-					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
-				} else {
-					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+			if(bodyContents !=null) {
+				for (AccountKeyValue keyValuePair : bodyContents) {
+					if (AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+						//图标
+						infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+					} else {
+						infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					}
 				}
 			}
 			json.put("infos", infos);
