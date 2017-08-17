@@ -310,6 +310,15 @@ public class PeerKit {
 							seed.setRetry(false);
 							continue;
 						}
+
+						String myaddress = System.getenv("inchain_myaddress");
+						if(myaddress!=null&& myaddress.equals(seed.getAddress().getAddress().getHostAddress())) {
+							seed.setStaus(Seed.SEED_CONNECT_FAIL);
+							seed.setRetry(false);
+							continue;
+						}
+
+						//根据配置排除自己的链接
 						
 						//判断是否已经进行过连接，和一个ip只保持一个连接
 						if(hasConnected(seed.getAddress().getAddress())) {
