@@ -68,6 +68,7 @@ public class AccountInfoController implements SubPageController {
 	public Label encryptionStatusId; // 加密状态
 	public Label consensusStatusId; // 当前共识状态
 
+	public Button weChatId;        //微信同步
 	public Button backupWalletId; // 备份钱包
 	public Button importWalletId; // 导入钱包
 	public Button encryptWalletId; // 加密钱包
@@ -90,12 +91,15 @@ public class AccountInfoController implements SubPageController {
 		// 初始化按钮
 		addImageToButton(backupWalletId, "backupWallet");
 		addImageToButton(importWalletId, "importWallet");
+		addImageToButton(weChatId, "wechat");
 		// 点击备份钱包事件
 		backupWalletId.setOnAction(e -> backupWallet());
 		// 点击导入钱包事件
 		importWalletId.setOnAction(e -> importWallet());
 		// 点击加密钱包事件
 		encryptWalletId.setOnAction(e -> encryptWallet());
+
+		weChatId.setOnAction(e -> weChatSync());
 		// 设置文件格式
 		FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("DAT files (*.dat)", "*.dat");
 		fileChooser.getExtensionFilters().add(extFilter);
@@ -543,6 +547,46 @@ public class AccountInfoController implements SubPageController {
 		} catch (Exception e) {
 			log.error("加密钱包出错", e);
 		}
+	}
+
+	/**
+	 * 微信同步
+	 */
+	private void weChatSync() {
+		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
+		Account account = accountKit.getDefaultAccount();
+		//判断是否已加密
+		if(!accountKit.accountIsEncrypted()) {
+			showPriKeyQRCode();
+		}else {
+			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
+			FXMLLoader loader = new FXMLLoader(location);
+			DailogUtil.showDailog(loader, "输入钱包密码", new Callback() {
+				@Override
+				public void ok(Object param) {
+					if(!((!account.isCertAccount() && account.isEncrypted()) ||
+						  (account.isCertAccount() && account.isEncryptedOfTr()))) {
+						new Thread() {
+							@Override
+							public void run() {
+								Platform.runLater(new Runnable() {
+									@Override
+									public void run() {
+										showPriKeyQRCode();
+									}
+								});
+							}
+						}.start();
+					}
+				}
+			});
+		}
+	}
+
+	private void showPriKeyQRCode() {
+		URL location = getClass().getResource("/resources/template/weChatCode.fxml");
+		FXMLLoader loader = new FXMLLoader(location);
+		DailogUtil.showDailog(loader, "扫描二维码",300,300);
 	}
 
 	/*
