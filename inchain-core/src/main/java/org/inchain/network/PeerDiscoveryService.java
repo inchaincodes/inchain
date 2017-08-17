@@ -92,7 +92,9 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	//状态表，1未连接，2已连接
 	private volatile Map<PeerAddressStore, Seed> connectedStatusMaps = new HashMap<PeerAddressStore, Seed>();
 
-	private volatile Map<PeerAddressStore, Seed> connectedSuperStatusMaps = new HashMap<PeerAddressStore, Seed>();
+	//所有接超级节点列表
+	private volatile List<PeerAddressStore> superaddressMaps;
+
 	//是否已经加载dns节点
 	private boolean hasLoadDns;
 	//最后获取地址的时间
@@ -406,7 +408,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	/*
 	 * 获取dns节点
 	 */
-	private List<Seed> getDnsSeeds(int maxCount) {
+	@Override
+	public List<Seed> getDnsSeeds(int maxCount) {
 		//本次验证列表为空，那么立刻返回dns节点
 		SeedManager seedManager = network.getSeedManager();
 		//一般dns绑定的的节点数量都会比设置的最大连接数少，所以这里获取dns节点只加载一次即可

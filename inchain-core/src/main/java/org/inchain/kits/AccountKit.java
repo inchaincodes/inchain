@@ -629,7 +629,7 @@ public class AccountKit {
 		} catch (Exception e) {
 			return new BroadcastResult(false, "广播失败，失败信息：" + e.getMessage());
 		}
-		txbindHash = Hex.encode(tx.getHash160());
+		txbindHash = tx.getHash().toString();
 		return new BroadcastResult(true,txbindHash);
 	}
 
@@ -942,7 +942,8 @@ public class AccountKit {
 		//验证账户，不能是认证账户
 		if(account == null) {
 			account = getDefaultAccount();
-		} else if(account.isCertAccount()) {
+		}
+		if(account.isCertAccount()) {
 			verifyResult.setSuccess(false);
 			verifyResult.setMessage("认证账户不能验证防伪码");
 			return verifyResult;
