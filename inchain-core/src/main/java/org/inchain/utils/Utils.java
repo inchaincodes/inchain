@@ -345,14 +345,4 @@ public class Utils {
 		return sb.toString();
 	}
 
-
-	public static long movePointRight(String str, int n) {
-        try {
-            long value = new BigDecimal(str).movePointRight(n).toBigIntegerExact().longValue();
-            return value;
-        } catch (ArithmeticException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
 }

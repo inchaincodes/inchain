@@ -692,10 +692,19 @@ public class RPCServiceImpl implements RPCService {
 			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
 			byte[] hashReceiver = null;
 			try {
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
-			} catch (Exception e) {
+				Address receiverAddr = Address.fromBase58(network, receiver);
+				//如果是认证账户需要判断认证账户地址是否存在
+				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
+					AccountStore certAccount = accountKit.getAccountInfo(receiver);
+					if(certAccount == null) {
+						throw new VerificationException("接收人地址错误");
+					}
+				}
+				hashReceiver = receiverAddr.getHash160();
+			}catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
+
 
 			//3、根据code获取资产注册交易是否存在
 			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
@@ -830,10 +839,18 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 			//2、判断接收人地址是否合法
-			byte[] hashReceiver;
+			byte[] hashReceiver = null;
 			try {
-				hashReceiver = new Address(network, receiver).getHash160();
-			} catch (Exception e) {
+				Address receiverAddr = Address.fromBase58(network, receiver);
+				//如果是认证账户需要判断认证账户地址是否存在
+				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
+					AccountStore certAccount = accountKit.getAccountInfo(receiver);
+					if(certAccount == null) {
+						throw new VerificationException("接收人地址错误");
+					}
+				}
+				hashReceiver = receiverAddr.getHash160();
+			}catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
 			//判断转账人和接收人是不是同一个人
