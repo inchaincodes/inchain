@@ -105,7 +105,7 @@ public class LockMoneyController extends DailogController {
 
 	private void doLockMoney(AccountKit accountKit, Coin lockAmount, long unlockTime) {
 		try {
-			Result result = accountKit.lockMoney(lockAmount, unlockTime, null, null);
+			Result result = accountKit.lockMoney(lockAmount, unlockTime, null, null, "用户锁仓");
 			if (result.isSuccess()) {
 				DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 				resetAndclose();
