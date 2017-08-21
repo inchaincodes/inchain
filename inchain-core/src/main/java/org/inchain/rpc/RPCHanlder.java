@@ -498,6 +498,12 @@ public class RPCHanlder {
 					remark = params.getString(4);
 				}
 
+				try {
+					Address a = new Address(network, toAddress);
+				} catch (Exception e) {
+					return new JSONObject().put("success", false).put("message", "接收人地址有误");
+				}
+
 				return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
 			}
 

@@ -4220,10 +4220,10 @@ public class AccountKit {
 				return new BroadcastResult(false, "密码错误");
 			}
 		}
-
-		if(account.isEncryptedOfTr()) {
-			return new BroadcastResult(false, "账户已加密，无法签名信息");
-		}
+//
+//		if(account.isEncryptedOfTr()) {
+//			return new BroadcastResult(false, "账户已加密，无法签名信息");
+//		}
 
 		//地址是否正确
 		Address relevancerAddress = null;
