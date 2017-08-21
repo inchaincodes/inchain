@@ -93,18 +93,6 @@ public class ChangeWalletPasswordController extends DailogController {
 		close();
 	}
 
-
-	private void successAndClose() {
-		oldPasswordId.setText("");
-		passwordId.setText("");
-		repeatId.setText("");
-
-		close();
-		if(callback != null) {
-			callback.ok(null);
-		}
-	}
-
 	/*
 	 * 加密
 	 */
@@ -122,10 +110,6 @@ public class ChangeWalletPasswordController extends DailogController {
 			passwordId.requestFocus();
 			DailogUtil.showTipDailogCenter("新密码不能为空", getThisStage());
 			return;
-		} else if(StringUtils.isEmpty(oldPassword)) {
-			oldPasswordId.requestFocus();
-			DailogUtil.showTipDailogCenter("原密码不正确", getThisStage());
-			return;
 		} else if(!password.equals(passwordRepeat)) {
 			repeatId.requestFocus();
 			DailogUtil.showTipDailogCenter("两次输入的新密码不一致", getThisStage());
@@ -140,13 +124,10 @@ public class ChangeWalletPasswordController extends DailogController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
     	Result result = accountKit.changeWalletPassword(oldPassword, password);
 		if(result.isSuccess()) {
-			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());
-			try {
-				Thread.sleep(2000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			close();
+			oldPasswordId.setText("");
+			passwordId.setText("");
+			repeatId.setText("");
+			DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 		} else {
 			log.error("密码修改失败,{}", result);
 			DailogUtil.showTipDailogCenter("密码修改失败," + result.getMessage(), getThisStage());

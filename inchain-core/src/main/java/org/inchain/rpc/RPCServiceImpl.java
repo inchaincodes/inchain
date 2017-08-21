@@ -692,10 +692,19 @@ public class RPCServiceImpl implements RPCService {
 			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
 			byte[] hashReceiver = null;
 			try {
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
-			} catch (Exception e) {
+				Address receiverAddr = Address.fromBase58(network, receiver);
+				//如果是认证账户需要判断认证账户地址是否存在
+				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
+					AccountStore certAccount = accountKit.getAccountInfo(receiver);
+					if(certAccount == null) {
+						throw new VerificationException("接收人地址错误");
+					}
+				}
+				hashReceiver = receiverAddr.getHash160();
+			}catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
+
 
 			//3、根据code获取资产注册交易是否存在
 			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
@@ -3007,14 +3016,12 @@ public class RPCServiceImpl implements RPCService {
 			JSONArray infos = new JSONArray();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
-			if(bodyContents!=null){
-				for (AccountKeyValue keyValuePair : bodyContents) {
-					if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
-						//图标
-						infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
-					} else {
-						infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
-					}
+			for (AccountKeyValue keyValuePair : bodyContents) {
+				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+					//图标
+					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+				} else {
+					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
 				}
 			}
 			json.put("infos", infos);

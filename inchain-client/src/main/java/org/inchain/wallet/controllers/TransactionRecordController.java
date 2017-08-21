@@ -594,7 +594,7 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-					detail += "发行金额：" + issuedTx.getAmount();
+					detail += "发行金额：" + issuedTx.getAmount() + "\n";
 					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(issuedTx.getReceiver());
 					Address address;
 					if(accountStore == null) {
@@ -612,7 +612,7 @@ public class TransactionRecordController implements SubPageController {
 					AssetsRegisterTransaction artx = (AssetsRegisterTransaction)txStore.getTransaction();
 					detail += "名称：" + new String(artx.getName(), Utils.UTF_8) + "\n";
 					detail += "代码：" + new String(artx.getCode(), Utils.UTF_8) + "\n";
-					detail += "转让金额：" + transferTx.getAmount();
+					detail += "转让金额：" + transferTx.getAmount() + "\n";
 					AccountStore accountStore = InchainInstance.getInstance().getAccountKit().getAccountStore(transferTx.getReceiver());
 					Address address;
 					if(accountStore == null) {

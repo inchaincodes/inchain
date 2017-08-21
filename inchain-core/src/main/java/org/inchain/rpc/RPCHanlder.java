@@ -1,6 +1,7 @@
 package org.inchain.rpc;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -989,7 +990,6 @@ public class RPCHanlder {
 				address = params.getString(4);
 				pwd = params.getString(5);
 			}
-
 			return rpcService.assetsIssue(code, receiver, amount, remark, address, pwd);
 		}
 
@@ -1040,7 +1040,7 @@ public class RPCHanlder {
 				amount =  params.getLong(2);
 			}catch (Exception e) {
 				result.put("success", false);
-				result.put("message", "资产发行金额为正整数");
+				result.put("message", "资产转让金额为正整数");
 				return result;
 			}
 			String remark = params.getString(3);

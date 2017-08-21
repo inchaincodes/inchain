@@ -318,22 +318,34 @@ public class PeerKit {
 		public void run() {
 			try {
 				int availablePeersCount = getAvailablePeersCount();
-				if (availablePeersCount < maxConnectionCount) {
-					List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - availablePeersCount);
-					if (seedList != null && seedList.size() > 0) {
-						for (final Seed seed : seedList) {
-							//排除与自己的连接
-							if (LOCAL_ADDRESS.contains(seed.getAddress().getAddress().getHostAddress())) {
-								seed.setStaus(Seed.SEED_CONNECT_FAIL);
-								seed.setRetry(false);
-								continue;
-							}
+				if(availablePeersCount >= maxConnectionCount) {
+					return;
+				}
+				
+				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - availablePeersCount);
+				if(seedList != null && seedList.size() > 0) {
+					for (final Seed seed : seedList) {
+						//排除与自己的连接
+						if(LOCAL_ADDRESS.contains(seed.getAddress().getAddress().getHostAddress())) {
+							seed.setStaus(Seed.SEED_CONNECT_FAIL);
+							seed.setRetry(false);
+							continue;
+						}
 
-							//判断是否已经进行过连接，和一个ip只保持一个连接
-							if (hasConnected(seed.getAddress().getAddress())) {
-								seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
-								continue;
-							}
+						String myaddress = System.getenv("inchain_myaddress");
+						if(myaddress!=null&& myaddress.equals(seed.getAddress().getAddress().getHostAddress())) {
+							seed.setStaus(Seed.SEED_CONNECT_FAIL);
+							seed.setRetry(false);
+							continue;
+						}
+
+						//根据配置排除自己的链接
+
+						//判断是否已经进行过连接，和一个ip只保持一个连接
+						if(hasConnected(seed.getAddress().getAddress())) {
+							seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
+							continue;
+						}
 
 							Peer peer = new Peer(network, seed.getAddress()) {
 								@Override
@@ -618,7 +630,7 @@ public class PeerKit {
 
 		return results;
 	}
-	
+
 	/**
 	 * 已连接并完成握手的节点数量
 	 * @return int

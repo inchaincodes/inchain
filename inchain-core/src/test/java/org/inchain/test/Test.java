@@ -26,13 +26,19 @@ public class Test {
 	}
 	
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
-		ExecutorService executors = Executors.newCachedThreadPool();
-		Future<String> f = executors.submit(new Mytask());
-		
-		System.out.println(" wait ....");
-		String s = f.get();
-		System.out.println(s);
-		
-		executors.shutdownNow();
+//		ExecutorService executors = Executors.newCachedThreadPool();
+//		Future<String> f = executors.submit(new Mytask());
+//
+//		System.out.println(" wait ....");
+//		String s = f.get();
+//		System.out.println(s);
+//
+//		executors.shutdownNow();
+
+		String str = "  a     b    c          d   					    e                ";
+		str = str.replaceAll("\\s+"," ").trim();
+		for(String s : str.split("\\s")) {
+			System.out.println(s);
+		}
 	}
 }
