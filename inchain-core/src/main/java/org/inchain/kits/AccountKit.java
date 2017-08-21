@@ -289,7 +289,7 @@ public class AccountKit {
 	 * 获取不可用余额
 	 */
 	public Coin getCanNotUseBalance(String address) {
-		if(address == null) {
+		if(accountList == null || accountList.size() == 0) {
 			return Coin.ZERO;
 		}
 		if(StringUtil.isEmpty(address)) {
