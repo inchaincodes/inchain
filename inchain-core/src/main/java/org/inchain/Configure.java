@@ -52,7 +52,7 @@ public final class Configure {
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
-	public final static int DEFAULT_PORT = 11888;
+	public final static int DEFAULT_PORT = 11886;
 
 	/**
 	 * p2p 端口
