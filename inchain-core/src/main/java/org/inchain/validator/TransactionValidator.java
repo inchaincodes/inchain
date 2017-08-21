@@ -897,8 +897,10 @@ public class TransactionValidator {
 			}
 
 			if(!rtx.getAddress().getBase58().equals(rst.getAddress().getBase58())){
-				result.setResult(false, "移除子账户交易中添加的子账户不匹配");
-				return validatorResult;
+				if(network.getBestBlockHeight() > 28810) {
+					result.setResult(false, "移除子账户交易中添加的子账户不匹配");
+					return validatorResult;
+				}
 			}
 
 			if(!rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){

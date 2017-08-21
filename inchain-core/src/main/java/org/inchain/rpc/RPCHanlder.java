@@ -516,7 +516,7 @@ public class RPCHanlder {
 
 				String toAddress = params.getString(0);
 				String amount = params.getString(1);
-				String lockTimeStr = params.getString(2);
+				long lockTime = params.getLong(2);
 
 				String remark = params.getString(3);
 				String address = params.getString(4);
@@ -545,14 +545,13 @@ public class RPCHanlder {
 					return result;
 				}
 
-				long lockTime;
-				try {
-					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
-				} catch (Exception e) {
-					result.put("success", false);
-					result.put("message", "错误的日期，日期格式为yyyy-MM-dd");
-					return result;
-				}
+//				try {
+//					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
+//				} catch (Exception e) {
+//					result.put("success", false);
+//					result.put("message", "错误的日期，日期格式为yyyy-MM-dd");
+//					return result;
+//				}
 
 				if(StringUtils.isEmpty(password)) {
 					result.put("success", false);
