@@ -1,10 +1,6 @@
 package org.inchain.core;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -98,11 +94,12 @@ public class DataSynchronizeHandler implements Runnable {
 						try {
 							peers.clear();
 							peers.addAll(superPeers);
+							Collections.shuffle(peers);
 							//peers.addAll(inPeers);
 							//peers.addAll(outPeers);
 							
 							//当所有节点全部断开时，将重新启动监听，因为自动重新连上后需要同步断开这段时间的新区块
-							if(inCount + outCount + superCount == 0) {
+							if(superCount == 0) {
 								synchronousStatus = -1;
 								initSynchronous = true;
 							} else if(synchronousStatus == -1) {
