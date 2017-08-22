@@ -1013,8 +1013,8 @@ public class CarditConsensusMeeting implements ConsensusMeeting {
 		//监控节点变化
 		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(int inCount, int outCount,int superCount, CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers,CopyOnWriteArrayList<Peer> superPeers) {
 				//当连接的节点数量为0时，停止
 				if(peerKit.getAvailablePeersCount() == 0) {
 					//判断当前是否正在共识中

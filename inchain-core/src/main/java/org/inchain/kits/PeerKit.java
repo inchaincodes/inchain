@@ -307,7 +307,7 @@ public class PeerKit {
 			executor.execute(new Thread(){
 				@Override
 				public void run() {
-					connectionChangedListener.onChanged(inPeers.size(), outPeers.size(), inPeers, outPeers);
+					connectionChangedListener.onChanged(inPeers.size(), outPeers.size(),superPeers.size(), inPeers, outPeers,superPeers);
 				}
 			});
 		}
@@ -589,8 +589,8 @@ public class PeerKit {
         }
 		addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(int inCount, int outCount,int superCount, CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers,CopyOnWriteArrayList<Peer> superPeers) {
 				List<Peer> peers = findAvailablePeers();
 				if(peers.size() >= minConnections) {
 					removeConnectionChangedListener(this);
@@ -680,7 +680,7 @@ public class PeerKit {
 	 * @return int[]
 	 */
 	public int[] getAvailablePeersCounts() {
-		int[] counts = new int[2];
+		int[] counts = new int[3];
 		for (Peer peer : inPeers) {
 			if(peer.isHandshake()) {
 				counts[0]++;
@@ -693,7 +693,7 @@ public class PeerKit {
 		}
 		for (Peer peer : superPeers) {
 			if(peer.isHandshake()) {
-				counts[1]++;
+				counts[2]++;
 			}
 		}
 		return counts;
@@ -820,8 +820,8 @@ public class PeerKit {
 
 	public boolean isSuperPeer(Peer peer){
 		boolean result = false;
-		for(int i=0;i<superPeers.size();i++){
-			if(superPeers.get(i).getPeerAddress().getAddr().getHostAddress().equals(peer.getPeerAddress().getAddr().getHostAddress())){
+		for(int i=0;i<superAllList.size();i++){
+			if(superAllList.get(i).getAddress().getHostString().equals(peer.getPeerAddress().getAddr().getHostAddress())){
 				result = true;
 				break;
 			}

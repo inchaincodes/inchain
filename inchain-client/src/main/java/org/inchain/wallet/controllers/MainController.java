@@ -415,8 +415,8 @@ public class MainController {
     	//网络变化监听器
     	appKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(final int inCount, final int outCount, final CopyOnWriteArrayList<Peer> inPeers,
-					final CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(final int inCount, final int outCount,final int superCount, final CopyOnWriteArrayList<Peer> inPeers,
+					final CopyOnWriteArrayList<Peer> outPeers,final CopyOnWriteArrayList<Peer> superPeers) {
 				new Thread() {
 					public void run() {
 						try {
@@ -430,8 +430,9 @@ public class MainController {
 								int[] counts = peerKit.getAvailablePeersCounts();
 								int inPeerCount = counts[0];
 								int outPeerCount = counts[1];
-								networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount));
-								networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outPeerCount, inPeerCount));
+								int superPeerCount = counts[2];
+								networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount + superCount));
+								networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d\r\n超级链接：%d", outPeerCount, inPeerCount,superPeerCount));
 							}
 						});
 					};

@@ -88,8 +88,8 @@ public class DataSynchronizeHandler implements Runnable {
 		//监听节点变化
 		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(int inCount, int outCount, int superCount ,CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers,CopyOnWriteArrayList<Peer> superPeers) {
 				
 				executor.execute(new Runnable() {
 					@Override
@@ -97,6 +97,7 @@ public class DataSynchronizeHandler implements Runnable {
 						locker.lock();
 						try {
 							peers.clear();
+							peers.addAll(superPeers);
 							peers.addAll(inPeers);
 							peers.addAll(outPeers);
 							
