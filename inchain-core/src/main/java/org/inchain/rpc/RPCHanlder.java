@@ -1248,6 +1248,7 @@ public class RPCHanlder {
 				log.error("广播交易错误", e);
 				result.put("success", false);
 				result.put("message", "广播交易失败");
+				return result;
 			}
 
 		}
