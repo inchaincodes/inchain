@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /**
  * RPC命令分发处理
@@ -481,91 +482,136 @@ public class RPCHanlder {
 			//转账
 			case "send": {
 
-				if(params.length() < 2) {
+				if(params.length() < 3) {
 					return new JSONObject().put("success", false).put("message", "缺少参数");
 				}
 
 				String toAddress = params.getString(0);
 				String amount = params.getString(1);
-				String address = null;
+				String address = params.getString(2);
 				String remark = null;
 				String passwordOrRemark = null;
 
-				if(params.length() == 3) {
-					address = params.getString(2);
-					try {
-						Address.fromBase58(network, address);
-					} catch (Exception e) {
-						password = address;
-						address = null;
-					}
-				} else if(params.length() == 4) {
-					address = params.getString(2);
-					try {
-						Address ar = Address.fromBase58(network, address);
-						passwordOrRemark = params.getString(3);
-					} catch (Exception e) {
-						password = address;
-						address = null;
-						remark = params.getString(3);
-					}
+				if(params.length() == 4) {
+					passwordOrRemark = params.getString(3);
 				} else if(params.length() == 5) {
-					address = params.getString(2);
 					password = params.getString(3);
 					remark = params.getString(4);
+				}
+
+				try {
+					Address a = new Address(network, toAddress);
+				} catch (Exception e) {
+					return new JSONObject().put("success", false).put("message", "接收人地址有误");
 				}
 
 				return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
 			}
 
+
+			//发放送仓奖励
+			case "lockreward": {
+				if(params.length() < 6) {
+					return new JSONObject().put("success", false).put("message", "缺少参数");
+				}
+
+				String toAddress = params.getString(0);
+				String amount = params.getString(1);
+				long lockTime = params.getLong(2);
+
+				String remark = params.getString(3);
+				String address = params.getString(4);
+				password = params.getString(5);
+
+				try {
+					Address.fromBase58(network, toAddress);
+				}catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "接收人地址有误");
+				}
+
+				try {
+					Address.fromBase58(network, address);
+				}catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "转账人地址有误");
+				}
+
+				Coin lockValue;
+				try {
+					lockValue = Coin.parseCoin(amount);
+				} catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "错误的金额");
+					return result;
+				}
+
+//				try {
+//					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
+//				} catch (Exception e) {
+//					result.put("success", false);
+//					result.put("message", "错误的日期，日期格式为yyyy-MM-dd");
+//					return result;
+//				}
+
+				if(StringUtils.isEmpty(password)) {
+					result.put("success", false);
+					result.put("message", "请输入密码");
+					return result;
+				}
+
+				return rpcService.lockReward(toAddress, lockValue, address, password, remark, lockTime);
+			}
+
 			//锁仓
 			case "lockmoney": {
 
-				if(params.length() < 2) {
+				if(params.length() < 3) {
 					return new JSONObject().put("success", false).put("message", "缺少参数");
 				}
 
 				String amount = params.getString(0);
 				String lockTimeStr = params.getString(1);
+				String remark = params.getString(2);
 				String address = null;
 
-				if(params.length() == 3) {
-					address = params.getString(2);
+				if(params.length() == 4) {
+					address = params.getString(3);
 					try {
 						Address.fromBase58(network, address);
 					} catch (Exception e) {
 						password = address;
 						address = null;
 					}
-				} else if(params.length() == 4) {
-					address = params.getString(2);
+				} else if(params.length() == 5) {
+					address = params.getString(3);
 					try {
 						Address ar = Address.fromBase58(network, address);
-						password = params.getString(3);
+						password = params.getString(4);
 					} catch (Exception e) {
 						result.put("success", false);
-						result.put("message", "缺少参数，命令用法：lockmoney [money] [lockTime] [address] [password]");
+						result.put("message", "缺少参数，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]");
 						return result;
 					}
 				}
 				Coin lockValue = Coin.ZERO;
-				long lockTime = 0l;
+				long lockTime = 0L;
 				try {
 					lockValue = Coin.parseCoin(amount);
 				} catch (Exception e) {
 					result.put("success", false);
-					result.put("message", "错误的锁仓金额，命令用法：lockmoney [money] [lockTime] [address] [password]");
+					result.put("message", "错误的锁仓金额，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]");
 					return result;
 				}
 				try {
 					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
 				} catch (Exception e) {
 					result.put("success", false);
-					result.put("message", "错误的日期，命令用法：lockmoney [money] [lockTime] [address] [password]，日期格式为yyyy-MM-dd");
+					result.put("message", "错误的日期，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]，日期格式为yyyy-MM-dd");
 					return result;
 				}
 
-				return rpcService.lockMoney(lockValue, lockTime, address, password);
+				return rpcService.lockMoney(lockValue, lockTime, address, password, remark);
 			}
 
 			//认证账户创建商品
@@ -1193,18 +1239,11 @@ public class RPCHanlder {
 			String amount = param.getString("amount");
 			String privateKey = param.getString("privateKey");
 			String toAddress = param.getString("to");
+			String remark = param.getString("remark");
 			JSONArray jsonArray = null;
 
-			try {
-				jsonArray = param.getJSONArray("utxos");
-			}catch (Exception e) {
-				e.printStackTrace();
-				result.put("success", false);
-				result.put("message", "参数格式有误");
-				return result;
-			}
 
-			return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, jsonArray);
+			return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, remark);
 		}
 
 		

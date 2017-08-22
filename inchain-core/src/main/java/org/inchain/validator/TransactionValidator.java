@@ -874,7 +874,7 @@ public class TransactionValidator {
 			byte[] hash160 = rst.getHash160();
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
-				result.setResult(false, "只有认证账户才能添加子账户");
+				result.setResult(false, "只有认证账户才能吊销子账户");
 				return validatorResult;
 			}
 			//检查账户是否被吊销
@@ -896,9 +896,9 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			if(rtx.getAddress().equals(rst.getAddress())){
-				result.setResult(false, "添加子账户交易中添加的子账户不匹配");
-				return validatorResult;
+			if(!rtx.getAddress().getBase58().equals(rst.getAddress().getBase58())){
+					result.setResult(false, "移除子账户交易中添加的子账户不匹配");
+					return validatorResult;
 			}
 
 			if(!rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){
