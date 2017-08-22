@@ -506,6 +506,12 @@ public class RPCServiceImpl implements RPCService {
 				}
 			}
 
+			if(Configure.MAX_ANTICODE_COUNT<count){
+				result.put("success", false);
+				result.put("message", "每次最多生成防伪码："+Configure.MAX_ANTICODE_COUNT);
+				return result;
+			}
+
 			JSONArray antifakeList = new JSONArray();
 			JSONArray errormgs = new JSONArray();
 

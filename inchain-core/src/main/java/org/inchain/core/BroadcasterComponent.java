@@ -2,6 +2,7 @@ package org.inchain.core;
 
 import java.io.IOException;
 import java.nio.channels.NotYetConnectedException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -149,6 +150,32 @@ public class BroadcasterComponent<T extends Message> implements Broadcaster<T> {
 					} catch (NotYetConnectedException | IOException e) {
 						log.warn("广播消息出错，可能原因是该节点连接已关闭, {}", e.getMessage());
 					}
+				}
+			}
+			return successCount;
+		} else {
+			log.warn("广播消息失败，没有可广播的节点");
+		}
+		if(log.isDebugEnabled()) {
+			log.debug("成功广播给{}个节点，消息{}", successCount, message);
+		}
+		return successCount;
+	}
+	@Override
+	public int broadcastMessageToSuper(T message, int count){
+		int successCount = 0;
+		List<Peer> superPeers = peerKit.findAvailableSuperPeers();
+		if(superPeers.size()>0) {
+			Collections.shuffle(superPeers);
+			for (Peer peer : superPeers) {
+				try {
+					peer.sendMessage(message);
+					successCount ++;
+				} catch (NotYetConnectedException | IOException e) {
+					log.warn("广播消息出错，可能原因是该节点连接已关闭, {}", e.getMessage());
+				}
+				if(successCount==count) {
+					return successCount;
 				}
 			}
 			return successCount;

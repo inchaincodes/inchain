@@ -52,7 +52,7 @@ public final class Configure {
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
-	public final static int DEFAULT_PORT = 11888;
+	public final static int DEFAULT_PORT = 11886;
 
 	/**
 	 * p2p 端口
@@ -78,12 +78,17 @@ public final class Configure {
 	/**
 	 * 普通节点链接的超级节点数
 	 */
-	public final static int MAX_NORMAL_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 3);
+	public final static int MAX_NORMAL_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 2);
 
 	/**
 	 * 本节点是否是超级节点 0：no   1：yes
 	 */
 	public final static int IS_SUPER_NODE = getProperty("is.super.node", 0);
+
+	/**
+	 *
+	 */
+	public final static int MAX_ANTICODE_COUNT =  getProperty("max.anticode_count", 2000);
 
 	/**
 	 * 最大允许节点连接数

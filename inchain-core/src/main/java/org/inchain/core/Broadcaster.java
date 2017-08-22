@@ -31,4 +31,12 @@ public interface Broadcaster<T extends Message> {
 	 * @return int	 			通过几个节点广播消息出去
 	 */
 	int broadcastMessage(T message, Peer excludePeer);
+
+	/**
+	 * 广播消息
+	 * @param message  			要广播的消息
+	 * @param count  		    广播节点数量
+	 * @return int	 			广播到超级节点
+	 */
+	int broadcastMessageToSuper(T message, int count);
 }

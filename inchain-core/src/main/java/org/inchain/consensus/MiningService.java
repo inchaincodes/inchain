@@ -313,7 +313,14 @@ public final class MiningService implements Mining {
 			//广播
 			InventoryItem item = new InventoryItem(Type.NewBlock, block.getHash());
 			InventoryMessage invMessage = new InventoryMessage(network, item);
-			peerKit.broadcastMessage(invMessage);
+
+			int broadcastCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_SUPER_CONNECT_COUNT;
+			if(invMessage.getLength()>Definition.MIN_BLOCK_SIZE && (Configure.IS_SUPER_NODE == 0)) {
+				peerKit.broadcastMessageToSuper(invMessage, broadcastCount);
+				log.info("BLock size is{},only broadcast to super peers");
+			}else{
+				peerKit.broadcastMessage(invMessage);
+			}
 			
 			//加入Inv过滤列表
 			filter.insert(block.getHash().getBytes());
