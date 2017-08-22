@@ -7,6 +7,7 @@ import java.util.List;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.inchain.Configure;
 import org.inchain.account.AccountBody;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
@@ -753,9 +754,9 @@ public class RPCHanlder {
 						JSONObject params1Json = new JSONObject(params1);
 
 						count = params1Json.getInt("count");
-						if(count <= 0) {
+						if(count <= 0||count> Configure.MAX_ANTICODE_COUNT) {
 							result.put("success", false);
-							result.put("message", "防伪码数量不正确，应大于0");
+							result.put("message", "防伪码数量不正确，应大于0并且小于"+Configure.MAX_ANTICODE_COUNT);
 							return result;
 						}
 						if(params1Json.has("sources")) {

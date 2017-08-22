@@ -506,6 +506,12 @@ public class RPCServiceImpl implements RPCService {
 				}
 			}
 
+			if(Configure.MAX_ANTICODE_COUNT<count){
+				result.put("success", false);
+				result.put("message", "每次最多生成防伪码："+Configure.MAX_ANTICODE_COUNT);
+				return result;
+			}
+
 			JSONArray antifakeList = new JSONArray();
 			JSONArray errormgs = new JSONArray();
 
@@ -839,18 +845,10 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 			//2、判断接收人地址是否合法
-			byte[] hashReceiver = null;
+			byte[] hashReceiver;
 			try {
-				Address receiverAddr = Address.fromBase58(network, receiver);
-				//如果是认证账户需要判断认证账户地址是否存在
-				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
-					AccountStore certAccount = accountKit.getAccountInfo(receiver);
-					if(certAccount == null) {
-						throw new VerificationException("接收人地址错误");
-					}
-				}
-				hashReceiver = receiverAddr.getHash160();
-			}catch (Exception e) {
+				hashReceiver = new Address(network, receiver).getHash160();
+			} catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
 			//判断转账人和接收人是不是同一个人
@@ -2195,7 +2193,7 @@ public class RPCServiceImpl implements RPCService {
 				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
 					remark = passwordOrRemark;
 				}
-				Result re = accountKit.decryptWallet(password,address,2);
+				Result re = accountKit.decryptWallet(password,address);
 				if(!re.isSuccess()) {
 					json.put("success", false);
 					json.put("message", re.getMessage());
@@ -2214,7 +2212,6 @@ public class RPCServiceImpl implements RPCService {
 			json.put("txHash", br.getHash());
 			return json;
 		} catch (Exception e) {
-			e.printStackTrace();
 			json.put("success", false);
 			json.put("message", e.getMessage());
 			return json;
@@ -3031,14 +3028,12 @@ public class RPCServiceImpl implements RPCService {
 			JSONArray infos = new JSONArray();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
-			if(bodyContents !=null) {
-				for (AccountKeyValue keyValuePair : bodyContents) {
-					if (AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
-						//图标
-						infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
-					} else {
-						infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
-					}
+			for (AccountKeyValue keyValuePair : bodyContents) {
+				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
+					//图标
+					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+				} else {
+					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
 				}
 			}
 			json.put("infos", infos);
