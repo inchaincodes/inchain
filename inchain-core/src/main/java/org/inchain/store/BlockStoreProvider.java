@@ -208,15 +208,15 @@ public class BlockStoreProvider extends BaseStoreProvider {
 			log.info("保存区块出错：", e);
 			throw e;
 		} finally {
-			//检查区块数据的完整性
-			BlockStore blockStoreTemp = getBlock(blockStore.getBlock().getHash().getBytes());
-			if(blockStoreTemp.getBlock().getTxs().size() != (int)blockStore.getBlock().getTxCount()) {
-				//交易存储不完整
-				revokedNewestBlock();
-//				//重新存储
-//				saveBlock(blockStore);
-				throw new VerificationException("区块保存不完整，实际交易数量为" + blockStore.getBlock().getTxCount() + " , 保存数量为" + blockStoreTemp.getBlock().getTxs());
-			}
+//			//检查区块数据的完整性
+//			BlockStore blockStoreTemp = getBlock(blockStore.getBlock().getHash().getBytes());
+//			if(blockStoreTemp.getBlock().getTxs().size() != (int)blockStore.getBlock().getTxCount()) {
+//				//交易存储不完整
+//				revokedNewestBlock();
+////				//重新存储
+////				saveBlock(blockStore);
+//				throw new VerificationException("区块保存不完整，实际交易数量为" + blockStore.getBlock().getTxCount() + " , 保存数量为" + blockStoreTemp.getBlock().getTxs());
+//			}
 			
 			if(blockHeaderCacher.size() > 2 * CACHER_SIZE) {
 				blockHeaderCacher.clear();
