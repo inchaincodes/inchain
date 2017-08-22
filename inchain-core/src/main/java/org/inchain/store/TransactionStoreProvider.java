@@ -301,29 +301,30 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			noticeListener.onNotice("参与共识产生新的块", String.format("%s参与共识，获得收入 %s INS", new Address(network, tx.getOutput(0).getScript().getChunks().get(2).data).getBase58(), Coin.valueOf(tx.getOutput(0).getValue()).toText()));
 		} else if(tx.getType() == Definition.TYPE_PAY) {
 			//对上一交易的引用以及索引值
-			Sha256Hash fromId = output.getParent().getHash();
-			int index = output.getIndex();
-			
-			byte[] key = new byte[fromId.getBytes().length + 1];
-			
-			System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
-			key[key.length - 1] = (byte) index;
-			
-			//查询上次的交易
-			Transaction preTransaction = null;
-			
-			//判断是否未花费
-			byte[] state = chainstateStoreProvider.getBytes(key);
-			if(!Arrays.equals(state, new byte[]{1})) {
-				//查询内存池里是否有该交易
-				preTransaction = MempoolContainer.getInstace().get(fromId);
-			} else {
-				//查询上次的交易
-				preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
-			}
-			TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
-			
-			noticeListener.onNotice("接收到新的转账交易", String.format("接收到一笔来自 %s 的转账，金额  %s INS", new Address(network, preOutput.getScript().getChunks().get(2).data).getBase58(), Coin.valueOf(preOutput.getValue()).toText()));
+//			Sha256Hash fromId = output.getParent().getHash();
+//			int index = output.getIndex();
+//
+//			byte[] key = new byte[fromId.getBytes().length + 1];
+//
+//			System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
+//			key[key.length - 1] = (byte) index;
+//
+//			//查询上次的交易
+//			Transaction preTransaction = null;
+//
+//			//判断是否未花费
+//			byte[] state = chainstateStoreProvider.getBytes(key);
+//			if(!Arrays.equals(state, new byte[]{1})) {
+//				//查询内存池里是否有该交易
+//				preTransaction = MempoolContainer.getInstace().get(fromId);
+//			} else {
+//				//查询上次的交易
+//				preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
+//			}
+//			TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
+			TransactionInput input = tx.getInput(0);
+			Address fromAddress = new Address(network,input.getFroms().get(0).getScript().getChunks().get(2).data);
+			noticeListener.onNotice("接收到新的转账交易", String.format("接收到一笔来自 %s 的转账，金额  %s INS", fromAddress.getBase58(), Coin.valueOf(output.getValue()).toText()));
 		}
 	}
 	

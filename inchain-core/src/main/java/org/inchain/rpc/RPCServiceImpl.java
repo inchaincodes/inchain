@@ -692,10 +692,19 @@ public class RPCServiceImpl implements RPCService {
 			//2、判断接收人地址是否合法   PS：通常底层存储都是address的hash160，长度为20
 			byte[] hashReceiver = null;
 			try {
-				hashReceiver = Address.fromBase58(network, receiver).getHash160();
-			} catch (Exception e) {
+				Address receiverAddr = Address.fromBase58(network, receiver);
+				//如果是认证账户需要判断认证账户地址是否存在
+				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
+					AccountStore certAccount = accountKit.getAccountInfo(receiver);
+					if(certAccount == null) {
+						throw new VerificationException("接收人地址错误");
+					}
+				}
+				hashReceiver = receiverAddr.getHash160();
+			}catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
+
 
 			//3、根据code获取资产注册交易是否存在
 			AssetsRegisterTransaction assetsRegisterTx = chainstateStoreProvider.getAssetsRegisterTxByCode(code.getBytes(Utils.UTF_8));
@@ -830,10 +839,18 @@ public class RPCServiceImpl implements RPCService {
 			//1、首先判断账户是否存在，是否加密
 			account = checkAndGetAccount(address, password, Definition.TX_VERIFY_TR);
 			//2、判断接收人地址是否合法
-			byte[] hashReceiver;
+			byte[] hashReceiver = null;
 			try {
-				hashReceiver = new Address(network, receiver).getHash160();
-			} catch (Exception e) {
+				Address receiverAddr = Address.fromBase58(network, receiver);
+				//如果是认证账户需要判断认证账户地址是否存在
+				if(receiverAddr.getVersion() == network.getCertAccountVersion()) {
+					AccountStore certAccount = accountKit.getAccountInfo(receiver);
+					if(certAccount == null) {
+						throw new VerificationException("接收人地址错误");
+					}
+				}
+				hashReceiver = receiverAddr.getHash160();
+			}catch (Exception e) {
 				throw new VerificationException("接收人地址错误");
 			}
 			//判断转账人和接收人是不是同一个人
@@ -2100,7 +2117,7 @@ public class RPCServiceImpl implements RPCService {
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	public JSONObject lockMoney(Coin money, long lockTime, String address, String password)throws JSONException {
+	public JSONObject lockMoney(Coin money, long lockTime, String address, String password, String remark)throws JSONException {
 		JSONObject json = new JSONObject();
 
 		if(StringUtil.isEmpty(money)) {
@@ -2110,7 +2127,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		try {
-			BroadcastResult br = accountKit.lockMoney(money, lockTime, address, password);
+			BroadcastResult br = accountKit.lockMoney(money, lockTime, address, password, remark);
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
@@ -2156,13 +2173,7 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 
-		Account account = null;
-
-		if(StringUtil.isEmpty(address)) {
-			account = accountKit.getDefaultAccount();
-		} else {
-			account = accountKit.getAccount(address);
-		}
+		Account account = accountKit.getAccount(address);
 
 		if(account == null) {
 			json.put("success", false);
@@ -2197,6 +2208,54 @@ public class RPCServiceImpl implements RPCService {
 
 		try {
 			BroadcastResult br = accountKit.sendMoney(toAddress, moneyCoin, feeCoin, remark == null ? null:remark.getBytes(), address, password);
+
+			json.put("success", br.isSuccess());
+			json.put("message", br.getMessage());
+			json.put("txHash", br.getHash());
+			return json;
+		} catch (Exception e) {
+			e.printStackTrace();
+			json.put("success", false);
+			json.put("message", e.getMessage());
+			return json;
+		} finally {
+			accountKit.resetKeys();
+		}
+	}
+
+	public JSONObject lockReward(String toAddress, Coin money, String address, String password, String remark, long lockTime) throws JSONException {
+		JSONObject json = new JSONObject();
+		try {
+
+			//锁仓的时间必须大于24小时
+			if(lockTime - TimeService.currentTimeSeconds() < 24 * 60 * 60) {
+				throw new VerificationException("锁仓时间必须大于24小时");
+			}
+
+			Account account = null;
+			if(StringUtil.isEmpty(address)) {
+				account = accountKit.getDefaultAccount();
+			} else {
+				account = accountKit.getAccount(address);
+			}
+
+			if(account == null) {
+				json.put("success", false);
+				json.put("message", "账户不存在");
+				return json;
+			}
+
+			//账户是否加密
+			Result re = accountKit.decryptWallet(password,address,2);
+			if(!re.isSuccess()) {
+				json.put("success", false);
+				json.put("message", re.getMessage());
+				return json;
+			}
+
+			Coin feeCoin = Definition.MIN_PAY_FEE;
+
+			BroadcastResult br = accountKit.sendLockMoney(toAddress, money, feeCoin, remark.getBytes(), address, password,lockTime);
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
@@ -2259,7 +2318,7 @@ public class RPCServiceImpl implements RPCService {
 	 * 广播交易
 	 */
 	@Override
-	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException {
+	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, String remark) throws JSONException {
 		JSONObject json = new JSONObject();
 		Account account = null;
 		try {
@@ -2298,47 +2357,11 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("不能给自己转账");
 			}
 
-			//转换交易输出，并检查交易输出是否已被使用
-			List<TransactionOutput> fromOutputs = new ArrayList<>();
-			for(int j = 0; j < jsonArray.length(); j++) {
-				JSONObject object = jsonArray.getJSONObject(j);
-				if(!myAddress.getBase58().equals(object.getString("walletAddress"))) {
-					throw new VerificationException("未花费交易与私钥不匹配");
-				}
-
-				String txHash = object.getString("txHash");
-				TransactionStore txStore = blockStoreProvider.getTransaction(Hex.decode(txHash));
-
-				if(txStore == null) {
-					throw new VerificationException("txHash：" + txHash + "未查询到相关交易");
-				}
-
-				Transaction tx = txStore.getTransaction();
-				if(!tx.isPaymentTransaction()) {
-					throw new VerificationException("txHash：" + txHash + "交易类型错误");
-				}
-				//如果交易不可用，则跳过
-				if(tx.getLockTime() < 0l
-						|| (tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds())
-						|| (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > network.getBestHeight())) {
-					continue;
-				}
-
-				Integer index = object.getInt("outputIndex");
-				try {
-					TransactionOutput output = tx.getOutput(index);
-					//判断交易是否已花费
-					if(isSpent(tx, output, myAddress.getHash160())) {
-						throw new VerificationException("txHash：" + txHash + "交易输出已花费或不可用index:" + index);
-					}
-					fromOutputs.add(output);
-				}catch (ArrayIndexOutOfBoundsException ae) {
-					throw new VerificationException("txHash：" + txHash + "未查询到相关交易输出index:" + index);
-				}
-			}
+			//选择未花费的输入
+			List<TransactionOutput> fromOutputs = accountKit.selectNotSpentTransaction(moneyCoin.add(feeCoin), myAddress);
 
 			//广播交易
-			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress);
+			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress,remark);
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
 
@@ -2346,9 +2369,9 @@ public class RPCServiceImpl implements RPCService {
 			json.put("success", false);
 			json.put("message", e.getMessage());
 		}finally {
-//			if(account != null) {
-//				account.resetKey();
-//			}
+			if(account != null) {
+				account.resetKey();
+			}
 		}
 		return json;
 	}

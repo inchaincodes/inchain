@@ -363,7 +363,7 @@ public interface RPCService {
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	JSONObject lockMoney(Coin money, long lockTime, String address, String password)throws JSONException;
+	JSONObject lockMoney(Coin money, long lockTime, String address, String password, String remark)throws JSONException;
 
 	/**
 	 * 发送交易
@@ -379,6 +379,19 @@ public interface RPCService {
 	JSONObject sendMoney(String toAddress, String money, String address, String password, String remark, String passwordOrRemark) throws JSONException;
 
 	/**
+	 * 锁仓奖励
+	 * @param toAddress
+	 * @param money
+	 * @param address
+	 * @param password
+	 * @param remark
+	 * @param lockTimeStr
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject lockReward(String toAddress, Coin money, String address, String password, String remark, long lockTime) throws JSONException;
+
+	/**
 	 * 广播交易
 	 * @param txContent
 	 * @return JSONObject
@@ -391,11 +404,11 @@ public interface RPCService {
 	 * @param amount
 	 * @param privateKey
 	 * @param toAddress
-	 * @param jsonArray
+	 * @param remark
 	 * @return
 	 * @throws JSONException
 	 */
-	JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, JSONArray jsonArray) throws JSONException;
+	JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, String remark) throws JSONException;
 
 	/**
 	 * 广播交易 - 交易内容存放在文件里面

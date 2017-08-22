@@ -282,9 +282,8 @@ public class TransactionValidator {
 				txOutputFee = txOutputFee.add(outputCoin);
 			}
 			//验证不能给自己转账
-			boolean isLockType = false;
+			boolean isLock = false;
 			if(tx.getType() == Definition.TYPE_PAY) {
-
 				Script inputScript = new Script(scriptBytes);
 				byte[] sender = inputScript.getChunks().get(2).data;
 				TransactionOutput output = outputs.get(0);
@@ -305,8 +304,8 @@ public class TransactionValidator {
 						result.setResult(false, "锁仓时间必须大于24小时");
 						return validatorResult;
 					}
+					isLock = true;
 				}
-				isLockType = true;
 			}
 
 			//输出金额不能大于输入金额
@@ -316,12 +315,13 @@ public class TransactionValidator {
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
 			}
-			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0 && !isLockType) {
+			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0 && !isLock) {
 				if(result.getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
 					result.setResult(false, "手续费至少为0.1个INS");
 					return validatorResult;
 				}
 			}
+
 			//业务交易且带代币交易
 			if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 				//如果是验证码生成交易，则验证产品是否存在
@@ -874,7 +874,7 @@ public class TransactionValidator {
 			byte[] hash160 = rst.getHash160();
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
-				result.setResult(false, "只有认证账户才能添加子账户");
+				result.setResult(false, "只有认证账户才能吊销子账户");
 				return validatorResult;
 			}
 			//检查账户是否被吊销
@@ -896,9 +896,9 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			if(rtx.getAddress().equals(rst.getAddress())){
-				result.setResult(false, "添加子账户交易中添加的子账户不匹配");
-				return validatorResult;
+			if(!rtx.getAddress().getBase58().equals(rst.getAddress().getBase58())){
+					result.setResult(false, "移除子账户交易中添加的子账户不匹配");
+					return validatorResult;
 			}
 
 			if(!rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){

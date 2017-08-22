@@ -206,7 +206,6 @@ public final class MiningService implements Mining {
 
 		//在这里对transactionList的资产转账交易做特殊处理
  		this.verifyAssetsTx(transactionList);
-
 		//在这里对transactionList的防伪码转账交易做特殊处理
 		this.verifyAntifakeTx(transactionList);
 		//获取我的时段开始时间
@@ -391,7 +390,7 @@ public final class MiningService implements Mining {
 				Assets assets = chainstateStoreProvider.getMyAssetsByCode(userKey, Sha256Hash.hash(txKey));
 				long sum = 0;
 				for(AssetsTransferTransaction tx : txList) {
-					if(sum < assets.getBalance()) {
+					if(sum <= assets.getBalance()) {
 						sum += tx.getAmount();
 					}
 					if(sum > assets.getBalance()) {
@@ -428,6 +427,7 @@ public final class MiningService implements Mining {
 					//如果有用户信息为空的情况，可能是用户才被创建
 					if(accountInfo == null || accountInfo.getCert() < Configure.TRANSFER_ANTIFAKECODE_CREDIT) {
 						//todo 这里考虑是否应该将该交易从交易列表中除去
+						list.remove(tx);
 					}else {
 						Long cert = accountInfo.getCert() - Configure.TRANSFER_ANTIFAKECODE_CREDIT;
 						map.put(userKey, cert);
