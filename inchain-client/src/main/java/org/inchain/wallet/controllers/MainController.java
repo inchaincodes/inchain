@@ -431,8 +431,8 @@ public class MainController {
 								int inPeerCount = counts[0];
 								int outPeerCount = counts[1];
 								int superPeerCount = counts[2];
-								networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount + superCount));
-								networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d\r\n超级链接：%d", outPeerCount, inPeerCount,superPeerCount));
+								networkInfosNumId.setText(String.valueOf(inPeerCount + outPeerCount + superPeerCount));
+								networkInfosNumId.getTooltip().setText(String.format("主动连接：%d\r\n被动连接：%d", outPeerCount+superPeerCount, inPeerCount));
 							}
 						});
 					};

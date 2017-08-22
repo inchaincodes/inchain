@@ -154,14 +154,22 @@ public class PeerKit {
 			}
 			@Override
 			public void connectionOpened(Peer peer) {
-				inPeers.add(peer);
+				if(isSuperPeer(peer)){
+					superPeers.add(peer);
+				}else {
+					inPeers.add(peer);
+				}
 				log.info("新连接{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
 				connectionOnChange(true);
 			}
 			@Override
 			public void connectionClosed(Peer peer) {
-				inPeers.remove(peer);
+				if(isSuperPeer(peer)){
+					superPeers.remove(peer);
+				}else {
+					inPeers.remove(peer);
+				}
 				log.info("连接关闭{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
 				connectionOnChange(false);
@@ -466,6 +474,14 @@ public class PeerKit {
 		}
 		if(!hasConnected) {
 			for (Peer peer : outPeers) {
+				if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
+					hasConnected = true;
+					break;
+				}
+			}
+		}
+		if(!hasConnected) {
+			for (Peer peer : superPeers) {
 				if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
 					hasConnected = true;
 					break;

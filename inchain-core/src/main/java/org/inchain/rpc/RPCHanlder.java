@@ -1242,8 +1242,15 @@ public class RPCHanlder {
 				String toAddress = param.getString("to");
 				String remark = param.getString("remark");
 				JSONArray jsonArray = null;
-
-				return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, remark);
+				try {
+					jsonArray = param.getJSONArray("utxos");
+				}catch (Exception e) {
+					e.printStackTrace();
+					result.put("success", false);
+					result.put("message", "参数格式有误");
+					return result;
+				}
+				return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, remark, jsonArray);
 			}catch (Exception e) {
 				log.error("广播交易错误", e);
 				result.put("success", false);
