@@ -1234,16 +1234,23 @@ public class RPCHanlder {
 				result.put("message", "缺少参数");
 				return result;
 			}
-			JSONObject param = new JSONObject(params.getString(0));
+			try {
+				JSONObject param = new JSONObject(params.getString(0));
 
-			String amount = param.getString("amount");
-			String privateKey = param.getString("privateKey");
-			String toAddress = param.getString("to");
-			String remark = param.getString("remark");
-			JSONArray jsonArray = null;
+				String amount = param.getString("amount");
+				String privateKey = param.getString("privateKey");
+				String toAddress = param.getString("to");
+				String remark = param.getString("remark");
+				JSONArray jsonArray = null;
 
+				return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, remark);
+			}catch (Exception e) {
+				log.error("广播交易错误", e);
+				result.put("success", false);
+				result.put("message", "广播交易失败");
+				return result;
+			}
 
-			return rpcService.broadcastTransferTransaction(amount, privateKey, toAddress, remark);
 		}
 
 		
