@@ -98,8 +98,8 @@ public class DataSynchronizeHandler implements Runnable {
 						try {
 							peers.clear();
 							peers.addAll(superPeers);
-							peers.addAll(inPeers);
-							peers.addAll(outPeers);
+							//peers.addAll(inPeers);
+							//peers.addAll(outPeers);
 							
 							//当所有节点全部断开时，将重新启动监听，因为自动重新连上后需要同步断开这段时间的新区块
 							if(inCount + outCount + superCount == 0) {
