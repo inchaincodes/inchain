@@ -158,7 +158,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				//打乱顺序
 				Collections.shuffle(canuseMaps);
 			}
-			
+			peerKit.setSuperAllList(getDnsSeeds(Configure.MAX_SUPER_CONNECT_COUNT));
 			//启动时标记最后存储时间为当前时间
 			lastStorageTime = TimeService.currentTimeMillis();
 		} finally {
