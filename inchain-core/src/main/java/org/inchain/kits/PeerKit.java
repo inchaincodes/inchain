@@ -94,9 +94,8 @@ public class PeerKit {
 		
 		Utils.checkNotNull(network);
 		Utils.checkNotNull(connectionManager);
-		
-		init();
 		setSuperAllList(peerDiscovery.getAllSeeds());
+		init();
 		//初始化连接器
 		connectionManager.start();
 		
@@ -143,13 +142,19 @@ public class PeerKit {
 					}
 				}
 
+				for (Peer peer : inPeers) {
+					if(peer.getAddress().getAddr().getHostAddress().equals(inetSocketAddress.getAddress().getHostAddress())) {
+						count++;
+					}
+				}
+
 
 				for (Peer peer : superPeers) {
 					if(peer.getAddress().getAddr().getHostAddress().equals(inetSocketAddress.getAddress().getHostAddress())) {
 						count++;
 					}
 				}
-				if(count >= 2) {
+				if(count >= 10) {
 					return false;
 				}
 				if( inPeers.size() >= DEFAULT_MAX_IN_CONNECTION){
@@ -199,6 +204,8 @@ public class PeerKit {
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
 						log.info("节点{}无法Ping通，{}", peer.getAddress(), TimeService.currentTimeMillis());
+						peer.close();
+						outPeers.remove(peer);
 //						if(!network.blockIsNewestStatus()) {
 //							peer.close();
 //						}
@@ -210,6 +217,8 @@ public class PeerKit {
 					} catch (Exception e) {
 						//无法Ping通的就断开吧
 						log.info("超级节点{}无法Ping通，{}", peer.getAddress(), TimeService.currentTimeMillis());
+						peer.close();
+						superPeers.remove(peer);
 //						if(!network.blockIsNewestStatus()) {
 //							peer.close();
 //						}
@@ -359,7 +368,7 @@ public class PeerKit {
 							}
 
 							//判断是否已经进行过连接，和一个ip只保持一个连接
-							if (hasSuperConnected(seed.getAddress().getAddress())) {
+							if (hasConnected(seed.getAddress().getAddress())) {
 								seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
 								continue;
 							}
@@ -414,10 +423,15 @@ public class PeerKit {
 				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - availablePeersCount);
 				if(seedList != null && seedList.size() > 0) {
 					for (final Seed seed : seedList) {
+
 						//排除与自己的连接
 						if(LOCAL_ADDRESS.contains(seed.getAddress().getAddress().getHostAddress())) {
 							seed.setStaus(Seed.SEED_CONNECT_FAIL);
 							seed.setRetry(false);
+							continue;
+						}
+
+						if(isSuperPeerAddress(seed.getAddress())){
 							continue;
 						}
 
