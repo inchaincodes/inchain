@@ -96,7 +96,7 @@ public class PeerKit {
 		Utils.checkNotNull(connectionManager);
 		
 		init();
-		
+		setSuperAllList(peerDiscovery.getAllSeeds());
 		//初始化连接器
 		connectionManager.start();
 		
@@ -142,6 +142,8 @@ public class PeerKit {
 						count++;
 					}
 				}
+
+
 				for (Peer peer : superPeers) {
 					if(peer.getAddress().getAddr().getHostAddress().equals(inetSocketAddress.getAddress().getHostAddress())) {
 						count++;
@@ -150,7 +152,16 @@ public class PeerKit {
 				if(count >= 2) {
 					return false;
 				}
-				return inPeers.size() < DEFAULT_MAX_IN_CONNECTION;
+				if( inPeers.size() >= DEFAULT_MAX_IN_CONNECTION){
+					return false;
+				}
+				int superAllowCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT;
+
+				if( isSuperPeerAddress(inetSocketAddress)  && superPeers.size()>=superAllowCount ){
+					return false;
+				}
+
+				return true;
 			}
 			@Override
 			public void connectionOpened(Peer peer) {
@@ -327,10 +338,10 @@ public class PeerKit {
 		public void run() {
 			try {
 				int availableSuperPeersCount = getAvailableSuperPeersCount();
-				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT;
+				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT;
 				if(availableSuperPeersCount<needSuperPeersCount) {
 					List<Seed> superlist = peerDiscovery.getDnsSeeds(needSuperPeersCount - availableSuperPeersCount);
-					if (superlist != null && superlist.size() > 0) {
+					if (superlist != null && superlist.size() > 0 ) {
 						for (final Seed seed : superlist) {
 							//排除与自己的连接
 							if (LOCAL_ADDRESS.contains(seed.getAddress().getAddress().getHostAddress())) {
@@ -362,7 +373,11 @@ public class PeerKit {
 									peerDiscovery.refreshSeedStatus(seed);
 
 									//加入超级连接列表
-									superPeers.add(this);
+									if(superPeers.size()<needSuperPeersCount) {
+										superPeers.add(this);
+									}else {
+										this.close();
+									}
 									connectionOnChange(true);
 								}
 
@@ -384,7 +399,9 @@ public class PeerKit {
 								}
 							};
 							seed.setLastTime(TimeService.currentTimeMillis());
-							connectionManager.openConnection(seed.getAddress(), peer);
+							if(superPeers.size()<needSuperPeersCount) {
+								connectionManager.openConnection(seed.getAddress(), peer);
+							}
 						}
 					}
 				}
@@ -415,6 +432,11 @@ public class PeerKit {
 						//判断是否已经进行过连接，和一个ip只保持一个连接
 						if(hasConnected(seed.getAddress().getAddress())) {
 							seed.setStaus(Seed.SEED_CONNECT_SUCCESS);
+							continue;
+						}
+
+						if(isSuperPeerAddress(seed.getAddress()) && superPeers.size()>= needSuperPeersCount){
+							seed.setStaus(Seed.SEED_CONNECT_WAIT);
 							continue;
 						}
 
@@ -844,6 +866,17 @@ public class PeerKit {
 		boolean result = false;
 		for(int i=0;i<superAllList.size();i++){
 			if(superAllList.get(i).getAddress().getHostString().equals(peer.getPeerAddress().getAddr().getHostAddress())){
+				result = true;
+				break;
+			}
+		}
+		return result;
+	}
+
+	public boolean isSuperPeerAddress(InetSocketAddress addr){
+		boolean result = false;
+		for(int i=0;i<superAllList.size();i++){
+			if(superAllList.get(i).getAddress().getHostString().equals(addr.getAddress().getHostAddress())){
 				result = true;
 				break;
 			}
