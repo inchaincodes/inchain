@@ -72,7 +72,8 @@ public class PeerKit {
 
 	//广播接超级节点列表
 	private CopyOnWriteArrayList<Peer> superPeers = new CopyOnWriteArrayList<Peer>();
-	List<Seed> superAllList = null;
+
+	private List<Seed> superAllList = null;
 	
 	//连接管理器
 	@Autowired
@@ -131,6 +132,7 @@ public class PeerKit {
 	}
 	
 	private void init() {
+
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
 			public boolean allowConnection(InetSocketAddress inetSocketAddress) {
@@ -915,5 +917,9 @@ public class PeerKit {
 	
 	public int getMinConnectionCount() {
 		return minConnectionCount;
+	}
+
+	public void setSuperAllList(List<Seed> superAllList) {
+		this.superAllList = superAllList;
 	}
 }
