@@ -687,7 +687,7 @@ public class TransactionValidator {
 			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
 			if(verTxBytes == null) {
-				result.setResult(false, "签名错误");
+				result.setResult(false, "签名错误：verTxid="+Sha256Hash.wrap(verTxid));
 				return validatorResult;
 			}
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
@@ -701,7 +701,7 @@ public class TransactionValidator {
 			byte[] verTxid = updateTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
 			if(verTxBytes == null) {
-				result.setResult(false, "签名错误");
+				result.setResult(false, "签名错误：verTxid="+Sha256Hash.wrap(verTxid));
 				return validatorResult;
 			}
 			//检查用户是否为认证账户，检查用户状态是否可用
