@@ -12,7 +12,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.inchain.Configure;
-import org.inchain.account.Address;
 import org.inchain.core.BroadcastResult;
 import org.inchain.core.Broadcaster;
 import org.inchain.core.Peer;
@@ -26,7 +25,6 @@ import org.inchain.message.Message;
 import org.inchain.net.ClientConnectionManager;
 import org.inchain.network.NetworkParams;
 import org.inchain.network.PeerDiscovery;
-import org.inchain.network.PeerDiscoveryService;
 import org.inchain.network.Seed;
 import org.inchain.utils.IpUtil;
 import org.inchain.utils.Utils;
@@ -329,7 +327,7 @@ public class PeerKit {
 		public void run() {
 			try {
 				int availableSuperPeersCount = getAvailableSuperPeersCount();
-				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_SUPER_CONNECT_COUNT;
+				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT;
 				if(availableSuperPeersCount<needSuperPeersCount) {
 					List<Seed> superlist = peerDiscovery.getDnsSeeds(needSuperPeersCount - availableSuperPeersCount);
 					if (superlist != null && superlist.size() > 0) {
@@ -430,6 +428,8 @@ public class PeerKit {
 								//加入主动连接列表
 								if(!isSuperPeer(this)){
 									outPeers.add(this);
+								}else {
+									superPeers.add(this);
 								}
 								connectionOnChange(true);
 							}
