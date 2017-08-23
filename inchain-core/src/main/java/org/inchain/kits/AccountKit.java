@@ -1707,7 +1707,7 @@ public class AccountKit {
 			tx.setLockTime(TimeService.currentTimeSeconds());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
-
+			tx.setRemark(remark.getBytes("utf-8"));
 			//输入金额
 			Coin totalInputCoin = Coin.ZERO;
 			TransactionInput input = new TransactionInput();
