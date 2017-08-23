@@ -447,7 +447,11 @@ public class PeerKit {
 								}
 								peerDiscovery.refreshSeedStatus(seed);
 								//从主动连接列表中移除
-								outPeers.remove(this);
+								if(!isSuperPeer(this)) {
+									outPeers.remove(this);
+								}else {
+									superPeers.remove(this);
+								}
 								connectionOnChange(false);
 							}
 						};
