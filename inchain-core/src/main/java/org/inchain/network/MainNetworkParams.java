@@ -1,11 +1,14 @@
 package org.inchain.network;
 
+import org.inchain.Configure;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.message.DefaultMessageSerializer;
 import org.inchain.message.MessageSerializer;
 import org.inchain.store.BlockStore;
 import org.inchain.utils.Hex;
 import org.inchain.utils.Utils;
+
+import java.net.InetSocketAddress;
 
 /**
  * 主网各参数
@@ -25,9 +28,15 @@ public class MainNetworkParams extends NetworkParams {
     public MainNetworkParams() {
 
     	this.seedManager = new RemoteSeedManager();
-    	
-    	seedManager.addDnsSeed("seed1.inchain.org");
-    	seedManager.addDnsSeed("seed2.inchain.org");
+		seedManager.add(new Seed(new InetSocketAddress("120.77.241.8", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("39.108.121.242", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("101.132.33.140", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("116.62.135.185", Configure.DEFAULT_PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("116.62.117.200", Configure.DEFAULT_PORT)));
+		//seedManager.add(new Seed(new InetSocketAddress("47.92.4.19", Configure.DEFAULT_PORT)));
+		//seedManager.add(new Seed(new InetSocketAddress("47.92.26.16", Configure.DEFAULT_PORT)));
+    	//seedManager.addDnsSeed("seed1.inchain.org");
+    	//seedManager.addDnsSeed("seed2.inchain.org");
     	
     	init();
 	}

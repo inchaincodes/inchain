@@ -2315,7 +2315,7 @@ public class RPCServiceImpl implements RPCService {
 	 * 广播交易
 	 */
 	@Override
-	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, String remark) throws JSONException {
+	public JSONObject broadcastTransferTransaction(String amount,String privateKey, String toAddress, String remark, JSONArray jsonArray) throws JSONException {
 		JSONObject json = new JSONObject();
 		Account account = null;
 		try {
@@ -2354,9 +2354,44 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("不能给自己转账");
 			}
 
-			//选择未花费的输入
-			List<TransactionOutput> fromOutputs = accountKit.selectNotSpentTransaction(moneyCoin.add(feeCoin), myAddress);
+			//转换交易输出，并检查交易输出是否已被使用
+			List<TransactionOutput> fromOutputs = new ArrayList<>();
+			for(int j = 0; j < jsonArray.length(); j++) {
+				JSONObject object = jsonArray.getJSONObject(j);
+				if(!myAddress.getBase58().equals(object.getString("walletAddress"))) {
+					throw new VerificationException("未花费交易与私钥不匹配");
+				}
 
+				String txHash = object.getString("txHash");
+				TransactionStore txStore = blockStoreProvider.getTransaction(Hex.decode(txHash));
+
+				if(txStore == null) {
+					throw new VerificationException("txHash：" + txHash + "未查询到相关交易");
+				}
+
+				Transaction tx = txStore.getTransaction();
+				if(!tx.isPaymentTransaction()) {
+					throw new VerificationException("txHash：" + txHash + "交易类型错误");
+				}
+				//如果交易不可用，则跳过
+				if(tx.getLockTime() < 0l
+						|| (tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds())
+						|| (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > network.getBestHeight())) {
+					continue;
+				}
+
+				Integer index = object.getInt("outputIndex");
+				try {
+					TransactionOutput output = tx.getOutput(index);
+					//判断交易是否已花费
+					if(isSpent(tx, output, myAddress.getHash160())) {
+						throw new VerificationException("txHash：" + txHash + "交易输出已花费或不可用index:" + index);
+					}
+					fromOutputs.add(output);
+				}catch (ArrayIndexOutOfBoundsException ae) {
+					throw new VerificationException("txHash：" + txHash + "未查询到相关交易输出index:" + index);
+				}
+			}
 			//广播交易
 			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress,remark);
 			json.put("success", br.isSuccess());
@@ -2365,10 +2400,6 @@ public class RPCServiceImpl implements RPCService {
 		}catch (Exception e) {
 			json.put("success", false);
 			json.put("message", e.getMessage());
-		}finally {
-			if(account != null) {
-				account.resetKey();
-			}
 		}
 		return json;
 	}

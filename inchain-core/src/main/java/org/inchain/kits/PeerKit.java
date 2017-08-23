@@ -72,7 +72,8 @@ public class PeerKit {
 
 	//广播接超级节点列表
 	private CopyOnWriteArrayList<Peer> superPeers = new CopyOnWriteArrayList<Peer>();
-	List<Seed> superAllList = null;
+
+	private List<Seed> superAllList = null;
 	
 	//连接管理器
 	@Autowired
@@ -131,6 +132,7 @@ public class PeerKit {
 	}
 	
 	private void init() {
+
 		connectionManager.setNewInConnectionListener(new NewInConnectionListener() {
 			@Override
 			public boolean allowConnection(InetSocketAddress inetSocketAddress) {
@@ -154,14 +156,22 @@ public class PeerKit {
 			}
 			@Override
 			public void connectionOpened(Peer peer) {
-				inPeers.add(peer);
+				if(isSuperPeer(peer)){
+					superPeers.add(peer);
+				}else {
+					inPeers.add(peer);
+				}
 				log.info("新连接{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
 				connectionOnChange(true);
 			}
 			@Override
 			public void connectionClosed(Peer peer) {
-				inPeers.remove(peer);
+				if(isSuperPeer(peer)){
+					superPeers.remove(peer);
+				}else {
+					inPeers.remove(peer);
+				}
 				log.info("连接关闭{}，当前流入"+inPeers.size()+"个节点 ，最大允许"+PeerKit.this.maxConnectionCount+"个节点 ", peer.getPeerAddress().getSocketAddress());
 				
 				connectionOnChange(false);
@@ -466,6 +476,14 @@ public class PeerKit {
 		}
 		if(!hasConnected) {
 			for (Peer peer : outPeers) {
+				if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
+					hasConnected = true;
+					break;
+				}
+			}
+		}
+		if(!hasConnected) {
+			for (Peer peer : superPeers) {
 				if(peer.getAddress().getAddr().getHostAddress().equals(inetAddress.getHostAddress())) {
 					hasConnected = true;
 					break;
@@ -893,5 +911,9 @@ public class PeerKit {
 	
 	public int getMinConnectionCount() {
 		return minConnectionCount;
+	}
+
+	public void setSuperAllList(List<Seed> superAllList) {
+		this.superAllList = superAllList;
 	}
 }
