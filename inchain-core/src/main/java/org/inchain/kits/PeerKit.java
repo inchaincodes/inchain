@@ -379,7 +379,7 @@ public class PeerKit {
 									}
 									peerDiscovery.refreshSeedStatus(seed);
 									//从超级连接列表中移除
-									superlist.remove(this);
+									superPeers.remove(this);
 									connectionOnChange(false);
 								}
 							};
@@ -428,6 +428,8 @@ public class PeerKit {
 								//加入主动连接列表
 								if(!isSuperPeer(this)){
 									outPeers.add(this);
+								}else {
+									superPeers.add(this);
 								}
 								connectionOnChange(true);
 							}
