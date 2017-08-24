@@ -57,7 +57,7 @@ public final class Configure {
 	/**
 	 * p2p 端口
 	 */
-	public final static int PORT = DEFAULT_PORT;//getProperty("port", DEFAULT_PORT);
+	public final static int PORT = getProperty("port", DEFAULT_PORT);
 	
 	/**
 	 * 是否挖矿
