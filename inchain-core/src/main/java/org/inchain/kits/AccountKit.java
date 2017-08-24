@@ -3362,7 +3362,7 @@ public class AccountKit {
 		if(certAccounts == null) {
 			return certAccountList;
 		}
-		for (int i = 0; i < certAccounts.length; i+=Address.LENGTH) {
+		for (int i = 0; i < certAccounts.length; i += Address.LENGTH + Sha256Hash.LENGTH) {
 			byte[] hash160 = Arrays.copyOfRange(certAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore != null) {

@@ -61,4 +61,9 @@ public class NodeSeedManager implements SeedManager {
 	public void reset() {
 		list = new ArrayList<Seed>();
 	}
+
+	@Override
+	public List<Seed> getAllSeeds() {
+		return list;
+	}
 }
