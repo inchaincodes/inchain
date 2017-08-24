@@ -2544,7 +2544,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		//判断信用是否足够
-		long cert = getAccountCredit((consensusAddress==null)?null:consensusAddress);
+		long cert = getAccountCredit(null);
 
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
@@ -2556,7 +2556,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//判断账户是否加密
-		if(accountKit.accountIsEncrypted(consensusAddress,Definition.TX_VERIFY_TR) && password == null) {
+		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
@@ -2583,7 +2583,7 @@ public class RPCServiceImpl implements RPCService {
 
 		//解密钱包
 		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password,consensusAddress,Definition.TX_VERIFY_TR);
+			Result result = accountKit.decryptWallet(password, null, Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
