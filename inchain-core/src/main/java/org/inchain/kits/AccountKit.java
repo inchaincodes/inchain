@@ -1707,7 +1707,7 @@ public class AccountKit {
 			tx.setLockTime(TimeService.currentTimeSeconds());
 			tx.setType(Definition.TYPE_PAY);
 			tx.setVersion(Definition.VERSION);
-
+			tx.setRemark(remark.getBytes("utf-8"));
 			//输入金额
 			Coin totalInputCoin = Coin.ZERO;
 			TransactionInput input = new TransactionInput();
@@ -3362,7 +3362,7 @@ public class AccountKit {
 		if(certAccounts == null) {
 			return certAccountList;
 		}
-		for (int i = 0; i < certAccounts.length; i+=Address.LENGTH) {
+		for (int i = 0; i < certAccounts.length; i += Address.LENGTH + Sha256Hash.LENGTH) {
 			byte[] hash160 = Arrays.copyOfRange(certAccounts, i, i + Address.LENGTH);
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountStore != null) {

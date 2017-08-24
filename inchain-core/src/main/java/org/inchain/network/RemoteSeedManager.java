@@ -131,4 +131,9 @@ public class RemoteSeedManager implements SeedManager {
 		hasInit = false;
 		list = new ArrayList<Seed>();
 	}
+
+	@Override
+	public List<Seed> getAllSeeds(){
+		return list;
+	}
 }

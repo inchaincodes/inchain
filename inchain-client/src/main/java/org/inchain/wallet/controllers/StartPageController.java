@@ -3,6 +3,7 @@ package org.inchain.wallet.controllers;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.inchain.Configure;
 import org.inchain.kit.InchainInstance;
 import org.inchain.listener.Listener;
 import org.inchain.wallet.listener.StartupListener;
@@ -68,7 +69,7 @@ public class StartPageController {
 		};
 		
     	InchainInstance instance = InchainInstance.getInstance();
-		instance.startup(2, appKitInitListener);
+		instance.startup(Configure.RUN_MODE, appKitInitListener);
     }
     
     /*

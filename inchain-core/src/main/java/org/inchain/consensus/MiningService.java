@@ -246,7 +246,7 @@ public final class MiningService implements Mining {
 		//处理违规情况的节点，目前只处理超时的
 		Set<TimeoutConsensusViolation> timeoutList = consensusMeeting.getTimeoutList();
 
-		if(consensusMeeting.getCurrentMeetingPeriodCount() > 3) { 
+		if(consensusMeeting.getCurrentMeetingPeriodCount() > 7) {
 			for (TimeoutConsensusViolation consensusViolation : timeoutList) {
 				log.info("超时的节点： {} , currentPeriodStartTime: {} , previousPeriodStartTime: {}" , new Address(network, consensusViolation.getHash160()).getBase58(), DateUtil.convertDate(new Date(consensusViolation.getCurrentPeriodStartTime() * 1000)), DateUtil.convertDate(new Date(consensusViolation.getPreviousPeriodStartTime() * 1000)));
 				//判断该节点是否已被处理，如果没处理则我来处理
@@ -314,10 +314,9 @@ public final class MiningService implements Mining {
 			InventoryItem item = new InventoryItem(Type.NewBlock, block.getHash());
 			InventoryMessage invMessage = new InventoryMessage(network, item);
 
-			int broadcastCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_SUPER_CONNECT_COUNT;
-			if(invMessage.getLength()>Definition.MIN_BLOCK_SIZE && (Configure.IS_SUPER_NODE == 0)) {
+			int broadcastCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT;
+			if(block.getLength()>Definition.MIN_BLOCK_SIZE && (Configure.IS_SUPER_NODE == 0)) {
 				peerKit.broadcastMessageToSuper(invMessage, broadcastCount);
-				log.info("BLock size is{},only broadcast to super peers");
 			}else{
 				peerKit.broadcastMessage(invMessage);
 			}

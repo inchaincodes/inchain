@@ -90,4 +90,6 @@ public interface PeerDiscovery {
 	public void reset();
 
 	public List<Seed> getDnsSeeds(int maxCount);
+
+	public List<Seed> getAllSeeds();
 }

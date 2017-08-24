@@ -158,7 +158,6 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				//打乱顺序
 				Collections.shuffle(canuseMaps);
 			}
-			
 			//启动时标记最后存储时间为当前时间
 			lastStorageTime = TimeService.currentTimeMillis();
 		} finally {
@@ -434,10 +433,17 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 					connectedStatusMaps.put(peerAddress, seed);
 				}
 			}
+			Collections.shuffle(result);
 			return result;
 		} else {
 			return new ArrayList<Seed>();
 		}
+	}
+
+	@Override
+	public List<Seed> getAllSeeds() {
+		SeedManager seedManager = network.getSeedManager();
+		return seedManager.getAllSeeds();
 	}
 
 	/**
