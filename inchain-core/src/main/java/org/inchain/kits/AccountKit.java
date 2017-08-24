@@ -1332,7 +1332,7 @@ public class AccountKit {
 			try {
 				receiveAddress = Address.fromBase58(network, to);
 			} catch (Exception e) {
-				throw new VerificationException("接收人地址有误");
+				throw new VerificationException("错误的接收地址");
 			}
 
 			//发送的金额必须大于0
@@ -1534,7 +1534,7 @@ public class AccountKit {
 			try {
 				receiveAddress = Address.fromBase58(network, to);
 			} catch (Exception e) {
-				throw new VerificationException("接收人地址有误");
+				throw new VerificationException("错误的接收地址");
 			}
 
 			//发送的金额必须大于0
@@ -1803,7 +1803,7 @@ public class AccountKit {
 			try {
 				receiveAddress = Address.fromBase58(network, to);
 			} catch (Exception e) {
-				throw new VerificationException("接收人地址有误");
+				throw new VerificationException("错误的接收地址");
 			}
 
 			//发送的金额必须大于0
@@ -3544,7 +3544,7 @@ public class AccountKit {
 				tx.addInput(input);
 
 				//输出到脚本
-				Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCertAccountManagerHash160());
+				Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCommunityManagerHash160());
 				tx.addOutput(recognizance, out);
 
 				//是否找零

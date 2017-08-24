@@ -82,17 +82,12 @@ public class MainNetworkParams extends NetworkParams {
 	}
 
 	/**
-	 * 获取该网络的认证管理账号的hash160
+	 * 获取该网络的认证社区账号的hash160
 	 * @return byte[]
 	 */
 	@Override
-	public byte[] getCertAccountManagerHash160() {
-		return null;
-	}
-
-	@Override
 	public byte[] getCommunityManagerHash160() {
-		return null;
+		return Hex.decode("48d883f777d63b3db0b89a864363c0dc90a27a71");
 	}
 	/**
 	 * 主网，普通地址以i开头

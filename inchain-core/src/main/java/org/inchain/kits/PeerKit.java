@@ -349,7 +349,7 @@ public class PeerKit {
 				int availableSuperPeersCount = getAvailableSuperPeersCount();
 				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT;
 				if(availableSuperPeersCount<needSuperPeersCount) {
-					List<Seed> superlist = peerDiscovery.getDnsSeeds(needSuperPeersCount - availableSuperPeersCount);
+					List<Seed> superlist = peerDiscovery.getAllSeeds();
 					if (superlist != null && superlist.size() > 0 ) {
 						for (final Seed seed : superlist) {
 							//排除与自己的连接
@@ -395,9 +395,7 @@ public class PeerKit {
 								@Override
 								public void connectionClosed() {
 									super.connectionClosed();
-									//连接状态设置为成功
-									seed.setStaus(Seed.SEED_CONNECT_FAIL);
-									seed.setRetry(true);
+									seed.setStaus(Seed.SEED_CONNECT_CLOSE);
 									peerDiscovery.refreshSeedStatus(seed);
 									//从超级连接列表中移除
 									superPeers.remove(this);

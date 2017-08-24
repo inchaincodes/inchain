@@ -144,7 +144,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			//读取节点列表信息
 			//TODO
 			netaddressMaps = readObjectFromFile();
-			
+
 			if(netaddressMaps == null) {
 				netaddressMaps = new CopyOnWriteArrayList<PeerAddressStore>();
 			} else {
@@ -472,6 +472,12 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			seed.setLastTime(TimeService.currentTimeMillis());
 		} else if(seed.getStaus() == Seed.SEED_CONNECT_SUCCESS) {
 			//连接成功，则重置失败次数
+			if(!peerKit.hasConnected(seed.getAddress().getAddress())){
+				seed.setStaus(Seed.SEED_CONNECT_CLOSE);
+				seed.setRetry(true);
+				seed.setRetryInterval(1 * 10 * 1000);
+				seed.setLastTime(TimeService.currentTimeMillis());
+			}
 			seed.setFailCount(0);
 		}
 	}
