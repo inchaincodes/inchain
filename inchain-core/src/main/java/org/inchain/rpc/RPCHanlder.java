@@ -190,8 +190,13 @@ public class RPCHanlder {
 
 			//通过hash或者高度获取一个完整的区块信息
 			case "getblock": {
-				result.put("success", true);
+
 				result.put("block", rpcService.getBlock(params.getString(0)));
+				if(result.getString("block").equals("not found")) {
+					result.put("success", false);
+				}else {
+					result.put("success", true);
+				}
 
 				return result;
 			}
