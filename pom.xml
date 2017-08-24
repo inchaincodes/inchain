@@ -7,7 +7,7 @@
     
 	<groupId>org.inchain</groupId>
 	<artifactId>inchain</artifactId>
-    <version>1.0</version>
+    <version>0.1</version>
     <name>inchain</name>
     <packaging>pom</packaging>
     
