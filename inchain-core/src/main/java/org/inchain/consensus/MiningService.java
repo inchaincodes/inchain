@@ -314,7 +314,7 @@ public final class MiningService implements Mining {
 			InventoryItem item = new InventoryItem(Type.NewBlock, block.getHash());
 			InventoryMessage invMessage = new InventoryMessage(network, item);
 
-			int broadcastCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_SUPER_CONNECT_COUNT;
+			int broadcastCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT;
 			if(block.getLength()>Definition.MIN_BLOCK_SIZE && (Configure.IS_SUPER_NODE == 0)) {
 				peerKit.broadcastMessageToSuper(invMessage, broadcastCount);
 			}else{

@@ -76,9 +76,14 @@ public final class Configure {
 	public final static int MAX_SUPER_CONNECT_COUNT = getProperty("max.super.connect.count", 100);
 
 	/**
-	 * 普通节点链接的超级节点数
+	 * 普通节点广播的超级节点数
 	 */
-	public final static int MAX_NORMAL_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 2);
+	public final static int MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 2);
+
+	/**
+	 * 普通节点连接的超级节点数
+	 */
+	public final static int MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 3);
 
 	/**
 	 * 本节点是否是超级节点 0：no   1：yes
