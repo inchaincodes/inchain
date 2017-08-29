@@ -70,15 +70,6 @@ public class UnitNetworkParams extends NetworkParams {
 	public MessageSerializer getSerializer(boolean parseRetain) {
 		return new DefaultMessageSerializer(this);
 	}
-	
-	/**
-	 * 获取该网络的认证管理账号的hash160
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getCertAccountManagerHash160() {
-		return Hex.decode("98ba9559d02ae15f34b0209a87377f1e59c50173");
-	}
 
 	@Override
 	public byte[] getCommunityManagerHash160() {

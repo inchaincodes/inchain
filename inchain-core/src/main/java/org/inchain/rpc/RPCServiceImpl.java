@@ -2544,7 +2544,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		//判断信用是否足够
-		long cert = getAccountCredit((consensusAddress==null)?null:consensusAddress);
+		long cert = getAccountCredit(null);
 
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
@@ -2556,7 +2556,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//判断账户是否加密
-		if(accountKit.accountIsEncrypted(consensusAddress,Definition.TX_VERIFY_TR) && password == null) {
+		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
@@ -2583,7 +2583,7 @@ public class RPCServiceImpl implements RPCService {
 
 		//解密钱包
 		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password,consensusAddress,Definition.TX_VERIFY_TR);
+			Result result = accountKit.decryptWallet(password, null, Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -2837,7 +2837,7 @@ public class RPCServiceImpl implements RPCService {
 		json.put("hash", tx.getHash());
 		json.put("type", tx.getType());
 		json.put("time", tx.getTime());
-		json.put("locakTime", tx.getLockTime());
+		json.put("lockTime", tx.getLockTime());
 
 		json.put("height", txs.getHeight());
 		json.put("confirmation", bestHeight - txs.getHeight());
@@ -3056,15 +3056,15 @@ public class RPCServiceImpl implements RPCService {
 			//认证账户注册
 			CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
 
-			JSONArray infos = new JSONArray();
+			JSONObject infos = new JSONObject();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
 			for (AccountKeyValue keyValuePair : bodyContents) {
 				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
-					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+					infos.put(keyValuePair.getCode(), Base64.getEncoder().encodeToString(keyValuePair.getValue()));
 				} else {
-					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					infos.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("infos", infos);
@@ -3075,13 +3075,13 @@ public class RPCServiceImpl implements RPCService {
 
 			List<ProductKeyValue> bodyContents = ptx.getProduct().getContents();
 
-			JSONArray product = new JSONArray();
+			JSONObject product = new JSONObject();
 			for (ProductKeyValue keyValuePair : bodyContents) {
 				if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 					//时间
-					product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+					product.put(keyValuePair.getCode(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 				} else {
-					product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					product.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("product", product);
@@ -3091,13 +3091,13 @@ public class RPCServiceImpl implements RPCService {
 			GeneralAntifakeTransaction gtx = (GeneralAntifakeTransaction) tx;
 
 			if(gtx.getProduct() != null) {
-				JSONArray product = new JSONArray();
+				JSONObject product = new JSONObject();
 				for (ProductKeyValue keyValuePair : gtx.getProduct().getContents()) {
 					if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 						//时间
-						product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+						product.put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 					} else {
-						product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+						product.put(keyValuePair.getName(), keyValuePair.getValueToString());
 					}
 				}
 				json.put("product", product);

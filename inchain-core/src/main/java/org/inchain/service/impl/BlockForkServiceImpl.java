@@ -441,8 +441,6 @@ public class BlockForkServiceImpl implements BlockForkService {
 	@Override
 	public void addBlockInPenalizeList(Block block, int type) {
 		
-		log.info("========={}", block);
-		
 		penalizeLock.lock();
 		try {
 			//验证不通过则代表可能是伪造的，不处理
@@ -473,8 +471,6 @@ public class BlockForkServiceImpl implements BlockForkService {
 					list.add(bestBlockHeader);
 					list.add(block.getBlockHeader());
 					penalizeList.add(list);
-					
-					log.info("=========加入成功");
 				}
 			}
 		} finally {

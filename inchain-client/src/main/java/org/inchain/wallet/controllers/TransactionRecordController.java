@@ -270,7 +270,7 @@ public class TransactionRecordController implements SubPageController {
 							{
 								inputAddress ="未确认交易退款";
 							}
-							detail = "来自 "+inputAddress+"";
+							detail = "来自 "+inputAddress + (StringUtil.isEmpty(detail)?"":("\n"+detail));
 						} else {
 							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;
 						}
