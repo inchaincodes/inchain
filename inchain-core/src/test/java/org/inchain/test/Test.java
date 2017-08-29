@@ -3,7 +3,13 @@ package org.inchain.test;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.inchain.store.TransactionStore;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -30,12 +36,13 @@ public class Test {
 	}
 	
 	public static void main(String[] args) throws JSONException{
-		JSONArray jsonArray = new JSONArray();
-		JSONObject jsonObject = new JSONObject();
-		jsonArray.put(new JSONObject().put("name", "aaa").put("age", 1));
-		jsonArray.put(new JSONObject().put("name", "bbb").put("age", 2));
-		jsonArray.put(new JSONObject().put("name", "ccc").put("age", 3));
-		jsonObject.put("infos", jsonArray);
-		System.out.println(jsonObject.toString());
+		try {
+			byte[] b = "胜多负少的".getBytes("utf-8");
+
+			String s = new String(b, "utf-8");
+			System.out.println(s);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 	}
 }

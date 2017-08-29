@@ -190,15 +190,7 @@ public class RPCHanlder {
 
 			//通过hash或者高度获取一个完整的区块信息
 			case "getblock": {
-
-				result.put("block", rpcService.getBlock(params.getString(0)));
-				if(result.getString("block").equals("not found")) {
-					result.put("success", false);
-				}else {
-					result.put("success", true);
-				}
-
-				return result;
+				return rpcService.getBlock(params.getString(0));
 			}
 
 			//通过hash获取一个分叉快
@@ -467,6 +459,50 @@ public class RPCHanlder {
 
 				return result;
 			}
+
+			//获取交易记录
+			case "listtransactions": {
+				if(params.length() == 0) {
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：listtransactions <limit> [confirm] [address]");
+					return result;
+				}
+
+				int limit = 0;
+				int confirm = 0;
+				String address = null;
+				try {
+					if(params.length() == 1) {
+						limit = params.getInt(0);
+					}else if(params.length() == 2) {
+						limit = params.getInt(0);
+						try {
+							confirm = params.getInt(1);
+						}catch (Exception e) {
+							address = params.getString(1);
+						}
+					}else if(params.length() > 2) {
+						limit = params.getInt(0);
+						confirm = params.getInt(1);
+						address = params.getString(2);
+					}
+					//检查地址是否合法
+					if(address != null) {
+						Address ar = Address.fromBase58(network, address);
+					}
+				}catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "参数格式错误，命令用法：listtransactions <count> [confirm] [address]");
+					return result;
+				}
+
+
+				JSONArray txs =  rpcService.listtransactions(limit, confirm, address);
+				result.put("success", true);
+				result.put("txs", txs);
+				return result;
+			}
+
 
 			//获取账户交易
 			case "gettransaction": {
@@ -1356,6 +1392,27 @@ public class RPCHanlder {
 		case "getaddressbypubkey": {
 			String pubkey = params.getString(0);
 			return rpcService.getAddressByPubKey(pubkey);
+		}
+
+
+		//验证地址
+		case "validateaddress": {
+			if(params.length() == 0) {
+				result.put("success", false);
+				result.put("message", "缺少参数，命令用法：validateaddress <address>");
+				return result;
+			}
+
+			String address = params.getString(0);
+			try {
+				Address.fromBase58(network, address);
+			} catch (Exception e) {
+				result.put("success", false);
+				result.put("message", "地址格式错误");
+				return result;
+			}
+
+
 		}
 		
 		//查看账户的私钥

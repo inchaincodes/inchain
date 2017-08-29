@@ -6,6 +6,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.account.AccountBody;
+import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Product;
 import org.inchain.core.exception.VerificationException;
@@ -199,6 +200,16 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONArray getTransferTx(Long height, Long confirm, String address) throws JSONException;
+
+	/**
+	 * 获取交易记录
+	 * @param count
+	 * @param confirm
+	 * @param address
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONArray listtransactions(Integer limit, Integer confirm, String address) throws JSONException;
 
 	/**
 	 * 通过交易hash获取条交易详情
@@ -603,5 +614,7 @@ public interface RPCService {
 	 * @return JSONObject
 	 */
 	JSONObject resetData() throws JSONException;
+
+	JSONObject validateAddress(String address) throws JSONException;
 
 }
