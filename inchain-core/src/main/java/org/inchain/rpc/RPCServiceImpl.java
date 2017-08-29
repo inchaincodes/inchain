@@ -2837,7 +2837,7 @@ public class RPCServiceImpl implements RPCService {
 		json.put("hash", tx.getHash());
 		json.put("type", tx.getType());
 		json.put("time", tx.getTime());
-		json.put("locakTime", tx.getLockTime());
+		json.put("lockTime", tx.getLockTime());
 
 		json.put("height", txs.getHeight());
 		json.put("confirmation", bestHeight - txs.getHeight());
@@ -3056,15 +3056,15 @@ public class RPCServiceImpl implements RPCService {
 			//认证账户注册
 			CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
 
-			JSONArray infos = new JSONArray();
+			JSONObject infos = new JSONObject();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
 			for (AccountKeyValue keyValuePair : bodyContents) {
 				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
-					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+					infos.put(keyValuePair.getCode(), Base64.getEncoder().encodeToString(keyValuePair.getValue()));
 				} else {
-					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					infos.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("infos", infos);
@@ -3075,13 +3075,13 @@ public class RPCServiceImpl implements RPCService {
 
 			List<ProductKeyValue> bodyContents = ptx.getProduct().getContents();
 
-			JSONArray product = new JSONArray();
+			JSONObject product = new JSONObject();
 			for (ProductKeyValue keyValuePair : bodyContents) {
 				if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 					//时间
-					product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+					product.put(keyValuePair.getCode(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 				} else {
-					product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					product.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("product", product);
@@ -3091,13 +3091,13 @@ public class RPCServiceImpl implements RPCService {
 			GeneralAntifakeTransaction gtx = (GeneralAntifakeTransaction) tx;
 
 			if(gtx.getProduct() != null) {
-				JSONArray product = new JSONArray();
+				JSONObject product = new JSONObject();
 				for (ProductKeyValue keyValuePair : gtx.getProduct().getContents()) {
 					if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 						//时间
-						product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+						product.put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 					} else {
-						product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+						product.put(keyValuePair.getName(), keyValuePair.getValueToString());
 					}
 				}
 				json.put("product", product);
