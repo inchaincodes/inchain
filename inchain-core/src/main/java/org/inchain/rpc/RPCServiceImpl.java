@@ -299,6 +299,29 @@ public class RPCServiceImpl implements RPCService {
 	}
 
 	/**
+	 * 创建count普通账户
+	 * @return JSONObject
+	 * @throws IOException
+	 * @throws JSONException
+	 */
+	@Override
+	public JSONObject newAccount(int count) throws IOException, JSONException {
+		JSONObject addresses = accountKit.createNewAccount(count);
+
+		JSONObject result = new JSONObject();
+
+		if(addresses == null) {
+			result.put("success", false);
+			result.put("message", "创建失败");
+		} else {
+			result.put("success", true);
+			result.put("message", "成功");
+			result.put("addresses", addresses.get("addresses"));
+		}
+		return result;
+	}
+
+	/**
 	 * 创建一个认证账户
 	 * @param mgpw
 	 * @param trpw
@@ -1907,6 +1930,18 @@ public class RPCServiceImpl implements RPCService {
 		Coin[] balances = new Coin[2];
 		balances[0] = accountKit.getCanUseBalance(address);
 		balances[1] = accountKit.getCanNotUseBalance(address);
+		return balances;
+	}
+
+	/**
+	 * 获取所有账户的总余额
+	 * @param address
+	 * @return Coin[]
+	 */
+	public Coin[] getTotalBalance(){
+		Coin[] balances = new Coin[2];
+		balances[0] = accountKit.getTotalCanUseBalance();
+		balances[1] = accountKit.getTotalCanNotUseBalance();
 		return balances;
 	}
 

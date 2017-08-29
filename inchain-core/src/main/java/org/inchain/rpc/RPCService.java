@@ -110,6 +110,13 @@ public interface RPCService {
 	JSONObject newAccount() throws JSONException, IOException;
 
 	/**
+	 * 创建count个普通账户
+	 * @return JSONObject
+	 * @throws JSONException
+	 * @throws IOException
+	 */
+	JSONObject newAccount(int count) throws JSONException, IOException;
+	/**
 	 * 创建一个认证账户
 	 * @param mgpw
 	 * @param trpw
@@ -164,8 +171,13 @@ public interface RPCService {
 	 * @return Coin[]
 	 */
 	Coin[] getAccountBalance(String address);
-	
 
+	/**
+	 * 获取所有账户的总余额
+	 * @param address
+	 * @return Coin[]
+	 */
+	Coin[] getTotalBalance();
 	/**
 	 * 获取账户的信用
 	 * @param address 

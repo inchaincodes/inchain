@@ -216,9 +216,19 @@ public class RPCHanlder {
 
 			//新建普通账户
 			case "newaccount": {
-
+				int count = 1;
+				if(params.length()==0){
+					count = 1;
+				}else {
+					count = params.getInt(0);
+				}
+				if(count>10000){
+					result.put("success", false);
+					result.put("message", "参数不正确，每次最多生成10000个账户地址");
+					return result;
+				}
 				try {
-					result = rpcService.newAccount();
+					result = rpcService.newAccount(count);
 				} catch (IOException e) {
 					result.put("success", false);
 					result.put("message", "创建时出错：" + e.getMessage());
@@ -342,6 +352,25 @@ public class RPCHanlder {
 				}
 
 				Coin[] blanaces = rpcService.getAccountBalance(address);
+
+				result.put("success", true);
+				result.put("blanace", blanaces[0].add(blanaces[1]).value);
+				result.put("canUseBlanace", blanaces[0].value);
+				result.put("cannotUseBlanace", blanaces[1].value);
+
+				return result;
+			}
+
+			//获取所有账户总余额
+			case "gettotalbalance": {
+
+				String address = null;
+
+				if(params.length() > 0) {
+					address = params.getString(0);
+				}
+
+				Coin[] blanaces = rpcService.getTotalBalance();
 
 				result.put("success", true);
 				result.put("blanace", blanaces[0].add(blanaces[1]).value);

@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.Configure;
@@ -266,6 +267,22 @@ public class AccountKit {
 	}
 
 	/**
+	 * 获取所有账户可用余额总数
+	 */
+	public Coin getTotalCanUseBalance() {
+		Coin total = Coin.ZERO;
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		for (Account account : accountList) {
+			total = total.add(getCanUseBalance(account.getAddress()));
+		}
+		return total;
+	}
+
+
+
+	/**
 	 * 获取可用余额
 	 */
 	public Coin getCanUseBalance(Address address) {
@@ -283,6 +300,20 @@ public class AccountKit {
 			return Coin.ZERO;
 		}
 		return getCanNotUseBalance(getDefaultAccount().getAddress());
+	}
+
+	/**
+	 * 获取所有账户不可用总余额
+	 */
+	public Coin getTotalCanNotUseBalance() {
+		Coin total = Coin.ZERO;
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		for (Account account : accountList) {
+			total = total.add(getCanNotUseBalance(account.getAddress()));
+		}
+		return total;
 	}
 
 	/**
@@ -2157,7 +2188,6 @@ public class AccountKit {
 	 * @throws Exception
 	 */
 	public Address createNewAccount() throws IOException {
-
 		locker.lock();
 		try {
 
@@ -2194,6 +2224,58 @@ public class AccountKit {
 		} finally {
 			locker.unlock();
 		}
+	}
+
+	/**
+	 * 初始化一个普通帐户
+	 * @return Address
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public JSONObject createNewAccount(int count) throws IOException {
+		File accountFile = null;
+		FileOutputStream fos = null;
+		locker.lock();
+		JSONObject addresses = new JSONObject();
+		JSONArray addressesArrays = new JSONArray();
+		accountFile = new File(accountDir, "accountlist"+DateUtil.convertDate(new Date(),"yyyyMMddHHmmss") +"_"+count+".dat");
+		fos = new FileOutputStream(accountFile);
+		try {
+			for (int i=0;i<count;i++) {
+//			ECKey key = ECKey.fromPrivate(new BigInteger(""));
+				ECKey key = new ECKey();
+
+				Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
+
+				address.setBalance(Coin.ZERO);
+				address.setUnconfirmedBalance(Coin.ZERO);
+
+				Account account = new Account(network);
+
+				account.setPriSeed(key.getPrivKeyBytes());
+				account.setAccountType(address.getVersion());
+				account.setAddress(address);
+				account.setMgPubkeys(new byte[][]{key.getPubKey(true)});
+				account.signAccount(key, null);
+				account.setEcKey(key);
+				accountList.add(account);
+				addressesArrays.put(i,account.getAddress().getBase58());
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+				} finally {
+
+				}
+			}
+			addresses.put("addresses",addressesArrays);
+			return addresses;
+		}catch (Exception e){
+			log.info("创建多用户地址出错："+e);
+		} finally {
+			locker.unlock();
+			fos.close();
+		}
+		return null;
 	}
 
 	/**
@@ -3063,18 +3145,22 @@ public class AccountKit {
 			try {
 				byte[] datas = new byte[fis.available()];
 				fis.read(datas);
-				Account account = Account.parse(datas, network);
-				if(account == null) {
-					log.warn("parse account err, file {}", accountFile);
-					continue;
-				}
-				//验证帐户
-				account.verify();
+				int cursor = 0;
+				while (cursor<datas.length) {
+					Account account = Account.parse(datas,cursor, network);
+					if (account == null) {
+						log.warn("parse account err, file {}", accountFile);
+						continue;
+					}
+					//验证帐户
+					account.verify();
 
-				accountList.add(account);
+					accountList.add(account);
 
-				if(log.isDebugEnabled()) {
-					log.debug("load account {} success", account.getAddress().getBase58());
+					if(log.isDebugEnabled()) {
+						log.debug("load account {} success", account.getAddress().getBase58());
+					}
+					cursor+= account.serialize().length;
 				}
 			} catch (VerificationException e) {
 				log.warn("read account file {} err", accountFile);
