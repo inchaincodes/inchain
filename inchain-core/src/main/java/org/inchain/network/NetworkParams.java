@@ -84,12 +84,6 @@ public abstract class NetworkParams {
 	public abstract int getProtocolVersionNum(final ProtocolVersion version);
 
 	/**
-	 * 获取该网络的认证管理账号的hash160
-	 * @return byte[]
-	 */
-	public abstract byte[] getCertAccountManagerHash160();
-
-	/**
 	 * 获取该网络的社区管理账号的hash160
 	 */
 	public abstract byte[] getCommunityManagerHash160();

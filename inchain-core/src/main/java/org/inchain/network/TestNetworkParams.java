@@ -75,19 +75,6 @@ public class TestNetworkParams extends NetworkParams {
 		return new DefaultMessageSerializer(this);
 	}
 
-	/**
-	 * 获取该网络的认证管理账号的hash160
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getCertAccountManagerHash160() {
-
-
-		//return Hex.decode("8e168bb4963f0523b9ee1c734d3c142976581930");//root
-		//return Hex.decode("b326aeb9c6710864441b7c6a282ce924b4c31749");//manager
-		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1
-	}
-
 	@Override
 	public byte[] getCommunityManagerHash160() {
 		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1

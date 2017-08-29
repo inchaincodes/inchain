@@ -190,8 +190,13 @@ public class RPCHanlder {
 
 			//通过hash或者高度获取一个完整的区块信息
 			case "getblock": {
-				result.put("success", true);
+
 				result.put("block", rpcService.getBlock(params.getString(0)));
+				if(result.getString("block").equals("not found")) {
+					result.put("success", false);
+				}else {
+					result.put("success", true);
+				}
 
 				return result;
 			}
@@ -1414,7 +1419,7 @@ public class RPCHanlder {
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
 		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
-		sb.append("  send [to address] [money] [fee]     转账\n");
+		sb.append("  send <to address> <coin> <my address> [password] [remark]    转账\n");
 		sb.append("  lockmoney [amount] [unlockTime] [password]     锁仓交易,unlockTime的格式为yyyy-MM-dd\n");
 		sb.append("  broadcast [txcontent]               广播交易\n");
 		sb.append("\n");
