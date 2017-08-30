@@ -391,6 +391,16 @@ public interface RPCService {
 	JSONObject sendMoney(String toAddress, String money, String address, String password, String remark, String passwordOrRemark) throws JSONException;
 
 	/**
+	 * 发送交易
+	 * @param toAddress
+	 * @param money
+	 * @param remark
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject sendMoneyToAddress(String toAddress,String amount,String remark) throws JSONException;
+
+	/**
 	 * 锁仓奖励
 	 * @param toAddress
 	 * @param money

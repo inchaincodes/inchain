@@ -2255,6 +2255,45 @@ public class RPCServiceImpl implements RPCService {
 		}
 	}
 
+
+	public JSONObject sendMoneyToAddress(String toAddress,String amount,String remark) throws JSONException{
+		JSONObject json = new JSONObject();
+		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(amount)) {
+			json.put("success", false);
+			json.put("message", "参数缺少");
+			return json;
+		}
+
+		Coin moneyCoin = null;
+		Coin feeCoin = null;
+		try {
+			moneyCoin = Coin.parseCoin(amount);
+			feeCoin = Coin.parseCoin("0.1");
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", "金额不正确");
+			return json;
+		}
+		Coin total = accountKit.getTotalCanUseBalance();
+		if(total.isLessThan(moneyCoin.add(feeCoin))){
+			json.put("success", false);
+			json.put("message", "总余额不足");
+			return json;
+		}
+		try {
+			BroadcastResult br = accountKit.sendtoAddress(toAddress, moneyCoin, feeCoin, remark == null ? null:remark.getBytes());
+
+			json.put("success", br.isSuccess());
+			json.put("message", br.getMessage());
+			json.put("txHash", br.getHash());
+			return json;
+		} catch (Exception e) {
+			json.put("success", false);
+			json.put("message", e.getMessage());
+			return json;
+		}
+	}
+
 	public JSONObject lockReward(String toAddress, Coin money, String address, String password, String remark, long lockTime) throws JSONException {
 		JSONObject json = new JSONObject();
 		try {

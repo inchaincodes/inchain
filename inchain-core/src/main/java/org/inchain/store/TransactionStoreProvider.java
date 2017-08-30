@@ -2,6 +2,7 @@ package org.inchain.store;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -20,6 +21,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
+import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -603,6 +605,73 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 		}
 		return txs;
 	}
+
+	/**
+	 * 获取制定地址集合所有未花费的交易输出
+	 * @return List<TransactionOutput>
+	 */
+	public HashMap<String,List<TransactionOutput>> getNotSpentTransactionOutputs(List<byte[]> hash160s) {
+
+		HashMap<String,List<TransactionOutput>> txs = new HashMap<String,List<TransactionOutput>>();
+
+		//查询当前区块最新高度
+		long bestBlockHeight = network.getBestHeight();
+		long localBestBlockHeight = network.getBestBlockHeight();
+
+		if(bestBlockHeight < localBestBlockHeight) {
+			bestBlockHeight = localBestBlockHeight;
+		}
+
+
+		for(int j=0;j<hash160s.size();j++){
+			byte[] hash160 = hash160s.get(j);
+			log.info("find user"+ Hex.encode(hash160));
+			ArrayList<TransactionOutput> unSpentOutputs= new ArrayList<TransactionOutput>();
+			for (TransactionStore transactionStore : unspendTxList){
+				//交易状态
+
+				byte[] status = transactionStore.getStatus();
+				Transaction tx = transactionStore.getTransaction();
+				List<TransactionOutput> outputs = tx.getOutputs();
+				//如果不是转账交易，则跳过
+				if(!tx.isPaymentTransaction()) {
+					continue;
+				}
+
+				//如果交易不可用，则跳过
+				if(tx.getLockTime() < 0l
+						|| (tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds())
+						|| (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) {
+					continue;
+				}
+
+				//遍历交易输出
+				for (int i = 0; i < outputs.size(); i++) {
+					TransactionOutput output = outputs.get(i);
+					Script script = output.getScript();
+					if (script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+						log.info("find output"+ Hex.encode(script.getChunks().get(2).data));
+						//交易是否已花费
+						if (status[i] == TransactionStore.STATUS_USED) {
+							continue;
+						}
+						//本笔输出是否可用
+						long lockTime = output.getLockTime();
+						if (lockTime < 0l
+								|| (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
+								|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight)) {
+							continue;
+						} else {
+							unSpentOutputs.add((TransactionOutput) output);
+						}
+					}
+				}
+			}
+			txs.put(new Address(network,hash160).getBase58() ,unSpentOutputs);
+		}
+		return txs;
+	}
+
 
 	/**
 	 * 获取认证账户信息对应的最新的交易记录

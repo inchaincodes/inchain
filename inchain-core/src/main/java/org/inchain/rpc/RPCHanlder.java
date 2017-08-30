@@ -537,6 +537,30 @@ public class RPCHanlder {
 				return rpcService.sendMoney(toAddress, amount, address, password, remark, passwordOrRemark);
 			}
 
+			//多用户向同一个地址转账
+			case "sendtoaddress": {
+
+				if(params.length() < 2) {
+					return new JSONObject().put("success", false).put("message", "缺少参数");
+				}
+
+				String toAddress = params.getString(0);
+				String amount = params.getString(1);
+				String remark = null;
+
+
+				if(params.length() == 3) {
+					remark = params.getString(2);
+				}
+				try {
+					Address a = new Address(network, toAddress);
+				} catch (Exception e) {
+					return new JSONObject().put("success", false).put("message", "接收人地址有误");
+				}
+
+				return rpcService.sendMoneyToAddress(toAddress, amount,remark);
+			}
+
 
 			//发放送仓奖励
 			case "lockreward": {

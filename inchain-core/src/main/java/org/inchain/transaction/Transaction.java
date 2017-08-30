@@ -490,6 +490,10 @@ public class Transaction extends Message {
         }
 		return hash;
 	}
+	public Sha256Hash getHashNoCache() {
+		return Sha256Hash.wrapReversed(Sha256Hash.hashTwice(unsafeBitcoinSerialize()));
+	}
+
 	public void setHash(Sha256Hash hash) {
 		this.hash = hash;
 	}
