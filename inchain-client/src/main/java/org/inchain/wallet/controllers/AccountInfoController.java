@@ -581,7 +581,7 @@ public class AccountInfoController implements SubPageController {
 	private void showPriKeyQRCode() {
 		URL location = getClass().getResource("/resources/template/weChatCode.fxml");
 		FXMLLoader loader = new FXMLLoader(location);
-		DailogUtil.showDailog(loader, "扫描二维码",300,300);
+		DailogUtil.showDailog(loader, "扫描二维码",300,350);
 	}
 
 	/*

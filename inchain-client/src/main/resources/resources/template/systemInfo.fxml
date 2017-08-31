@@ -50,7 +50,7 @@
                               <Insets left="110.0" />
                            </HBox.margin>
                         </Label>
-                        <Label fx:id="network" text="测试网络">
+                        <Label fx:id="network" text="正式网络">
                            <HBox.margin>
                               <Insets left="65.0" />
                            </HBox.margin>

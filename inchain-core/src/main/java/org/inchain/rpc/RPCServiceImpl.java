@@ -6,13 +6,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -35,6 +32,7 @@ import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
+import org.inchain.network.MainNetworkParams;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
 import org.inchain.script.ScriptBuilder;
@@ -188,21 +186,25 @@ public class RPCServiceImpl implements RPCService {
 
 		JSONObject json = new JSONObject();
 		if(block == null) {
+			json.put("success", false);
 			json.put("message", "not found");
 			return json;
 		}
-		json.put("version", block.getVersion())
-				.put("height", block.getHeight())
-				.put("hash", block.getHash())
-				.put("preHash", block.getPreHash())
-				.put("merkleHash", block.getMerkleHash())
-				.put("time", block.getTime())
-				.put("periodStartTime", block.getPeriodStartTime())
-				.put("timePeriod", block.getTimePeriod())
-				.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
-				.put("scriptSig", block.getScriptSig())
-				.put("txCount", block.getTxCount())
-				.put("txs", block.getTxs());
+
+		JSONObject blockJson = new JSONObject();
+
+		blockJson.put("version", block.getVersion())
+			.put("height", block.getHeight())
+			.put("hash", block.getHash())
+			.put("preHash", block.getPreHash())
+			.put("merkleHash", block.getMerkleHash())
+			.put("time", block.getTime())
+			.put("periodStartTime", block.getPeriodStartTime())
+			.put("timePeriod", block.getTimePeriod())
+			.put("consensusAddress", block.getScriptSig().getAccountBase58(network))
+			.put("scriptSig", block.getScriptSig())
+			.put("txCount", block.getTxCount());
+			//.put("txs", block.getTxs());
 
 		List<Transaction> txList = block.getTxs();
 
@@ -215,8 +217,9 @@ public class RPCServiceImpl implements RPCService {
 			txs.put(txConver(new TransactionStore(network, transaction, block.getHeight(), new byte[] {1}), bestHeight, accountList));
 		}
 
-		json.put("txs", txs);
-
+		blockJson.put("txs", txs);
+        json.put("success", true);
+        json.put("block", blockJson);
 		return json;
 	}
 
@@ -2122,6 +2125,48 @@ public class RPCServiceImpl implements RPCService {
 		return array;
 	}
 
+	public JSONArray listtransactions(Integer limit, Integer confirm, String address) throws JSONException {
+		JSONArray array = new JSONArray();
+
+		List<TransactionStore> mineList = transactionStoreProvider.getMineTxList(address);
+		//依然按照交易时间排序
+		if(mineList.size() > 0) {
+			Collections.sort(mineList, new Comparator<TransactionStore>() {
+				@Override
+				public int compare(TransactionStore o1, TransactionStore o2) {
+					long v1 = o1.getTransaction().getTime();
+					long v2 = o2.getTransaction().getTime();
+					if(v1 == v2) {
+						return 0;
+					} else if(v1 > v2) {
+						return -1;
+					} else {
+						return 1;
+					}
+				}
+			});
+
+			//这里只取与我相关的转账交易，且确认数等于confirm的
+			long bestHeight = network.getBestBlockHeight();
+			int count = 0;
+			List<Account> accountList = accountKit.getAccountList();
+			for(int i = 0;i < mineList.size(); i++) {
+				TransactionStore txStore = mineList.get(i);
+				if(txStore.getTransaction().getType() == Definition.TYPE_PAY) {
+					if(bestHeight - txStore.getHeight() > confirm) {
+						array.put(txConver(txStore, bestHeight, accountList));
+						count++;
+					}
+				}
+				if(count == limit) {
+					break;
+				}
+			}
+		}
+
+		return array;
+	}
+
 	/**
 	 * 通过交易hash获取条交易详情
 	 * @param txid
@@ -2618,7 +2663,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		//判断信用是否足够
-		long cert = getAccountCredit((consensusAddress==null)?null:consensusAddress);
+		long cert = getAccountCredit(null);
 
 		BlockHeader bestBlockHeader = network.getBestBlockHeader();
 		long consensusCert = ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight());
@@ -2630,7 +2675,7 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//判断账户是否加密
-		if(accountKit.accountIsEncrypted(consensusAddress,Definition.TX_VERIFY_TR) && password == null) {
+		if(accountKit.accountIsEncrypted(Definition.TX_VERIFY_TR) && password == null) {
 			json.put("needInput", true);
 			json.put("inputType", 1);	//输入密码
 			json.put("inputTip", "输入钱包密码参与共识");
@@ -2657,7 +2702,7 @@ public class RPCServiceImpl implements RPCService {
 
 		//解密钱包
 		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password,consensusAddress,Definition.TX_VERIFY_TR);
+			Result result = accountKit.decryptWallet(password, null, Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -2697,6 +2742,23 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 
+
+	public JSONObject regconsensusFee() throws JSONException {
+		JSONObject json = new JSONObject();
+		try {
+			BlockHeader bestBlockHeader = network.getBestBlockHeader();
+			int currentConsensusSize = bestBlockHeader.getPeriodCount();
+			//共识保证金
+			Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, bestBlockHeader.getHeight());
+			json.put("success", true);
+			json.put("recognizance", new BigDecimal(recognizance.value).movePointLeft(8));
+		}catch (Exception e) {
+			log.error("共识请求出错", e);
+			json.put("sucess", false);
+			json.put("message", "共识查询出错");
+		}
+		return json;
+	}
 	/**
 	 * 退出共识
 	 * @param password
@@ -2892,6 +2954,21 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 
+	public JSONObject validateAddress(String address) throws JSONException {
+		JSONObject json = new JSONObject();
+		Account account = accountKit.getAccount(address);
+		if(account == null) {
+			json.put("ismine", false);
+		}else {
+			if(account.getAddress().getVersion() == network.getCertAccountVersion()) {
+				json.put("ismine", false);
+			}else {
+				json.put("ismine", true);
+			}
+		}
+		return json;
+	}
+
 	/*
 	 * 转换tx为json
 	 */
@@ -2911,7 +2988,7 @@ public class RPCServiceImpl implements RPCService {
 		json.put("hash", tx.getHash());
 		json.put("type", tx.getType());
 		json.put("time", tx.getTime());
-		json.put("locakTime", tx.getLockTime());
+		json.put("lockTime", tx.getLockTime());
 
 		json.put("height", txs.getHeight());
 		json.put("confirmation", bestHeight - txs.getHeight());
@@ -3130,15 +3207,15 @@ public class RPCServiceImpl implements RPCService {
 			//认证账户注册
 			CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
 
-			JSONArray infos = new JSONArray();
+			JSONObject infos = new JSONObject();
 
 			List<AccountKeyValue> bodyContents = crt.getBody().getContents();
 			for (AccountKeyValue keyValuePair : bodyContents) {
 				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
-					infos.put(new JSONObject().put(keyValuePair.getName(), Base64.getEncoder().encodeToString(keyValuePair.getValue())));
+					infos.put(keyValuePair.getCode(), Base64.getEncoder().encodeToString(keyValuePair.getValue()));
 				} else {
-					infos.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					infos.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("infos", infos);
@@ -3149,13 +3226,13 @@ public class RPCServiceImpl implements RPCService {
 
 			List<ProductKeyValue> bodyContents = ptx.getProduct().getContents();
 
-			JSONArray product = new JSONArray();
+			JSONObject product = new JSONObject();
 			for (ProductKeyValue keyValuePair : bodyContents) {
 				if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 					//时间
-					product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+					product.put(keyValuePair.getCode(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 				} else {
-					product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+					product.put(keyValuePair.getCode(), keyValuePair.getValueToString());
 				}
 			}
 			json.put("product", product);
@@ -3165,13 +3242,13 @@ public class RPCServiceImpl implements RPCService {
 			GeneralAntifakeTransaction gtx = (GeneralAntifakeTransaction) tx;
 
 			if(gtx.getProduct() != null) {
-				JSONArray product = new JSONArray();
+				JSONObject product = new JSONObject();
 				for (ProductKeyValue keyValuePair : gtx.getProduct().getContents()) {
 					if(ProductKeyValue.CREATE_TIME.getCode().equals(keyValuePair.getCode())) {
 						//时间
-						product.put(new JSONObject().put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0)))));
+						product.put(keyValuePair.getName(), DateUtil.convertDate(new Date(Utils.readInt64(keyValuePair.getValue(), 0))));
 					} else {
-						product.put(new JSONObject().put(keyValuePair.getName(), keyValuePair.getValueToString()));
+						product.put(keyValuePair.getName(), keyValuePair.getValueToString());
 					}
 				}
 				json.put("product", product);
@@ -3226,6 +3303,13 @@ public class RPCServiceImpl implements RPCService {
             }
             json.put("amount", aitx.getAmount());
             json.put("receiver", address.getBase58());
+		} else if(tx.getType() == Definition.TYPE_REG_ALIAS || tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
+			RegAliasTransaction rtx = (RegAliasTransaction)tx;
+			try {
+				json.put("alias", new String(rtx.getAlias(),"utf-8"));
+			} catch (UnsupportedEncodingException e) {
+
+			}
 		}
 
 		return json;

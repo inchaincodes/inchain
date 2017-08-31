@@ -1329,6 +1329,10 @@ public class AccountKit {
 
 		bestheight = network.getBestHeight();
 		localbestheighttime = blockStoreProvider.getBestBlockHeader().getBlockHeader().getTime();
+		if(peerKit.getAvailablePeersCount()==0){
+			throw new VerificationException("当前网络不可用，请稍后再尝试");
+		}
+
 		if(bestheight == 0){
 			if(dataSynchronizeHandler.isDownloading()) {
 				throw new VerificationException("正在同步区块中，请稍后再尝试");
@@ -1349,6 +1353,8 @@ public class AccountKit {
 				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
 			}
 		}
+
+
 
 		locker.lock();
 		try {
@@ -3887,15 +3893,8 @@ public class AccountKit {
 		try {
 			BlockHeader bestBlockHeader = network.getBestBlockHeader();
 
-			Account account =null;
-			if(packagerAddress==null){
-				account = getDefaultAccount();
-			}else{
-				account = getAccount(packagerAddress);
-			}
-			if(account ==null){
-				return new Result(false, "账户"+packagerAddress+"不存在");
-			}
+			Account account = getDefaultAccount();
+
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
 			if((accountStore != null && accountStore.getCert() >= ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()))
 					|| (ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()) <= 0l && accountStore == null)) {
@@ -3945,7 +3944,7 @@ public class AccountKit {
 				tx.addInput(input);
 
 				//输出到脚本
-				Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCertAccountManagerHash160());
+				Script out = ScriptBuilder.createConsensusOutputScript(account.getAddress().getHash160(), network.getCommunityManagerHash160());
 				tx.addOutput(recognizance, out);
 
 				//是否找零

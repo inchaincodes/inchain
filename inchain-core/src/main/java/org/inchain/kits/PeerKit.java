@@ -349,7 +349,7 @@ public class PeerKit {
 				int availableSuperPeersCount = getAvailableSuperPeersCount();
 				int needSuperPeersCount = (Configure.IS_SUPER_NODE==1)?Configure.MAX_SUPER_CONNECT_COUNT:Configure.MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT;
 				if(availableSuperPeersCount<needSuperPeersCount) {
-					List<Seed> superlist = peerDiscovery.getDnsSeeds(needSuperPeersCount - availableSuperPeersCount);
+					List<Seed> superlist = peerDiscovery.getAllSeeds();
 					if (superlist != null && superlist.size() > 0 ) {
 						for (final Seed seed : superlist) {
 							//排除与自己的连接
@@ -385,6 +385,8 @@ public class PeerKit {
 									if(superPeers.size()<needSuperPeersCount) {
 										superPeers.add(this);
 									}else {
+										seed.setStaus(Seed.SEED_CONNECT_WAIT);
+										seed.setRetry(true);
 										this.close();
 									}
 									connectionOnChange(true);
@@ -393,14 +395,7 @@ public class PeerKit {
 								@Override
 								public void connectionClosed() {
 									super.connectionClosed();
-									//连接状态设置为成功
-									if (seed.getStaus() == Seed.SEED_CONNECT_SUCCESS) {
-										//连接成功过，那么断开连接
-										seed.setStaus(Seed.SEED_CONNECT_CLOSE);
-									} else {
-										//连接失败
-										seed.setStaus(Seed.SEED_CONNECT_FAIL);
-									}
+									seed.setStaus(Seed.SEED_CONNECT_CLOSE);
 									peerDiscovery.refreshSeedStatus(seed);
 									//从超级连接列表中移除
 									superPeers.remove(this);
@@ -408,9 +403,7 @@ public class PeerKit {
 								}
 							};
 							seed.setLastTime(TimeService.currentTimeMillis());
-							if(superPeers.size()<needSuperPeersCount) {
-								connectionManager.openConnection(seed.getAddress(), peer);
-							}
+							connectionManager.openConnection(seed.getAddress(), peer);
 						}
 					}
 				}
@@ -419,7 +412,7 @@ public class PeerKit {
 				if(availablePeersCount >= maxConnectionCount) {
 					return;
 				}
-				
+
 				List<Seed> seedList = peerDiscovery.getCanConnectPeerSeeds(maxConnectionCount - availablePeersCount);
 				if(seedList != null && seedList.size() > 0) {
 					for (final Seed seed : seedList) {
