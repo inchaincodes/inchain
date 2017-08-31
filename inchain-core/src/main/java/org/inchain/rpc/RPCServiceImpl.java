@@ -141,7 +141,9 @@ public class RPCServiceImpl implements RPCService {
 			json.put("message", "not found");
 			return json;
 		}
-		json.put("version", blockHeader.getVersion())
+
+        JSONObject blockJson = new JSONObject();
+        blockJson.put("version", blockHeader.getVersion())
 				.put("height", blockHeader.getHeight())
 				.put("hash", blockHeader.getHash())
 				.put("preHash", blockHeader.getPreHash())
@@ -154,6 +156,8 @@ public class RPCServiceImpl implements RPCService {
 				.put("txCount", blockHeader.getTxCount())
 				.put("txs", blockHeader.getTxHashs());
 
+        json.put("success", true);
+        json.put("blockheader", blockJson);
 		return json;
 	}
 
@@ -2939,13 +2943,21 @@ public class RPCServiceImpl implements RPCService {
 		Account account = accountKit.getAccount(address);
 		if(account == null) {
 			json.put("ismine", false);
+            json.put("isscript", false);
 		}else {
 			if(account.getAddress().getVersion() == network.getCertAccountVersion()) {
 				json.put("ismine", false);
+                json.put("isscript", false);
 			}else {
 				json.put("ismine", true);
+				if(account.isEncrypted()) {
+                    json.put("isscript", true);
+                }else {
+                    json.put("isscript", false);
+                }
 			}
 		}
+		json.put("success", true);
 		return json;
 	}
 
