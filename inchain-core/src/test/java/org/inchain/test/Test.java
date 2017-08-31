@@ -3,6 +3,7 @@ package org.inchain.test;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.inchain.crypto.ECKey;
 import org.inchain.store.TransactionStore;
 
 import java.io.UnsupportedEncodingException;
@@ -35,14 +36,12 @@ public class Test {
 		}
 	}
 	
-	public static void main(String[] args) throws JSONException{
-		try {
-			byte[] b = "胜多负少的".getBytes("utf-8");
+	public static void main(String[] args){
+		ECKey key1 = new ECKey();
+		ECKey key2 = new ECKey();
 
-			String s = new String(b, "utf-8");
-			System.out.println(s);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
+		System.out.println(new String(key1.getPubKey()));
+
+		System.out.println(new String(key2.getPubKey()));
 	}
 }

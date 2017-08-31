@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.util.*;
@@ -2663,6 +2664,23 @@ public class RPCServiceImpl implements RPCService {
 		return json;
 	}
 
+
+	public JSONObject regconsensusFee() throws JSONException {
+		JSONObject json = new JSONObject();
+		try {
+			BlockHeader bestBlockHeader = network.getBestBlockHeader();
+			int currentConsensusSize = bestBlockHeader.getPeriodCount();
+			//共识保证金
+			Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, bestBlockHeader.getHeight());
+			json.put("success", true);
+			json.put("recognizance", new BigDecimal(recognizance.value).movePointLeft(8));
+		}catch (Exception e) {
+			log.error("共识请求出错", e);
+			json.put("sucess", false);
+			json.put("message", "共识查询出错");
+		}
+		return json;
+	}
 	/**
 	 * 退出共识
 	 * @param password

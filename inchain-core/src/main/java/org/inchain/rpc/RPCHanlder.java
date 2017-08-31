@@ -550,7 +550,7 @@ public class RPCHanlder {
 			}
 
 
-			//发放送仓奖励
+			//发放锁仓奖励
 			case "lockreward": {
 				if(params.length() < 6) {
 					return new JSONObject().put("success", false).put("message", "缺少参数");
@@ -631,7 +631,7 @@ public class RPCHanlder {
 						password = params.getString(4);
 					} catch (Exception e) {
 						result.put("success", false);
-						result.put("message", "缺少参数，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]");
+						result.put("message", "缺少参数，命令用法：lockmoney <money> <unlockTime> <remark> [address] [password]，日期格式为yyyy-MM-dd");
 						return result;
 					}
 				}
@@ -641,14 +641,14 @@ public class RPCHanlder {
 					lockValue = Coin.parseCoin(amount);
 				} catch (Exception e) {
 					result.put("success", false);
-					result.put("message", "错误的锁仓金额，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]");
+					result.put("message", "错误的锁仓金额，命令用法：lockmoney <money> <unlockTime> <remark> [address] [password]，日期格式为yyyy-MM-dd");
 					return result;
 				}
 				try {
 					lockTime = DateUtil.convertStringToDate(lockTimeStr, "yyyy-MM-dd").getTime() / 1000;
 				} catch (Exception e) {
 					result.put("success", false);
-					result.put("message", "错误的日期，命令用法：lockmoney <money> <lockTime> <remark> [address] [password]，日期格式为yyyy-MM-dd");
+					result.put("message", "错误的日期，命令用法：lockmoney <money> <unlockTime> <remark> [address] [password]，日期格式为yyyy-MM-dd");
 					return result;
 				}
 
@@ -867,6 +867,7 @@ public class RPCHanlder {
 		case "verifyantifake": {
 			return rpcService.verifyAntifake(params);
 		}
+
 
 		//添加防伪码流转信息
 		case "addcirculation": {
@@ -1352,6 +1353,10 @@ public class RPCHanlder {
 			result = rpcService.regConsensus(password, consensusAddress);
 			return result;
 		}
+		//查询共识保证金
+		case "getregconsensusfee": {
+			return rpcService.regconsensusFee();
+		}
 		
 		//退出共识
 		case "remconsensus": {
@@ -1456,74 +1461,78 @@ public class RPCHanlder {
 		sb.append("命令列表\n");
 		sb.append("\n");
 		sb.append(" --- 区块相关 --- \n");
-		sb.append("  getblockcount                   获取区块的数量\n");
-		sb.append("  getbestblockheight              获取最新区块的高度\n");
-		sb.append("  getbestblockhash                获取最新区块的hash\n");
-		sb.append("  getblockhash                    通过高度获取区块hash\n");
-		sb.append("  getblockheader <param> (block hash or height)   通过区块的hash或者高度获取区块的头信息\n");
-		sb.append("  getblock <param> (block hash or height)         通过区块的hash或者高度获取区块的完整信息\n");
+		sb.append("  getblockcount                                                                                                                   获取区块的数量\n");
+		sb.append("  getbestblockheight                                                                                                    获取最新区块的高度\n");
+		sb.append("  getbestblockhash                                                                                                      获取最新区块的hash\n");
+		sb.append("  getblockhash <height>                                                                                         通过高度获取区块hash\n");
+		sb.append("  getblockheader <block hash or height>                                通过区块的hash或者高度获取区块的头信息\n");
+		sb.append("  getblock <block hash or height>                                        通过区块的hash或者高度获取区块的完整信息\n");
 		sb.append("\n");
 		sb.append(" --- 帐户相关 --- \n");
-		sb.append("  getbalance                      获取账户的余额\n");
-		sb.append("  getcredit                       获取账户的信用\n");
-		sb.append("  getaccountinfo                  获取账户的详细信息\n");
-		sb.append("  gettransaction                  获取帐户的交易记录\n");
-		sb.append("  encryptwallet                   加密钱包\n");
-		sb.append("  password                        修改钱包密码\n");
-		sb.append("  getprivatekey [address] [password]                         查看账户的私钥\n");
-		sb.append("  getaddressbypubkey <pubkey> 			通过账户公钥获取地址\n");
+		sb.append("  getbalance                                                                                                                        获取账户的余额\n");
+		sb.append("  getcredit                                                                                                                           获取账户的信用\n");
+		sb.append("  getaccountinfo                                                                                                           获取账户的详细信息\n");
+
+		sb.append("  encryptwallet <password>                                                                                                         加密钱包\n");
+		sb.append("  password <password> <new password>                                                                           修改钱包密码\n");
+		sb.append("  getprivatekey [address] [password]                                                                                 查看账户的私钥\n");
+		sb.append("  getaddressbypubkey <pubkey> 			                                                          通过账户公钥获取地址\n");
 
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
-		sb.append("  gettx [param] (tx hash)             通过交易hash获取一条交易详情\n");
+		sb.append("  gettx <tx hash>                                                                                       通过交易hash获取一条交易详情\n");
 		sb.append("  send <to address> <coin> <my address> [password] [remark]    转账\n");
-		sb.append("  lockmoney [amount] [unlockTime] [password]     锁仓交易,unlockTime的格式为yyyy-MM-dd\n");
-		sb.append("  broadcast [txcontent]               广播交易\n");
+		sb.append("  lockmoney <money> <unlockTime(yyyy-MM-dd)> <remark> [address] [password]             锁仓交易\n");
+		sb.append("  listtransactions <limit> [confirm] [address]                                                       获取账户的代币交易记录\n");
+		sb.append("  gettransaction                                                                                                            获取帐户的交易记录\n");
 		sb.append("\n");
 		sb.append(" --- 共识相关 --- \n");
-		sb.append("  getconsensus                    获取共识节点列表\n");
-		sb.append("  getconsensuscount               获取共识节点数量\n");
-		sb.append("  getconsensusstatus              获取当前共识状态\n");
-		sb.append("  regconsensus [consensusAddress] [password]                   注册共识\n");
-		sb.append("  remconsensus                    退出共识\n");
+		sb.append("  getconsensus                                                                                                                获取共识节点列表\n");
+		sb.append("  getconsensuscount                                                                                                       获取共识节点数量\n");
+		sb.append("  getconsensusstatus                                                                                                       获取当前共识状态\n");
+		sb.append("  getregconsensusfee                                                                                     获取当前参与共识所需保证金\n");
+		sb.append("  regconsensus <consensusAddress> [password]                                                                       注册共识\n");
+		sb.append("  remconsensus <consensusAddress> [password]                                                                      退出共识\n");
+
 		sb.append("\n");
 		sb.append(" --- 节点相关 --- \n");
-		sb.append("  getpeers                        获取连接节点列表\n");
-		sb.append("  getpeercount                    获取连接节点数量\n");
+		sb.append("  getpeers                                                                                                                        获取连接节点列表\n");
+		sb.append("  getpeercount                                                                                                                获取连接节点数量\n");
+
 		sb.append("\n");
 		sb.append(" --- 业务相关 --- \n");
-		sb.append("  createproduct [productinfo] [password]                               认证账户创建商品[仅适用于认证账户]\n");
-		sb.append("  makegeneralantifakecode [productinfo|producttxid] [password]         创建普通防伪码[仅适用于认证账户]\n");
-		sb.append("  makeantifakecode [productinfo] [password]                            创建链上防伪码[仅适用于认证账户]\n");
-		sb.append("  verifygeneralantifakecode [antifakecode] [password]                  验证普通防伪码[仅适用于普通账户]\n");
-		sb.append("  verifyantifakecode [antifakecode] [password]                         验证链上防伪码[仅适用于普通账户]\n");
-		sb.append("\n");
-		sb.append("  queryantifake [antifakecode]                                                                            查询防伪码的信息,包括防伪码所属商家、商品、溯源信息、流转信息、验证信息、转让信息\n");
-		sb.append("  addcirculation [antifakecode] [subject] [description] ([address] [privateKeyOrPassword])                添加防伪码流转信息\n");
-		sb.append("  querycirculations [antifakecode]                                                                        查询防伪码流转信息\n");
-		sb.append("  querycirculationcount [antifakecode] [address]                                                          查询防伪码流转次数\n");
-		sb.append("  transferantifake [antifakecode] [receiverAddress] [description]  ([address] [privateKeyOrPassword])     防伪码转让\n");
-		sb.append("  querytransfers [antifakecode]                                                                           查询防伪码转让记录\n");
-		sb.append("  querytransfercount [antifakecode]                                                                       查询防伪码转让次数\n");
-		sb.append("  queryantifakeowner [antifakecode]                                                                       查询防伪码拥有者\n");
-		sb.append("\n");
-		sb.append("  relevancesubaccount [address] [alias] [description] [trpw] ([certAddress])                              认证商家关联子账户\n");
-		sb.append("  removeSubAccount [address] [txId] [trpw] ([certAddress])                                                解除子账户的关联\n");
-		sb.append("  getsubaccounts [certAddress]                                                                            获取认证商家子账户列表\n");
-		sb.append("  getsubaccountcount [certAddress]                                                                        获取认证商家子账户数量\n");
-		sb.append("  checkissubaccount [certAddress] [address]                                                               检查是否是商家的子账户\n");
+		sb.append("  createproduct <productinfo> <password> [address]                   认证账户创建商品[仅适用于认证账户]\n");
+		sb.append("  queryantifake <antifakecode>              查询包括防伪码所属商家、商品、溯源、流转、验证、转让等信息\n");
+		sb.append("  addcirculation <antifakecode> <subject> <description> [address] [password]                  防伪码流转 \n");
+		sb.append("  querycirculations <antifakecode>                                                                            查询防伪码流转信息\n");
+		sb.append("  querycirculationcount <antifakecode> [address]                                                     查询防伪码流转次数\n");
+		sb.append("  transferantifake <antifakecode> <receiver> <description> [address] [password]               防伪码转让\n");
+		sb.append("  querytransfers <antifakecode>                                                                                 查询防伪码转让记录\n");
+		sb.append("  querytransfercount <antifakecode>                                                                         查询防伪码转让次数\n");
+		sb.append("  queryantifakeowner <antifakecode>                                                                           查询防伪码拥有者\n");
+		//sb.append("  makegeneralantifakecode [productinfo|producttxid] [password]         创建普通防伪码[仅适用于认证账户]\n");
+		//sb.append("  makeantifakecode [productinfo] [password]                            创建链上防伪码[仅适用于认证账户]\n");
+		//sb.append("  verifygeneralantifakecode [antifakecode] [password]                  验证普通防伪码[仅适用于普通账户]\n");
+		//sb.append("  verifyantifakecode [antifakecode] [password]                         验证链上防伪码[仅适用于普通账户]\n");
 
+		sb.append("\n");
+		sb.append("  relevancesubaccount <address> <alias> <description> <password> [certAddress]           关联子账户\n");
+		sb.append("  removesubaccount <address> <txHash> <password> [certAddress]                        解除子账户的关联\n");
+		sb.append("  getsubaccounts <certAddress>                                                                         获取认证商家子账户列表\n");
+		sb.append("  getsubaccountcount <certAddress>                                                                 获取认证商家子账户数量\n");
+		sb.append("  checkissubaccount <certAddress> <address>                                                  检查是否是商家的子账户\n");
+		sb.append("\n");
 		sb.append(" --- 资产相关 --- \n");
-		sb.append("  regassets [name] [description] [code] [logo] [remark] ([address]) ([password])                          资产注册\n");
-		sb.append("  getassetslist                                                                                                                查询资产注册列表\n");
-		sb.append("  assetsissue [code] [receiver] [amount] [remark] ([address]) ([password])                                资产发行\n");
-		sb.append("  getassetsissuelist [code]                                                                                               查询资产发行列表\n");
-		sb.append("  getmineassets ([address]) ([password])                                                                    查询我的账户资产列表\n");
-		sb.append("  assetstransfer [code] [receiver] [amount] [remark] ([address]) ([password])                             资产转让\n");
-
+		sb.append("  regassets <name> <description> <code> <logo> <remark> [address] [password]               资产注册\n");
+		sb.append("  getassetslist                                                                                                                   查询资产注册列表\n");
+		sb.append("  assetsissue <code> <receiver> <amount> <remark> [address] [password]                           资产发行\n");
+		sb.append("  getassetsissuelist <code>                                                                                             查询资产发行列表\n");
+		sb.append("  getmineassets [address] [password]                                                                      查询我的账户资产列表\n");
+		sb.append("  assetstransfer <code> <receiver> <amount> <remark> [address] [password]                       资产转让\n");
+		sb.append("\n");
 		sb.append(" --- 系统相关 --- \n");
-		sb.append("  getversion                                                               获取系统版本信息\n");
-		sb.append("  updateversion                                                            更新版本\n");
+		sb.append("  getversion                                                                                                                     获取系统版本信息\n");
+		sb.append("  updateversion                                                                                                                            更新版本\n");
 
 
 

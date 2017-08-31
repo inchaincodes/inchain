@@ -332,6 +332,13 @@ public interface RPCService {
 	JSONObject regConsensus(String password, String consensusAddress) throws JSONException;
 
 	/**
+	 * 获取当前注册共识所需费用
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject regconsensusFee() throws JSONException;
+
+	/**
 	 * 退出共识
 	 * @param password
 	 * @return JSONObject
