@@ -69,8 +69,9 @@ public class BusinessRecordController implements SubPageController {
     					if(item == null) {
     						setGraphic(null);
     					} else {
-//    						ImageView imageView = new ImageView(new Image(new ByteArrayInputStream(item)));
-    						ImageView imageView = new ImageView(new String(item));
+    						//ImageView imageView = new ImageView(new Image(new ByteArrayInputStream(item)));
+							ImageView imageView = new ImageView(new Image(new String(item), true));
+    						imageView.setSmooth(true);
     						imageView.setFitWidth(30);
     						imageView.setFitHeight(30);
     						setGraphic(imageView);

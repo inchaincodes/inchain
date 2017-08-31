@@ -410,13 +410,12 @@ public interface RPCService {
 
 	/**
 	 * 发送交易
-	 * @param toAddress
-	 * @param money
+	 * @param toaddressAndCoins[{toaddress_1,coin_1},toaddress_2,coin_2},...]
 	 * @param remark
 	 * @return JSONObject
 	 * @throws JSONException
 	 */
-	JSONObject sendMoneyToAddress(String toAddress,String amount,String remark) throws JSONException;
+	JSONObject sendMoneyToAddress(JSONArray toaddressAndCoins,String pass,String remark) throws JSONException;
 
 	/**
 	 * 锁仓奖励
@@ -644,6 +643,25 @@ public interface RPCService {
 	 */
 	JSONObject resetData() throws JSONException;
 
+	/**
+	 * 解锁钱包
+	 * @param password
+	 * @param timeSec
+	 * @return JSONObject
+	 */
+	JSONObject unlockWallet(String passwd,int timeSec) throws JSONException;
+
+	/**
+	 * 立即锁定钱包
+	 * @return JSONObject
+	 */
+	JSONObject lockWallet() throws JSONException;
+
+
+	/**
+	 * 检查地址是否合法
+	 * @return JSONObject
+	 */
 	JSONObject validateAddress(String address) throws JSONException;
 
 }

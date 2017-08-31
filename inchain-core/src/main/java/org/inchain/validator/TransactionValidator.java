@@ -111,9 +111,7 @@ public class TransactionValidator {
 			byte[] scriptBytes = null;
 			int i = 0;
 			for (TransactionInput input : inputs) {
-
 				scriptBytes = null;
-
 				List<TransactionOutput> outputs = input.getFroms();
 				if(outputs == null || outputs.size() == 0) {
 					throw new VerificationException("交易没有引用输入");

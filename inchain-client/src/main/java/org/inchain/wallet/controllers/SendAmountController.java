@@ -245,7 +245,7 @@ public class SendAmountController implements SubPageController {
 		//验证通过，调用接口广播交易
     	try {
     		//如果账户已加密，则需要先解密
-    		if(accountKit.accountIsEncrypted()) {
+    		if(accountKit.isWalletEncrypted()) {
     			//解密账户
     			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 		        FXMLLoader loader = new FXMLLoader(location);

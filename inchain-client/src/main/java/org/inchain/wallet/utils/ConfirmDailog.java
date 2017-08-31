@@ -141,7 +141,7 @@ public class ConfirmDailog {
 					accountKit = InchainInstance.getInstance().getAccountKit();
 					
 					// 账户是否加密
-					if (accountKit.accountIsEncrypted()) {
+					if (accountKit.isWalletEncrypted()) {
 						// 解密账户
 						URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 						FXMLLoader loader = new FXMLLoader(location);

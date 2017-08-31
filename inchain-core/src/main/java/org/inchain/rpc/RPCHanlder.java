@@ -219,7 +219,7 @@ public class RPCHanlder {
 				}else {
 					count = params.getInt(0);
 				}
-				if(count>10000){
+				if(count>50000){
 					result.put("success", false);
 					result.put("message", "参数不正确，每次最多生成10000个账户地址");
 					return result;
@@ -444,6 +444,31 @@ public class RPCHanlder {
 				return result;
 			}
 
+			case "lockwallet":{
+				return rpcService.lockWallet();
+			}
+			case "unlockwallet":{
+				if(params.length()!=2){
+					result.put("success", false);
+					result.put("message", "缺少参数，命令用法：unlockwallet password timeout");
+					return result;
+				}
+				String passwd = params.getString(0);
+				int timeSec = 0;
+				try {
+					timeSec = Integer.parseInt(params.getString(1));
+					if(timeSec<0){
+						throw new Exception();
+					}
+				}catch (Exception e){
+					result.put("success", false);
+					result.put("message", "参数错误：timeout是解锁钱包的秒数(int)");
+					return result;
+				}
+				return rpcService.unlockWallet(passwd,timeSec);
+			}
+
+
 			case "gettransfertx" : {
 				if(params.length() == 0) {
 					result.put("success", false);
@@ -587,21 +612,54 @@ public class RPCHanlder {
 
 				String toAddress = params.getString(0);
 				String amount = params.getString(1);
+				String pass = null;
 				String remark = null;
 
 
-				if(params.length() == 3) {
-					remark = params.getString(2);
+				if(params.length() == 4) {
+					pass = params.getString(2);
+					remark = params.getString(3);
+				}
+
+				if(params.length() == 3){
+					pass = params.getString(2);
 				}
 				try {
 					Address a = new Address(network, toAddress);
 				} catch (Exception e) {
 					return new JSONObject().put("success", false).put("message", "接收人地址有误");
 				}
-
-				return rpcService.sendMoneyToAddress(toAddress, amount,remark);
+				JSONArray toaddressAndCoins = new JSONArray();
+				toaddressAndCoins.put(new JSONObject().put(toAddress,amount));
+				return rpcService.sendMoneyToAddress(toaddressAndCoins,pass,remark);
 			}
 
+			case "sendmoney": {
+				if(params.length() < 1) {
+					return new JSONObject().put("success", false).put("message", "缺少参数");
+				}
+
+				String toaddressAndCoinsStr = params.getString(0);
+				JSONArray toaddressAndCoins = null;
+				try {
+					toaddressAndCoins = new JSONArray(toaddressAndCoinsStr);
+				}catch (Exception e ){
+					return new JSONObject().put("success", false).put("message", "参数格式错误");
+				}
+				String pass = null;
+				String remark = null;
+
+				if(params.length() == 2){
+					pass = params.getString(1);
+				}
+
+				if(params.length() == 3) {
+					pass = params.getString(1);
+					remark = params.getString(2);
+				}
+
+				return rpcService.sendMoneyToAddress(toaddressAndCoins,pass,remark);
+			}
 
 			//发放锁仓奖励
 			case "lockreward": {
@@ -1410,7 +1468,7 @@ public class RPCHanlder {
 		case "getregconsensusfee": {
 			return rpcService.regconsensusFee();
 		}
-		
+
 		//退出共识
 		case "remconsensus": {
 			String address = null;
@@ -1472,7 +1530,7 @@ public class RPCHanlder {
 
 
 		}
-		
+
 		//查看账户的私钥
 		case "getprivatekey": {
 			
@@ -1530,14 +1588,19 @@ public class RPCHanlder {
 		sb.append("  password <password> <new password>                                                                           修改钱包密码\n");
 		sb.append("  getprivatekey [address] [password]                                                                                 查看账户的私钥\n");
 		sb.append("  getaddressbypubkey <pubkey> 			                                                          通过账户公钥获取地址\n");
+		sb.append("  unlockwallet <password> <timeout> 			                                                          解锁钱包timeout秒\n");
+		sb.append("  lockwallet  			                                                          								立即锁定钱包\n");
 
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
 		sb.append("  gettx <tx hash>                                                                                       通过交易hash获取一条交易详情\n");
-		sb.append("  send <to address> <coin> <my address> [password] [remark]    转账\n");
+		sb.append("  send <to address> <coin> <my address> [password] [remark]    										转账\n");
+		sb.append("  sendtoaddress <to address> <coin> [password]  [remark]                                                使用钱包给指定地址转账\n");
+		sb.append("  sendmoney <toaddressandcoins> [password]  [remark]                                                使用钱包给指定地址转账\n");
 		sb.append("  lockmoney <money> <unlockTime(yyyy-MM-dd)> <remark> [address] [password]             锁仓交易\n");
 		sb.append("  listtransactions <limit> [confirm] [address]                                                       获取账户的代币交易记录\n");
 		sb.append("  gettransaction                                                                                                            获取帐户的交易记录\n");
+
 		sb.append("\n");
 		sb.append(" --- 共识相关 --- \n");
 		sb.append("  getconsensus                                                                                                                获取共识节点列表\n");

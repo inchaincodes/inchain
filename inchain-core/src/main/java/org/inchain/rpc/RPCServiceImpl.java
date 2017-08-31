@@ -5,10 +5,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.InetAddress;
 import java.util.*;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -32,11 +30,8 @@ import org.inchain.kits.PeerKit;
 import org.inchain.mempool.MempoolContainer;
 import org.inchain.message.Block;
 import org.inchain.message.BlockHeader;
-import org.inchain.network.MainNetworkParams;
 import org.inchain.network.NetworkParams;
 import org.inchain.script.Script;
-import org.inchain.script.ScriptBuilder;
-import org.inchain.signers.LocalTransactionSigner;
 import org.inchain.store.AccountStore;
 import org.inchain.store.BlockForkStore;
 import org.inchain.store.BlockHeaderStore;
@@ -57,8 +52,6 @@ import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
 import org.inchain.utils.Utils;
 import org.inchain.validator.TransactionValidator;
-import org.inchain.validator.TransactionValidatorResult;
-import org.inchain.validator.ValidatorResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -643,7 +636,7 @@ public class RPCServiceImpl implements RPCService {
 				}
 
 				//解密钱包
-				Result pwdResult = accountKit.decryptWallet(password ,address,Definition.TX_VERIFY_TR);
+				Result pwdResult = accountKit.decryptAccount(password ,address,Definition.TX_VERIFY_TR);
 				if(!pwdResult.isSuccess()) {
 					throw new VerificationException("密码错误");
 				}
@@ -2014,6 +2007,8 @@ public class RPCServiceImpl implements RPCService {
 
 		JSONObject json = new JSONObject();
 
+		accountKit.decryptAccount(password,null);
+
 		//判断账户是否已经加密
 		if(accountKit.accountIsEncrypted()) {
 			json.put("success", false);
@@ -2035,7 +2030,7 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 
-		Result result = accountKit.encryptWallet(password,null);
+		Result result = accountKit.encryptWallet(password);
 		json.put("success", result.isSuccess());
 		json.put("message", result.getMessage());
 
@@ -2051,7 +2046,7 @@ public class RPCServiceImpl implements RPCService {
 		JSONObject json = new JSONObject();
 
 		//判断账户是否已经加密
-		if(!accountKit.accountIsEncrypted()) {
+		if(!accountKit.isWalletEncrypted()) {
 			json.put("success", false);
 			json.put("message", "钱包尚未加密，请使用encryptwallet命令对钱包加密");
 			return json;
@@ -2273,7 +2268,7 @@ public class RPCServiceImpl implements RPCService {
 				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
 					remark = passwordOrRemark;
 				}
-				Result re = accountKit.decryptWallet(password,address);
+				Result re = accountKit.decryptAccount(password,address);
 				if(!re.isSuccess()) {
 					json.put("success", false);
 					json.put("message", re.getMessage());
@@ -2301,32 +2296,17 @@ public class RPCServiceImpl implements RPCService {
 	}
 
 
-	public JSONObject sendMoneyToAddress(String toAddress,String amount,String remark) throws JSONException{
+	public JSONObject sendMoneyToAddress(JSONArray toaddressAndCoins,String pass,String remark) throws JSONException{
 		JSONObject json = new JSONObject();
-		if(StringUtil.isEmpty(toAddress) || StringUtil.isEmpty(amount)) {
+
+		if(toaddressAndCoins==null || toaddressAndCoins.length()==0){
 			json.put("success", false);
 			json.put("message", "参数缺少");
 			return json;
 		}
-
-		Coin moneyCoin = null;
-		Coin feeCoin = null;
+		Coin feeCoin = Coin.parseCoin("0.1");
 		try {
-			moneyCoin = Coin.parseCoin(amount);
-			feeCoin = Coin.parseCoin("0.1");
-		} catch (Exception e) {
-			json.put("success", false);
-			json.put("message", "金额不正确");
-			return json;
-		}
-		Coin total = accountKit.getTotalCanUseBalance();
-		if(total.isLessThan(moneyCoin.add(feeCoin))){
-			json.put("success", false);
-			json.put("message", "总余额不足");
-			return json;
-		}
-		try {
-			BroadcastResult br = accountKit.sendtoAddress(toAddress, moneyCoin, feeCoin, remark == null ? null:remark.getBytes());
+			BroadcastResult br = accountKit.sendtoAddress(toaddressAndCoins, feeCoin, pass,remark == null ? null:remark.getBytes("utf-8"));
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
@@ -2362,7 +2342,7 @@ public class RPCServiceImpl implements RPCService {
 			}
 
 			//账户是否加密
-			Result re = accountKit.decryptWallet(password,address,2);
+			Result re = accountKit.decryptAccount(password,address,2);
 			if(!re.isSuccess()) {
 				json.put("success", false);
 				json.put("message", re.getMessage());
@@ -2701,8 +2681,8 @@ public class RPCServiceImpl implements RPCService {
 		}
 
 		//解密钱包
-		if(accountKit.accountIsEncrypted()) {
-			Result result = accountKit.decryptWallet(password, null, Definition.TX_VERIFY_TR);
+		if(accountKit.isWalletEncrypted()) {
+			Result result = accountKit.decryptAccount(password, null, Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -2788,7 +2768,7 @@ public class RPCServiceImpl implements RPCService {
 
 		//解密钱包
 		if(accountKit.accountIsEncrypted(address,1)) {
-			Result result = accountKit.decryptWallet(password,address,Definition.TX_VERIFY_TR);
+			Result result = accountKit.decryptAccount(password,address,Definition.TX_VERIFY_TR);
 			if(!result.isSuccess()) {
 				json.put("success", false);
 				json.put("message", result.getMessage());
@@ -3337,7 +3317,7 @@ public class RPCServiceImpl implements RPCService {
 				throw new VerificationException("账户已加密，请解密或者传入密码");
 			}
 			//解密钱包
-			Result pwdResult = accountKit.decryptWallet(password, address ,verifyTr);
+			Result pwdResult = accountKit.decryptAccount(password, address ,verifyTr);
 			if(!pwdResult.isSuccess()) {
 				throw new VerificationException("密码错误");
 			}
@@ -3345,4 +3325,23 @@ public class RPCServiceImpl implements RPCService {
 		return account;
 	}
 
+	/**
+	 * 解锁钱包
+	 * @param password
+	 * @param timeSec
+	 * @return JSONObject
+	 */
+	public JSONObject unlockWallet(String passwd,int timeSec) throws JSONException{
+		Result rs = accountKit.unlockWallet(passwd,timeSec);
+		return new JSONObject().put("success",rs.isSuccess()).put("message",rs.getMessage());
+	}
+
+	/**
+	 * 立即锁定钱包
+	 * @return JSONObject
+	 */
+	public JSONObject lockWallet() throws JSONException {
+		accountKit.lockWallet();
+		return new JSONObject().put("success",true).put("message","锁定成功");
+	}
 }

@@ -80,7 +80,7 @@ public class LockMoneyController extends DailogController {
 
 		//判断账户是否加密
 		final AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-		if(accountKit.accountIsEncrypted()) {
+		if(accountKit.isWalletEncrypted()) {
 			//解密账户
 			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 			FXMLLoader loader = new FXMLLoader(location);
