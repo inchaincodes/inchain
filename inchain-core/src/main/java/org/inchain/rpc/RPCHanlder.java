@@ -182,14 +182,17 @@ public class RPCHanlder {
 
 			//通过高度或者hash获取区块头信息
 			case "getblockheader": {
-				result.put("success", true);
-				result.put("blockheader", rpcService.getBlockHeader(params.getString(0)));
-
-				return result;
+			    if(params.length() != 1) {
+			        return new JSONObject().put("success",false).put("message", "缺少参数");
+                }
+				return  rpcService.getBlockHeader(params.getString(0));
 			}
 
 			//通过hash或者高度获取一个完整的区块信息
 			case "getblock": {
+                if(params.length() != 1) {
+                    return new JSONObject().put("success",false).put("message", "缺少参数");
+                }
 				return rpcService.getBlock(params.getString(0));
 			}
 

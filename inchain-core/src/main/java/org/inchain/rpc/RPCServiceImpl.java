@@ -148,7 +148,9 @@ public class RPCServiceImpl implements RPCService {
 			json.put("message", "not found");
 			return json;
 		}
-		json.put("version", blockHeader.getVersion())
+
+        JSONObject blockJson = new JSONObject();
+        blockJson.put("version", blockHeader.getVersion())
 				.put("height", blockHeader.getHeight())
 				.put("hash", blockHeader.getHash())
 				.put("preHash", blockHeader.getPreHash())
@@ -161,6 +163,8 @@ public class RPCServiceImpl implements RPCService {
 				.put("txCount", blockHeader.getTxCount())
 				.put("txs", blockHeader.getTxHashs());
 
+        json.put("success", true);
+        json.put("blockheader", blockJson);
 		return json;
 	}
 
