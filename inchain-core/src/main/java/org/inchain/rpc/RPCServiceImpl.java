@@ -2885,13 +2885,21 @@ public class RPCServiceImpl implements RPCService {
 		Account account = accountKit.getAccount(address);
 		if(account == null) {
 			json.put("ismine", false);
+            json.put("isscript", false);
 		}else {
 			if(account.getAddress().getVersion() == network.getCertAccountVersion()) {
 				json.put("ismine", false);
+                json.put("isscript", false);
 			}else {
 				json.put("ismine", true);
+				if(account.isEncrypted()) {
+                    json.put("isscript", true);
+                }else {
+                    json.put("isscript", false);
+                }
 			}
 		}
+		json.put("success", true);
 		return json;
 	}
 

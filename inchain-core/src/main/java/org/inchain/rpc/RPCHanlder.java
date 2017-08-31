@@ -1417,7 +1417,7 @@ public class RPCHanlder {
 				return result;
 			}
 
-
+			return rpcService.validateAddress(address);
 		}
 		
 		//查看账户的私钥
@@ -1481,7 +1481,7 @@ public class RPCHanlder {
 		sb.append("\n");
 		sb.append(" --- 交易相关 --- \n");
 		sb.append("  gettx <tx hash>                                                                                       通过交易hash获取一条交易详情\n");
-		sb.append("  send <to address> <coin> <my address> [password] [remark]    转账\n");
+		sb.append("  sendtoaddress <to address> <amount> [password] [remark]                                                        转账\n");
 		sb.append("  lockmoney <money> <unlockTime(yyyy-MM-dd)> <remark> [address] [password]             锁仓交易\n");
 		sb.append("  listtransactions <limit> [confirm] [address]                                                       获取账户的代币交易记录\n");
 		sb.append("  gettransaction                                                                                                            获取帐户的交易记录\n");
