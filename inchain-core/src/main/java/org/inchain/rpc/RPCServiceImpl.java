@@ -190,7 +190,10 @@ public class RPCServiceImpl implements RPCService {
 			json.put("message", "not found");
 			return json;
 		}
-		json.put("version", block.getVersion())
+
+		JSONObject blockJson = new JSONObject();
+
+		blockJson.put("version", block.getVersion())
 			.put("height", block.getHeight())
 			.put("hash", block.getHash())
 			.put("preHash", block.getPreHash())
@@ -214,8 +217,9 @@ public class RPCServiceImpl implements RPCService {
 			txs.put(txConver(new TransactionStore(network, transaction, block.getHeight(), new byte[] {1}), bestHeight, accountList));
 		}
 
-		json.put("txs", txs);
+		blockJson.put("txs", txs);
         json.put("success", true);
+        json.put("block", blockJson);
 		return json;
 	}
 
