@@ -15,7 +15,7 @@
           <TableColumn resizable="true" sortable="false" text="状态" maxWidth="80" minWidth="80" fx:id="status"/>
           <TableColumn resizable="true" sortable="false" text="交易ID" maxWidth="70" fx:id="hash"/>
           <TableColumn resizable="true" sortable="false" text="交易类型" maxWidth="80" minWidth="80" fx:id="type"/>
-          <TableColumn resizable="true" sortable="false" text="交易详情" fx:id="detail" maxWidth="300"/>
+          <TableColumn resizable="true" sortable="false" text="交易详情" fx:id="detail" maxWidth="320"/>
           <TableColumn resizable="true" sortable="false" text="交易金额" maxWidth="100" minWidth="100" fx:id="amount"/>
           <TableColumn resizable="true" sortable="false" text="交易时间" maxWidth="140" minWidth="140" fx:id="time"/>
         </columns>
