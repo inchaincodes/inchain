@@ -2150,9 +2150,12 @@ public class RPCServiceImpl implements RPCService {
 		if(txs == null) {
 			JSONObject json = new JSONObject();
 			json.put("message", "not found");
+			json.put("success",false);
 			return json;
 		}
-		return txConver(txs);
+		JSONObject json = txConver(txs);
+		json.put("success", true);
+		return json;
 	}
 
 	/**
