@@ -421,12 +421,12 @@ public class RPCHanlder {
 			case "gettransfertx" : {
 				if(params.length() == 0) {
 					result.put("success", false);
-					result.put("message", "缺少参数，命令用法：gettransfertx <height> [confirm]");
+					result.put("message", "缺少参数，命令用法：gettransfertx <height> [confirm] [address]");
 					return result;
 				}
 
 				Long height = null;
-				Long confirm = 12L;              //默认确认高度为12
+				Long confirm = 0L;              //默认确认高度为0
 				String address = null;
 				try {
 					if(params.length() == 1) {
