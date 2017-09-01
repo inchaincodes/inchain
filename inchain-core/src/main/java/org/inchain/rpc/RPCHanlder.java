@@ -1587,6 +1587,7 @@ public class RPCHanlder {
 		sb.append("  getcredit                                                                                                                           获取账户的信用\n");
 		sb.append("  getaccountinfo                                                                                                           获取账户的详细信息\n");
 
+		sb.append("  getaccounts                                                                                                              获取钱包所有账户列表\n");
 		sb.append("  encryptwallet <password>                                                                                                         加密钱包\n");
 		sb.append("  password <password> <new password>                                                                           修改钱包密码\n");
 		sb.append("  getprivatekey [address] [password]                                                                                 查看账户的私钥\n");

@@ -2644,19 +2644,22 @@ public class AccountKit {
 				account.setEcKey(key);
 				accountList.add(account);
 				addressesArrays.put(i,account.getAddress().getBase58());
-				newAccountList.add(account);
+				//newAccountList.add(account);
 				try {
 					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
 					fos.write(account.serialize());
+					fos.flush();
 				} finally {
 
 				}
 			}
 			addresses.put("addresses",addressesArrays);
+			init();
+			/*log.info("account count:"+accountList.size());
 			for(Account account:newAccountList) {
-				transactionStoreProvider.addAddress(account.getAddress().getHash160());
+				transactionStoreProvider.addAddress(newAccountList);
 				blockStoreProvider.addAccountFilter(account.getAddress().getHash160());
-			}
+			}*/
 			return addresses;
 		}catch (Exception e){
 			log.info("创建多用户地址出错："+e);
@@ -3684,6 +3687,7 @@ public class AccountKit {
 		}
 
 		//加载帐户目录下的所有帐户
+		Set<String> addresses = new HashSet<String>();
 		File[] accountFiles = accountDirFile.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
@@ -3719,8 +3723,10 @@ public class AccountKit {
 					}
 					//验证帐户
 					account.verify();
-
-					accountList.add(account);
+					if(!addresses.contains(account.getAddress().getBase58())) {
+						addresses.add(account.getAddress().getBase58());
+						accountList.add(account);
+					}
 
 					if(log.isDebugEnabled()) {
 						log.debug("load account {} success", account.getAddress().getBase58());
@@ -3997,7 +4003,7 @@ public class AccountKit {
 	 * 重新设置账户的私钥
 	 */
 	public void resetKeys() {
-		if(!isLockedByCmd){
+		if(isLockedByCmd){
 			return;
 		}
 		for (Account account : accountList) {

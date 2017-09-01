@@ -2258,32 +2258,32 @@ public class RPCServiceImpl implements RPCService {
 			return json;
 		}
 
-		//账户是否加密
-		if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
-				(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
-			if(StringUtil.isEmpty(password) && StringUtil.isEmpty(passwordOrRemark)) {
-				json.put("needInput", true);
-				json.put("inputType", 1);	//输入密码
-				json.put("inputTip", "输入钱包密码进行转账");
-				return json;
-			} else {
-				if(StringUtil.isEmpty(password)) {
-					password = passwordOrRemark;
-				} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
-					remark = passwordOrRemark;
-				}
-				Result re = accountKit.decryptAccount(password,address);
-				if(!re.isSuccess()) {
-					json.put("success", false);
-					json.put("message", re.getMessage());
-					return json;
-				}
-			}
-		} else if(StringUtil.isEmpty(remark) && StringUtil.isNotEmpty(passwordOrRemark)) {
-			remark = passwordOrRemark;
-		}
-
 		try {
+			//账户是否加密
+			if((account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) ||
+					(account.getAccountType() == network.getCertAccountVersion() && account.isEncryptedOfTr())) {
+				if(StringUtil.isEmpty(password) && StringUtil.isEmpty(passwordOrRemark)) {
+					json.put("needInput", true);
+					json.put("inputType", 1);	//输入密码
+					json.put("inputTip", "输入钱包密码进行转账");
+					return json;
+				} else {
+					if(StringUtil.isEmpty(password)) {
+						password = passwordOrRemark;
+					} else if(StringUtil.isNotEmpty(passwordOrRemark) && StringUtil.isEmpty(remark)) {
+						remark = passwordOrRemark;
+					}
+					Result re = accountKit.decryptAccount(password,address);
+					if(!re.isSuccess()) {
+						json.put("success", false);
+						json.put("message", re.getMessage());
+						return json;
+					}
+				}
+			} else if(StringUtil.isEmpty(remark) && StringUtil.isNotEmpty(passwordOrRemark)) {
+				remark = passwordOrRemark;
+			}
+
 			BroadcastResult br = accountKit.sendMoney(toAddress, moneyCoin, feeCoin, remark == null ? null:remark.getBytes(), address, password);
 
 			json.put("success", br.isSuccess());
@@ -2320,6 +2320,8 @@ public class RPCServiceImpl implements RPCService {
 			json.put("success", false);
 			json.put("message", e.getMessage());
 			return json;
+		}finally {
+			accountKit.resetKeys();
 		}
 	}
 

@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.Configure;
+import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -697,6 +698,20 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	
 	public boolean addAddress(byte[] hash160) {
 		addresses.add(hash160);
+		//写入新列表
+		byte[] addressesByte = new byte[addresses.size() * Address.LENGTH];
+		for (int i = 0; i < addresses.size(); i++) {
+			System.arraycopy(addresses.get(i), 0, addressesByte, i * Address.LENGTH, Address.LENGTH);
+		}
+		put(ADDRESSES_KEY, addressesByte);
+		return true;
+	}
+
+	public boolean addAddress(List<Account> newAccoountList){
+		byte [] tmphash160 = new byte[Address.LENGTH];
+		for(int i=0 ; i<newAccoountList.size(); i++){
+			addresses.add(newAccoountList.get(i).getAddress().getHash160());
+		}
 		//写入新列表
 		byte[] addressesByte = new byte[addresses.size() * Address.LENGTH];
 		for (int i = 0; i < addresses.size(); i++) {
