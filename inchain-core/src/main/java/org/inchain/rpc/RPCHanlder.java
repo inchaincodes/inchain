@@ -440,10 +440,12 @@ public class RPCHanlder {
 
 			//通过hash获取一笔交易详情
 			case "gettx": {
-				result = rpcService.getTx(params.getString(0));
-
-				result.put("success", true);
-
+				try {
+					result = rpcService.getTx(params.getString(0));
+				}catch (Exception e) {
+					result.put("success", false);
+					result.put("message", "not found");
+				}
 				return result;
 			}
 
