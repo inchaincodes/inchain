@@ -98,8 +98,8 @@ public class AccountKit {
 	private PeerKit peerKit;
 
 	private long unlocktime;
-	private boolean isLockWalletNow ;
-	private boolean isLockedByCmd;
+	private boolean isLockWalletNow = true;
+	private boolean isUnlockedByCmd = false;
 
 	@Autowired
 	private DataSynchronizeHandler dataSynchronizeHandler;
@@ -1546,6 +1546,11 @@ public class AccountKit {
 							result.setMessage("接收地址不合法");
 							return result;
 					}
+					if((getAccount(tmpAddress)!=null)) {
+						result.setSuccess(false);
+						result.setMessage("不能转账给自己");
+						return result;
+					}
 					try {
 						tmpCoin  = Coin.parseCoin(toaddressAndCoin.getString(tmpAddress));
 					}catch (Exception e){
@@ -2644,7 +2649,7 @@ public class AccountKit {
 				account.setEcKey(key);
 				accountList.add(account);
 				addressesArrays.put(i,account.getAddress().getBase58());
-				//newAccountList.add(account);
+				newAccountList.add(account);
 				try {
 					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
 					fos.write(account.serialize());
@@ -2654,12 +2659,11 @@ public class AccountKit {
 				}
 			}
 			addresses.put("addresses",addressesArrays);
-			init();
-			/*log.info("account count:"+accountList.size());
+			//init();
+			transactionStoreProvider.addAddress(newAccountList);
 			for(Account account:newAccountList) {
-				transactionStoreProvider.addAddress(newAccountList);
 				blockStoreProvider.addAccountFilter(account.getAddress().getHash160());
-			}*/
+			}
 			return addresses;
 		}catch (Exception e){
 			log.info("创建多用户地址出错："+e);
@@ -3399,8 +3403,8 @@ public class AccountKit {
 	}
 
 	public Result lockWallet(){
-		isLockWalletNow  = false;
-		isLockedByCmd = true;
+		isLockWalletNow  = true;
+		isUnlockedByCmd = false;
 		return new Result(true,"锁定成功");
 //		resetKeys();
 	}
@@ -3417,12 +3421,12 @@ public class AccountKit {
 			}
 		}
 		unlocktime = TimeService.currentTimeSeconds() + unlockSec;
-		isLockWalletNow = true;
-		isLockedByCmd = false;
+		isLockWalletNow = false;
+		isUnlockedByCmd = true;
 		new Thread("lockWalletThread") {
 			@Override
 			public void run() {
-				while (isLockWalletNow) {
+				while (!isLockWalletNow) {
 					if (TimeService.currentTimeSeconds() - unlocktime > 0) {
 						break;
 					}
@@ -3432,7 +3436,7 @@ public class AccountKit {
 					}
 				}
 				unlocktime = TimeService.currentTimeSeconds();
-				isLockedByCmd = true;
+				isUnlockedByCmd = false;
 				resetKeys();
 			}
 		}.start();
@@ -4003,7 +4007,7 @@ public class AccountKit {
 	 * 重新设置账户的私钥
 	 */
 	public void resetKeys() {
-		if(isLockedByCmd){
+		if(isUnlockedByCmd){
 			return;
 		}
 		for (Account account : accountList) {

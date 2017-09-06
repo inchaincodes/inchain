@@ -708,7 +708,6 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	}
 
 	public boolean addAddress(List<Account> newAccoountList){
-		byte [] tmphash160 = new byte[Address.LENGTH];
 		for(int i=0 ; i<newAccoountList.size(); i++){
 			addresses.add(newAccoountList.get(i).getAddress().getHash160());
 		}
