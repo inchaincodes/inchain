@@ -63,7 +63,13 @@ public final class Configure {
 	 * 是否挖矿
 	 */
 	public final static boolean MINING = getProperty("mining", false);
-	
+
+	/**
+	 * 是否挖矿
+	 */
+	public final static long START_HEIGHT = getProperty("start.height", 10000L);
+
+
 	/**
 	 * 最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	 */
