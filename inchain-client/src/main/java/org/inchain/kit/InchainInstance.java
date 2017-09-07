@@ -58,7 +58,7 @@ public class InchainInstance {
 		} else if(netType == 2) {
 			xmls = new String[] { "classpath:/applicationContext-testnet.xml", "classpath:/applicationContext.xml" };
 		} else {
-			throw new RuntimeException("netType error");
+			xmls = new String[] { "classpath:/applicationContext-unit.xml", "classpath:/applicationContext.xml" };;
 		}
 
 		try {

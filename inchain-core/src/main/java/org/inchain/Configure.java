@@ -52,23 +52,55 @@ public final class Configure {
 	/**
 	 * 网络中默认的p2p端口,一般是指没有自已修改过端口的服务节点，使用的是该类端口
 	 */
-	public final static int DEFAULT_PORT = 12886;
+	public final static int DEFAULT_PORT = 12999;
 
 	/**
 	 * p2p 端口
 	 */
-	public final static int PORT = DEFAULT_PORT;//getProperty("port", DEFAULT_PORT);
+	public final static int PORT = getProperty("port", DEFAULT_PORT);
 	
 	/**
 	 * 是否挖矿
 	 */
 	public final static boolean MINING = getProperty("mining", false);
-	
+
+	/**
+	 * 是否挖矿
+	 */
+	public final static long START_HEIGHT = getProperty("start.height", 10000L);
+
+
 	/**
 	 * 最小节点连接数，只要达到这个数量之后，节点才开始同步与监听数据，并提供网络服务
 	 */
 	public final static int MIN_CONNECT_COUNT = getProperty("min.connect.count", 1);
-	
+
+
+	/**
+	 * 超级节点之间最大连接数
+	 */
+	public final static int MAX_SUPER_CONNECT_COUNT = getProperty("max.super.connect.count", 100);
+
+	/**
+	 * 普通节点广播的超级节点数
+	 */
+	public final static int MAX_NORMAL_BROADCAST_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 2);
+
+	/**
+	 * 普通节点连接的超级节点数
+	 */
+	public final static int MAX_NORMAL_CONNECT_SUPER_CONNECT_COUNT = getProperty("max.normal.super.connect.count", 3);
+
+	/**
+	 * 本节点是否是超级节点 0：no   1：yes
+	 */
+	public final static int IS_SUPER_NODE = getProperty("is.super.node", 0);
+
+	/**
+	 *
+	 */
+	public final static int MAX_ANTICODE_COUNT =  getProperty("max.anticode_count", 2000);
+
 	/**
 	 * 最大允许节点连接数
 	 */

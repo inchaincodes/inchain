@@ -146,7 +146,7 @@ public class AccountInfoController implements SubPageController {
 				addressId.setText(address.getBase58());
 				certId.setText(String.valueOf(accountStore.getCert()));
 				transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));
-				if (accountKit.accountIsEncrypted()) {
+				if (accountKit.isWalletEncrypted()) {
 					encryptionStatusId.setText("已加密");
 				} else {
 					encryptionStatusId.setText("未加密,为了资金安全,请加密钱包");
@@ -288,7 +288,7 @@ public class AccountInfoController implements SubPageController {
 
 					if (accountStore.getCert() >= Configure.REG_ALIAS_CREDIT) {
 						// 如果账户已加密，则需要先解密
-						if (accountKit.accountIsEncrypted()) {
+						if (accountKit.isWalletEncrypted()) {
 							// 解密账户
 							URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 							FXMLLoader loader = new FXMLLoader(location);
@@ -319,7 +319,7 @@ public class AccountInfoController implements SubPageController {
 					if (accountStore.getCert() >= Configure.UPDATE_ALIAS_CREDIT) {
 
 						// 如果账户已加密，则需要先解密
-						if (accountKit.accountIsEncrypted()) {
+						if (accountKit.isWalletEncrypted()) {
 							// 解密账户
 							URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 							FXMLLoader loader = new FXMLLoader(location);
@@ -513,7 +513,7 @@ public class AccountInfoController implements SubPageController {
 		try {
 			AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 			// 判断账户是否加密
-			if (accountKit.accountIsEncrypted()) {
+			if (accountKit.isWalletEncrypted()) {
 				// 修改密码
 				URL location = null;
 				if (accountKit.isCertAccount()) {
@@ -533,7 +533,7 @@ public class AccountInfoController implements SubPageController {
 					public void ok(Object param) {
 						AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 						// 判断账户是否加密
-						if (accountKit.accountIsEncrypted()) {
+						if (accountKit.isWalletEncrypted()) {
 							encryptionStatusId.setText("已加密");
 						}
 					}
@@ -551,7 +551,7 @@ public class AccountInfoController implements SubPageController {
 		AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
 		Account account = accountKit.getDefaultAccount();
 		//判断是否已加密
-		if(!accountKit.accountIsEncrypted()) {
+		if(!accountKit.isWalletEncrypted()) {
 			showPriKeyQRCode();
 		}else {
 			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
@@ -581,7 +581,7 @@ public class AccountInfoController implements SubPageController {
 	private void showPriKeyQRCode() {
 		URL location = getClass().getResource("/resources/template/weChatCode.fxml");
 		FXMLLoader loader = new FXMLLoader(location);
-		DailogUtil.showDailog(loader, "扫描二维码",300,300);
+		DailogUtil.showDailog(loader, "扫描二维码",300,350);
 	}
 
 	/*

@@ -20,30 +20,10 @@ public class TestNetworkParams extends NetworkParams {
 	public TestNetworkParams() {
 		seedManager = new RemoteSeedManager();
 
-//    	seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.DEFAULT_PORT)));
-//    	seedManager.add(new Seed(new InetSocketAddress("119.23.249.26", Configure.DEFAULT_PORT)));
-//   	seedManager.add(new Seed(new InetSocketAddress("119.23.253.3", Configure.DEFAULT_PORT)));
-//    	seedManager.add(new Seed(new InetSocketAddress("119.23.254.99", Configure.DEFAULT_PORT)));
-		seedManager.add(new Seed(new InetSocketAddress("47.92.26.16", Configure.DEFAULT_PORT)));
-		seedManager.add(new Seed(new InetSocketAddress("47.92.29.121", Configure.DEFAULT_PORT)));
-		seedManager.add(new Seed(new InetSocketAddress("47.92.4.19", Configure.DEFAULT_PORT)));
-<<<<<<< Updated upstream
-		seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.2", Configure.DEFAULT_PORT)));
-		//seedManager.add(new Seed(new InetSocketAddress("192.168.1.187", Configure.DEFAULT_PORT)));
-//
-//		seedManager.add(new Seed(new InetSocketAddress("47.92.26.16", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("47.92.29.121", Configure.DEFAULT_PORT)));
-=======
-		seedManager.add(new Seed(new InetSocketAddress("192.168.1.2", Configure.DEFAULT_PORT)));
-		//seedManager.add(new Seed(new InetSocketAddress("192.168.1.187", Configure.DEFAULT_PORT)));
-
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.2", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.151", Configure.DEFAULT_PORT)));
->>>>>>> Stashed changes
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.152", Configure.DEFAULT_PORT)));
-//		seedManager.add(new Seed(new InetSocketAddress("192.168.1.153", Configure.DEFAULT_PORT)));
-		init();
+		seedManager.add(new Seed(new InetSocketAddress("47.92.29.121", Configure.PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("47.93.16.125", Configure.PORT)));
+		seedManager.add(new Seed(new InetSocketAddress("192.168.1.151", Configure.PORT)));
+     	init();
 	}
 
 
@@ -56,7 +36,7 @@ public class TestNetworkParams extends NetworkParams {
 
 		id = ID_TESTNET;
 
-		packetMagic = 6999846898L;
+		packetMagic = 6294856738L;
 
 		this.acceptableAddressCodes = new int[] {getSystemAccountVersion(), getCertAccountVersion()};
 	}
@@ -92,19 +72,6 @@ public class TestNetworkParams extends NetworkParams {
 	@Override
 	public MessageSerializer getSerializer(boolean parseRetain) {
 		return new DefaultMessageSerializer(this);
-	}
-
-	/**
-	 * 获取该网络的认证管理账号的hash160
-	 * @return byte[]
-	 */
-	@Override
-	public byte[] getCertAccountManagerHash160() {
-
-
-		//return Hex.decode("8e168bb4963f0523b9ee1c734d3c142976581930");//root
-		//return Hex.decode("b326aeb9c6710864441b7c6a282ce924b4c31749");//manager
-		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1
 	}
 
 	@Override

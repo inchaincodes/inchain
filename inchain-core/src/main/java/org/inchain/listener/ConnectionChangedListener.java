@@ -11,5 +11,5 @@ import org.inchain.core.Peer;
  */
 public interface ConnectionChangedListener {
 
-	void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers, CopyOnWriteArrayList<Peer> outPeers);
+	void onChanged(int inCount, int outCount,int superCount ,CopyOnWriteArrayList<Peer> inPeers, CopyOnWriteArrayList<Peer> outPeers,CopyOnWriteArrayList<Peer> superPeers);
 }

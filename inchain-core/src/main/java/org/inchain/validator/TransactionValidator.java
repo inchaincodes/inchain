@@ -109,7 +109,9 @@ public class TransactionValidator {
 			List<TransactionInput> inputs = tx.getInputs();
 			//交易引用的输入，赎回脚本必须一致
 			byte[] scriptBytes = null;
+			int i = 0;
 			for (TransactionInput input : inputs) {
+				scriptBytes = null;
 				List<TransactionOutput> outputs = input.getFroms();
 				if(outputs == null || outputs.size() == 0) {
 					throw new VerificationException("交易没有引用输入");
@@ -178,33 +180,7 @@ public class TransactionValidator {
 					byte[] statusKey = output.getKey();
 					byte[] state = chainstateStoreProvider.getBytes(statusKey);
 					if((state == null || Arrays.equals(state, new byte[]{ 1 })) && txs != null && !txs.isEmpty()) {
-						//没有状态，则可能是在 txs 里，txs里面不能有2笔对此的引用，否则就造成了双花
-//						int count = 0;
-//						for (Transaction t : txs) {
-//							if(t.getHash().equals(tx.getHash())) {
-//								continue;
-//							}
-//							List<TransactionInput> inputsTemp = t.getInputs();
-//							if(inputsTemp == null || inputsTemp.size() == 0) {
-//								continue;
-//							}
-//							for (TransactionInput in : t.getInputs()) {
-//								List<TransactionOutput> fromsTemp = in.getFroms();
-//								if(fromsTemp == null || fromsTemp.size() == 0) {
-//									break;
-//								}
-//								for (TransactionOutput fromTemp : fromsTemp) {
-//									if(fromTemp.getParent() != null && fromTemp.getParent().getHash().equals(fromId) && fromTemp.getIndex() == index) {
-//										count++;
-//									}
-//								}
-//							}
-//						}
-//						if(count > 1) {
-//							//双花了
-//							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "同一块多个交易引用了同一个输入");
-//							return validatorResult;
-//						}
+
 					} else if(Arrays.equals(state, new byte[]{2})) {
 						//已经花费了
 						result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了已花费的交易");
@@ -267,8 +243,16 @@ public class TransactionValidator {
 					}
 				} else {
 					//验证赎回脚本
-					input.getScriptSig().execute(verifyScript);
+					if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+//                		input.getScriptSig().execute(verifyScript);
+					} else if(!(
+						tx.getHash().toString().equals("eef6ef8421229850dfc7e276264b179eced6699f518691c555652df73a5cf86a")
+								|| tx.getHash().toString().equals("f134df4fdf57228cf95b8d69f038b872d04729868010dae62a101b0c7fd1aa91")
+					)) {
+						input.getScriptSig().run(tx, i, verifyScript);
+					}
 				}
+				i ++;
 			}
 			//验证本次交易的输出
 			List<TransactionOutput> outputs = tx.getOutputs();
@@ -282,9 +266,8 @@ public class TransactionValidator {
 				txOutputFee = txOutputFee.add(outputCoin);
 			}
 			//验证不能给自己转账
-			boolean isLockType = false;
+			boolean isLock = false;
 			if(tx.getType() == Definition.TYPE_PAY) {
-
 				Script inputScript = new Script(scriptBytes);
 				byte[] sender = inputScript.getChunks().get(2).data;
 				TransactionOutput output = outputs.get(0);
@@ -305,8 +288,8 @@ public class TransactionValidator {
 						result.setResult(false, "锁仓时间必须大于24小时");
 						return validatorResult;
 					}
+					isLock = true;
 				}
-				isLockType = true;
 			}
 
 			//输出金额不能大于输入金额
@@ -316,12 +299,13 @@ public class TransactionValidator {
 			} else {
 				result.setFee(txInputFee.subtract(txOutputFee));
 			}
-			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0 && !isLockType) {
+			if(tx.getType() == Definition.TYPE_PAY && network.getBestBlockHeight() > 0 && !isLock) {
 				if(result.getFee().compareTo(Definition.MIN_PAY_FEE) < 0) {
 					result.setResult(false, "手续费至少为0.1个INS");
 					return validatorResult;
 				}
 			}
+
 			//业务交易且带代币交易
 			if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
 				//如果是验证码生成交易，则验证产品是否存在
@@ -687,7 +671,7 @@ public class TransactionValidator {
 			byte[] verTxid = regTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
 			if(verTxBytes == null) {
-				result.setResult(false, "签名错误");
+				result.setResult(false, "签名错误：verTxid="+Sha256Hash.wrap(verTxid));
 				return validatorResult;
 			}
 			CertAccountRegisterTransaction verTx = new CertAccountRegisterTransaction(network, verTxBytes);
@@ -701,7 +685,7 @@ public class TransactionValidator {
 			byte[] verTxid = updateTx.getScript().getChunks().get(1).data;
 			byte[] verTxBytes = chainstateStoreProvider.getBytes(verTxid);
 			if(verTxBytes == null) {
-				result.setResult(false, "签名错误");
+				result.setResult(false, "签名错误：verTxid="+Sha256Hash.wrap(verTxid));
 				return validatorResult;
 			}
 			//检查用户是否为认证账户，检查用户状态是否可用
@@ -874,7 +858,7 @@ public class TransactionValidator {
 			byte[] hash160 = rst.getHash160();
 			AccountStore accountInfo = chainstateStoreProvider.getAccountInfo(hash160);
 			if(accountInfo == null || accountInfo.getType() != network.getCertAccountVersion()) {
-				result.setResult(false, "只有认证账户才能添加子账户");
+				result.setResult(false, "只有认证账户才能吊销子账户");
 				return validatorResult;
 			}
 			//检查账户是否被吊销
@@ -896,9 +880,9 @@ public class TransactionValidator {
 				return validatorResult;
 			}
 
-			if(rtx.getAddress().equals(rst.getAddress())){
-				result.setResult(false, "添加子账户交易中添加的子账户不匹配");
-				return validatorResult;
+			if(!rtx.getAddress().getBase58().equals(rst.getAddress().getBase58())){
+					result.setResult(false, "移除子账户交易中添加的子账户不匹配");
+					return validatorResult;
 			}
 
 			if(!rtx.getScriptSig().getAccountBase58(network).equals(rst.getScriptSig().getAccountBase58(network))){

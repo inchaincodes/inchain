@@ -49,12 +49,11 @@ public class ConsoleController extends DailogController{
 	}
 	
 	private void updateContent() {
-		
-		
 		String command = commandId.getText().trim();
+
 		if(StringUtil.isNotEmpty(command)) {
 			try {
-				
+				command = command.replaceAll("\\s+"," ");
 				String[] commands = StringUtil.split(command, "\\s");
 				
 				String result = null;

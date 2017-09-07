@@ -1,5 +1,16 @@
 package org.inchain.test;
 
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+import org.inchain.crypto.ECKey;
+import org.inchain.store.TransactionStore;
+
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -25,14 +36,12 @@ public class Test {
 		}
 	}
 	
-	public static void main(String[] args) throws InterruptedException, ExecutionException {
-		ExecutorService executors = Executors.newCachedThreadPool();
-		Future<String> f = executors.submit(new Mytask());
-		
-		System.out.println(" wait ....");
-		String s = f.get();
-		System.out.println(s);
-		
-		executors.shutdownNow();
+	public static void main(String[] args){
+		ECKey key1 = new ECKey();
+		ECKey key2 = new ECKey();
+
+		System.out.println(new String(key1.getPubKey()));
+
+		System.out.println(new String(key2.getPubKey()));
 	}
 }

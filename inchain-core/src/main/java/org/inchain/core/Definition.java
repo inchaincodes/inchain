@@ -34,12 +34,12 @@ public final class Definition {
 	/**
      * Inchain 核心程序版本
      */
-    public static final String INCHAIN_VERSION = "0.26";
+    public static final String INCHAIN_VERSION = "1.01";
 
     /**
      * 版本完整信息
      */
-    public static final String LIBRARY_SUBVER = "inchain core beta v" + INCHAIN_VERSION + "";
+    public static final String LIBRARY_SUBVER = "inchain core v" + INCHAIN_VERSION + "";
     
 	public static final long VERSION = 1;
 	
@@ -47,6 +47,8 @@ public final class Definition {
 	 * 区块最大限制
 	 */
 	public static final int MAX_BLOCK_SIZE = 2 * 1024 * 1024;
+
+	public static final int MIN_BLOCK_SIZE = 512*1024;
 	
 	/** lockTime 小于该值的代表区块高度，大于该值的代表时间戳（毫秒） **/
 	public static final long LOCKTIME_THRESHOLD = 500000000L;

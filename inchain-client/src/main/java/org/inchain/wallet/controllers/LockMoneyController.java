@@ -80,7 +80,7 @@ public class LockMoneyController extends DailogController {
 
 		//判断账户是否加密
 		final AccountKit accountKit = InchainInstance.getInstance().getAccountKit();
-		if(accountKit.accountIsEncrypted()) {
+		if(accountKit.isWalletEncrypted()) {
 			//解密账户
 			URL location = getClass().getResource("/resources/template/decryptWallet.fxml");
 			FXMLLoader loader = new FXMLLoader(location);
@@ -105,7 +105,7 @@ public class LockMoneyController extends DailogController {
 
 	private void doLockMoney(AccountKit accountKit, Coin lockAmount, long unlockTime) {
 		try {
-			Result result = accountKit.lockMoney(lockAmount, unlockTime, null, null);
+			Result result = accountKit.lockMoney(lockAmount, unlockTime, null, null, "用户锁仓");
 			if (result.isSuccess()) {
 				DailogUtil.showTipDailogCenter(result.getMessage(), getThisStage());
 				resetAndclose();

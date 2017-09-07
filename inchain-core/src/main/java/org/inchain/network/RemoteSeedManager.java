@@ -96,7 +96,7 @@ public class RemoteSeedManager implements SeedManager {
 							continue;
 						}
 						//若连接失败，则重试，暂定1分钟
-						Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.DEFAULT_PORT), true, 1 * 60000);
+						Seed seed = new Seed(new InetSocketAddress(inetAddress, Configure.PORT), true, 1 * 60000);
 						add(seed);
 					}
 				} catch (Exception e) {
@@ -130,5 +130,10 @@ public class RemoteSeedManager implements SeedManager {
 	public void reset() {
 		hasInit = false;
 		list = new ArrayList<Seed>();
+	}
+
+	@Override
+	public List<Seed> getAllSeeds(){
+		return list;
 	}
 }

@@ -34,7 +34,7 @@ public class VersionService {
 	
 	private static final String VERSION_SAVE_FILE = Configure.DATA_DIR + "/.version";
 
-	private static final String UPDATE_DOMAIN = "http://test1.update.inchain.org";
+	private static final String UPDATE_DOMAIN = "http://update.inchain.org";
 	
 	private boolean runing;
 	

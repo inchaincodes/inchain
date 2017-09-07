@@ -25,11 +25,11 @@ public final class ConsensusCalculationUtil {
 	/**
 	 * 开始发放奖励的区块高度
 	 */
-	public final static long START_HEIGHT = 25000l;
+	public final static long START_HEIGHT = Configure.START_HEIGHT;
 	/**
 	 * 每多少个区块奖励减半，也就是奖励周期，这里设置1年的出块数
 	 */
-	public final static long REWARD_CYCLE = 3153600l;
+	public final static long REWARD_CYCLE = 3153600L;
 	
 	/**
 	 * 计算共识奖励

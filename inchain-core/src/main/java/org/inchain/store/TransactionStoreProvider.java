@@ -2,11 +2,13 @@ package org.inchain.store;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.inchain.Configure;
+import org.inchain.account.Account;
 import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Definition;
@@ -20,6 +22,7 @@ import org.inchain.transaction.Transaction;
 import org.inchain.transaction.TransactionInput;
 import org.inchain.transaction.TransactionOutput;
 import org.inchain.transaction.business.BaseCommonlyTransaction;
+import org.inchain.utils.Hex;
 import org.inchain.utils.StringUtil;
 import org.iq80.leveldb.DBIterator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -301,29 +304,30 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 			noticeListener.onNotice("参与共识产生新的块", String.format("%s参与共识，获得收入 %s INS", new Address(network, tx.getOutput(0).getScript().getChunks().get(2).data).getBase58(), Coin.valueOf(tx.getOutput(0).getValue()).toText()));
 		} else if(tx.getType() == Definition.TYPE_PAY) {
 			//对上一交易的引用以及索引值
-			Sha256Hash fromId = output.getParent().getHash();
-			int index = output.getIndex();
-			
-			byte[] key = new byte[fromId.getBytes().length + 1];
-			
-			System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
-			key[key.length - 1] = (byte) index;
-			
-			//查询上次的交易
-			Transaction preTransaction = null;
-			
-			//判断是否未花费
-			byte[] state = chainstateStoreProvider.getBytes(key);
-			if(!Arrays.equals(state, new byte[]{1})) {
-				//查询内存池里是否有该交易
-				preTransaction = MempoolContainer.getInstace().get(fromId);
-			} else {
-				//查询上次的交易
-				preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
-			}
-			TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
-			
-			noticeListener.onNotice("接收到新的转账交易", String.format("接收到一笔来自 %s 的转账，金额  %s INS", new Address(network, preOutput.getScript().getChunks().get(2).data).getBase58(), Coin.valueOf(preOutput.getValue()).toText()));
+//			Sha256Hash fromId = output.getParent().getHash();
+//			int index = output.getIndex();
+//
+//			byte[] key = new byte[fromId.getBytes().length + 1];
+//
+//			System.arraycopy(fromId.getBytes(), 0, key, 0, key.length - 1);
+//			key[key.length - 1] = (byte) index;
+//
+//			//查询上次的交易
+//			Transaction preTransaction = null;
+//
+//			//判断是否未花费
+//			byte[] state = chainstateStoreProvider.getBytes(key);
+//			if(!Arrays.equals(state, new byte[]{1})) {
+//				//查询内存池里是否有该交易
+//				preTransaction = MempoolContainer.getInstace().get(fromId);
+//			} else {
+//				//查询上次的交易
+//				preTransaction = blockStoreProvider.getTransaction(fromId.getBytes()).getTransaction();
+//			}
+//			TransactionOutput preOutput = (TransactionOutput) preTransaction.getOutput(index);
+			TransactionInput input = tx.getInput(0);
+			Address fromAddress = new Address(network,input.getFroms().get(0).getScript().getChunks().get(2).data);
+			noticeListener.onNotice("接收到新的转账交易", String.format("接收到一笔来自 %s 的转账，金额  %s INS", fromAddress.getBase58(), Coin.valueOf(output.getValue()).toText()));
 		}
 	}
 	
@@ -604,6 +608,73 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	}
 
 	/**
+	 * 获取制定地址集合所有未花费的交易输出
+	 * @return List<TransactionOutput>
+	 */
+	public HashMap<String,List<TransactionOutput>> getNotSpentTransactionOutputs(List<byte[]> hash160s) {
+
+		HashMap<String,List<TransactionOutput>> txs = new HashMap<String,List<TransactionOutput>>();
+
+		//查询当前区块最新高度
+		long bestBlockHeight = network.getBestHeight();
+		long localBestBlockHeight = network.getBestBlockHeight();
+
+		if(bestBlockHeight < localBestBlockHeight) {
+			bestBlockHeight = localBestBlockHeight;
+		}
+
+
+		for(int j=0;j<hash160s.size();j++){
+			byte[] hash160 = hash160s.get(j);
+			log.info("find user"+ Hex.encode(hash160));
+			ArrayList<TransactionOutput> unSpentOutputs= new ArrayList<TransactionOutput>();
+			for (TransactionStore transactionStore : unspendTxList){
+				//交易状态
+
+				byte[] status = transactionStore.getStatus();
+				Transaction tx = transactionStore.getTransaction();
+				List<TransactionOutput> outputs = tx.getOutputs();
+				//如果不是转账交易，则跳过
+				if(!tx.isPaymentTransaction()) {
+					continue;
+				}
+
+				//如果交易不可用，则跳过
+				if(tx.getLockTime() < 0l
+						|| (tx.getLockTime() > Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > TimeService.currentTimeSeconds())
+						|| (tx.getLockTime() < Definition.LOCKTIME_THRESHOLD && tx.getLockTime() > bestBlockHeight)) {
+					continue;
+				}
+
+				//遍历交易输出
+				for (int i = 0; i < outputs.size(); i++) {
+					TransactionOutput output = outputs.get(i);
+					Script script = output.getScript();
+					if (script.isSentToAddress() && Arrays.equals(script.getChunks().get(2).data, hash160)) {
+						log.info("find output"+ Hex.encode(script.getChunks().get(2).data));
+						//交易是否已花费
+						if (status[i] == TransactionStore.STATUS_USED) {
+							continue;
+						}
+						//本笔输出是否可用
+						long lockTime = output.getLockTime();
+						if (lockTime < 0l
+								|| (lockTime > Definition.LOCKTIME_THRESHOLD && lockTime > TimeService.currentTimeSeconds())
+								|| (lockTime < Definition.LOCKTIME_THRESHOLD && lockTime > bestBlockHeight)) {
+							continue;
+						} else {
+							unSpentOutputs.add((TransactionOutput) output);
+						}
+					}
+				}
+			}
+			txs.put(new Address(network,hash160).getBase58() ,unSpentOutputs);
+		}
+		return txs;
+	}
+
+
+	/**
 	 * 获取认证账户信息对应的最新的交易记录
 	 * @param hash160
 	 * @return Transaction
@@ -627,6 +698,19 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 	
 	public boolean addAddress(byte[] hash160) {
 		addresses.add(hash160);
+		//写入新列表
+		byte[] addressesByte = new byte[addresses.size() * Address.LENGTH];
+		for (int i = 0; i < addresses.size(); i++) {
+			System.arraycopy(addresses.get(i), 0, addressesByte, i * Address.LENGTH, Address.LENGTH);
+		}
+		put(ADDRESSES_KEY, addressesByte);
+		return true;
+	}
+
+	public boolean addAddress(List<Account> newAccoountList){
+		for(int i=0 ; i<newAccoountList.size(); i++){
+			addresses.add(newAccoountList.get(i).getAddress().getHash160());
+		}
 		//写入新列表
 		byte[] addressesByte = new byte[addresses.size() * Address.LENGTH];
 		for (int i = 0; i < addresses.size(); i++) {

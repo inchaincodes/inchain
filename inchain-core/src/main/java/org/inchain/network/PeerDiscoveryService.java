@@ -92,7 +92,9 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	//状态表，1未连接，2已连接
 	private volatile Map<PeerAddressStore, Seed> connectedStatusMaps = new HashMap<PeerAddressStore, Seed>();
 
-	private volatile Map<PeerAddressStore, Seed> connectedSuperStatusMaps = new HashMap<PeerAddressStore, Seed>();
+	//所有接超级节点列表
+	private volatile List<PeerAddressStore> superaddressMaps;
+
 	//是否已经加载dns节点
 	private boolean hasLoadDns;
 	//最后获取地址的时间
@@ -142,7 +144,7 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			//读取节点列表信息
 			//TODO
 			netaddressMaps = readObjectFromFile();
-			
+
 			if(netaddressMaps == null) {
 				netaddressMaps = new CopyOnWriteArrayList<PeerAddressStore>();
 			} else {
@@ -156,7 +158,6 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 				//打乱顺序
 				Collections.shuffle(canuseMaps);
 			}
-			
 			//启动时标记最后存储时间为当前时间
 			lastStorageTime = TimeService.currentTimeMillis();
 		} finally {
@@ -406,7 +407,8 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 	/*
 	 * 获取dns节点
 	 */
-	private List<Seed> getDnsSeeds(int maxCount) {
+	@Override
+	public List<Seed> getDnsSeeds(int maxCount) {
 		//本次验证列表为空，那么立刻返回dns节点
 		SeedManager seedManager = network.getSeedManager();
 		//一般dns绑定的的节点数量都会比设置的最大连接数少，所以这里获取dns节点只加载一次即可
@@ -431,10 +433,17 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 					connectedStatusMaps.put(peerAddress, seed);
 				}
 			}
+			Collections.shuffle(result);
 			return result;
 		} else {
 			return new ArrayList<Seed>();
 		}
+	}
+
+	@Override
+	public List<Seed> getAllSeeds() {
+		SeedManager seedManager = network.getSeedManager();
+		return seedManager.getAllSeeds();
 	}
 
 	/**
@@ -463,6 +472,12 @@ public class PeerDiscoveryService implements PeerDiscovery , Serializable {
 			seed.setLastTime(TimeService.currentTimeMillis());
 		} else if(seed.getStaus() == Seed.SEED_CONNECT_SUCCESS) {
 			//连接成功，则重置失败次数
+			if(!peerKit.hasConnected(seed.getAddress().getAddress())){
+				seed.setStaus(Seed.SEED_CONNECT_CLOSE);
+				seed.setRetry(true);
+				seed.setRetryInterval(1 * 10 * 1000);
+				seed.setLastTime(TimeService.currentTimeMillis());
+			}
 			seed.setFailCount(0);
 		}
 	}

@@ -1,26 +1,17 @@
 package org.inchain.wallet.controllers;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
-
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.text.Font;
+import javafx.util.Callback;
 import org.inchain.Configure;
 import org.inchain.account.Account;
 import org.inchain.account.Address;
-import org.inchain.core.AccountKeyValue;
-import org.inchain.core.AntifakeInfosResult;
-import org.inchain.core.Coin;
-import org.inchain.core.Definition;
-import org.inchain.core.NotBroadcastBlockViolationEvidence;
-import org.inchain.core.Product;
-import org.inchain.core.ProductKeyValue;
-import org.inchain.core.RepeatBlockViolationEvidence;
-import org.inchain.core.TimeService;
-import org.inchain.core.ViolationEvidence;
+import org.inchain.core.*;
 import org.inchain.crypto.Sha256Hash;
 import org.inchain.kit.InchainInstance;
 import org.inchain.kits.AccountKit;
@@ -38,22 +29,13 @@ import org.inchain.utils.*;
 import org.inchain.wallet.Constant;
 import org.inchain.wallet.entity.DetailValue;
 import org.inchain.wallet.entity.DetailValueCell;
+import org.inchain.wallet.entity.HashValueCell;
 import org.inchain.wallet.entity.TransactionEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.Tooltip;
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.text.Font;
-import javafx.util.Callback;
+import java.io.UnsupportedEncodingException;
+import java.util.*;
 
 /**
  * 交易记录页面控制器
@@ -66,6 +48,7 @@ public class TransactionRecordController implements SubPageController {
 	
 	public TableView<TransactionEntity> table;
 	public TableColumn<TransactionEntity, Long> status;
+	public TableColumn<TransactionEntity, DetailValue> hash;
 	public TableColumn<TransactionEntity, String> type;
 	public TableColumn<TransactionEntity, DetailValue> detail;
 	public TableColumn<TransactionEntity, String> amount;
@@ -106,7 +89,14 @@ public class TransactionRecordController implements SubPageController {
 				};
 			}
 		});
+		hash.setCellValueFactory(new PropertyValueFactory<TransactionEntity, DetailValue>("hash"));
+		hash.setCellFactory(new Callback<TableColumn<TransactionEntity, DetailValue>, TableCell<TransactionEntity, DetailValue>>() {
+			@Override public TableCell<TransactionEntity, DetailValue> call(TableColumn<TransactionEntity, DetailValue> tableColumn) {
+				return new HashValueCell();
+			}
+		});
     	type.setCellValueFactory(new PropertyValueFactory<TransactionEntity, String>("type"));
+
     	detail.setCellValueFactory(new PropertyValueFactory<TransactionEntity, DetailValue>("detail"));
     	detail.setCellFactory(new Callback<TableColumn<TransactionEntity, DetailValue>, TableCell<TransactionEntity, DetailValue>>() {
 	    	@Override public TableCell<TransactionEntity, DetailValue> call(TableColumn<TransactionEntity, DetailValue> tableColumn) {
@@ -170,7 +160,7 @@ public class TransactionRecordController implements SubPageController {
 				String type = null, detail = "", amount = null, time = null;
 				DetailValue detailValue = new DetailValue();
 				
-				if(tx.getType() == Definition.TYPE_COINBASE || 
+				if(tx.getType() == Definition.TYPE_COINBASE ||
 						tx.getType() == Definition.TYPE_PAY) {
 					
 					if(tx.getType() == Definition.TYPE_COINBASE) {
@@ -247,7 +237,7 @@ public class TransactionRecordController implements SubPageController {
 									lockTime = output.getLockTime();
 								}
 								if(lockTime > Definition.LOCKTIME_THRESHOLD) {
-									detail += "("+DateUtil.convertDate(new Date(lockTime * 1000))+"后可用)";
+									detail += "("+ DateUtil.convertDate(new Date(lockTime * 1000))+"后可用)";
 								} else {
 									detail += "(区块高度达到"+lockTime+"时可用)";
 								}
@@ -270,9 +260,9 @@ public class TransactionRecordController implements SubPageController {
 							{
 								inputAddress ="未确认交易退款";
 							}
-							detail = "来自 "+inputAddress+"";
+							detail = "来自 "+inputAddress + (StringUtil.isEmpty(detail)?"":("\n"+detail));
 						} else {
-							detail = outputAddress+" (+"+Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;
+							detail = outputAddress+" (+"+ Coin.valueOf(outputs.get(0).getValue()).toText()+")\n" + detail;
 						}
 					}
 					if(tx.getRemark() != null && tx.getRemark().length > 0) {
@@ -281,7 +271,7 @@ public class TransactionRecordController implements SubPageController {
 						} catch (UnsupportedEncodingException e) {
 						}
 					}
-				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER || 
+				} else if(tx.getType() == Definition.TYPE_CERT_ACCOUNT_REGISTER ||
 						tx.getType() == Definition.TYPE_CERT_ACCOUNT_UPDATE) {
 					//认证账户注册
 					CertAccountRegisterTransaction crt = (CertAccountRegisterTransaction) tx;
@@ -301,7 +291,7 @@ public class TransactionRecordController implements SubPageController {
 							}
 						}
 					}
-				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS || 
+				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS ||
 						tx.getType() == Definition.TYPE_REM_CONSENSUS) {
 					if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
 						detail = "提交保证金";
@@ -392,11 +382,11 @@ public class TransactionRecordController implements SubPageController {
 					TransactionStore bindTxStore = null;
 					AntifakeCodeBindTransaction bindTransaction = null;
 					TransactionStore makeCodeTxStore = null;
-					if(makeCodeTxBytes.length == 2*Sha256Hash.LENGTH){
+					if(makeCodeTxBytes.length == 2* Sha256Hash.LENGTH){
 						makebyte = new byte[Sha256Hash.LENGTH];
 						bindbyte = new byte[Sha256Hash.LENGTH];
-						System.arraycopy(makeCodeTxBytes,0,makebyte,0,Sha256Hash.LENGTH);
-						System.arraycopy(makeCodeTxBytes,Sha256Hash.LENGTH,bindbyte,0,Sha256Hash.LENGTH);
+						System.arraycopy(makeCodeTxBytes,0,makebyte,0, Sha256Hash.LENGTH);
+						System.arraycopy(makeCodeTxBytes, Sha256Hash.LENGTH,bindbyte,0, Sha256Hash.LENGTH);
 						bindTxStore = InchainInstance.getInstance().getAccountKit().getTransaction(Sha256Hash.wrap(bindbyte));
 						bindTransaction = (AntifakeCodeBindTransaction) bindTxStore.getTransaction();
 					}else {

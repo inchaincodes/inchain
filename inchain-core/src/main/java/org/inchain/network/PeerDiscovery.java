@@ -88,4 +88,8 @@ public interface PeerDiscovery {
 	 * 该方法会清楚本地保存的节点，在重置本地数据时会调用
 	 */
 	public void reset();
+
+	public List<Seed> getDnsSeeds(int maxCount);
+
+	public List<Seed> getAllSeeds();
 }

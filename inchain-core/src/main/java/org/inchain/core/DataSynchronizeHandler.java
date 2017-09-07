@@ -1,10 +1,6 @@
 package org.inchain.core;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -88,8 +84,8 @@ public class DataSynchronizeHandler implements Runnable {
 		//监听节点变化
 		peerKit.addConnectionChangedListener(new ConnectionChangedListener() {
 			@Override
-			public void onChanged(int inCount, int outCount, CopyOnWriteArrayList<Peer> inPeers,
-					CopyOnWriteArrayList<Peer> outPeers) {
+			public void onChanged(int inCount, int outCount, int superCount ,CopyOnWriteArrayList<Peer> inPeers,
+					CopyOnWriteArrayList<Peer> outPeers,CopyOnWriteArrayList<Peer> superPeers) {
 				
 				executor.execute(new Runnable() {
 					@Override
@@ -97,11 +93,13 @@ public class DataSynchronizeHandler implements Runnable {
 						locker.lock();
 						try {
 							peers.clear();
-							peers.addAll(inPeers);
-							peers.addAll(outPeers);
+							peers.addAll(superPeers);
+							Collections.shuffle(peers);
+							//peers.addAll(inPeers);
+							//peers.addAll(outPeers);
 							
 							//当所有节点全部断开时，将重新启动监听，因为自动重新连上后需要同步断开这段时间的新区块
-							if(inCount + outCount == 0) {
+							if(superCount == 0) {
 								synchronousStatus = -1;
 								initSynchronous = true;
 							} else if(synchronousStatus == -1) {

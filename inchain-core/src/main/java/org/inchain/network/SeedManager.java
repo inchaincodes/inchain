@@ -31,6 +31,12 @@ public interface SeedManager {
 	List<Seed> getSeedList(int maxConnectionCount);
 
 	/**
+	 * 获取所有的节点，不管可不可用
+	 * @return
+	 */
+	List<Seed> getAllSeeds();
+
+	/**
 	 * 是否有更多的可用节点
 	 * @return boolean
 	 */

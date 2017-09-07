@@ -129,10 +129,6 @@ public class ChangeCertAccountPasswordController extends DailogController {
 			passwordId.requestFocus();
 			DailogUtil.showTipDailogCenter("新密码不能为空", getThisStage());
 			return;
-		} else if(StringUtils.isEmpty(oldPassword)) {
-			oldPasswordId.requestFocus();
-			DailogUtil.showTipDailogCenter("原密码不正确", getThisStage());
-			return;
 		} else if(!password.equals(passwordRepeat)) {
 			repeatId.requestFocus();
 			DailogUtil.showTipDailogCenter("两次输入的新密码不一致", getThisStage());
