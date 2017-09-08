@@ -3301,9 +3301,16 @@ public class RPCServiceImpl implements RPCService {
             json.put("amount", aitx.getAmount());
             json.put("receiver", address.getBase58());
 		} else if(tx.getType() == Definition.TYPE_REG_ALIAS || tx.getType() == Definition.TYPE_UPDATE_ALIAS) {
-			RegAliasTransaction rtx = (RegAliasTransaction)tx;
+			RegAliasTransaction rtx = null;
+			UpdateAliasTransaction utx = null;
 			try {
-				json.put("alias", new String(rtx.getAlias(),"utf-8"));
+				if(tx instanceof  RegAliasTransaction) {
+					rtx = (RegAliasTransaction) tx;
+					json.put("alias", new String(rtx.getAlias(),"utf-8"));
+				}else {
+					utx = (UpdateAliasTransaction)tx;
+					json.put("alias", new String(utx.getAlias(),"utf-8"));
+				}
 			} catch (UnsupportedEncodingException e) {
 
 			}
