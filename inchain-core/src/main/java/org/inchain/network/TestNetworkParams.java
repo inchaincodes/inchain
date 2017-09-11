@@ -76,7 +76,7 @@ public class TestNetworkParams extends NetworkParams {
 
 	@Override
 	public byte[] getCommunityManagerHash160() {
-		return Hex.decode("481e05c83604abf86cca029c4260674c45c85c58");//cer_manager_1
+		return Hex.decode("ca6a9bbce599ba7ae1b0fba7d8095ba83771e9a3");//cer_manager_1
 	}
 
 	/**

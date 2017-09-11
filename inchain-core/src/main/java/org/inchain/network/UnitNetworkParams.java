@@ -84,7 +84,7 @@ public class UnitNetworkParams extends NetworkParams {
 
 	@Override
 	public byte[] getCommunityManagerHash160() {
-		return null;
+		return Hex.decode("ca6a9bbce599ba7ae1b0fba7d8095ba83771e9a3");
 	}
 	/**
 	 * 单元测试，普通地址以u开头
