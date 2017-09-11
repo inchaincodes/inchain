@@ -593,7 +593,7 @@ public final class MiningService implements Mining {
 		
 		//签名脚本
 		Script scriptSig = output.getScript();
-		Address address = new Address(network, network.getCertAccountVersion(), scriptSig.getChunks().get(1).data);
+		Address address = new Address(network, network.getSystemAccountVersion(), scriptSig.getChunks().get(1).data);
 		TransactionInput input = new TransactionInput(output);
 		input.setScriptBytes(new byte[0]);
 		vtx.addInput(input);
@@ -738,54 +738,59 @@ public final class MiningService implements Mining {
 				//验证交易的输入来源，是否已花费的交易，同时验证金额
 				Coin txInputFee = Coin.ZERO;
 				Coin txOutputFee = Coin.ZERO;
-				
+
+				//交易引用的输入，赎回脚本必须一致
+				byte[] scriptBytes = null;
+
 				//验证本次交易的输入
 				List<TransactionInput> inputs = tx.getInputs();
+				int i=0;
 				for (TransactionInput input : inputs) {
-					if(input.getFroms() == null || input.getFroms().size() == 0) {
+
+					scriptBytes = null;
+
+					if (input.getFroms() == null || input.getFroms().size() == 0) {
 						continue;
 					}
 					List<TransactionOutput> froms = input.getFroms();
-					
-					if(froms == null || froms.size() == 0) {
+
+					if (froms == null || froms.size() == 0) {
 						throw new VerificationException("转账交易空的输出");
 					}
-					
-					//交易引用的输入，赎回脚本必须一致
-					byte[] scriptBytes = null;
+
 					for (TransactionOutput from : froms) {
 						//对上一交易的引用以及索引值
 						Transaction fromTx = from.getParent();
 						Sha256Hash fromId = fromTx.getHash();
 						int index = from.getIndex();
-						
+
 						byte[] key = from.getKey();
-						
-						if(from.getParent().getOutputs() == null || from.getParent().getOutputs().size() == 0 || forcedCheck) {
+
+						if (from.getParent().getOutputs() == null || from.getParent().getOutputs().size() == 0 || forcedCheck) {
 							//查询上次的交易
 							Transaction preTransaction = null;
-							
+
 							//判断是否未花费
 							byte[] state = chainstateStoreProvider.getBytes(key);
-							if(state == null || state.length == 0) {
+							if (state == null || state.length == 0) {
 								//链上没有该笔交易，这时有两种情况，第一确实是伪造交易，第二花费了没有确认的交易
 								//对于第一种情况，验证不通过
 								//第二种情况，我们顺序打包交易，也就是引用的输出必须是本次已打包的，否则就扔回内存池
-								
+
 								//首先判断是否已打包
 								boolean hasPackage = false;
 								for (Transaction transaction : transactionList) {
-									if(transaction.getHash().equals(fromId)) {
+									if (transaction.getHash().equals(fromId)) {
 										preTransaction = transaction;
 										hasPackage = true;
 										break;
 									}
 								}
 								//已打包就通过
-								if(!hasPackage) {
+								if (!hasPackage) {
 									//没打包，判断内存里面是否存在
 									preTransaction = MempoolContainer.getInstace().get(fromId);
-									if(preTransaction == null) {
+									if (preTransaction == null) {
 										throw new VerificationException("引用了不存在或不可用的交易");
 									} else {
 										//在内存池里面，那么就把本笔交易扔回内存池，等待下次打包
@@ -793,10 +798,10 @@ public final class MiningService implements Mining {
 										throw new VerificationException("该交易打包顺序不对");
 									}
 								}
-							} else if(Arrays.equals(state, new byte[]{1})) {
+							} else if (Arrays.equals(state, new byte[]{1})) {
 								//查询上次的交易
 								TransactionStore txs = blockStoreProvider.getTransaction(fromId.getBytes());
-								if(txs == null) {
+								if (txs == null) {
 									throw new VerificationException("引用了不存在的交易");
 								}
 								preTransaction = txs.getTransaction();
@@ -810,210 +815,37 @@ public final class MiningService implements Mining {
 						}
 						TransactionOutput preOutput = from.getParent().getOutput(index);
 						txInputFee = txInputFee.add(Coin.valueOf(preOutput.getValue()));
-						
+
 						//验证交易赎回脚本必须一致
-						if(scriptBytes == null) {
+						if (scriptBytes == null) {
 							scriptBytes = preOutput.getScriptBytes();
-						} else if(!Arrays.equals(scriptBytes, preOutput.getScriptBytes())) {
+						} else if (!Arrays.equals(scriptBytes, preOutput.getScriptBytes())) {
 							throw new VerificationException("错误的输入格式，不同的交易赎回脚本不能合并");
 						}
-						
+
 						//本输入在 transactionList 里面不能有2笔对此的引用，否则就造成了双花
-						if(filter != null) {
-							if(filter.contains(key)) {
+						if (filter != null) {
+							if (filter.contains(key)) {
 								throw new VerificationException("同一块多个交易引用了同一个输入");
-							} 
+							}
 							filter.insert(key);
 						}
 					}
-					//验证赎回脚本
-					Script verifyScript = new Script(scriptBytes);
-					if(verifyScript.isConsensusOutputScript()) {
-						//共识保证金引用脚本，则验证
-						//因为共识保证金，除了本人会操作，还会有其它共识人操作
-						//并且不一定是转到自己的账户，所以必须对输入输出都做严格的规范
-						if(!(tx.getType() == Definition.TYPE_REM_CONSENSUS || tx.getType() == Definition.TYPE_VIOLATION)) {
-							throw new VerificationException("不合法的交易引用");
-						}
-						//输入必须只有一个
-						if(inputs.size() != 1 || inputs.get(0).getFroms().size() != 1) {
-							throw new VerificationException("该笔交易有保证金的引用，输入个数不对");
-						}
-						//输出必须只有一个，切必须按照指定的类型输出到相应的账户
-						if(tx.getOutputs().size() != 1) {
-							throw new VerificationException("该笔交易有保证金的引用，输出个数不对");
-						}
-						TransactionOutput ouput = tx.getOutputs().get(0);
-						//验证保证金的数量
-						if(ouput.getValue() != inputs.get(0).getFroms().get(0).getValue()) {
-							throw new VerificationException("保证金的输入输出金额不匹配");
-						}
-						Script outputScript = ouput.getScript();
-						//必须输出到地址
-						if(!outputScript.isSentToAddress()) {
-							throw new VerificationException("保证金的输出不正确");
-						}
-						//必须输出到指定的账户
-						//自己的账户
-						byte[] selfAccount = verifyScript.getChunks().get(0).data;
-						//惩罚保证金接收账户
-						byte[] punishmentAccount = verifyScript.getChunks().get(1).data;
-						//输出账户
-						byte[] ouputAccount = outputScript.getChunks().get(2).data;
-						if(tx.getType() == Definition.TYPE_REM_CONSENSUS && !Arrays.equals(selfAccount, ouputAccount)) {
-							throw new VerificationException("保证金的输出不合法,应该是保证金所属者");
-						} else if(tx.getType() == Definition.TYPE_VIOLATION) {
-							//违规处理
-							ViolationTransaction vt = (ViolationTransaction) tx;
-							//证据
-							ViolationEvidence violationEvidence = vt.getViolationEvidence();
-							
-							if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_NOT_BROADCAST_BLOCK && !Arrays.equals(selfAccount, ouputAccount)) {
-								throw new VerificationException("超时不出块,保证金的输出不合法,应该是保证金所属者");
-							} else if(violationEvidence.getViolationType() == ViolationEvidence.VIOLATION_TYPE_REPEAT_BROADCAST_BLOCK && !Arrays.equals(punishmentAccount, ouputAccount)) {
-								throw new VerificationException("严重违规,重复出块,保证金的输出不合法,应该是罚没接收账户");
-							}
-						}
-					} else {
-						//验证赎回脚本
-						input.getScriptSig().execute(verifyScript);
-					}
 				}
-					
-				//验证本次交易的输出
-				List<TransactionOutput> outputs = tx.getOutputs();
-				for (TransactionOutput output : outputs) {
-					Coin outputCoin = Coin.valueOf(output.getValue());
-					//输出金额不能为负数
-					if(outputCoin.isLessThan(Coin.ZERO)) {
-						throw new VerificationException("输出金额不能为负数");
-					}
-					txOutputFee = txOutputFee.add(outputCoin);
-					//是否验证必须输出到已有的帐户 ??? TODO
-				}
-				//输出金额不能大于输入金额
-				if(txOutputFee.isGreaterThan(txInputFee)) {
-					throw new VerificationException("输出金额不能大于输入金额");
-				}
-				//业务交易且带代币交易
-				if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_MAKE) {
-					//如果是验证码生成交易，则验证产品是否存在
-					AntifakeCodeMakeTransaction atx = (AntifakeCodeMakeTransaction) tx;
-					if(atx.getHasProduct() == 0) {
-						TransactionStore txStore = blockStoreProvider.getTransaction(atx.getProductTx().getBytes());
-						if (txStore == null || txStore.getTransaction() == null) {
-							throw new VerificationException("产品不存在");
-						}
-						ProductTransaction ptx = (ProductTransaction) txStore.getTransaction();
-						if (!Arrays.equals(ptx.getHash160(), atx.getHash160())) {
-							throw new VerificationException("不合法的产品引用");
-						}
-					}
-					//防伪码不能重复
-					try {
-						byte[] txid = chainstateStoreProvider.getBytes(atx.getAntifakeCode());
-						if(txid != null) {
-							throw new VerificationException("重复的防伪码");
-						}
-					} catch (IOException e) {
-						throw new VerificationException("验证防伪码是否重复时出错，错误信息：" + e.getMessage());
-					}
-				} else if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
-					//防伪码验证交易
-					AntifakeCodeVerifyTransaction acvtx = (AntifakeCodeVerifyTransaction) tx;
-					
-					byte[] makebind = chainstateStoreProvider.getBytes(acvtx.getAntifakeCode());
-					byte[] makebyte = new byte[Sha256Hash.LENGTH];
 
-					if(makebind == null) {
-						throw new VerificationException("防伪码不存在");
-					}
-					System.arraycopy(makebind,0,makebyte,0,Sha256Hash.LENGTH);
-
-					
-					TransactionStore maketxStore = blockStoreProvider.getTransaction(makebyte);
-					if(maketxStore == null || maketxStore.getTransaction() == null) {
-						throw new VerificationException("防伪码生成交易不存在");
-					}
-					Transaction makeTx = maketxStore.getTransaction();
-					if(makeTx.getType() != Definition.TYPE_ANTIFAKE_CODE_MAKE) {
-						throw new VerificationException("错误的防伪码");
-					}
-					//保证该防伪码没有被验证
-					byte[] txStatus = makeTx.getHash().getBytes();
-					byte[] txIndex = new byte[txStatus.length + 1];
-					
-					System.arraycopy(txStatus, 0, txIndex, 0, txStatus.length);
-					txIndex[txIndex.length - 1] = 0;
-					
-					byte[] status = chainstateStoreProvider.getBytes(txIndex);
-					if(status == null) {
-						throw new VerificationException("防伪码已被验证");
-					}
-				} else if(tx.getType() == Definition.TYPE_REG_CONSENSUS) {
-					//申请成为共识节点
-					RegConsensusTransaction regConsensusTx = (RegConsensusTransaction) tx;
-					byte[] hash160 = regConsensusTx.getHash160();
-					//获取申请人信息，包括信用和可用余额
-					AccountStore accountStore = chainstateStoreProvider.getAccountInfo(hash160);
-					if(accountStore == null && regConsensusTx.isCertAccount()) {
-						//TODO 需要信用才能注册的，这里不应该做任何处理
-						//加入内存池  临时的处理方案
-						throw new VerificationException("账户不存在");
-					}
-					
-					//判断是否达到共识条件
-					long credit = (accountStore == null ? 0 : accountStore.getCert());
-					
-					BlockHeader blockHeader = blockStoreProvider.getBlockHeaderByperiodStartTime(regConsensusTx.getPeriodStartTime());
-					if(credit < ConsensusCalculationUtil.getConsensusCredit(blockHeader.getHeight())) {
-						//信用不够
-						throw new VerificationException("信用值过低");
-					}
-					
-					//判断是否已经是共识节点
-					if(consensusPool.contains(hash160)) {
-						//已经是共识节点了
-						throw new VerificationException("已经是共识节点了,勿重复申请");
-					}
-					//验证时段
-					long periodStartTime = regConsensusTx.getPeriodStartTime();
-					//必须是最近的几轮里
-					if(consensusMeeting.getMeetingItem(periodStartTime) == null) {
-						throw new VerificationException("申请时段不合法");
-					}
-					//验证保证金
-					//当前共识人数
-					int currentConsensusSize = consensusMeeting.analysisConsensusSnapshots(periodStartTime).size();
-					//共识保证金
-					Coin recognizance = ConsensusCalculationUtil.calculatRecognizance(currentConsensusSize, blockHeader.getHeight());
-					if(!Coin.valueOf(outputs.get(0).getValue()).equals(recognizance)) {
-						throw new VerificationException("保证金不正确");
-					}
-				} else if(tx.getType() == Definition.TYPE_REM_CONSENSUS) {
-					//退出共识交易
-					RemConsensusTransaction remConsensusTx = (RemConsensusTransaction) tx;
-					byte[] hash160 = remConsensusTx.getHash160();
-					//判断是否已经是共识节点
-					if(!consensusPool.contains(hash160)) {
-						//不是共识节点，该交易不合法
-						throw new VerificationException("不是共识节点了，该交易不合法");
-					}
-				}
 				return true;
-			} else {
-				ValidatorResult<TransactionValidatorResult> res = transactionValidator.valDo(tx, transactionList);
-				//如果该交易是资产转让交易，需要特殊处理
-				if(!(tx instanceof AssetsTransferTransaction)) {
-					return res.getResult().isSuccess();
-				}
-				if(res.getResult().isSuccess() == false) {
-					return false;
-				}
-
-				//如果一个账户再一轮共识中同时发起了多笔转账交易，则需要验证
+			}
+			ValidatorResult<TransactionValidatorResult> res = transactionValidator.valDo(tx, transactionList);
+			//如果该交易是资产转让交易，需要特殊处理
+			if(!(tx instanceof AssetsTransferTransaction)) {
 				return res.getResult().isSuccess();
 			}
+			if(res.getResult().isSuccess() == false) {
+				return false;
+			}
+
+			//如果一个账户再一轮共识中同时发起了多笔转账交易，则需要验证
+			return res.getResult().isSuccess();
 		} catch (Exception e) {
 			log.warn(e.getMessage(), e);
 			return false;

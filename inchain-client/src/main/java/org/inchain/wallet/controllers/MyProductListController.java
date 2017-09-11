@@ -183,7 +183,7 @@ public class MyProductListController implements SubPageController{
 				String remark = (String) map.get("remark");
 				
 				AccountKit accountKit = SpringContextUtils.getBean(AccountKit.class);
-				if(accountKit.accountIsEncrypted()) {
+				if(accountKit.isWalletEncrypted()) {
 					decryptWallet(antifakeCode, accountKit, controller, receiver, remark);
 					return;
 				} else {

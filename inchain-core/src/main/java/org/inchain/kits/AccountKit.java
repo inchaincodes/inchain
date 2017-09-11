@@ -7,22 +7,15 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.Configure;
 import org.inchain.SpringContextUtils;
@@ -103,6 +96,10 @@ public class AccountKit {
 	//节点管理器
 	@Autowired
 	private PeerKit peerKit;
+
+	private long unlocktime;
+	private boolean isLockWalletNow = true;
+	private boolean isUnlockedByCmd = false;
 
 	@Autowired
 	private DataSynchronizeHandler dataSynchronizeHandler;
@@ -266,6 +263,22 @@ public class AccountKit {
 	}
 
 	/**
+	 * 获取所有账户可用余额总数
+	 */
+	public Coin getTotalCanUseBalance() {
+		Coin total = Coin.ZERO;
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		for (Account account : accountList) {
+			total = total.add(getCanUseBalance(account.getAddress()));
+		}
+		return total;
+	}
+
+
+
+	/**
 	 * 获取可用余额
 	 */
 	public Coin getCanUseBalance(Address address) {
@@ -283,6 +296,20 @@ public class AccountKit {
 			return Coin.ZERO;
 		}
 		return getCanNotUseBalance(getDefaultAccount().getAddress());
+	}
+
+	/**
+	 * 获取所有账户不可用总余额
+	 */
+	public Coin getTotalCanNotUseBalance() {
+		Coin total = Coin.ZERO;
+		if(accountList == null || accountList.size() == 0) {
+			return Coin.ZERO;
+		}
+		for (Account account : accountList) {
+			total = total.add(getCanNotUseBalance(account.getAddress()));
+		}
+		return total;
 	}
 
 	/**
@@ -1299,12 +1326,14 @@ public class AccountKit {
 		//参数不能为空
 		Utils.checkNotNull(to);
 		long bestheight = 0;
-		long localheight = 0;
 		long localbestheighttime = 0;
 
 		bestheight = network.getBestHeight();
-		localheight = blockStoreProvider.getBestBlockHeader().getBlockHeader().getHeight();
 		localbestheighttime = blockStoreProvider.getBestBlockHeader().getBlockHeader().getTime();
+		if(peerKit.getAvailablePeersCount()==0){
+			throw new VerificationException("当前网络不可用，请稍后再尝试");
+		}
+
 		if(bestheight == 0){
 			if(dataSynchronizeHandler.isDownloading()) {
 				throw new VerificationException("正在同步区块中，请稍后再尝试");
@@ -1325,6 +1354,8 @@ public class AccountKit {
 				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
 			}
 		}
+
+
 
 		locker.lock();
 		try {
@@ -1446,6 +1477,227 @@ public class AccountKit {
 				broadcastResult.setSuccess(false);
 				broadcastResult.setMessage("签名失败");
 				return broadcastResult;
+			}
+			//验证交易是否合法
+			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
+			if(!rs.getResult().isSuccess()) {
+				throw new VerificationException(rs.getResult().getMessage());
+			}
+
+			//加入内存池，因为广播的Inv消息出去，其它对等体会回应getDatas获取交易详情，会从本机内存取出来发送
+			boolean success = MempoolContainer.getInstace().add(tx);
+
+			BroadcastResult broadcastResult = null;
+
+			if(success) {
+				transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+				//广播结果
+				try {
+					log.info("交易大小：{} , 输入数{} - {},  输出数 {} , hash {}", tx.baseSerialize().length, tx.getInputs().size(), tx.getInputs().get(0).getFroms().size(), tx.getOutputs().size(), tx.getHash());
+					//等待广播回应
+					broadcastResult = peerKit.broadcast(tx).get();
+					//成功
+					if(broadcastResult.isSuccess()) {
+						//更新交易记录
+						transactionStoreProvider.processNewTransaction(new TransactionStore(network, tx));
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+					broadcastResult = new BroadcastResult();
+					broadcastResult.setSuccess(false);
+					broadcastResult.setMessage("广播出错，"+e.getMessage());
+				}
+			} else {
+				broadcastResult = new BroadcastResult();
+				broadcastResult.setSuccess(false);
+				broadcastResult.setMessage("重复的交易，禁止广播");
+			}
+			return broadcastResult;
+		} finally {
+			locker.unlock();
+		}
+	}
+
+	/**
+	 * 发送普通交易到指定地址
+	 * @param to   base58的地址
+	 * @param money	发送金额
+	 * @param fee	手续费
+	 * @return String
+	 * @throws MoneyNotEnoughException
+	 */
+	public BroadcastResult sendtoAddress(JSONArray toaddressAndCoins, Coin fee,String pass, byte[] remark) throws MoneyNotEnoughException {
+		BroadcastResult result = new BroadcastResult();
+		Coin moneyCoin = Coin.ZERO;
+		Coin feeCoin = fee;
+		String tmpAddress = null;
+		Coin tmpCoin = null;
+		List <TransactionOutput> outputList = new ArrayList<TransactionOutput>();
+		try {
+			for(int index=0;index<toaddressAndCoins.length();index++){
+				JSONObject toaddressAndCoin = toaddressAndCoins.getJSONObject(index);
+				Iterator<String> keyIt = toaddressAndCoin.keys();
+				while(keyIt.hasNext()) {
+					tmpAddress = keyIt.next();
+					try{
+						Address.fromBase58(network,tmpAddress);
+					}catch (Exception e){
+							result.setSuccess(false);
+							result.setMessage("接收地址不合法");
+							return result;
+					}
+					if((getAccount(tmpAddress)!=null)) {
+						result.setSuccess(false);
+						result.setMessage("不能转账给自己");
+						return result;
+					}
+					try {
+						tmpCoin  = Coin.parseCoin(toaddressAndCoin.getString(tmpAddress));
+					}catch (Exception e){
+						result.setSuccess(false);
+						result.setMessage("转账金额不合法");
+						return result;
+					}
+					moneyCoin = moneyCoin.add(tmpCoin);
+				}
+				outputList.add(new TransactionOutput(null,tmpCoin,Address.fromBase58(network,tmpAddress)));
+			}
+
+			Coin total = getTotalCanUseBalance();
+			if(total.isLessThan(moneyCoin.add(feeCoin))){
+				result.setSuccess( false);
+				result.setMessage("总余额不足");
+				return result;
+			}
+		}catch (Exception e){
+			result.setSuccess( false);
+			result.setMessage("参数错误");
+			return result;
+		}
+
+		long bestheight = 0;
+		long localbestheighttime = 0;
+
+		bestheight = network.getBestHeight();
+		localbestheighttime = blockStoreProvider.getBestBlockHeader().getBlockHeader().getTime();
+		if(bestheight == 0){
+			if(dataSynchronizeHandler.isDownloading()) {
+				throw new VerificationException("正在同步区块中，请稍后再尝试");
+			}else {
+				peerKit.resetPeers();
+				dataSynchronizeHandler.reset();
+				dataSynchronizeHandler.run();
+				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
+			}
+		}
+		if(TimeService.currentTimeSeconds()-localbestheighttime>60){
+			if(dataSynchronizeHandler.isDownloading()) {
+				throw new VerificationException("正在同步区块中，请稍后再尝试");
+			}else {
+				peerKit.resetPeers();
+				dataSynchronizeHandler.reset();
+				dataSynchronizeHandler.run();
+				throw new VerificationException("当前网络不可用，正在重试网络和数据修复，请稍后再尝试");
+			}
+		}
+
+		boolean isEnctypted=false;
+		for(Account account:accountList){
+			if(!account.isCertAccount()&&account.isEncrypted()){
+				if(pass == null){
+					throw new VerificationException("账户已加密，未传入密码");
+				}
+				Result rs = decryptAccount(pass,account.getAddress().getBase58());
+				if(!rs.isSuccess())
+					throw new VerificationException("账户已加密，密码错误");
+				isEnctypted =true;
+			}
+		}
+
+		if(!isEnctypted) {
+			if(remark == null && pass!=null)
+				remark=pass.getBytes();
+		}
+
+		locker.lock();
+		try {
+
+			if(fee == null || fee.compareTo(Coin.ZERO) < 0) {
+				fee = Definition.MIN_PAY_FEE;
+			}
+
+			if(accountList == null || accountList.size() == 0) {
+				throw new VerificationException("没有可用账户");
+			}
+
+			Transaction tx = new Transaction(network);
+			tx.setLockTime(TimeService.currentTimeSeconds());
+			tx.setType(Definition.TYPE_PAY);
+			tx.setVersion(Definition.VERSION);
+			tx.setRemark(remark);
+
+			Coin totalInputCoin = Coin.ZERO;
+
+			//选择输入
+			List<Address> addresses= new ArrayList<Address>();
+			for (int j=0;j<accountList.size();j++){
+				addresses.add(accountList.get(j).getAddress());
+			}
+
+			HashMap<String,List<TransactionOutput>> fromOutputs = selectNotSpentTransaction(moneyCoin.add(fee), addresses);
+			List<Account> signAccounts = new ArrayList<Account>();
+
+			Iterator it = fromOutputs.keySet().iterator();
+			while (it.hasNext()){
+				TransactionInput input = new TransactionInput();
+				String address = (String) it.next();
+				List<TransactionOutput> userOutput = fromOutputs.get(address);
+				for (TransactionOutput output : userOutput) {
+					input.addFrom(output);
+					totalInputCoin = totalInputCoin.add(Coin.valueOf(output.getValue()));
+				}
+
+				Account account = getAccount(address);
+				signAccounts.add(account);
+				//创建一个输入的空签名
+				if(account.getAccountType() == network.getSystemAccountVersion()) {
+					//普通账户的签名
+					input.setScriptSig(ScriptBuilder.createInputScript(null, account.getEcKey()));
+				} else {
+					//认证账户的签名
+					input.setScriptSig(ScriptBuilder.createCertAccountInputScript(null, account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160()));
+				}
+				tx.addInput(input);
+
+			}
+			//交易输出
+			for(TransactionOutput output:outputList) {
+				tx.addOutput(output);
+			}
+			//是否找零
+
+			if(totalInputCoin.compareTo(moneyCoin.add(fee)) > 0) {
+				tx.addOutput(totalInputCoin.subtract(moneyCoin.add(fee)), signAccounts.get(0).getAddress());
+			}
+
+			//签名交易
+			final LocalTransactionSigner signer = new LocalTransactionSigner();
+			for(int i =0;i<signAccounts.size();i++) {
+				try {
+					//if(account.getAccountType() == network.getSystemAccountVersion()) {
+					//普通账户的签名
+					signer.signOneInputs(tx, signAccounts.get(i).getEcKey(),i);
+					//} else {
+					//认证账户的签名
+					//	signer.signCertAccountInputs(tx, account.getTrEckeys(), account.getAccountTransaction().getHash().getBytes(), account.getAddress().getHash160());
+					//}
+				} catch (Exception e) {
+					log.error(e.getMessage(), e);
+					BroadcastResult broadcastResult = new BroadcastResult();
+					broadcastResult.setSuccess(false);
+					broadcastResult.setMessage("签名失败");
+					return broadcastResult;
+				}
 			}
 			//验证交易是否合法
 			ValidatorResult<TransactionValidatorResult> rs = transactionValidator.valDo(tx);
@@ -2040,6 +2292,79 @@ public class AccountKit {
 		return thisOutputs;
 	}
 
+	public HashMap<String,List<TransactionOutput>> selectNotSpentTransaction(Coin amount, List<Address>  addresses) {
+
+		List <byte[]> hash160s =new ArrayList<byte[]>();
+		for(int i=0;i<addresses.size();i++){
+			hash160s.add(addresses.get(i).getHash160());
+		}
+
+		//获取到所有未花费的交易
+		HashMap<String,List<TransactionOutput>> outputs = transactionStoreProvider.getNotSpentTransactionOutputs(hash160s);
+
+		//选择结果存放列表
+		HashMap<String,List<TransactionOutput>> thisOutputs = new HashMap<String,List<TransactionOutput>>();
+
+		if(outputs == null || outputs.size() == 0) {
+			return thisOutputs;
+		}
+
+		//遍历选择，原则是尽量少的数据，也就是笔数最少
+
+		//小于amount的集合
+		HashMap<String,List<TransactionOutput>> lessThanList = new HashMap<String,List<TransactionOutput>>();
+		//大于amount的集合
+		HashMap<String,List<TransactionOutput>> moreThanList = new HashMap<String,List<TransactionOutput>>();
+
+		Iterator <String> it = outputs.keySet().iterator();
+		while (it.hasNext()) {
+			String address = it.next();
+			List<TransactionOutput> userOutput = outputs.get(address);
+			List<TransactionOutput> userLessThanList = new ArrayList<TransactionOutput>();
+			List<TransactionOutput> userMoreThanList = new ArrayList<TransactionOutput>();
+			for (TransactionOutput transactionOutput : userOutput) {
+				if (transactionOutput.getValue() == amount.value) {
+					//如果刚好相等，则立即返回
+					HashMap<String,List<TransactionOutput>> returnMap=new HashMap<String,List<TransactionOutput>>();
+					List<TransactionOutput> returnList=new ArrayList<TransactionOutput>();
+					returnList.add(transactionOutput);
+					returnMap.put(address,returnList);
+					return returnMap;
+				} else if (transactionOutput.getValue() > amount.value) {
+					//加入大于集合
+					userMoreThanList.add(transactionOutput);
+				} else {
+					//加入小于于集合
+					userLessThanList.add(transactionOutput);
+				}
+			}
+			moreThanList.put(address,userMoreThanList);
+			lessThanList.put(address,userLessThanList);
+		}
+
+		if(Configure.TRANSFER_PREFERRED == 2) {
+			//优先使用零钱
+			transferPreferredWithSmallChangeMulUser(amount, lessThanList, moreThanList, thisOutputs);
+		} else {
+			//以交易数据小优先，该种机制尽量选择一笔输入，默认方式
+			transferPreferredWithLessNumberMulUser(amount, lessThanList, moreThanList, thisOutputs);
+		}
+		Set nullset = new HashSet<String>();
+		it = thisOutputs.keySet().iterator();
+		while (it.hasNext()) {
+			String address = it.next();
+			List <TransactionOutput> userOutputs = thisOutputs.get(address);
+			if(userOutputs.size()==0)
+				nullset.add(address);
+		}
+		it = nullset.iterator();
+		while (it.hasNext()){
+			String address= it.next();
+			thisOutputs.remove(address);
+		}
+		return thisOutputs;
+	}
+
 	/*
 	 * 交易选择 -- 优先使用零钱
 	 */
@@ -2066,6 +2391,36 @@ public class AccountKit {
 	}
 
 	/*
+ * 交易选择 -- 优先使用零钱
+ */
+	private void transferPreferredWithSmallChangeMulUser(Coin amount, HashMap<String, List<TransactionOutput>> lessThanList,
+														 HashMap<String, List<TransactionOutput>> moreThanList, HashMap<String, List<TransactionOutput>> thisOutputs) {
+		if(lessThanList.size() > 0) {
+			//计算所有零钱，是否足够
+			Coin lessTotal = Coin.ZERO;
+			Iterator<String> lessit= lessThanList.keySet().iterator();
+			while (lessit.hasNext()){
+				String address = lessit.next();
+				List<TransactionOutput> userLessThanlist = lessThanList.get(address);
+				for (TransactionOutput transactionOutput : userLessThanlist) {
+					lessTotal = lessTotal.add(Coin.valueOf(transactionOutput.getValue()));
+				}
+			}
+
+			if(lessTotal.isLessThan(amount)) {
+				//不够，那么必定有大的
+				selectOneOutputMulUser(moreThanList, thisOutputs);
+			} else {
+				//选择零钱
+				selectSmallChangeMulUser(amount, lessThanList, thisOutputs);
+			}
+		} else {
+			//没有比本次交易最大的未输出交易
+			selectOneOutputMulUser(moreThanList, thisOutputs);
+		}
+	}
+
+	/*
 	 * 交易选择 -- 以交易数据小优先，该种机制尽量选择一笔输入
 	 */
 	private void transferPreferredWithLessNumber(Coin amount, List<TransactionOutput> lessThanList, List<TransactionOutput> moreThanList, List<TransactionOutput> outputs) {
@@ -2075,6 +2430,19 @@ public class AccountKit {
 		} else {
 			//没有比本次交易最大的未输出交易
 			selectSmallChange(amount, lessThanList, outputs);
+		}
+	}
+
+	/*
+ * 交易选择 -- 以交易数据小优先，该种机制尽量选择一笔输入
+ */
+	private void transferPreferredWithLessNumberMulUser(Coin amount, HashMap<String,List<TransactionOutput>> lessThanList,  HashMap<String,List<TransactionOutput>> moreThanList,  HashMap<String,List<TransactionOutput>> outputs) {
+		if(moreThanList.size() > 0) {
+			//有比本次交易大的未输出交易，直接使用其中最小的一个
+			selectOneOutputMulUser(moreThanList, outputs);
+		} else {
+			//没有比本次交易最大的未输出交易
+			selectSmallChangeMulUser(amount, lessThanList, outputs);
 		}
 	}
 
@@ -2100,6 +2468,29 @@ public class AccountKit {
 			}
 		});
 		outputs.add(moreThanList.get(0));
+	}
+
+	/*
+ * 出现的第一笔为输出
+ */
+	private void selectOneOutputMulUser(HashMap<String,List<TransactionOutput>> moreThanList, HashMap<String,List<TransactionOutput>> outputs) {
+		if(moreThanList == null || moreThanList.size() == 0) {
+			return;
+		}
+		Iterator<String> moreit = moreThanList.keySet().iterator();
+		while (moreit.hasNext()) {
+			String address = moreit.next();
+			List<TransactionOutput> userMoreThanList = moreThanList.get(address);
+			if(userMoreThanList.size()==0) {
+				continue;
+			}else {
+				TransactionOutput out = userMoreThanList.get(0);
+				List<TransactionOutput> oneList = new ArrayList<TransactionOutput>();
+				oneList.add(out);
+				outputs.put(address,oneList);
+				return;
+			}
+		}
 	}
 
 	/*
@@ -2150,6 +2541,33 @@ public class AccountKit {
 		}
 	}
 
+	/*
+	 * 选择零钱，原则先后顺序
+	 */
+	private void selectSmallChangeMulUser(Coin amount, HashMap<String,List<TransactionOutput>> lessThanList, HashMap<String,List<TransactionOutput>> outputs) {
+		if(lessThanList == null || lessThanList.size() == 0) {
+			return;
+		}
+		//已选择的金额
+		Coin total = Coin.ZERO;
+
+		Iterator<String> lessit = lessThanList.keySet().iterator();
+		while (lessit.hasNext()) {
+			String address = lessit.next();
+			List<TransactionOutput> userLessThanList=lessThanList.get(address);
+			List<TransactionOutput> userOutputList= new ArrayList<TransactionOutput>();
+			//从小到大选择
+			for (TransactionOutput transactionOutput : userLessThanList) {
+				userOutputList.add(transactionOutput);
+				total = total.add(Coin.valueOf(transactionOutput.getValue()));
+				if (total.isGreaterThan(amount)) {
+					break;
+				}
+			}
+			outputs.put(address,userOutputList);
+		}
+	}
+
 	/**
 	 * 初始化一个普通帐户
 	 * @return Address
@@ -2157,7 +2575,6 @@ public class AccountKit {
 	 * @throws Exception
 	 */
 	public Address createNewAccount() throws IOException {
-
 		locker.lock();
 		try {
 
@@ -2194,6 +2611,67 @@ public class AccountKit {
 		} finally {
 			locker.unlock();
 		}
+	}
+
+	/**
+	 * 初始化一个普通帐户
+	 * @return Address
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public JSONObject createNewAccount(int count) throws IOException {
+		File accountFile = null;
+		FileOutputStream fos = null;
+		locker.lock();
+		JSONObject addresses = new JSONObject();
+		JSONArray addressesArrays = new JSONArray();
+		accountFile = new File(accountDir, "wallet.dat");
+		fos = new FileOutputStream(accountFile,true);
+		List<Account> newAccountList = new ArrayList<Account>();
+
+		try {
+			for (int i=0;i<count;i++) {
+//			ECKey key = ECKey.fromPrivate(new BigInteger(""));
+				ECKey key = new ECKey();
+
+				Address address = Address.fromP2PKHash(network, network.getSystemAccountVersion(), Utils.sha256hash160(key.getPubKey(false)));
+
+				address.setBalance(Coin.ZERO);
+				address.setUnconfirmedBalance(Coin.ZERO);
+
+				Account account = new Account(network);
+
+				account.setPriSeed(key.getPrivKeyBytes());
+				account.setAccountType(address.getVersion());
+				account.setAddress(address);
+				account.setMgPubkeys(new byte[][]{key.getPubKey(true)});
+				account.signAccount(key, null);
+				account.setEcKey(key);
+				accountList.add(account);
+				addressesArrays.put(i,account.getAddress().getBase58());
+				newAccountList.add(account);
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+					fos.flush();
+				} finally {
+
+				}
+			}
+			addresses.put("addresses",addressesArrays);
+			//init();
+			transactionStoreProvider.addAddress(newAccountList);
+			for(Account account:newAccountList) {
+				blockStoreProvider.addAccountFilter(account.getAddress().getHash160());
+			}
+			return addresses;
+		}catch (Exception e){
+			log.info("创建多用户地址出错："+e);
+		} finally {
+			locker.unlock();
+			fos.close();
+		}
+		return null;
 	}
 
 	/**
@@ -2745,26 +3223,28 @@ public class AccountKit {
 				return new Result(false, "导入了0个账户");
 			}
 			//备份原账户
-			for (Account account : accountList) {
-				String base58 = account.getAddress().getBase58();
-				String newBackupFile = base58 + "_auto_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
-				new File(accountDir, base58 + ".dat")
-						.renameTo(new File(accountDir, newBackupFile));
-			}
-			for (Account account : importAccountList) {
-				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
 
-				FileOutputStream fos = new FileOutputStream(accountFile);
-				try {
+			String newBackupFile =  "wallet_auto_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
+			new File(accountDir,   "wallet.dat")
+					.renameTo(new File(accountDir, newBackupFile));
+
+
+			File accountFile = new File(accountDir, "wallet.dat");
+			FileOutputStream fos = new FileOutputStream(accountFile);
+			try {
+				for (Account account : importAccountList) {
 					fos.write(account.serialize());
-				} finally {
-					fos.close();
 				}
+			} finally {
+				fos.close();
 			}
 			//重新加载账户
+			init();
+			/*
 			loadAccount();
 			//更新余额
 			loadBalanceFromChainstateAndUnconfirmedTransaction(getAccountHash160s());
+			*/
 			return new Result(true, "成功导入了"+importAccountList.size()+"个账户");
 		} catch (Exception e) {
 			log.error("导入钱包失败，{}", e.getMessage(), e);
@@ -2833,13 +3313,143 @@ public class AccountKit {
 		return new Result(true, message);
 	}
 
+	public Result encryptWallet(String password) {
+		//密码位数和难度检测
+		if(!validPassword(password)) {
+			return new Result(false, "输入的密码需6位或以上，且包含字母和数字");
+		}
+
+		int successCount = 0; //成功个数
+		//加密钱包
+		File accountFile = new File(accountDir, "wallet.dat");
+		FileOutputStream fos = null;
+		try {
+			fos = new FileOutputStream(accountFile);
+		}catch (Exception e){
+			return new Result(false, "创建文件失败");
+		}
+
+		//判断是否已经加密了
+		boolean isEncrypted=false;
+		for (Account account : accountList){
+			if(account.isCertAccount())
+				continue;
+			if(!account.isEncrypted()) {
+				continue;
+			}else{
+				try{
+					account.resetKey(password);
+					ECKey eckey = account.getEcKey();
+					account.setEcKey(eckey.decrypt(password));
+				}catch (Exception e){
+					return new Result(false, "钱包存在已经加密的账户且密码与当前输入的密码不想等，不能加密");
+				}
+			}
+		}
+
+		if(isEncrypted){
+			return new Result(false, "钱包存在已经加密的账户，不能加密");
+		}
+
+		for (Account account : accountList) {
+			if(account.isCertAccount())
+				continue;
+			ECKey eckey = account.getEcKey();
+			try {
+				ECKey newKey = eckey.encrypt(password);
+				account.setEcKey(newKey);
+				account.setPriSeed(newKey.getEncryptedPrivateKey().getEncryptedBytes());
+
+				//重新签名
+				account.signAccount(eckey, null);
+				//回写到钱包文件
+				try {
+					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
+					fos.write(account.serialize());
+					successCount++;
+				} finally {
+
+				}
+			} catch (Exception e) {
+				log.error("加密 {} 失败: {}", account.getAddress().getBase58(), e.getMessage(), e);
+				return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
+			} finally {
+				eckey = null;
+			}
+		}
+		String message = null;
+		try {
+			fos.close();
+		}catch (Exception e){
+			//TODO
+		}
+		if(successCount > 0) {
+			message = "成功加密"+successCount+"个账户";
+		} else {
+			message = "账户已加密，无需重复加密";
+		}
+		return new Result(true, message);
+	}
+
+	public Result decryptWallet(String password) {
+		for(Account account:accountList) {
+			Result rs = decryptAccount(password, account.getAddress().getBase58(), Definition.TX_VERIFY_MG);
+			if(!rs.isSuccess()){
+				lockWallet();
+				return rs;
+			}
+		}
+		return new Result(true,"解密钱包成功");
+	}
+
+	public Result lockWallet(){
+		isLockWalletNow  = true;
+		isUnlockedByCmd = false;
+		return new Result(true,"锁定成功");
+//		resetKeys();
+	}
+
+
+
+	public Result unlockWallet(String password,int unlockSec) {
+		if(!isWalletEncrypted()) {
+			return new Result(true,"钱包未加密");
+		}else{
+			Result rs = decryptWallet(password);
+			if(!rs.isSuccess()){
+				return rs;
+			}
+		}
+		unlocktime = TimeService.currentTimeSeconds() + unlockSec;
+		isLockWalletNow = false;
+		isUnlockedByCmd = true;
+		new Thread("lockWalletThread") {
+			@Override
+			public void run() {
+				while (!isLockWalletNow) {
+					if (TimeService.currentTimeSeconds() - unlocktime > 0) {
+						break;
+					}
+					try {
+						Thread.sleep(100L);
+					}catch (Exception e){
+					}
+				}
+				unlocktime = TimeService.currentTimeSeconds();
+				isUnlockedByCmd = false;
+				resetKeys();
+			}
+		}.start();
+		return new Result(true,"解锁成功");
+	}
+
 	/**
 	 * 解密钱包
 	 * @param password  密码
 	 * @return Result
 	 */
-	public Result decryptWallet(String password,String address) {
-		return decryptWallet(password,address,Definition.TX_VERIFY_MG);
+	public Result decryptAccount(String password, String address) {
+		return decryptAccount(password,address,Definition.TX_VERIFY_MG);
 	}
 
 	/**
@@ -2848,7 +3458,7 @@ public class AccountKit {
 	 * @param type  1账户管理私钥 ，2交易私钥
 	 * @return Result
 	 */
-	public Result decryptWallet(String password,String address,int type) {
+	public Result decryptAccount(String password, String address, int type) {
 		//密码位数和难度检测
 		if(!validPassword(password)) {
 			return new Result(false, "密码错误");
@@ -2863,7 +3473,7 @@ public class AccountKit {
 			return new Result(false, "账户"+address+"不存在");
 		}
 
-		if(account.getAccountType() == network.getSystemAccountVersion()) {
+		if(account.getAccountType() == network.getSystemAccountVersion() && account.isEncrypted()) {
 			//普通账户的解密
 			account.resetKey(password);
 			ECKey eckey = account.getEcKey();
@@ -2897,7 +3507,7 @@ public class AccountKit {
 	 * @return Result
 	 */
 	public Result changeWalletPassword(String oldPassword, String newPassword) {
-		return changeWalletPassword(oldPassword, newPassword,null ,1);
+		return changeWalletPassword(oldPassword, newPassword,1);
 	}
 
 	/**
@@ -2927,14 +3537,21 @@ public class AccountKit {
 		//先解密
 		//如果修改认证账户，如果修改的是账户管理密码，这里的原密码就是账户管理密码 ，
 		//如果修改的是交易密码，这里的原密码也是账户管理密码，因为必须要账户管理密码才能修改
-		Result res = decryptWallet(oldPassword,address);
+		Result res = decryptAccount(oldPassword,address);
 		if(!res.isSuccess()) {
 			return res;
 		}
 
+		File normalAccountFile = new File(accountDir, "wallet.dat");
+		FileOutputStream normalfos = null;
+		try {
+			normalfos = new FileOutputStream(normalAccountFile,true);
+		}catch (Exception e){
+			return new Result(false, "打开文件wallet.dat失败");
+		}
 		int successCount = 0; //成功个数
 		//加密钱包
-		Account account = accountList.get(0);
+		Account account = getAccount(address);
 		try {
 			if(account.isCertAccount()) {
 
@@ -3001,15 +3618,13 @@ public class AccountKit {
 				account.verify();
 
 				//回写到钱包文件
-				File accountFile = new File(accountDir, account.getAddress().getBase58()+".dat");
 
-				FileOutputStream fos = new FileOutputStream(accountFile);
 				try {
 					//数据存放格式，type+20字节的hash160+私匙长度+私匙+公匙长度+公匙，钱包加密后，私匙是
-					fos.write(account.serialize());
+					normalfos.write(account.serialize());
 					successCount++;
 				} finally {
-					fos.close();
+
 				}
 				eckey = null;
 			}
@@ -3018,8 +3633,47 @@ public class AccountKit {
 			return new Result(false, String.format("加密 %s 失败: %s", account.getAddress().getBase58(), e.getMessage()));
 		} finally {
 			account.resetKey();
+			try {
+				normalfos.close();
+			}catch (Exception e){
+				//TODO
+			}
 		}
 		String message = "修改密码成功";
+		return new Result(true, message);
+	}
+
+
+	/**
+	 * 修改认证账户的密码
+	 * @param oldPassword	旧密码
+	 * @param newPassword	新密码
+	 * @param type  1账户管理私钥 ，2交易私钥
+	 * @return Result
+	 */
+	public Result changeWalletPassword(String oldPassword, String newPassword, int type) {
+		//密码位数和难度检测
+		if(!validPassword(oldPassword) || !validPassword(newPassword)) {
+			return new Result(false, "密码需6位或以上，且包含字母和数字");
+		}
+		//判断钱包是否加密
+		if(!isWalletEncrypted()) {
+			return new Result(false, "钱包尚未加密，请使用encryptwallet命令对钱包加密");
+		}
+
+		Result rs = decryptWallet(oldPassword);
+		if(!rs.isSuccess()){
+			return rs;
+		}
+		int successCount = 0; //成功个数
+		//加密钱包
+
+		Result res = encryptWallet(newPassword);
+		if(!res.isSuccess()) {
+			return res;
+		}
+
+		String message = "成功修改账户密码："+res.getMessage();
 		return new Result(true, message);
 	}
 
@@ -3037,6 +3691,7 @@ public class AccountKit {
 		}
 
 		//加载帐户目录下的所有帐户
+		Set<String> addresses = new HashSet<String>();
 		File[] accountFiles = accountDirFile.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
@@ -3063,18 +3718,24 @@ public class AccountKit {
 			try {
 				byte[] datas = new byte[fis.available()];
 				fis.read(datas);
-				Account account = Account.parse(datas, network);
-				if(account == null) {
-					log.warn("parse account err, file {}", accountFile);
-					continue;
-				}
-				//验证帐户
-				account.verify();
+				int cursor = 0;
+				while (cursor<datas.length) {
+					Account account = Account.parse(datas,cursor, network);
+					if (account == null) {
+						log.warn("parse account err, file {}", accountFile);
+						continue;
+					}
+					//验证帐户
+					account.verify();
+					if(!addresses.contains(account.getAddress().getBase58())) {
+						addresses.add(account.getAddress().getBase58());
+						accountList.add(account);
+					}
 
-				accountList.add(account);
-
-				if(log.isDebugEnabled()) {
-					log.debug("load account {} success", account.getAddress().getBase58());
+					if(log.isDebugEnabled()) {
+						log.debug("load account {} success", account.getAddress().getBase58());
+					}
+					cursor+= account.serialize().length;
 				}
 			} catch (VerificationException e) {
 				log.warn("read account file {} err", accountFile);
@@ -3282,26 +3943,36 @@ public class AccountKit {
 	}
 
 	public boolean accountIsEncrypted() {
-		return accountIsEncrypted(null,1);
+		String address = null;
+		return accountIsEncrypted(address,Definition.TX_VERIFY_MG);
 	}
 	/**
 	 * @return boolean
 	 */
 	public boolean accountIsEncrypted(int type) {
-		return accountIsEncrypted(null,type);
+		Account account = null;
+		return accountIsEncrypted(account,type);
 	}
 
+
+	/*
+	* 判断钱包是否加密：
+	* return :  true：至少有一个系统账户加密，false：所有系统账户都没有加密
+	* */
+	public boolean isWalletEncrypted(){
+		for(Account account:accountList){
+			if(!account.isCertAccount()&&accountIsEncrypted(account,Definition.TX_VERIFY_TR))
+				return true;
+		}
+		return false;
+	}
 
 	/**
 	 * @param type  1账户管理私钥 ，2交易私钥
 	 * @return boolean
 	 */
-	public boolean accountIsEncrypted(String address,int type) {
-		Account account = null;
-		if(address!=null){
-			account = getAccount(address);
-		}
-		if(account == null){
+	public boolean accountIsEncrypted(Account account,int type) {
+		if(account == null) {
 			account = getDefaultAccount();
 		}
 
@@ -3318,9 +3989,27 @@ public class AccountKit {
 	}
 
 	/**
+	 * @param type  1账户管理私钥 ，2交易私钥
+	 * @return boolean
+	 */
+	public boolean accountIsEncrypted(String address,int type) {
+		Account account = null;
+		if(address!=null){
+			account = getAccount(address);
+		}
+		if(account == null){
+			account = getDefaultAccount();
+		}
+		return accountIsEncrypted(account,type);
+	}
+
+	/**
 	 * 重新设置账户的私钥
 	 */
 	public void resetKeys() {
+		if(isUnlockedByCmd){
+			return;
+		}
 		for (Account account : accountList) {
 			account.resetKey();
 		}
@@ -3486,15 +4175,8 @@ public class AccountKit {
 		try {
 			BlockHeader bestBlockHeader = network.getBestBlockHeader();
 
-			Account account =null;
-			if(packagerAddress==null){
-				account = getDefaultAccount();
-			}else{
-				account = getAccount(packagerAddress);
-			}
-			if(account ==null){
-				return new Result(false, "账户"+packagerAddress+"不存在");
-			}
+			Account account = getDefaultAccount();
+
 			AccountStore accountStore = chainstateStoreProvider.getAccountInfo(account.getAddress().getHash160());
 			if((accountStore != null && accountStore.getCert() >= ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()))
 					|| (ConsensusCalculationUtil.getConsensusCredit(bestBlockHeader.getHeight()) <= 0l && accountStore == null)) {

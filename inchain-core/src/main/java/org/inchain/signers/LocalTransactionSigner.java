@@ -66,6 +66,47 @@ public class LocalTransactionSigner implements TransactionSigner {
     }
 
     /**
+     * 普通账户的签名
+     */
+    @Override
+    public boolean signOneInputs(Transaction tx, ECKey key,int inputIndex) {
+        int numInputs = tx.getInputs().size();
+        if(numInputs<inputIndex+1){
+            log.warn("交易输入index越界");
+            return false;
+        }
+
+        TransactionInput txIn = (TransactionInput) tx.getInput(inputIndex);
+        if (txIn.getFroms() == null || txIn.getFroms().size() == 0) {
+            log.warn("缺少上次交易的引用,index:{}", inputIndex);
+            return false;
+        }
+
+        RedeemData redeemData = txIn.getFroms().get(0).getRedeemData(key);
+
+        if ((key = redeemData.getFullKey()) == null) {
+            log.warn("No local key found for input {}", inputIndex);
+            return false;
+        }
+
+        Script inputScript = txIn.getScriptSig();
+        Script redeemScript = redeemData.redeemScript;
+
+        byte[] script = redeemScript.getProgram();
+        try {
+            TransactionSignature signature = tx.calculateSignature(inputIndex, key, script, Transaction.SigHash.ALL);
+            int sigIndex = 0;
+            inputScript = redeemScript.getScriptSigWithSignature(inputScript, signature.encode(), sigIndex);
+            txIn.setScriptSig(inputScript);
+        } catch (ECKey.MissingPrivateKeyException e) {
+            log.warn("No private key in keypair for input {}", inputIndex);
+        }
+
+
+        return true;
+    }
+
+    /**
      * 认证账户的签名
      * @param tx
      * @param eckeys

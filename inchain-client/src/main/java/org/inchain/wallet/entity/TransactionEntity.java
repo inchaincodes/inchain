@@ -10,6 +10,7 @@ public class TransactionEntity {
     private DetailValue detail;
     private String amount;
     private String time;
+    private DetailValue hash;
     
 	public TransactionEntity(Sha256Hash txHash, long status, String type, DetailValue detail, String amount, String time) {
 		this.txHash = txHash;
@@ -18,6 +19,9 @@ public class TransactionEntity {
 		this.detail = detail;
 		this.amount = amount;
 		this.time = time;
+		DetailValue detailValue = new DetailValue();
+		detailValue.setValue(this.txHash.toString());
+		this.hash = detailValue;
 	}
 	
 	public long getStatus() {
@@ -61,4 +65,11 @@ public class TransactionEntity {
 				+ ", time=" + time + "]";
 	}
 
+	public DetailValue getHash() {
+		return hash;
+	}
+
+	public void setHash(DetailValue hash) {
+		this.hash = hash;
+	}
 }

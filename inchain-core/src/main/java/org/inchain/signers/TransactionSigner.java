@@ -12,5 +12,6 @@ public interface TransactionSigner {
     void deserialize(byte[] data);
 
     boolean signInputs(Transaction tx, ECKey key);
+    boolean signOneInputs(Transaction tx, ECKey key,int inputIndex);
 
 }

@@ -6,6 +6,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.inchain.account.AccountBody;
+import org.inchain.account.Address;
 import org.inchain.core.Coin;
 import org.inchain.core.Product;
 import org.inchain.core.exception.VerificationException;
@@ -110,6 +111,13 @@ public interface RPCService {
 	JSONObject newAccount() throws JSONException, IOException;
 
 	/**
+	 * 创建count个普通账户
+	 * @return JSONObject
+	 * @throws JSONException
+	 * @throws IOException
+	 */
+	JSONObject newAccount(int count) throws JSONException, IOException;
+	/**
 	 * 创建一个认证账户
 	 * @param mgpw
 	 * @param trpw
@@ -164,8 +172,13 @@ public interface RPCService {
 	 * @return Coin[]
 	 */
 	Coin[] getAccountBalance(String address);
-	
 
+	/**
+	 * 获取所有账户的总余额
+	 * @param address
+	 * @return Coin[]
+	 */
+	Coin[] getTotalBalance();
 	/**
 	 * 获取账户的信用
 	 * @param address 
@@ -199,6 +212,16 @@ public interface RPCService {
 	 * @throws JSONException
 	 */
 	JSONArray getTransferTx(Long height, Long confirm, String address) throws JSONException;
+
+	/**
+	 * 获取交易记录
+	 * @param count
+	 * @param confirm
+	 * @param address
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONArray listtransactions(Integer limit, Integer confirm, String address) throws JSONException;
 
 	/**
 	 * 通过交易hash获取条交易详情
@@ -321,6 +344,13 @@ public interface RPCService {
 	JSONObject regConsensus(String password, String consensusAddress) throws JSONException;
 
 	/**
+	 * 获取当前注册共识所需费用
+	 * @return
+	 * @throws JSONException
+	 */
+	JSONObject regconsensusFee() throws JSONException;
+
+	/**
 	 * 退出共识
 	 * @param password
 	 * @return JSONObject
@@ -377,6 +407,15 @@ public interface RPCService {
 	 * @throws JSONException 
 	 */
 	JSONObject sendMoney(String toAddress, String money, String address, String password, String remark, String passwordOrRemark) throws JSONException;
+
+	/**
+	 * 发送交易
+	 * @param toaddressAndCoins[{toaddress_1,coin_1},toaddress_2,coin_2},...]
+	 * @param remark
+	 * @return JSONObject
+	 * @throws JSONException
+	 */
+	JSONObject sendMoneyToAddress(JSONArray toaddressAndCoins,String pass,String remark) throws JSONException;
 
 	/**
 	 * 锁仓奖励
@@ -603,5 +642,26 @@ public interface RPCService {
 	 * @return JSONObject
 	 */
 	JSONObject resetData() throws JSONException;
+
+	/**
+	 * 解锁钱包
+	 * @param password
+	 * @param timeSec
+	 * @return JSONObject
+	 */
+	JSONObject unlockWallet(String passwd,int timeSec) throws JSONException;
+
+	/**
+	 * 立即锁定钱包
+	 * @return JSONObject
+	 */
+	JSONObject lockWallet() throws JSONException;
+
+
+	/**
+	 * 检查地址是否合法
+	 * @return JSONObject
+	 */
+	JSONObject validateAddress(String address) throws JSONException;
 
 }

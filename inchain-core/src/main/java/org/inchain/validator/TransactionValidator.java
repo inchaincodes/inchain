@@ -109,7 +109,9 @@ public class TransactionValidator {
 			List<TransactionInput> inputs = tx.getInputs();
 			//交易引用的输入，赎回脚本必须一致
 			byte[] scriptBytes = null;
+			int i = 0;
 			for (TransactionInput input : inputs) {
+				scriptBytes = null;
 				List<TransactionOutput> outputs = input.getFroms();
 				if(outputs == null || outputs.size() == 0) {
 					throw new VerificationException("交易没有引用输入");
@@ -178,33 +180,7 @@ public class TransactionValidator {
 					byte[] statusKey = output.getKey();
 					byte[] state = chainstateStoreProvider.getBytes(statusKey);
 					if((state == null || Arrays.equals(state, new byte[]{ 1 })) && txs != null && !txs.isEmpty()) {
-						//没有状态，则可能是在 txs 里，txs里面不能有2笔对此的引用，否则就造成了双花
-//						int count = 0;
-//						for (Transaction t : txs) {
-//							if(t.getHash().equals(tx.getHash())) {
-//								continue;
-//							}
-//							List<TransactionInput> inputsTemp = t.getInputs();
-//							if(inputsTemp == null || inputsTemp.size() == 0) {
-//								continue;
-//							}
-//							for (TransactionInput in : t.getInputs()) {
-//								List<TransactionOutput> fromsTemp = in.getFroms();
-//								if(fromsTemp == null || fromsTemp.size() == 0) {
-//									break;
-//								}
-//								for (TransactionOutput fromTemp : fromsTemp) {
-//									if(fromTemp.getParent() != null && fromTemp.getParent().getHash().equals(fromId) && fromTemp.getIndex() == index) {
-//										count++;
-//									}
-//								}
-//							}
-//						}
-//						if(count > 1) {
-//							//双花了
-//							result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "同一块多个交易引用了同一个输入");
-//							return validatorResult;
-//						}
+
 					} else if(Arrays.equals(state, new byte[]{2})) {
 						//已经花费了
 						result.setResult(false, TransactionValidatorResult.ERROR_CODE_USED, "引用了已花费的交易");
@@ -267,8 +243,16 @@ public class TransactionValidator {
 					}
 				} else {
 					//验证赎回脚本
-					input.getScriptSig().execute(verifyScript);
+					if(tx.getType() == Definition.TYPE_ANTIFAKE_CODE_VERIFY) {
+//                		input.getScriptSig().execute(verifyScript);
+					} else if(!(
+						tx.getHash().toString().equals("eef6ef8421229850dfc7e276264b179eced6699f518691c555652df73a5cf86a")
+								|| tx.getHash().toString().equals("f134df4fdf57228cf95b8d69f038b872d04729868010dae62a101b0c7fd1aa91")
+					)) {
+						input.getScriptSig().run(tx, i, verifyScript);
+					}
 				}
+				i ++;
 			}
 			//验证本次交易的输出
 			List<TransactionOutput> outputs = tx.getOutputs();
