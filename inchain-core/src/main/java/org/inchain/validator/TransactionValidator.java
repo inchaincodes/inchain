@@ -263,6 +263,10 @@ public class TransactionValidator {
 					result.setResult(false, "输出金额不能为负数");
 					return validatorResult;
 				}
+				if(outputCoin.isGreaterThan(Configure.MAX_OUTPUT_COIN)) {
+					result.setResult(false, "输出金额不能超过1亿");
+					return validatorResult;
+				}
 				txOutputFee = txOutputFee.add(outputCoin);
 			}
 			//验证不能给自己转账

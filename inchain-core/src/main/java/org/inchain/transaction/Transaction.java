@@ -202,7 +202,7 @@ public class Transaction extends Message {
 				if(fromOutputs.size() > 20000) {
 					throw new VerificationException("交易输入引用最多20000个");
 				}
-				
+
 				//交易输入引用必须存在
 				//且交易不能有多个相同的引用
 				for (TransactionOutput transactionOutput : fromOutputs) {

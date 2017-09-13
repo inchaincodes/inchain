@@ -37,11 +37,19 @@ public class Test {
 	}
 	
 	public static void main(String[] args){
-		ECKey key1 = new ECKey();
-		ECKey key2 = new ECKey();
+//		ECKey key1 = new ECKey();
+//		ECKey key2 = new ECKey();
+//
+//		System.out.println(new String(key1.getPubKey()));
+//
+//		System.out.println(new String(key2.getPubKey()));
 
-		System.out.println(new String(key1.getPubKey()));
+		long max = Long.MAX_VALUE;
 
-		System.out.println(new String(key2.getPubKey()));
+		if(3 == 0x7fffffffffffffffL + 0x7fffffffffffffffL + 5) {
+			System.out.println("yes");
+		}else {
+			System.out.println("no");
+		}
 	}
 }
