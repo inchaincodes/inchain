@@ -50,6 +50,7 @@ public class BusinessRecordController implements SubPageController {
 	public TableColumn<BusinessEntity, String> name;
 	public TableColumn<BusinessEntity, List<AccountKeyValue>> detail;
 	public TableColumn<BusinessEntity, String> time;
+	private  int count = 0;
 	
 	private List<AccountStore> businessList;
 	
@@ -147,7 +148,13 @@ public class BusinessRecordController implements SubPageController {
      * 初始化
      */
     public void initDatas() {
-    	
+    	if(count != 0){
+			count = (count+1)%60;
+    		return;
+		}else {
+    		count ++;
+		}
+
     	if(log.isDebugEnabled()) {
     		log.debug("加载商家列表···");
     	}
@@ -195,6 +202,7 @@ public class BusinessRecordController implements SubPageController {
 				if(AccountKeyValue.LOGO.getCode().equals(keyValuePair.getCode())) {
 					//图标
 					entity.setLogo(keyValuePair.getValue());
+
 				} else if(AccountKeyValue.NAME.getCode().equals(keyValuePair.getCode())) {
 					//图标
 					entity.setName(keyValuePair.getValueToString());
