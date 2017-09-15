@@ -664,4 +664,5 @@ public interface RPCService {
 	 */
 	JSONObject validateAddress(String address) throws JSONException;
 
+	JSONObject importPriKey(String prikey) throws JSONException;
 }
