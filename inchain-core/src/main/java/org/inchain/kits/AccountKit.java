@@ -3225,11 +3225,19 @@ public class AccountKit {
 			//备份原账户
 
 			String newBackupFile =  "wallet_auto_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
-			new File(accountDir,   "wallet.dat")
+			new File(accountDir+ File.separator,   "wallet.dat")
 					.renameTo(new File(accountDir, newBackupFile));
 
+			for (Account account : accountList) {
+				String base58 = account.getAddress().getBase58();
+				newBackupFile = base58 + "_auto_backup_".concat(DateUtil.convertDate(new Date(TimeService.currentTimeMillis()), "yyyyMMddHHmmss")).concat(".dat.temp");
+				File temp = new File(accountDir+ File.separator, base58 + ".dat");
+				if(temp.exists()) {
+					temp.renameTo(new File(accountDir+ File.separator, newBackupFile));
+				}
+			}
 
-			File accountFile = new File(accountDir, "wallet.dat");
+			File accountFile = new File(accountDir+ File.separator, "wallet.dat");
 			FileOutputStream fos = new FileOutputStream(accountFile);
 			try {
 				for (Account account : importAccountList) {
@@ -3410,6 +3418,49 @@ public class AccountKit {
 	}
 
 
+	public Result importPriKey(String prikey){
+		Result ret = null;
+		FileOutputStream fos = null;
+		String importFile = "";
+		Address addressTemp = null;
+		try{
+			BigInteger pri = new BigInteger( Hex.decode(prikey));
+
+			ECKey keyTemp = ECKey.fromPrivate(pri);
+			addressTemp = AccountTool.newAddress(network, keyTemp);
+
+			Account account = new Account(network);
+			account.setAddress(addressTemp);
+
+			account.setEcKey(keyTemp);
+			account.setMgPubkeys(new byte[][]{ keyTemp.getPubKey()});
+			account.setPriSeed(keyTemp.getPrivKeyBytes());
+			account.signAccount();
+			account.verify();
+
+			File accountFile = new File(accountDir+ File.separator, addressTemp.getBase58()+".dat");
+			importFile = accountDir+File.separator+addressTemp.getBase58()+".dat";
+			fos = new FileOutputStream(accountFile);
+			fos.write(account.serialize());
+		} catch (Exception e){
+			ret = new Result(false,"密钥错误");
+			return ret;
+		} finally {
+			try {
+				fos.close();
+			}catch (Exception e){
+				//donothing
+			}
+		}
+		try {
+			importWallet(importFile);
+		}catch (Exception e){
+			ret = new Result(false,"导入失败");
+			return ret;
+		}
+		ret = new Result(true,"导入账户"+addressTemp.getBase58()+"成功");
+		return  ret;
+	}
 
 	public Result unlockWallet(String password,int unlockSec) {
 		if(!isWalletEncrypted()) {

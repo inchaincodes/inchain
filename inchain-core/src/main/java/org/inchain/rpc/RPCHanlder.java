@@ -1156,6 +1156,17 @@ public class RPCHanlder {
 			return rpcService.getAssetsRegList();
 		}
 
+		//查询资产注册列表
+		case "importprikey": {
+			if(params.length()!=1){
+				result.put("success", false);
+				result.put("message", "参数错误");
+				return result;
+			}
+			String prikey = params.getString(0);
+			return rpcService.importPriKey(prikey);
+		}
+
 		//资产签发
 		//参数格式：  资产代码  接收人地址 资产发行数量  备注 资产注册人地址(选填)  密码(选填)
 		case "assetsissue" : {

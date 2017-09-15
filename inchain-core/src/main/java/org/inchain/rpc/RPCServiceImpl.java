@@ -3368,4 +3368,9 @@ public class RPCServiceImpl implements RPCService {
 		accountKit.lockWallet();
 		return new JSONObject().put("success",true).put("message","锁定成功");
 	}
+
+	public JSONObject importPriKey(String prikey)throws JSONException{
+		Result rs = accountKit.importPriKey(prikey);
+		return new JSONObject().put("success",rs.isSuccess()).put("message",rs.getMessage());
+	}
 }
