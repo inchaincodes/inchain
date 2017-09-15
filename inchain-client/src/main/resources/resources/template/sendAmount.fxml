@@ -61,7 +61,7 @@
                      <font>
                         <Font name="Microsoft YaHei" size="14.0" />
                      </font></Label>
-                  <Label fx:id="canUseBlanaceId" textFill="WHITE">
+                  <Label fx:id="canUseBalanceId" textFill="WHITE">
                      <HBox.margin>
                         <Insets left="41.0" />
                      </HBox.margin>

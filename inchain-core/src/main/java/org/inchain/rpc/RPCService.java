@@ -35,7 +35,7 @@ import org.inchain.core.exception.VerificationException;
  * getaccountpubkeys			获取帐户的公钥
  * dumpprivateseed 				备份私钥种子，同时显示帐户的hash160
  * 
- * getblanace					获取帐户的余额
+ * getbalance					获取帐户的余额
  * gettransaction				获取帐户的交易记录
  * 
  * ---交易相关

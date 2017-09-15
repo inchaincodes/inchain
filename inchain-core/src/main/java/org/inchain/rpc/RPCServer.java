@@ -37,7 +37,7 @@ import org.springframework.stereotype.Service;
  * --- 帐户 newaccount [mgpw trpw] 创建帐户，同时必需指定帐户管理密码和交易密码 getaccountaddress
  * 获取帐户的地址 getaccountpubkeys 获取帐户的公钥 dumpprivateseed 备份私钥种子，同时显示帐户的hash160
  * 
- * getblanace 获取帐户的余额 gettransaction 获取帐户的交易记录
+ * getbalance 获取帐户的余额 gettransaction 获取帐户的交易记录
  * 
  * ---交易相关 TODO ···
  * 

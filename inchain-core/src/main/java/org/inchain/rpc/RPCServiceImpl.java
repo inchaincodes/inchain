@@ -1973,10 +1973,10 @@ public class RPCServiceImpl implements RPCService {
 		json.put("type", info.getType());
 		json.put("adderss", new Address(network, info.getType(), info.getHash160()).getBase58());
 		json.put("status",info.getStatus());
-		Coin[] blanaces = getAccountBalance(address);
-		json.put("blanace", blanaces[0].add(blanaces[1]).value);
-		json.put("canUseBlanace", blanaces[0].value);
-		json.put("cannotUseBlanace", blanaces[1].value);
+		Coin[] balances = getAccountBalance(address);
+		json.put("balance", balances[0].add(balances[1]).value);
+		json.put("canUseBalance", balances[0].value);
+		json.put("cannotUseBalance", balances[1].value);
 		json.put("cert", info.getCert());
 		json.put("level",info.getLevel());
 		json.put("supervisor",(info.getSupervisor()==null||info.getSupervisor().length!=20)?"":new Address(network,network.getCertAccountVersion(), info.getSupervisor()).getBase58());

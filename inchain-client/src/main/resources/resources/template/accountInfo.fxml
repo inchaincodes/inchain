@@ -130,7 +130,7 @@
                               <Insets left="15.0" />
                            </HBox.margin>
                         </Label>
-                        <Label fx:id="canUseBlanaceId" text="0.00">
+                        <Label fx:id="canUseBalanceId" text="0.00">
                            <font>
                               <Font name="Microsoft YaHei" size="14.0" />
                            </font>
@@ -161,7 +161,7 @@
                               <Insets left="15.0" />
                            </HBox.margin>
                         </Label>
-                        <Label fx:id="canNotUseBlanaceId" text="0.00">
+                        <Label fx:id="canNotUseBalanceId" text="0.00">
                            <font>
                               <Font name="Microsoft YaHei" size="14.0" />
                            </font>

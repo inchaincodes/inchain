@@ -59,8 +59,8 @@ public class AccountInfoController implements SubPageController {
 	private AccountInfoListener accountInfoListener;
 
 	public Label totalBalanceId; // 总余额
-	public Label canUseBlanaceId; // 可用余额
-	public Label canNotUseBlanaceId; // 不可用余额
+	public Label canUseBalanceId; // 可用余额
+	public Label canNotUseBalanceId; // 不可用余额
 	public Label addressId; // 账户地址
 	public TextField aliasId; // 账户别名
 	public Label certId; // 信用
@@ -141,8 +141,8 @@ public class AccountInfoController implements SubPageController {
 			@Override
 			public void run() {
 				totalBalanceId.setText(address.getBalance().add(address.getUnconfirmedBalance()).toText());
-				canUseBlanaceId.setText(address.getBalance().toText());
-				canNotUseBlanaceId.setText(address.getUnconfirmedBalance().toText());
+				canUseBalanceId.setText(address.getBalance().toText());
+				canNotUseBalanceId.setText(address.getUnconfirmedBalance().toText());
 				addressId.setText(address.getBase58());
 				certId.setText(String.valueOf(accountStore.getCert()));
 				transactionNumberId.setText(String.valueOf(transactionStoreProvider.getTransactions().size()));

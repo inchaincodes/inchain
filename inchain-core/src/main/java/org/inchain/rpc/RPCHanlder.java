@@ -52,7 +52,7 @@ import org.springframework.util.StringUtils;
  * getaccountpubkeys			获取帐户的公钥
  * dumpprivateseed 				备份私钥种子，同时显示帐户的hash160
  * 
- * getblanace					获取帐户的余额
+ * getbalance					获取帐户的余额
  * gettransaction				获取帐户的交易记录
  * 
  * ---交易相关
@@ -351,12 +351,12 @@ public class RPCHanlder {
 					address = params.getString(0);
 				}
 
-				Coin[] blanaces = rpcService.getAccountBalance(address);
+				Coin[] balances = rpcService.getAccountBalance(address);
 
 				result.put("success", true);
-				result.put("blanace", blanaces[0].add(blanaces[1]).value);
-				result.put("canUseBlanace", blanaces[0].value);
-				result.put("cannotUseBlanace", blanaces[1].value);
+				result.put("balance", balances[0].add(balances[1]).value);
+				result.put("canUseBalance", balances[0].value);
+				result.put("cannotUseBalance", balances[1].value);
 
 				return result;
 			}
@@ -370,12 +370,12 @@ public class RPCHanlder {
 					address = params.getString(0);
 				}
 
-				Coin[] blanaces = rpcService.getTotalBalance();
+				Coin[] balances = rpcService.getTotalBalance();
 
 				result.put("success", true);
-				result.put("blanace", blanaces[0].add(blanaces[1]).value);
-				result.put("canUseBlanace", blanaces[0].value);
-				result.put("cannotUseBlanace", blanaces[1].value);
+				result.put("balance", balances[0].add(balances[1]).value);
+				result.put("canUseBalance", balances[0].value);
+				result.put("cannotUseBalance", balances[1].value);
 
 				return result;
 			}
@@ -1599,6 +1599,7 @@ public class RPCHanlder {
 		sb.append("  getbalance                                                                                                                        获取账户的余额\n");
 		sb.append("  getcredit                                                                                                                           获取账户的信用\n");
 		sb.append("  getaccountinfo                                                                                                           获取账户的详细信息\n");
+		sb.append("  importprikey                                                                                                           把私钥导入账户到钱包\n");
 
 		sb.append("  getaccounts                                                                                                              获取钱包所有账户列表\n");
 		sb.append("  encryptwallet <password>                                                                                                         加密钱包\n");

@@ -44,7 +44,7 @@ public class SendAmountController implements SubPageController {
 	
 	private static final Logger log = LoggerFactory.getLogger(SendAmountController.class);
 	
-	public Label canUseBlanaceId;					//可用余额
+	public Label canUseBalanceId;					//可用余额
 	public TextField receiveAddressId;				//接收地址
 	public TextField sendAmountId;					//发送金额
 	public TextField feeId;							//手续费
@@ -140,7 +140,7 @@ public class SendAmountController implements SubPageController {
     		Account account = accountList.get(0);
     		//设置内页的余额
     		Address address = account.getAddress();
-    		canUseBlanaceId.setText(address.getBalance().toText());
+			canUseBalanceId.setText(address.getBalance().toText());
     	}
 	}
 

@@ -50,7 +50,7 @@ public class ChainstateStoreProviderTest extends UnitBaseTestCase {
 		
 		assertEquals(1, infos[41]);
 		
-		long blanace = Utils.readUint32BE(infos, 4);
-		assertEquals(0, blanace);
+		long balance = Utils.readUint32BE(infos, 4);
+		assertEquals(0, balance);
 	}
 }
