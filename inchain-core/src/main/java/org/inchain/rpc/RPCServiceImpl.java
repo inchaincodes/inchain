@@ -2211,7 +2211,7 @@ public class RPCServiceImpl implements RPCService {
 
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
-
+			json.put("txHash", br.getHash());
 			return json;
 		} catch (Exception e) {
 			json.put("success", false);
@@ -2402,7 +2402,7 @@ public class RPCServiceImpl implements RPCService {
 
 				json.put("success", br.isSuccess());
 				json.put("message", br.getMessage());
-
+				json.put("txHash", br.getHash());
 				return json;
 			} catch (Exception e) {
 				MempoolContainer.getInstace().remove(tx.getHash());
@@ -2504,7 +2504,7 @@ public class RPCServiceImpl implements RPCService {
 			BroadcastResult br = accountKit.broadcastTransferTransaction(account, moneyCoin, feeCoin, fromOutputs, receiveAddress,remark);
 			json.put("success", br.isSuccess());
 			json.put("message", br.getMessage());
-
+			json.put("txHash", br.getHash());
 		}catch (Exception e) {
 			json.put("success", false);
 			json.put("message", e.getMessage());
