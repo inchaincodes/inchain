@@ -39,6 +39,9 @@ public final class ConsensusCalculationUtil {
 	 * @return Coin
 	 */
 	public final static Coin calculatReward(long height) {
+		if(height>540000){
+			return Coin.ZERO;
+		}
 		if(height < START_HEIGHT) {
 			return Coin.ZERO;
 		}

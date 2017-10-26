@@ -626,7 +626,7 @@ public class TransactionStoreProvider extends BaseStoreProvider {
 
 		for(int j=0;j<hash160s.size();j++){
 			byte[] hash160 = hash160s.get(j);
-			log.info("find user"+ Hex.encode(hash160));
+			//log.info("find user"+ Hex.encode(hash160));
 			ArrayList<TransactionOutput> unSpentOutputs= new ArrayList<TransactionOutput>();
 			for (TransactionStore transactionStore : unspendTxList){
 				//交易状态

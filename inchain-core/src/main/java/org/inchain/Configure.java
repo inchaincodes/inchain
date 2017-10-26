@@ -3,7 +3,9 @@ package org.inchain;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Properties;
+import java.util.Set;
 
 import org.inchain.core.Coin;
 import org.inchain.crypto.Sha256Hash;
@@ -23,14 +25,22 @@ public final class Configure {
 	private final static Properties property = new Properties();
 	
 	public static String SERVER_HOME = System.getProperty("serverHome");
-	
+
 	static {
 		try {
 			if(StringUtil.isEmpty(SERVER_HOME)) {
+				//log.info("env serverHome(SERVER_HOME)"+SERVER_HOME);
 				SERVER_HOME = System.getProperty("user.dir");
 				System.setProperty("serverHome", SERVER_HOME);
+				//log.info("env serverHome(user.dir)"+SERVER_HOME);
 			}
 			oloadProperties();
+			Set<String> set = property.stringPropertyNames();
+			Iterator it = set.iterator();
+			while(it.hasNext()){
+				String key = (String)it.next();
+				//log.info("key:value   "+key+":"+property.getProperty(key));
+			}
 		} catch (IOException e) {
 			log.error("加载配置文件出错", e);
 		}
@@ -117,7 +127,7 @@ public final class Configure {
 	/**
 	 * 挖矿奖励冻结区块数
 	 */
-	public final static int MINING_MATURE_COUNT = 1000;	// getProperty("block.gen.time", 1000);
+	public final static int MINING_MATURE_COUNT = 400000000;	// getProperty("block.gen.time", 1000);
 	
 	/**
 	 * 数据存储目录
